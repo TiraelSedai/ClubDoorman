@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  doorman:
+    build: ./ClubDoorman
+    container_name: doorman
+    environment:
+      - TZ=Europe/Moscow
+      - DOORMAN_CLUB_SERVICE_TOKEN=${DOORMAN_CLUB_SERVICE_TOKEN}
+      - DOORMAN_BOT_API=${DOORMAN_BOT_API}
+      - DOORMAN_ADMIN_CHAT=${DOORMAN_ADMIN_CHAT}
+    volumes:
+      - C:\Users\Tirae\OneDrive\Repos\ClubDoorman\ClubDoorman\data:/app/data
+    restart: unless-stopped
