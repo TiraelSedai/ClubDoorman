@@ -267,8 +267,6 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
 
         const int challengeLength = 8;
-        Debug.Assert(challengeLength % 2 == 0);
-
         var correctAnswerIndex = Random.Shared.Next(challengeLength);
         var challenge = new List<int>(challengeLength);
         while (challenge.Count < challengeLength)
@@ -277,12 +275,11 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             if (!challenge.Contains(rand))
                 challenge.Add(rand);
         }
-
         var correctAnswer = challenge[correctAnswerIndex];
+
         var keyboard = challenge
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"cap_{user.Id}_{x}" })
             .ToList();
-
         var del = await _bot.SendTextMessageAsync(
             message.Chat.Id,
             $"Привет! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
