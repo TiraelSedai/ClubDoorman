@@ -103,7 +103,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         if (message.NewChatMembers != null && message.Chat.Id != Config.AdminChatId)
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
-                await IntroFlow(message, newUser);
+                await CaptchaFlow(message, newUser);
             return;
         }
 
@@ -255,7 +255,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         // Else: Theoretically we could approve user here, but I've seen spammers who can pass captcha and then post spam
     }
 
-    private async ValueTask IntroFlow(Message message, User user)
+    private async ValueTask CaptchaFlow(Message message, User user)
     {
         if (userManager.Approved(user.Id))
             return;
