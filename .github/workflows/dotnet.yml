@@ -27,7 +27,7 @@ jobs:
       run: dotnet test --no-restore
 
     - name: Build Docker image
-      run: docker build -t ${{ env.repo_name }}:${{ github.sha }} .
+      run: docker build -t ${{ env.repo_name }}:${{ github.sha }} ./ClubDoorman
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v2
