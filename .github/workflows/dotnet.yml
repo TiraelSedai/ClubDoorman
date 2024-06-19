@@ -29,7 +29,7 @@ jobs:
       run: dotnet test --no-restore
 
     - name: Build Docker image
-      run: docker build -t ${{ env.repo_name }}:latest -t ${{ env.repo_name }}:${{ steps.vars.outputs.version }} ./ClubDoorman
+      run: docker build -t ghcr.io/${{ env.repo_name }}:latest -t ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }} ./ClubDoorman
       
     - name: Check Token Permissions
       run: |
@@ -40,9 +40,9 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.CR_PAT }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Push Docker image to GitHub Container Registry
       run: |
-        docker push ${{ env.repo_name }}:latest
-        docker push ${{ env.repo_name }}:${{ steps.vars.outputs.version }}
+        docker push ghcr.io/${{ env.repo_name }}:latest
+        docker push ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
