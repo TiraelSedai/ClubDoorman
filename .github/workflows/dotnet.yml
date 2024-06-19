@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      
+    - name: Set lowercase repo name
+      run: echo "REPO_NAME=${{ github.repository }}".lower() >> $GITHUB_ENV
+      
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -23,7 +27,7 @@ jobs:
       run: dotnet test --no-restore
 
     - name: Build Docker image
-      run: docker build -t ${{ github.actor }}/${{ github.repository }}:${{ github.sha }} .
+      run: docker build -t ${{ env.REPO_NAME }}:${{ github.sha }} .
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v2
@@ -33,7 +37,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Push Docker image to GitHub Container Registry
-      run: docker push ${{ github.actor }}/${{ github.repository }}:${{ github.sha }}
+      run: docker push ${{ env.REPO_NAME }}:${{ github.sha }}
 
     - name: Clean up post-run
-      run: docker rmi ${{ github.actor }}/${{ github.repository }}:${{ github.sha }}
+      run: docker rmi ${{ env.REPO_NAME }}:${{ github.sha }}
