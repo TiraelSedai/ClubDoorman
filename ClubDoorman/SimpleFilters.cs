@@ -1,10 +1,11 @@
 ﻿namespace ClubDoorman;
 
-public class SimpleFilters
+public static class SimpleFilters
 {
-    private readonly string[] _stopWords = File.ReadAllLines("data/stop-words.txt");
+    private static readonly string[] StopWords = File.ReadAllLines("data/stop-words.txt");
 
-    public bool HasStopWords(string message) => _stopWords.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
+    public static bool HasStopWords(string message) =>
+        StopWords.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
 
     public static bool TooManyEmojis(string message) => message.Length > 20 && message.Where(IsEmoji).Count() >= 10;
 

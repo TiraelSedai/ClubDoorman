@@ -7,10 +7,9 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
 
-public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager, SimpleFilters simpleFilters)
-    : BackgroundService
+public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager) : BackgroundService
 {
-    private record CaptchaInfo(Message Message, DateTime Timestamp, User User, int CorrectAnswer);
+    private record CaptchaInfo(Message Message, DateTime Timestamp, User User, int CorrectAnswer, CancellationTokenSource Cts);
 
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
@@ -103,7 +102,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         if (message.NewChatMembers != null && message.Chat.Id != Config.AdminChatId)
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
-                await CaptchaFlow(message, newUser);
+                await IntroFlow(message, newUser);
             return;
         }
 
@@ -164,7 +163,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         }
 
-        if (simpleFilters.HasStopWords(normalized))
+        if (SimpleFilters.HasStopWords(normalized))
         {
             const string reason = "В этом сообщени есть стоп-слова";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
@@ -247,6 +246,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         }
         Debug.Assert(info != null);
+        await info.Cts.CancelAsync();
         if (info.CorrectAnswer != chosen)
         {
             await _bot.BanChatMemberAsync(message.Chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
@@ -255,8 +255,9 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         // Else: Theoretically we could approve user here, but I've seen spammers who can pass captcha and then post spam
     }
 
-    private async ValueTask CaptchaFlow(Message message, User user)
+    private async ValueTask IntroFlow(Message message, User user)
     {
+        logger.LogDebug("Intro flow {@User}", user);
         if (userManager.Approved(user.Id))
             return;
         var clubUser = await userManager.GetClubUsername(user.Id);
@@ -276,7 +277,6 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 challenge.Add(rand);
         }
         var correctAnswer = challenge[correctAnswerIndex];
-
         var keyboard = challenge
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"cap_{user.Id}_{x}" })
             .ToList();
@@ -286,9 +286,10 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             replyToMessageId: message.MessageId,
             replyMarkup: new InlineKeyboardMarkup(keyboard)
         );
-        DeleteMessageLater(del, TimeSpan.FromMinutes(1.15));
+        var cts = new CancellationTokenSource();
+        DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
         var key = MessageToKey(message, user);
-        _captchaNeededUsers.TryAdd(key, new CaptchaInfo(message, DateTime.UtcNow, user, correctAnswer));
+        _captchaNeededUsers.TryAdd(key, new CaptchaInfo(message, DateTime.UtcNow, user, correctAnswer, cts));
     }
 
     private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
@@ -324,7 +325,8 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     {
         var user = update.ChatMember;
         Debug.Assert(user != null);
-
+        if (user.NewChatMember.Status == ChatMemberStatus.Member)
+            logger.LogDebug("New chat member new {@New} old {@Old}", user.NewChatMember, user.OldChatMember);
         if (user.NewChatMember.Status is ChatMemberStatus.Kicked or ChatMemberStatus.Restricted)
             await _bot.SendTextMessageAsync(
                 new ChatId(Config.AdminChatId),
@@ -409,7 +411,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         var now = DateTime.UtcNow;
         var users = _captchaNeededUsers.ToArray();
-        foreach (var (key, (message, timestamp, user, _)) in users)
+        foreach (var (key, (message, timestamp, user, _, _)) in users)
         {
             var minutes = (now - timestamp).TotalMinutes;
             if (minutes > 1)
@@ -420,21 +422,24 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
     }
 
-    private void DeleteMessageLater(Message message, TimeSpan after = default)
+    private void DeleteMessageLater(Message message, TimeSpan after = default, CancellationToken cancellationToken = default)
     {
         if (after == default)
             after = TimeSpan.FromMinutes(5);
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(after);
-            try
+        _ = Task.Run(
+            async () =>
             {
-                await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "DeleteMessageAsync");
-            }
-        });
+                try
+                {
+                    await Task.Delay(after, cancellationToken);
+                    await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogWarning(ex, "DeleteMessageAsync");
+                }
+            },
+            cancellationToken
+        );
     }
 }
