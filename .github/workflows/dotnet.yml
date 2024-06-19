@@ -3,8 +3,6 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   build-and-push:
@@ -32,6 +30,10 @@ jobs:
 
     - name: Build Docker image
       run: docker build -t ${{ env.repo_name }}:latest -t ${{ env.repo_name }}:${{ steps.vars.outputs.version }} ./ClubDoorman
+      
+    - name: Check Token Permissions
+      run: |
+        curl -H "Authorization: Bearer ${{ secrets.CR_PAT }}" https://ghcr.io/v2/
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v2
