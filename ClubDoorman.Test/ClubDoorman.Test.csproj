@@ -24,10 +24,12 @@
     <ItemGroup>
       <ProjectReference Include="..\ClubDoorman\ClubDoorman.csproj" />
     </ItemGroup>
-    
+
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="if not exist &quot;$(TargetDir)data&quot; mkdir &quot;$(TargetDir)data&quot;" />
-        <Exec Command="copy &quot;$(SolutionDir)ClubDoorman\data\stop-words.txt&quot; &quot;$(TargetDir)data\stop-words.txt&quot;" />
+        <Exec Command="mkdir -p &quot;$(TargetDir)data&quot;" />
+        <Exec Command="cp -n &quot;$(SolutionDir)ClubDoorman/data/stop-words.txt&quot; &quot;$(TargetDir)data/stop-words.txt&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+        <Exec Command="if not exist &quot;$(TargetDir)data&quot; mkdir &quot;$(TargetDir)data&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+        <Exec Command="copy &quot;$(SolutionDir)ClubDoorman\\data\\stop-words.txt&quot; &quot;$(TargetDir)data\\stop-words.txt&quot;" Condition="'$(OS)' == 'Windows_NT'" />
     </Target>
 
 </Project>
