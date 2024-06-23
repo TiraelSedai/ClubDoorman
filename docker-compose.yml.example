@@ -1,7 +1,6 @@
-version: "3.8"
 services:
   doorman:
-    build: ./ClubDoorman
+    image: ghcr.io/tiraelsedai/clubdoorman:latest
     container_name: doorman
     environment:
       - TZ=Europe/Moscow
@@ -9,5 +8,5 @@ services:
       - DOORMAN_BOT_API=${DOORMAN_BOT_API}
       - DOORMAN_ADMIN_CHAT=${DOORMAN_ADMIN_CHAT}
     volumes:
-      - C:\Users\Tirae\OneDrive\Repos\ClubDoorman\ClubDoorman\data:/app/data
+      - /home/tirael/clubdoorman/data:/app/data
     restart: unless-stopped
