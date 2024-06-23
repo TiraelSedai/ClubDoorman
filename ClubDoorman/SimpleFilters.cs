@@ -15,11 +15,14 @@ public static class SimpleFilters
         TextProcessor
             .NormalizeText(message)
             .Split(null)
-            .Where(word => IsRussianWord(word) && word.Any(c => !IsCyrillicLowercase(c) && !AllowedNonCyrillic(c)))
+            .Where(word => IsRussianWord(word) && word.Any(c => !IsCyrillicLowercase(c) && !AllowedNonRussianCyrillicOrDigit(c)))
             .ToList();
 
     public static List<string> FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(string message) =>
-        message.Split(null).Where(word => IsRussianWord(word) && word.Any(c => !IsCyrillicLowercase(c) && !AllowedNonCyrillic(c))).ToList();
+        message
+            .Split(null)
+            .Where(word => IsRussianWord(word) && word.Any(c => !IsCyrillicLowercase(c) && !AllowedNonRussianCyrillicOrDigit(c)))
+            .ToList();
 
     private static bool IsRussianWord(string word)
     {
@@ -29,7 +32,8 @@ public static class SimpleFilters
         return cyrillicCount >= word.Length / 2;
     }
 
-    private static bool AllowedNonCyrillic(char c) => c == 'i' || c == 'і' || c == 'ћ' || (c >= '0' && c <= '9');
+    private static bool AllowedNonRussianCyrillicOrDigit(char c) =>
+        c == 'i' || c == 'і' || c == 'ћ' || c == 'є' || c == 'љ' || c == 'њ' || (c >= '0' && c <= '9');
 
     private static bool IsCyrillicLowercase(char c) => c is >= 'а' and <= 'я';
 }
