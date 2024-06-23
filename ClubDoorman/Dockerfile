@@ -14,6 +14,7 @@ RUN dotnet build "./ClubDoorman.csproj" -c $BUILD_CONFIGURATION -o /app/build
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./ClubDoorman.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN mv /app/publish/data /app/publish/data_init
 
 FROM base AS final
 WORKDIR /app
