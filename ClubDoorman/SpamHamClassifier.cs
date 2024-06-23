@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using CsvHelper;
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -78,7 +79,8 @@ public class SpamHamClassifier
         message = message.Replace("\"", "\"\"");
         message = $"\"{message}\", {spam}";
         using var token = await SemaphoreHelper.AwaitAsync(_datasetLock);
-        await File.AppendAllLinesAsync(SpamHamDataset, [message]);
+        var utf8WithoutBom = new UTF8Encoding(false);
+        await File.AppendAllLinesAsync(SpamHamDataset, [message], utf8WithoutBom);
         _needsRetraining = true;
     }
 
