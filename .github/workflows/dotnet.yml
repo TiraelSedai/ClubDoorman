@@ -31,10 +31,6 @@ jobs:
     - name: Build Docker image
       run: docker build -t ghcr.io/${{ env.repo_name }}:latest -t ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }} ./ClubDoorman
       
-    - name: Check Token Permissions
-      run: |
-        curl -H "Authorization: Bearer ${{ secrets.CR_PAT }}" https://ghcr.io/v2/
-
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v2
       with:
