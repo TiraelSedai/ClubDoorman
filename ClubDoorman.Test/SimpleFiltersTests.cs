@@ -17,6 +17,8 @@ public class Tests
     [TestCase("Ищyлюдeйαπό", true, TestName = "Greek")]
     [TestCase("это русское слово и в нём есть", false, TestName = "Yo")]
     [TestCase("хей", false, TestName = "IKratkoe")]
+    [TestCase("адказ на пытанне хто вы з гэтай кнігі", false, TestName = "Belarus")]
+    [TestCase("Дорћол", false, TestName = "Serbian")]
     public void HasLookAlikeSymbols_Tests(string word, bool expectedResult)
     {
         var result = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(word);
