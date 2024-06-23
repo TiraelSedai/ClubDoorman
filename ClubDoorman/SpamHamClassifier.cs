@@ -91,10 +91,7 @@ public class SpamHamClassifier
             var stopWords = (await File.ReadAllTextAsync("data/exclude-tokens.txt")).Split(',').Select(x => x.Trim()).ToArray();
 
             List<MessageData> dataset;
-            // Right now dataset is around 160KB, but if/when it will be huge we would need to normalize line endings without loading everything into memory
-            var csvContent = await File.ReadAllTextAsync(SpamHamDataset);
-            var normalizedCsvContent = NormalizeLineEndings(csvContent);
-            using (var reader = new StringReader(normalizedCsvContent))
+            using (var reader = new StreamReader(SpamHamDataset))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
                 dataset = csv.GetRecords<MessageData>().ToList();
@@ -132,6 +129,4 @@ public class SpamHamClassifier
             _logger.LogError(e, "Exception during training");
         }
     }
-
-    private static string NormalizeLineEndings(string input) => input.Replace("\r\n", "\n").Replace("\r", "\n");
 }
