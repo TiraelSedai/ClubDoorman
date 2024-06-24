@@ -344,17 +344,33 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         );
         await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
 
-        var cbd = $"ban_{message.Chat.Id}_{user.Id}";
+        var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
+        var postLink = LinkToMessage(message.Chat, message.MessageId);
+
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
-            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {user.FirstName} {user.LastName}; Чат {message.Chat.Title}",
+            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {user.FirstName} {user.LastName}; Чат {message.Chat.Title}{Environment.NewLine}{postLink}",
             replyToMessageId: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
-                [new InlineKeyboardButton("🤖 ban") { CallbackData = cbd }, new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }]
+                [
+                    new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
+                    new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
+                ]
             ),
             cancellationToken: stoppingToken
         );
     }
+
+    private static string LinkToMessage(Chat chat, long messageId) =>
+        chat.Type == ChatType.Supergroup
+            ? LinkToSuperGroupMessage(chat, messageId)
+            : chat.Username == null
+                ? ""
+                : LinkToGroupWithNameMessage(chat, messageId);
+
+    private static string LinkToSuperGroupMessage(Chat chat, long messageId) => $"https://t.me/c/{chat.Id.ToString()[4..]}/{messageId}";
+
+    private static string LinkToGroupWithNameMessage(Chat chat, long messageId) => $"https://t.me/{chat.Username}/{messageId}";
 
     private async Task AdminChatMessage(Message message)
     {
