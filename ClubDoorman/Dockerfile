@@ -19,4 +19,5 @@ RUN mv /app/publish/data /app/publish/data_init
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN mkdir /app/data
 ENTRYPOINT ["dotnet", "ClubDoorman.dll"]
