@@ -374,28 +374,29 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async Task AdminChatMessage(Message message)
     {
-        if (message is { ReplyToMessage: not null, Text: "/spam" or "/ham" or "/classify" or "/lookalike" })
+        if (message is { ReplyToMessage: not null, Text: "/spam" or "/ham" or "/check" })
         {
             var text = message.ReplyToMessage.Text ?? message.ReplyToMessage.Caption;
             if (!string.IsNullOrWhiteSpace(text))
             {
                 switch (message.Text)
                 {
-                    case "/lookalike":
+                    case "/check":
                     {
-                        var words = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(text);
-                        if (words.Count != 0)
-                            await _bot.SendTextMessageAsync(message.Chat.Id, $"Найдены слова: {string.Join(", ", words)}");
-                        else
-                            await _bot.SendTextMessageAsync(message.Chat.Id, $"Слова не найдены");
-                        break;
-                    }
-                    case "/classify":
-                    {
+                        var emojis = SimpleFilters.TooManyEmojis(text);
                         var normalized = TextProcessor.NormalizeText(text);
+                        var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
+                        var hasStopWords = SimpleFilters.HasStopWords(normalized);
                         var (spam, score) = await classifier.IsSpam(normalized);
-                        var messageClass = spam ? "Спам" : "Не спам";
-                        await _bot.SendTextMessageAsync(message.Chat.Id, $"{messageClass}, скор {score}");
+                        var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
+                        var msg =
+                            $"Результат:{Environment.NewLine}"
+                            + $"Много эмодзи: {emojis}{Environment.NewLine}"
+                            + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
+                            + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
+                            + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
+                            + $"Если простые фильтры отработали, то в датасет добавлять не нужно";
+                        await _bot.SendTextMessageAsync(message.Chat.Id, msg);
                         break;
                     }
                     case "/spam":
