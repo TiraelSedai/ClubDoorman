@@ -148,7 +148,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
         if (SimpleFilters.TooManyEmojis(text))
         {
-            const string reason = "В этом сообщени многовато эмоджи";
+            const string reason = "В этом сообщении многовато эмоджи";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
             return;
         }
@@ -165,7 +165,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
         if (SimpleFilters.HasStopWords(normalized))
         {
-            const string reason = "В этом сообщени есть стоп-слова";
+            const string reason = "В этом сообщении есть стоп-слова";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
             return;
         }
@@ -353,7 +353,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
-            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)}; Чат {message.Chat.Title}{Environment.NewLine}{postLink}",
+            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
             replyToMessageId: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
                 [
