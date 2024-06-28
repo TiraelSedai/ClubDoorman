@@ -346,14 +346,24 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             message.MessageId,
             cancellationToken: stoppingToken
         );
-        await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        var deletionMessagePart = $"{reason}";
+        try
+        {
+            await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            deletionMessagePart += ", сообщение удалено.";
+		}
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Unable to delete");
+            deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
+        }
 
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         var postLink = LinkToMessage(message.Chat, message.MessageId);
 
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
-            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
+            $"{deletionMessagePart}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
             replyToMessageId: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
                 [
