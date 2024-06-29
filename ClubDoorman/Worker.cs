@@ -186,9 +186,8 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         if (goodInteractions >= 5)
         {
             logger.LogInformation(
-                "User {First} {Last} behaved well for the last {Count} messages, approving",
-                user.FirstName,
-                user.LastName,
+                "User {FullName} behaved well for the last {Count} messages, approving",
+                FullName(user.FirstName, user.LastName),
                 goodInteractions
             );
             await userManager.Approve(user.Id);
@@ -292,6 +291,11 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         _captchaNeededUsers.TryAdd(key, new CaptchaInfo(message, DateTime.UtcNow, user, correctAnswer, cts));
     }
 
+    private static string FullName(string firstName, string? lastName) =>
+        string.IsNullOrEmpty(lastName)
+            ? firstName
+            : $"{firstName} {lastName}";
+
     private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
     {
         var split = cbData.Split('_').ToList();
@@ -302,7 +306,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 await _bot.BanChatMemberAsync(new ChatId(chatId), userId);
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
-                    $"{cb.From.FirstName} {cb.From.LastName} забанил",
+                    $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил",
                     replyToMessageId: cb.Message?.MessageId
                 );
             }
@@ -349,7 +353,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
-            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {user.FirstName} {user.LastName}; Чат {message.Chat.Title}{Environment.NewLine}{postLink}",
+            $"{reason}, сообщение удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)}; Чат {message.Chat.Title}{Environment.NewLine}{postLink}",
             replyToMessageId: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
                 [
