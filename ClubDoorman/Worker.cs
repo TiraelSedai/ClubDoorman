@@ -9,7 +9,14 @@ namespace ClubDoorman;
 
 public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager) : BackgroundService
 {
-    private record CaptchaInfo(Message Message, DateTime Timestamp, User User, int CorrectAnswer, CancellationTokenSource Cts);
+    private record CaptchaInfo(
+        long ChatId,
+        DateTime Timestamp,
+        User User,
+        int CorrectAnswer,
+        CancellationTokenSource Cts,
+        Message? UserJoinedMessage
+    );
 
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
@@ -115,7 +122,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var user = message.From!;
         var text = message.Text ?? message.Caption;
 
-        var key = MessageToKey(message, user);
+        var key = UserToKey(message.Chat.Id, user);
         if (_captchaNeededUsers.ContainsKey(key))
         {
             await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
@@ -236,7 +243,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         }
 
-        var key = MessageToKey(message, cb.From);
+        var key = UserToKey(message.Chat.Id, cb.From);
         var ok = _captchaNeededUsers.TryRemove(key, out var info);
         await _bot.DeleteMessageAsync(message.Chat, message.MessageId);
         if (!ok)
@@ -249,12 +256,13 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         if (info.CorrectAnswer != chosen)
         {
             await _bot.BanChatMemberAsync(message.Chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
-            await _bot.DeleteMessageAsync(message.Chat, info.Message.MessageId);
+            if (info.UserJoinedMessage != null)
+                await _bot.DeleteMessageAsync(message.Chat, info.UserJoinedMessage.MessageId);
         }
         // Else: Theoretically we could approve user here, but I've seen spammers who can pass captcha and then post spam
     }
 
-    private async ValueTask IntroFlow(Message message, User user)
+    private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
         logger.LogDebug("Intro flow {@User}", user);
         if (userManager.Approved(user.Id))
@@ -263,6 +271,20 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         if (clubUser != null)
         {
             await userManager.Approve(user.Id);
+            return;
+        }
+
+        chat = userJoinMessage?.Chat ?? chat;
+        Debug.Assert(chat != null);
+        var chatId = chat.Id;
+
+        if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
+            return;
+
+        var key = UserToKey(chatId, user);
+        if (_captchaNeededUsers.ContainsKey(key))
+        {
+            logger.LogDebug("This user is already awaiting captcha challenge");
             return;
         }
 
@@ -279,16 +301,60 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var keyboard = challenge
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"cap_{user.Id}_{x}" })
             .ToList();
-        var del = await _bot.SendTextMessageAsync(
-            message.Chat.Id,
-            $"Привет! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-            replyToMessageId: message.MessageId,
-            replyMarkup: new InlineKeyboardMarkup(keyboard)
-        );
+
+        var del =
+            userJoinMessage != null
+                ? await _bot.SendTextMessageAsync(
+                    chatId,
+                    $"Привет! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    replyToMessageId: userJoinMessage.MessageId,
+                    replyMarkup: new InlineKeyboardMarkup(keyboard)
+                )
+                : await _bot.SendTextMessageAsync(
+                    chatId,
+                    $"Привет {user.Username ?? ""}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    replyMarkup: new InlineKeyboardMarkup(keyboard)
+                );
+
         var cts = new CancellationTokenSource();
         DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
-        var key = MessageToKey(message, user);
-        _captchaNeededUsers.TryAdd(key, new CaptchaInfo(message, DateTime.UtcNow, user, correctAnswer, cts));
+        if (userJoinMessage != null)
+        {
+            DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), cts.Token);
+            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, DateTime.UtcNow, user, correctAnswer, cts, userJoinMessage));
+        }
+        else
+        {
+            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, DateTime.UtcNow, user, correctAnswer, cts, null));
+        }
+    }
+
+    private async Task<bool> BanIfBlacklisted(User user, Chat chat)
+    {
+        if (!Config.BlacklistAutoBan)
+            return false;
+        if (!userManager.InBanlist(user.Id))
+            return false;
+
+        try
+        {
+            await _bot.BanChatMemberAsync(chat.Id, user.Id);
+            await _bot.SendTextMessageAsync(
+                Config.AdminChatId,
+                $"Забанен юзер {user.FirstName} {user.LastName} в чате {chat.Title} по блеклисту спамеров"
+            );
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Unable to ban");
+            await _bot.SendTextMessageAsync(
+                Config.AdminChatId,
+                $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
+            );
+        }
+
+        return false;
     }
 
     private static string FullName(string firstName, string? lastName) =>
@@ -327,15 +393,36 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async Task HandleChatMemberUpdated(Update update)
     {
-        var user = update.ChatMember;
-        Debug.Assert(user != null);
-        if (user.NewChatMember.Status == ChatMemberStatus.Member)
-            logger.LogDebug("New chat member new {@New} old {@Old}", user.NewChatMember, user.OldChatMember);
-        if (user.NewChatMember.Status is ChatMemberStatus.Kicked or ChatMemberStatus.Restricted)
-            await _bot.SendTextMessageAsync(
-                new ChatId(Config.AdminChatId),
-                $"В чате {user.Chat.Title} кому-то дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда"
-            );
+        var chatMember = update.ChatMember;
+        Debug.Assert(chatMember != null);
+        var newChatMember = chatMember.NewChatMember;
+        switch (newChatMember.Status)
+        {
+            case ChatMemberStatus.Member:
+            {
+                logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                {
+                    // The reason we need to wait here is that we need to get message that user joined to have a chance to be processed first,
+                    // this is not mandatory but looks nicer, however sometimes Telegram doesn't send it at all so consider this a fallback.
+                    // There is no way real human would be able to solve this captcha in under 2 seconds so it's fine.
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2));
+                        await IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    });
+                }
+
+                break;
+            }
+            case ChatMemberStatus.Kicked
+            or ChatMemberStatus.Restricted:
+                await _bot.SendTextMessageAsync(
+                    new ChatId(Config.AdminChatId),
+                    $"В чате {chatMember.Chat.Title} кому-то дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда"
+                );
+                break;
+        }
     }
 
     private async Task DeleteAndReportMessage(Message message, User user, string reason, CancellationToken stoppingToken)
@@ -434,7 +521,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
     }
 
-    private static string MessageToKey(Message message, User user) => $"{message.Chat.Id}_{user.Id}";
+    private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
 
     private async Task BanNoCaptchaUsers()
     {
@@ -442,13 +529,13 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         var now = DateTime.UtcNow;
         var users = _captchaNeededUsers.ToArray();
-        foreach (var (key, (message, timestamp, user, _, _)) in users)
+        foreach (var (key, (chatId, timestamp, user, _, _, _)) in users)
         {
             var minutes = (now - timestamp).TotalMinutes;
             if (minutes > 1)
             {
                 _captchaNeededUsers.TryRemove(key, out _);
-                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
+                await _bot.BanChatMemberAsync(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
             }
         }
     }

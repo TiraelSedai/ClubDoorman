@@ -19,10 +19,10 @@ public class UserManager
         {
             while (true)
             {
-                await Task.Delay(TimeSpan.FromMinutes(30));
+                await Task.Delay(TimeSpan.FromMinutes(15));
                 try
                 {
-                    var banlistOneHour = (await httpClient.GetFromJsonAsync<string[]>("https://lols.bot/spam/banlist-1h.json")) ?? [];
+                    var banlistOneHour = await httpClient.GetFromJsonAsync<string[]>("https://lols.bot/spam/banlist-1h.json") ?? [];
                     foreach (var id in banlistOneHour.Select(long.Parse))
                         _banlist.TryAdd(id, 0);
                 }
