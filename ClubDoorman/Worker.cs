@@ -341,7 +341,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             await _bot.BanChatMemberAsync(chat.Id, user.Id);
             await _bot.SendTextMessageAsync(
                 Config.AdminChatId,
-                $"Забанен юзер {user.FirstName} {user.LastName} в чате {chat.Title} по блеклисту спамеров"
+                $"Забанен юзер {FullName(user.FirstName, user.LastName)} в чате {chat.Title} по блеклисту спамеров"
             );
             return true;
         }
