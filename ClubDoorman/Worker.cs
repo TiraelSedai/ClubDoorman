@@ -312,7 +312,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 )
                 : await _bot.SendTextMessageAsync(
                     chatId,
-                    $"Привет {UserNameOrFirstLast}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
 
@@ -330,7 +330,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
         return;
 
-        string UserNameOrFirstLast()
+        string AtUserNameOrFirstLast()
         {
             if (user.Username != null)
                 return "@" + user.Username;
