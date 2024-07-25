@@ -312,7 +312,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 )
                 : await _bot.SendTextMessageAsync(
                     chatId,
-                    $"Привет {user.Username ?? ""}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет {UserNameOrFirstLast}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
 
@@ -326,6 +326,15 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         else
         {
             _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, DateTime.UtcNow, user, correctAnswer, cts, null));
+        }
+
+        return;
+
+        string UserNameOrFirstLast()
+        {
+            if (user.Username != null)
+                return "@" + user.Username;
+            return FullName(user.FirstName, user.LastName);
         }
     }
 
@@ -358,9 +367,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     }
 
     private static string FullName(string firstName, string? lastName) =>
-        string.IsNullOrEmpty(lastName)
-            ? firstName
-            : $"{firstName} {lastName}";
+        string.IsNullOrEmpty(lastName) ? firstName : $"{firstName} {lastName}";
 
     private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
     {
@@ -438,7 +445,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         {
             await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
             deletionMessagePart += ", сообщение удалено.";
-		}
+        }
         catch (Exception e)
         {
             logger.LogWarning(e, "Unable to delete");
