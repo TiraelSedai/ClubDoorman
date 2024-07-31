@@ -141,11 +141,10 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var name = await userManager.GetClubUsername(user.Id);
         if (!string.IsNullOrEmpty(name))
         {
-            await userManager.Approve(user.Id);
             logger.LogDebug("User is {Name} from club", name);
             return;
         }
-        if (userManager.InBanlist(user.Id))
+        if (await userManager.InBanlist(user.Id))
         {
             const string reason = "Пользователь в блеклисте спамеров";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
@@ -272,10 +271,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         var clubUser = await userManager.GetClubUsername(user.Id);
         if (clubUser != null)
-        {
-            await userManager.Approve(user.Id);
             return;
-        }
 
         chat = userJoinMessage?.Chat ?? chat;
         Debug.Assert(chat != null);
@@ -345,7 +341,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     {
         if (!Config.BlacklistAutoBan)
             return false;
-        if (!userManager.InBanlist(user.Id))
+        if (!await userManager.InBanlist(user.Id))
             return false;
 
         try
@@ -409,22 +405,22 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    // The reason we need to wait here is that we need to get message that user joined to have a chance to be processed first,
+                    // this is not mandatory but looks nicer, however sometimes Telegram doesn't send it at all so consider this a fallback.
+                    // There is no way real human would be able to solve this captcha in under 2 seconds so it's fine.
+                    _ = Task.Run(async () =>
                     {
-                        // The reason we need to wait here is that we need to get message that user joined to have a chance to be processed first,
-                        // this is not mandatory but looks nicer, however sometimes Telegram doesn't send it at all so consider this a fallback.
-                        // There is no way real human would be able to solve this captcha in under 2 seconds so it's fine.
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(TimeSpan.FromSeconds(2));
-                            await IntroFlow(null, newChatMember.User, chatMember.Chat);
-                        });
-                    }
-
-                    break;
+                        await Task.Delay(TimeSpan.FromSeconds(2));
+                        await IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    });
                 }
+
+                break;
+            }
             case ChatMemberStatus.Kicked
             or ChatMemberStatus.Restricted:
                 await _bot.SendTextMessageAsync(
@@ -493,23 +489,23 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 switch (message.Text)
                 {
                     case "/check":
-                        {
-                            var emojis = SimpleFilters.TooManyEmojis(text);
-                            var normalized = TextProcessor.NormalizeText(text);
-                            var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-                            var hasStopWords = SimpleFilters.HasStopWords(normalized);
-                            var (spam, score) = await classifier.IsSpam(normalized);
-                            var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
-                            var msg =
-                                $"Результат:{Environment.NewLine}"
-                                + $"Много эмодзи: {emojis}{Environment.NewLine}"
-                                + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
-                                + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
-                                + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
-                                + $"Если простые фильтры отработали, то в датасет добавлять не нужно";
-                            await _bot.SendTextMessageAsync(message.Chat.Id, msg);
-                            break;
-                        }
+                    {
+                        var emojis = SimpleFilters.TooManyEmojis(text);
+                        var normalized = TextProcessor.NormalizeText(text);
+                        var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
+                        var hasStopWords = SimpleFilters.HasStopWords(normalized);
+                        var (spam, score) = await classifier.IsSpam(normalized);
+                        var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
+                        var msg =
+                            $"Результат:{Environment.NewLine}"
+                            + $"Много эмодзи: {emojis}{Environment.NewLine}"
+                            + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
+                            + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
+                            + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
+                            + $"Если простые фильтры отработали, то в датасет добавлять не нужно";
+                        await _bot.SendTextMessageAsync(message.Chat.Id, msg);
+                        break;
+                    }
                     case "/spam":
                         await classifier.AddSpam(message.ReplyToMessage.Text ?? message.ReplyToMessage.Caption ?? string.Empty);
                         await _bot.SendTextMessageAsync(
