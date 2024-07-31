@@ -15,23 +15,6 @@ public class UserManager
         if (banlist != null)
             foreach (var id in banlist)
                 _banlist.TryAdd(id, 0);
-        _ = Task.Run(async () =>
-        {
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromMinutes(15));
-                try
-                {
-                    var banlistOneHour = await httpClient.GetFromJsonAsync<string[]>("https://lols.bot/spam/banlist-1h.json") ?? [];
-                    foreach (var id in banlistOneHour.Select(long.Parse))
-                        _banlist.TryAdd(id, 0);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Exception during banlist update");
-                }
-            }
-        });
     }
 
     public UserManager(ILogger<UserManager> logger)
@@ -41,13 +24,14 @@ public class UserManager
         if (Config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
         else
-            _httpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
     }
 
     private const string Path = "data/approved-users.txt";
     private readonly ConcurrentDictionary<long, byte> _banlist = [];
     private readonly SemaphoreSlim _semaphore = new(1);
     private readonly HashSet<long> _approved = File.ReadAllLines(Path).Select(long.Parse).ToHashSet();
+    private readonly HttpClient _clubHttpClient = new();
     private readonly HttpClient _httpClient = new();
 
     public bool Approved(long userId) => _approved.Contains(userId);
@@ -61,7 +45,27 @@ public class UserManager
         }
     }
 
-    public bool InBanlist(long userId) => _banlist.ContainsKey(userId);
+    public async ValueTask<bool> InBanlist(long userId)
+    {
+        if (_banlist.ContainsKey(userId))
+            return true;
+        try
+        {
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://lols.bot/?a={userId}", cts.Token);
+            if (!result!.banned)
+                return false;
+
+            _banlist.TryAdd(userId, 0);
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "LolsBotApi exception");
+            return false;
+        }
+    }
 
     public async ValueTask<string?> GetClubUsername(long userId)
     {
@@ -70,9 +74,13 @@ public class UserManager
         var url = $"{Config.ClubUrl}user/by_telegram_id/{userId}.json";
         try
         {
-            var get = await _httpClient.GetAsync(url);
-            var resp = await get.Content.ReadFromJsonAsync<ClubByTgIdResponse>();
-            return resp?.user?.full_name;
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+            var response = await _clubHttpClient.GetFromJsonAsync<ClubByTgIdResponse>(url, cts.Token);
+            var fullName = response?.user?.full_name;
+            if (!string.IsNullOrEmpty(fullName))
+                await Approve(userId);
+            return fullName;
         }
         catch (Exception e)
         {
@@ -83,6 +91,9 @@ public class UserManager
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning disable IDE1006 // Naming Styles
+
+    private record LolsBotApiResponse(long user_id, int offenses, bool banned);
+
     internal class ClubByTgIdResponse
     {
         public Error? error { get; set; }
