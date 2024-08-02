@@ -423,9 +423,10 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             case ChatMemberStatus.Kicked
             or ChatMemberStatus.Restricted:
+                var user = newChatMember.User;
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
-                    $"В чате {chatMember.Chat.Title} кому-то дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда"
+                    $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда"
                 );
                 break;
         }
