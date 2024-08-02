@@ -76,7 +76,9 @@ public class UserManager
         {
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(5));
-            var response = await _clubHttpClient.GetFromJsonAsync<ClubByTgIdResponse>(url, cts.Token);
+            // cannot use _clubHttpClient.GetFromJsonAsync here because the response is not 200 OK at the time of writing for when user is not found
+            var get = await _clubHttpClient.GetAsync(url, cts.Token);
+            var response = await get.Content.ReadFromJsonAsync<ClubByTgIdResponse>(cancellationToken: cts.Token);
             var fullName = response?.user?.full_name;
             if (!string.IsNullOrEmpty(fullName))
                 await Approve(userId);
