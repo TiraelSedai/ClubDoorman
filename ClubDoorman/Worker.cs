@@ -166,7 +166,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var normalized = TextProcessor.NormalizeText(text);
 
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-        if (lookalike.Count > 0)
+        if (lookalike.Count > 1)
         {
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike)}";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
