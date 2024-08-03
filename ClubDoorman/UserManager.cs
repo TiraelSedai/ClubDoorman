@@ -53,7 +53,7 @@ public class UserManager
         {
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(5));
-            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://lols.bot/?a={userId}", cts.Token);
+            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}", cts.Token);
             if (!result!.banned)
                 return false;
 
@@ -94,7 +94,7 @@ public class UserManager
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning disable IDE1006 // Naming Styles
 
-    private record LolsBotApiResponse(long user_id, int offenses, bool banned);
+    private record LolsBotApiResponse(long user_id, int? offenses, bool banned, bool ok, string? when, float? spam_factor, bool? scammer);
 
     internal class ClubByTgIdResponse
     {
