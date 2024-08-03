@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.Caching;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -260,6 +261,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             await _bot.BanChatMemberAsync(message.Chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
             if (info.UserJoinedMessage != null)
                 await _bot.DeleteMessageAsync(message.Chat, info.UserJoinedMessage.MessageId);
+            UnbanUserLater(message.Chat, userId);
         }
         // Else: Theoretically we could approve user here, but I've seen spammers who can pass captcha and then post spam
     }
@@ -543,8 +545,37 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             {
                 _captchaNeededUsers.TryRemove(key, out _);
                 await _bot.BanChatMemberAsync(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
+                UnbanUserLater(chatId, user.Id);
             }
         }
+    }
+
+    private class CaptchaAttempts
+    {
+        public int Attempts { get; set; }
+    }
+
+    private void UnbanUserLater(ChatId chatId, long userId)
+    {
+        var key = $"captcha_{userId}";
+        var cache = MemoryCache.Default.AddOrGetExisting(
+            new CacheItem(key, new CaptchaAttempts()),
+            new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(4) }
+        );
+        var attempts = (CaptchaAttempts)cache.Value;
+        attempts.Attempts++;
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Exp(attempts.Attempts)));
+                await _bot.UnbanChatMemberAsync(chatId, userId);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, nameof(UnbanUserLater));
+            }
+        });
     }
 
     private void DeleteMessageLater(Message message, TimeSpan after = default, CancellationToken cancellationToken = default)
