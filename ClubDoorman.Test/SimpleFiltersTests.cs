@@ -15,7 +15,7 @@ public class Tests
     [TestCase("ПриВет!", false, TestName = "CyrillicWord_WithPunctuation")]
     [TestCase("Ищy людeй в комaнду, прuятный заработоk, мuнuмум затpат по верменu, подpобностu в лuчку", true, TestName = "BigSentence")]
     [TestCase("Ищyлюдeйαπό", true, TestName = "Greek")]
-    [TestCase("это русское слово и в нём есть", false, TestName = "Yo")]
+    [TestCase("это русское слово и в нём есть", false, TestName = "Cyrillic Small Letter Io")]
     [TestCase("хей", false, TestName = "IKratkoe")]
     [TestCase("адказ на пытанне хто вы з гэтай кнігі", false, TestName = "Belarus")]
     [TestCase("натомість використовують код альтернативних клієнтів", false, TestName = "Ukrainian")]
