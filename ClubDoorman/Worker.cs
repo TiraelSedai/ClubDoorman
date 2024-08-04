@@ -147,8 +147,19 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
         if (await userManager.InBanlist(user.Id))
         {
-            const string reason = "Пользователь в блеклисте спамеров";
-            await DeleteAndReportMessage(message, user, reason, stoppingToken);
+            if (Config.BlacklistAutoBan)
+            {
+                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, stoppingToken);
+                var msg =
+                    $"Пользователь {FullName(user.FirstName, user.FirstName)} написал сообщение в чате {message.Chat.Title}, но он в блеклисте спамеров. Сообщение удалено и он забанен";
+                await _bot.SendTextMessageAsync(Config.AdminChatId, msg, cancellationToken: stoppingToken);
+            }
+            else
+            {
+                const string reason = "Пользователь в блеклисте спамеров";
+                await DeleteAndReportMessage(message, user, reason, stoppingToken);
+            }
             return;
         }
         if (string.IsNullOrWhiteSpace(text))
