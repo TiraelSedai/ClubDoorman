@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.Caching;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -22,6 +23,8 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
     private readonly TelegramBotClient _bot = new(Config.BotApi);
+    private Dictionary<long, (string Title, List<string> Users)> _banned = new();
+    private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
 
     private async Task CaptchaLoop(CancellationToken token)
     {
@@ -35,6 +38,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _ = CaptchaLoop(stoppingToken);
+        _ = ReportBanned(stoppingToken);
         classifier.Touch();
         const string offsetPath = "data/offset.txt";
         var offset = 0;
@@ -151,9 +155,9 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             {
                 await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
                 await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, stoppingToken);
-                var msg =
-                    $"Пользователь {FullName(user.FirstName, user.FirstName)} написал сообщение в чате {message.Chat.Title}, но он в блеклисте спамеров. Сообщение удалено и он забанен";
-                await _bot.SendTextMessageAsync(Config.AdminChatId, msg, cancellationToken: stoppingToken);
+                _banned.TryAdd(message.Chat.Id, (message.Chat.Title ?? "", []));
+                var list = _banned[message.Chat.Id].Users;
+                list.Add(FullName(user.FirstName, user.FirstName));
             }
             else
             {
@@ -350,6 +354,42 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
     }
 
+    private async Task ReportBanned(CancellationToken ct)
+    {
+        while (await _timer.WaitForNextTickAsync(ct))
+        {
+            if (DateTimeOffset.UtcNow.Hour != 12)
+                continue;
+
+            var report = _banned;
+            _banned = new();
+            if (report.Sum(x => x.Value.Users.Count) == 0)
+                continue;
+            var sb = new StringBuilder();
+
+            sb.Append("За последние 24 часа были забанены:");
+            foreach (var (chatId, (title, users)) in report)
+            {
+                sb.Append(Environment.NewLine);
+                sb.Append("В ");
+                sb.Append(title);
+                sb.Append($": {users.Count} пользователь(ей){Environment.NewLine}");
+                sb.Append(string.Join(',', users.Take(5)));
+                if (users.Count > 5)
+                    sb.Append(", и другие");
+            }
+
+            try
+            {
+                await _bot.SendTextMessageAsync(Config.AdminChatId, sb.ToString(), cancellationToken: ct);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Unable to sent report to admin chat");
+            }
+        }
+    }
+
     private async Task<bool> BanIfBlacklisted(User user, Chat chat)
     {
         if (!Config.BlacklistAutoBan)
@@ -360,10 +400,9 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         try
         {
             await _bot.BanChatMemberAsync(chat.Id, user.Id);
-            await _bot.SendTextMessageAsync(
-                Config.AdminChatId,
-                $"Забанен юзер {FullName(user.FirstName, user.LastName)} в чате {chat.Title} по блеклисту спамеров"
-            );
+            _banned.TryAdd(chat.Id, (chat.Title ?? "", []));
+            var list = _banned[chat.Id].Users;
+            list.Add(FullName(user.FirstName, user.FirstName));
             return true;
         }
         catch (Exception e)
