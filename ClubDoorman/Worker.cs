@@ -157,7 +157,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, stoppingToken);
                 _banned.TryAdd(message.Chat.Id, (message.Chat.Title ?? "", []));
                 var list = _banned[message.Chat.Id].Users;
-                list.Add(FullName(user.FirstName, user.FirstName));
+                list.Add(FullName(user.FirstName, user.LastName));
             }
             else
             {
@@ -402,7 +402,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             await _bot.BanChatMemberAsync(chat.Id, user.Id);
             _banned.TryAdd(chat.Id, (chat.Title ?? "", []));
             var list = _banned[chat.Id].Users;
-            list.Add(FullName(user.FirstName, user.FirstName));
+            list.Add(FullName(user.FirstName, user.LastName));
             return true;
         }
         catch (Exception e)
