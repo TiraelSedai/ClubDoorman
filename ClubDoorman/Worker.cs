@@ -130,6 +130,11 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var user = message.From!;
         var text = message.Text ?? message.Caption;
 
+        MemoryCache.Default.Set(
+            new CacheItem($"{message.Chat.Id}_{user.Id}", text),
+            new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
+        );
+
         var key = UserToKey(message.Chat.Id, user);
         if (_captchaNeededUsers.ContainsKey(key))
         {
@@ -478,9 +483,14 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             case ChatMemberStatus.Kicked
             or ChatMemberStatus.Restricted:
                 var user = newChatMember.User;
+                var key = $"{chatMember.Chat.Id}_{user.Id}";
+                var lastMessage = MemoryCache.Default.Get(key) as string;
+                var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
+                    ? ""
+                    : $" Его/её последним сообщенимем было:{Environment.NewLine}{lastMessage}";
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
-                    $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда"
+                    $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
                 );
                 break;
         }
