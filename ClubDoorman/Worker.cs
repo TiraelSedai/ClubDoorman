@@ -169,6 +169,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         if (string.IsNullOrWhiteSpace(text))
         {
             logger.LogDebug("Empty text/caption");
+            await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
         if (SimpleFilters.TooManyEmojis(text))
@@ -183,7 +184,8 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
         if (lookalike.Count > 1)
         {
-            var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike)}";
+            var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
+            var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
             return;
         }
@@ -368,7 +370,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             var sb = new StringBuilder();
 
             sb.Append("За последние 24 часа были забанены:");
-            foreach (var (chatId, (title, users)) in report)
+            foreach (var (_, (title, users)) in report)
             {
                 sb.Append(Environment.NewLine);
                 sb.Append("В ");
@@ -482,6 +484,29 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 );
                 break;
         }
+    }
+
+    private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
+    {
+        var forward = await _bot.ForwardMessageAsync(
+            new ChatId(Config.AdminChatId),
+            message.Chat.Id,
+            message.MessageId,
+            cancellationToken: stoppingToken
+        );
+        var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
+        await _bot.SendTextMessageAsync(
+            new ChatId(Config.AdminChatId),
+            $"Картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, иногда это спам. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
+            replyToMessageId: forward.MessageId,
+            replyMarkup: new InlineKeyboardMarkup(
+                [
+                    new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
+                    new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
+                ]
+            ),
+            cancellationToken: stoppingToken
+        );
     }
 
     private async Task DeleteAndReportMessage(Message message, User user, string reason, CancellationToken stoppingToken)
