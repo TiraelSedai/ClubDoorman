@@ -369,19 +369,19 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 continue;
 
             var report = _banned;
-            _banned = new();
+            _banned = [];
             if (report.Sum(x => x.Value.Users.Count) == 0)
                 continue;
             var sb = new StringBuilder();
 
-            sb.Append("За последние 24 часа были забанены:");
-            foreach (var (_, (title, users)) in report)
+            sb.Append("За последние 24 часа были забанены по блеклистам:");
+            foreach (var (_, (title, users)) in report.OrderBy(x => x.Value.Title))
             {
                 sb.Append(Environment.NewLine);
                 sb.Append("В ");
                 sb.Append(title);
                 sb.Append($": {users.Count} пользователь(ей){Environment.NewLine}");
-                sb.Append(string.Join(',', users.Take(5)));
+                sb.Append(string.Join(", ", users.Take(5)));
                 if (users.Count > 5)
                     sb.Append(", и другие");
             }
