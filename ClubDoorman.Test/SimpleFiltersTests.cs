@@ -36,4 +36,13 @@ public class Tests
         var result = SimpleFilters.HasStopWords(norm);
         Assert.That(result, Is.EqualTo(expectedResult));
     }
+
+    [TestCase]
+    public void FormatStripped()
+    {
+        const string spam =
+            "\u2068g\u2068o\u2068 \u2068f\u2068a\u2068\u2068\u2068\u2068\u2068\u2068\u2068s\u2068t\u2068\ud83e\udd71  F\u2068\u2068R\u2068\u2068E\u2068EC\u2068L\u2068\u2068A\u2068\u2068\u2068I\u2068\u2068M\u2068\u2068 N\u2068\u2068F\u2068\u2068\u2068T\u2068\u2068  I\u2068\u2068F \u2068\u2068\u2068AL\u2068\u2068RE\u2068\u2068A\u2068\u2068D\u2068Y 5\u2068\u20680\u2068\u20680\u2068\u20680\u2068\u2068\u2068\u2068/\u2068\u206850\u2068\u20680\u2068\u20680\u2068\u2068\u2068 \u2068yo\u2068u\u2068 ar\u2068e t\u2068\u2068o\u2068\u2068o \u2068l\u2068ate,\u2068 so\u2068r\u2068\u2068r\u2068y";
+        var norm = TextProcessor.NormalizeText(spam);
+        Assert.That(norm, Has.Length.LessThan(70));
+    }
 }

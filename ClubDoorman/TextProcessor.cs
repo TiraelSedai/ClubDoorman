@@ -35,7 +35,10 @@ public static partial class TextProcessor
         var normalizedString = text.Normalize(NormalizationForm.FormD);
         if (
             !normalizedString.Any(x =>
-                CharUnicodeInfo.GetUnicodeCategory(x) is UnicodeCategory.NonSpacingMark or UnicodeCategory.ModifierLetter
+                CharUnicodeInfo.GetUnicodeCategory(x)
+                    is UnicodeCategory.NonSpacingMark
+                        or UnicodeCategory.ModifierLetter
+                        or UnicodeCategory.Format
             )
         )
             return text;
@@ -43,7 +46,11 @@ public static partial class TextProcessor
         foreach (var c in normalizedString)
         {
             var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != UnicodeCategory.NonSpacingMark && unicodeCategory != UnicodeCategory.ModifierLetter)
+            if (
+                unicodeCategory != UnicodeCategory.NonSpacingMark
+                && unicodeCategory != UnicodeCategory.ModifierLetter
+                && unicodeCategory != UnicodeCategory.Format
+            )
                 stringBuilder.Append(c);
         }
         return stringBuilder.ToString();
