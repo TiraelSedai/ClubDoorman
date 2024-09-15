@@ -209,14 +209,28 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
             return;
         }
-        else
+        // else - ham
+        if (score > -1 && Config.LowConfidenceHamForward)
         {
-            logger.LogDebug("Classifier thinks its ham, score {Score}", score);
+            var forward = await _bot.ForwardMessageAsync(
+                Config.AdminChatId,
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: stoppingToken
+            );
+            var postLink = LinkToMessage(message.Chat, message.MessageId);
+            await _bot.SendTextMessageAsync(
+                Config.AdminChatId,
+                $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
+                replyToMessageId: forward.MessageId,
+                cancellationToken: stoppingToken
+            );
         }
+        logger.LogDebug("Classifier thinks its ham, score {Score}", score);
 
         // Now we need a mechanism for users who have been writing non-spam for some time
         var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
-        if (goodInteractions >= 5)
+        if (goodInteractions >= 3)
         {
             logger.LogInformation(
                 "User {FullName} behaved well for the last {Count} messages, approving",
