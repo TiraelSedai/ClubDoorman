@@ -2,7 +2,8 @@
 {
     public static class Config
     {
-        public static bool BlacklistAutoBan { get; } = GetBlacklistAutoBan();
+        public static bool BlacklistAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BLACKLIST_AUTOBAN_DISABLE");
+        public static bool LowConfidenceHamForward { get; } = GetEnvironmentBool("DOORMAN_LOW_CONFIDENCE_HAM_ENABLE");
         public static string BotApi { get; } =
             Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new Exception("DOORMAN_BOT_API variable not set");
         public static long AdminChatId { get; } =
@@ -12,16 +13,16 @@
         public static string? ClubServiceToken { get; } = Environment.GetEnvironmentVariable("DOORMAN_CLUB_SERVICE_TOKEN");
         public static string ClubUrl { get; } = GetClubUrlOrDefault();
 
-        private static bool GetBlacklistAutoBan()
+        private static bool GetEnvironmentBool(string envName)
         {
-            var env = Environment.GetEnvironmentVariable("DOORMAN_BLACKLIST_AUTOBAN_DISABLE");
+            var env = Environment.GetEnvironmentVariable(envName);
             if (env == null)
-                return true;
+                return false;
             if (int.TryParse(env, out var num) && num == 1)
-                return false;
+                return true;
             if (bool.TryParse(env, out var b) && b)
-                return false;
-            return true;
+                return true;
+            return false;
         }
 
         private static string GetClubUrlOrDefault()
@@ -30,7 +31,7 @@
             if (url == null)
                 return "https://vas3k.club/";
             if (!url.EndsWith('/'))
-                url = url + '/';
+                url += '/';
             if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
                 throw new Exception("DOORMAN_CLUB_URL variable is set to invalid URL");
             return url;
