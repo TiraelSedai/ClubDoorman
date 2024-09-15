@@ -25,6 +25,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     private readonly TelegramBotClient _bot = new(Config.BotApi);
     private Dictionary<long, (string Title, List<string> Users)> _banned = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
+    private User _me = default!;
 
     private async Task CaptchaLoop(CancellationToken token)
     {
@@ -49,13 +50,13 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 logger.LogDebug("offset read ok");
         }
 
-        var me = await _bot.GetMeAsync(cancellationToken: stoppingToken);
+        _me = await _bot.GetMeAsync(cancellationToken: stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                offset = await UpdateLoop(offset, me, stoppingToken);
+                offset = await UpdateLoop(offset, stoppingToken);
                 if (offset % 100 == 0)
                     await System.IO.File.WriteAllTextAsync(offsetPath, offset.ToString(), stoppingToken);
             }
@@ -67,7 +68,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
     }
 
-    private async Task<int> UpdateLoop(int offset, User me, CancellationToken stoppingToken)
+    private async Task<int> UpdateLoop(int offset, CancellationToken stoppingToken)
     {
         var updates = await _bot.GetUpdatesAsync(
             offset,
@@ -83,7 +84,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         {
             try
             {
-                await HandleUpdate(update, me, stoppingToken);
+                await HandleUpdate(update, stoppingToken);
             }
             catch (Exception e)
             {
@@ -93,7 +94,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         return offset;
     }
 
-    private async Task HandleUpdate(Update update, User me, CancellationToken stoppingToken)
+    private async Task HandleUpdate(Update update, CancellationToken stoppingToken)
     {
         if (update.CallbackQuery != null)
         {
@@ -102,7 +103,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
         if (update.ChatMember != null)
         {
-            if (update.ChatMember.From.Id == me.Id)
+            if (update.ChatMember.From.Id == _me.Id)
                 return;
             await HandleChatMemberUpdated(update);
             return;
@@ -569,9 +570,18 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async Task AdminChatMessage(Message message)
     {
-        if (message is { ReplyToMessage: not null, Text: "/spam" or "/ham" or "/check" })
+        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" })
         {
-            var text = message.ReplyToMessage.Text ?? message.ReplyToMessage.Caption;
+            if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardFrom == null && replyToMessage.ForwardSenderName == null)
+            {
+                await _bot.SendTextMessageAsync(
+                    message.Chat.Id,
+                    "Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
+                    replyToMessageId: replyToMessage.MessageId
+                );
+                return;
+            }
+            var text = replyToMessage.Text ?? replyToMessage.Caption;
             if (!string.IsNullOrWhiteSpace(text))
             {
                 switch (message.Text)
@@ -595,19 +605,19 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                         break;
                     }
                     case "/spam":
-                        await classifier.AddSpam(message.ReplyToMessage.Text ?? message.ReplyToMessage.Caption ?? string.Empty);
+                        await classifier.AddSpam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
                         await _bot.SendTextMessageAsync(
                             message.Chat.Id,
                             "Сообщение добавлено как пример спама в датасет",
-                            replyToMessageId: message.ReplyToMessage.MessageId
+                            replyToMessageId: replyToMessage.MessageId
                         );
                         break;
                     case "/ham":
-                        await classifier.AddHam(message.ReplyToMessage.Text ?? message.ReplyToMessage.Caption ?? string.Empty);
+                        await classifier.AddHam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
                         await _bot.SendTextMessageAsync(
                             message.Chat.Id,
                             "Сообщение добавлено как пример НЕ-спама в датасет",
-                            replyToMessageId: message.ReplyToMessage.MessageId
+                            replyToMessageId: replyToMessage.MessageId
                         );
                         break;
                 }
