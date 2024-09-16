@@ -131,10 +131,11 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var user = message.From!;
         var text = message.Text ?? message.Caption;
 
-        MemoryCache.Default.Set(
-            new CacheItem($"{message.Chat.Id}_{user.Id}", text),
-            new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
-        );
+        if (text != null)
+            MemoryCache.Default.Set(
+                new CacheItem($"{message.Chat.Id}_{user.Id}", text),
+                new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
+            );
 
         var key = UserToKey(message.Chat.Id, user);
         if (_captchaNeededUsers.ContainsKey(key))
