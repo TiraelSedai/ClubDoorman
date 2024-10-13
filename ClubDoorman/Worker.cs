@@ -602,7 +602,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async Task AdminChatMessage(Message message)
     {
-        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" or "/bad" })
+        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" or "/alwaysban" })
         {
             if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardFrom == null && replyToMessage.ForwardSenderName == null)
             {
@@ -645,8 +645,13 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                         );
                         await badMessageManager.MarkAsBad(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
                         break;
-                    case "/bad":
+                    case "/alwaysban":
                         await badMessageManager.MarkAsBad(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
+						await _bot.SendTextMessageAsync(
+							message.Chat.Id,
+							"Теперь за такие сообщения будем автоматически банить",
+							replyToMessageId: replyToMessage.MessageId
+						);
                         break;
                     case "/ham":
                         await classifier.AddHam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
