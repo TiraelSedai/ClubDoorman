@@ -13,6 +13,10 @@ public class BadMessageManager
 
     public async ValueTask MarkAsBad(string message)
     {
+		if string.IsNullOrEmpty(message)
+		{
+			return;
+		}
         var hash = ComputeHash(message);
         if (_bad.Add(hash))
         {
