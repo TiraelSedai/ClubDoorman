@@ -228,7 +228,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         }
         // else - ham
-        if (score > -1 && Config.LowConfidenceHamForward)
+        if (score > -0.7 && Config.LowConfidenceHamForward)
         {
             var forward = await _bot.ForwardMessageAsync(
                 Config.AdminChatId,
