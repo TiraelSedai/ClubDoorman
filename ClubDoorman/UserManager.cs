@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 
 namespace ClubDoorman;
 
-public class UserManager
+internal sealed class UserManager
 {
     private readonly ILogger<UserManager> _logger;
 

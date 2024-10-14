@@ -9,10 +9,14 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
 
-public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager, BadMessageManager badMessageManager)
-    : BackgroundService
+internal sealed class Worker(
+    ILogger<Worker> logger,
+    SpamHamClassifier classifier,
+    UserManager userManager,
+    BadMessageManager badMessageManager
+) : BackgroundService
 {
-    private record CaptchaInfo(
+    private sealed record CaptchaInfo(
         long ChatId,
         DateTime Timestamp,
         User User,
@@ -24,8 +28,12 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
     private readonly TelegramBotClient _bot = new(Config.BotApi);
-    private Dictionary<long, (string Title, List<string> Users)> _banned = new();
+    private Dictionary<long, (string Title, List<string> Users)> _banned = [];
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
+    private readonly ILogger<Worker> _logger = logger;
+    private readonly SpamHamClassifier _classifier = classifier;
+    private readonly UserManager _userManager = userManager;
+    private readonly BadMessageManager _badMessageManager = badMessageManager;
     private User _me = default!;
 
     private async Task CaptchaLoop(CancellationToken token)
@@ -41,14 +49,14 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     {
         _ = CaptchaLoop(stoppingToken);
         _ = ReportBanned(stoppingToken);
-        classifier.Touch();
+        _classifier.Touch();
         const string offsetPath = "data/offset.txt";
         var offset = 0;
         if (System.IO.File.Exists(offsetPath))
         {
             var lines = await System.IO.File.ReadAllLinesAsync(offsetPath, stoppingToken);
             if (lines.Length > 0 && int.TryParse(lines[0], out offset))
-                logger.LogDebug("offset read ok");
+                _logger.LogDebug("offset read ok");
         }
 
         _me = await _bot.GetMeAsync(cancellationToken: stoppingToken);
@@ -63,7 +71,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                logger.LogError(e, "ExecuteAsync");
+                _logger.LogError(e, "ExecuteAsync");
                 await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
             }
         }
@@ -89,7 +97,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "UpdateLoop");
+                _logger.LogWarning(e, "UpdateLoop");
             }
         }
         return offset;
@@ -153,19 +161,19 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         }
 
-        if (userManager.Approved(user.Id))
+        if (_userManager.Approved(user.Id))
             return;
 
-        logger.LogDebug("First-time message, chat {Chat}, message {Message}", message.Chat.Title, text);
+        _logger.LogDebug("First-time message, chat {Chat}, message {Message}", message.Chat.Title, text);
 
         // At this point we are believing we see first-timers, and we need to check for spam
-        var name = await userManager.GetClubUsername(user.Id);
+        var name = await _userManager.GetClubUsername(user.Id);
         if (!string.IsNullOrEmpty(name))
         {
-            logger.LogDebug("User is {Name} from club", name);
+            _logger.LogDebug("User is {Name} from club", name);
             return;
         }
-        if (await userManager.InBanlist(user.Id))
+        if (await _userManager.InBanlist(user.Id))
         {
             if (Config.BlacklistAutoBan)
             {
@@ -184,11 +192,11 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
         if (string.IsNullOrWhiteSpace(text))
         {
-            logger.LogDebug("Empty text/caption");
+            _logger.LogDebug("Empty text/caption");
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
-        if (badMessageManager.KnownBadMessage(text))
+        if (_badMessageManager.KnownBadMessage(text))
         {
             try
             {
@@ -202,7 +210,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "Unable to ban");
+                _logger.LogWarning(e, "Unable to ban");
             }
             return;
         }
@@ -230,7 +238,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
             return;
         }
-        var (spam, score) = await classifier.IsSpam(normalized);
+        var (spam, score) = await _classifier.IsSpam(normalized);
         if (spam)
         {
             var reason = $"ML решил что это спам, скор {score}";
@@ -260,18 +268,18 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 cancellationToken: stoppingToken
             );
         }
-        logger.LogDebug("Classifier thinks its ham, score {Score}", score);
+        _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
 
         // Now we need a mechanism for users who have been writing non-spam for some time
         var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
         if (goodInteractions >= 3)
         {
-            logger.LogInformation(
+            _logger.LogInformation(
                 "User {FullName} behaved well for the last {Count} messages, approving",
                 FullName(user.FirstName, user.LastName),
                 goodInteractions
             );
-            await userManager.Approve(user.Id);
+            await _userManager.Approve(user.Id);
             _goodUserMessages.TryRemove(user.Id, out _);
         }
     }
@@ -322,7 +330,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         await _bot.DeleteMessageAsync(message.Chat, message.MessageId);
         if (!ok)
         {
-            logger.LogWarning("{Key} was not found in the dictionary _captchaNeededUsers", key);
+            _logger.LogWarning("{Key} was not found in the dictionary _captchaNeededUsers", key);
             return;
         }
         Debug.Assert(info != null);
@@ -338,10 +346,10 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
-        logger.LogDebug("Intro flow {@User}", user);
-        if (userManager.Approved(user.Id))
+        _logger.LogDebug("Intro flow {@User}", user);
+        if (_userManager.Approved(user.Id))
             return;
-        var clubUser = await userManager.GetClubUsername(user.Id);
+        var clubUser = await _userManager.GetClubUsername(user.Id);
         if (clubUser != null)
             return;
 
@@ -355,7 +363,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var key = UserToKey(chatId, user);
         if (_captchaNeededUsers.ContainsKey(key))
         {
-            logger.LogDebug("This user is already awaiting captcha challenge");
+            _logger.LogDebug("This user is already awaiting captcha challenge");
             return;
         }
 
@@ -440,7 +448,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "Unable to sent report to admin chat");
+                _logger.LogWarning(e, "Unable to sent report to admin chat");
             }
         }
     }
@@ -449,7 +457,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
     {
         if (!Config.BlacklistAutoBan)
             return false;
-        if (!await userManager.InBanlist(user.Id))
+        if (!await _userManager.InBanlist(user.Id))
             return false;
 
         try
@@ -462,7 +470,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, "Unable to ban");
+            _logger.LogWarning(e, "Unable to ban");
             await _bot.SendTextMessageAsync(
                 Config.AdminChatId,
                 $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
@@ -483,7 +491,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             var userMessage = MemoryCache.Default.Remove(cbData) as Message;
             var text = userMessage?.Caption ?? userMessage?.Text;
             if (!string.IsNullOrWhiteSpace(text))
-                await badMessageManager.MarkAsBad(text);
+                await _badMessageManager.MarkAsBad(text);
             try
             {
                 await _bot.BanChatMemberAsync(new ChatId(chatId), userId);
@@ -495,7 +503,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "Unable to ban");
+                _logger.LogWarning(e, "Unable to ban");
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
                     $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
@@ -523,7 +531,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         {
             case ChatMemberStatus.Member:
             {
-                logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
+                _logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
                 if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
                     // The reason we need to wait here is that we need to get message that user joined to have a chance to be processed first,
@@ -594,7 +602,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, "Unable to delete");
+            _logger.LogWarning(e, "Unable to delete");
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
 
@@ -651,7 +659,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                         var normalized = TextProcessor.NormalizeText(text);
                         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
                         var hasStopWords = SimpleFilters.HasStopWords(normalized);
-                        var (spam, score) = await classifier.IsSpam(normalized);
+                        var (spam, score) = await _classifier.IsSpam(normalized);
                         var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
                         var msg =
                             $"Результат:{Environment.NewLine}"
@@ -664,7 +672,8 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                         break;
                     }
                     case "/spam":
-                        await classifier.AddSpam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
+                        await _classifier.AddSpam(text);
+                        await _badMessageManager.MarkAsBad(text);
                         await _bot.SendTextMessageAsync(
                             message.Chat.Id,
                             "Сообщение добавлено как пример спама в датасет",
@@ -672,7 +681,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                         );
                         break;
                     case "/ham":
-                        await classifier.AddHam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
+                        await _classifier.AddHam(text);
                         await _bot.SendTextMessageAsync(
                             message.Chat.Id,
                             "Сообщение добавлено как пример НЕ-спама в датасет",
@@ -727,7 +736,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, nameof(UnbanUserLater));
+                _logger.LogWarning(e, nameof(UnbanUserLater));
             }
         });
     }
@@ -746,7 +755,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    logger.LogWarning(ex, "DeleteMessageAsync");
+                    _logger.LogWarning(ex, "DeleteMessageAsync");
                 }
             },
             cancellationToken
