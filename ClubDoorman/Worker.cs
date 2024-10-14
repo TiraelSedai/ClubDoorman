@@ -125,8 +125,16 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             return;
         }
 
+        var suspicious = false;
         if (message.SenderChat != null)
-            return;
+        {
+            // to get linked_chat_id we need ChatFullInfo
+            var chat = await _bot.GetChatAsync(message.Chat, stoppingToken);
+            var linked = chat.LinkedChatId;
+            if (linked != null && linked == message.SenderChat.Id)
+                return;
+            suspicious = true;
+        }
 
         var user = message.From!;
         var text = message.Text ?? message.Caption;
@@ -140,7 +148,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var key = UserToKey(message.Chat.Id, user);
         if (_captchaNeededUsers.ContainsKey(key))
         {
-            await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, stoppingToken);
             return;
         }
 
@@ -225,6 +233,12 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         {
             var reason = $"ML решил что это спам, скор {score}";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
+            return;
+        }
+
+        if (suspicious)
+        {
+            await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
         // else - ham
@@ -540,7 +554,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
-            $"Картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, иногда это спам. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
+            $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
             replyToMessageId: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
                 [
