@@ -7,16 +7,14 @@ public class BadMessageManager
 {
     private const string Path = "data/bad-messages.txt";
     private readonly SemaphoreSlim _semaphore = new(1);
-    private readonly HashSet<string> _bad = File.ReadAllLines(Path).ToHashSet();
+    private readonly HashSet<string> _bad = [.. File.ReadAllLines(Path)];
 
-    public bool Bad(string message) => _bad.Contains(ComputeHash(message));
+    public bool KnownBadMessage(string message) => _bad.Contains(ComputeHash(message));
 
     public async ValueTask MarkAsBad(string message)
     {
-		if string.IsNullOrEmpty(message)
-		{
-			return;
-		}
+        if (string.IsNullOrWhiteSpace(message))
+            return;
         var hash = ComputeHash(message);
         if (_bad.Add(hash))
         {
@@ -25,13 +23,5 @@ public class BadMessageManager
         }
     }
 
-    private static string ComputeHash(string message)
-    {
-        var bytes = Encoding.UTF8.GetBytes(message);
-        using (var hasher = SHA512.Create())
-        {
-            var hashBytes = hasher.ComputeHash(bytes);
-            return Convert.ToBase64String(hashBytes);
-        }
-    }
+    private static string ComputeHash(string message) => Convert.ToBase64String(SHA512.HashData(Encoding.UTF8.GetBytes(message)));
 }

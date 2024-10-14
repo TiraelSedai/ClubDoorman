@@ -9,7 +9,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
 
-public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager, BadMessageManager badMessageManager) : BackgroundService
+public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager, BadMessageManager badMessageManager)
+    : BackgroundService
 {
     private record CaptchaInfo(
         long ChatId,
@@ -187,15 +188,16 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
-        if (badMessageManager.Bad(text))
+        if (badMessageManager.KnownBadMessage(text))
         {
             try
             {
-                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id);
-                await _bot.DeleteMessageAsync(message.Chat, message.MessageId);
+                await _bot.DeleteMessageAsync(message.Chat, message.MessageId, stoppingToken);
+                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, cancellationToken: stoppingToken);
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
-                    $"Автоматически забанили юзера {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} в чате {message.Chat.Title} (точно плохое сообщение)"
+                    $"Автоматически забанили юзера {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} в чате {message.Chat.Title} (точно плохое сообщение)",
+                    cancellationToken: stoppingToken
                 );
             }
             catch (Exception e)
@@ -332,7 +334,6 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 await _bot.DeleteMessageAsync(message.Chat, info.UserJoinedMessage.MessageId);
             UnbanUserLater(message.Chat, userId);
         }
-        // Else: Theoretically we could approve user here, but I've seen spammers who can pass captcha and then post spam
     }
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
@@ -479,6 +480,10 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         var split = cbData.Split('_').ToList();
         if (split.Count > 2 && split[0] == "ban" && long.TryParse(split[1], out var chatId) && long.TryParse(split[2], out var userId))
         {
+            var userMessage = MemoryCache.Default.Remove(cbData) as Message;
+            var text = userMessage?.Caption ?? userMessage?.Text;
+            if (!string.IsNullOrWhiteSpace(text))
+                await badMessageManager.MarkAsBad(text);
             try
             {
                 await _bot.BanChatMemberAsync(new ChatId(chatId), userId);
@@ -497,6 +502,12 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                     replyToMessageId: cb.Message?.MessageId
                 );
             }
+            try
+            {
+                if (userMessage != null)
+                    await _bot.DeleteMessageAsync(userMessage.Chat, userMessage.MessageId);
+            }
+            catch { }
         }
         var msg = cb.Message;
         if (msg != null)
@@ -534,7 +545,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                 var lastMessage = MemoryCache.Default.Get(key) as string;
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
                     ? ""
-                    : $" Его/её последним сообщенимем было:{Environment.NewLine}{lastMessage}";
+                    : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
                     $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
@@ -552,6 +563,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
             cancellationToken: stoppingToken
         );
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
+        MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
             $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
@@ -587,6 +599,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         }
 
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
+        MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         var postLink = LinkToMessage(message.Chat, message.MessageId);
 
         await _bot.SendTextMessageAsync(
@@ -616,7 +629,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async Task AdminChatMessage(Message message)
     {
-        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" or "/alwaysban" })
+        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" })
         {
             if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardFrom == null && replyToMessage.ForwardSenderName == null)
             {
@@ -657,15 +670,6 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                             "Сообщение добавлено как пример спама в датасет",
                             replyToMessageId: replyToMessage.MessageId
                         );
-                        await badMessageManager.MarkAsBad(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
-                        break;
-                    case "/alwaysban":
-                        await badMessageManager.MarkAsBad(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
-						await _bot.SendTextMessageAsync(
-							message.Chat.Id,
-							"Теперь за такие сообщения будем автоматически банить",
-							replyToMessageId: replyToMessage.MessageId
-						);
                         break;
                     case "/ham":
                         await classifier.AddHam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
