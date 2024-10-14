@@ -198,20 +198,7 @@ internal sealed class Worker(
         }
         if (_badMessageManager.KnownBadMessage(text))
         {
-            try
-            {
-                await _bot.DeleteMessageAsync(message.Chat, message.MessageId, stoppingToken);
-                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, cancellationToken: stoppingToken);
-                await _bot.SendTextMessageAsync(
-                    new ChatId(Config.AdminChatId),
-                    $"Автоматически забанили юзера {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} в чате {message.Chat.Title} (точно плохое сообщение)",
-                    cancellationToken: stoppingToken
-                );
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Unable to ban");
-            }
+            await HandleBadMessage(message, user, stoppingToken);
             return;
         }
         if (SimpleFilters.TooManyEmojis(text))
@@ -281,6 +268,26 @@ internal sealed class Worker(
             );
             await _userManager.Approve(user.Id);
             _goodUserMessages.TryRemove(user.Id, out _);
+        }
+    }
+
+    private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
+    {
+        try
+        {
+            var fwd = await _bot.ForwardMessageAsync(Config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.DeleteMessageAsync(message.Chat, message.MessageId, stoppingToken);
+            await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, cancellationToken: stoppingToken);
+            await _bot.SendTextMessageAsync(
+                Config.AdminChatId,
+                $"Автоматически забанили в чате {message.Chat.Title}",
+                replyToMessageId: fwd.MessageId,
+                cancellationToken: stoppingToken
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Unable to ban");
         }
     }
 
