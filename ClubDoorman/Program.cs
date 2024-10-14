@@ -24,6 +24,7 @@ public class Program
                 services.AddHostedService<Worker>();
                 services.AddSingleton<SpamHamClassifier>();
                 services.AddSingleton<UserManager>();
+                services.AddSingleton<BadMessageManager>();
             })
             .Build();
 

@@ -9,7 +9,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
 
-public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager) : BackgroundService
+public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserManager userManager, BadMessageManager badMessageManager) : BackgroundService
 {
     private record CaptchaInfo(
         long ChatId,
@@ -177,6 +177,23 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
         {
             logger.LogDebug("Empty text/caption");
             await DontDeleteButReportMessage(message, user, stoppingToken);
+            return;
+        }
+        if (badMessageManager.Bad(text))
+        {
+            try
+            {
+                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id);
+                await _bot.DeleteMessageAsync(message.Chat, message.MessageId);
+                await _bot.SendTextMessageAsync(
+                    new ChatId(Config.AdminChatId),
+                    $"Автоматически забанили юзера {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} в чате {message.Chat.Title} (точно плохое сообщение)"
+                );
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Unable to ban");
+            }
             return;
         }
         if (SimpleFilters.TooManyEmojis(text))
@@ -585,7 +602,7 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
 
     private async Task AdminChatMessage(Message message)
     {
-        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" })
+        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" or "/alwaysban" })
         {
             if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardFrom == null && replyToMessage.ForwardSenderName == null)
             {
@@ -626,6 +643,15 @@ public class Worker(ILogger<Worker> logger, SpamHamClassifier classifier, UserMa
                             "Сообщение добавлено как пример спама в датасет",
                             replyToMessageId: replyToMessage.MessageId
                         );
+                        await badMessageManager.MarkAsBad(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
+                        break;
+                    case "/alwaysban":
+                        await badMessageManager.MarkAsBad(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
+						await _bot.SendTextMessageAsync(
+							message.Chat.Id,
+							"Теперь за такие сообщения будем автоматически банить",
+							replyToMessageId: replyToMessage.MessageId
+						);
                         break;
                     case "/ham":
                         await classifier.AddHam(replyToMessage.Text ?? replyToMessage.Caption ?? string.Empty);
