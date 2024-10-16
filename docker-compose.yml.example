@@ -1,6 +1,6 @@
 services:
   doorman:
-    image: ghcr.io/momai/clubdoorman:latest
+    image: momai/clubdoorman:latest
     container_name: doorman
     environment:
       - TZ=Europe/Moscow
