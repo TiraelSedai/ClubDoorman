@@ -121,6 +121,25 @@ internal sealed class Worker(
         var message = update.Message;
         if (message == null)
             return;
+    // Обработка команды /start в личных сообщениях
+    if (message.Chat.Type == ChatType.Private && message.Text == "/start")
+    {
+        var welcomeMessage = "Привет, бот был переписан!\n\n" +
+                             "*Я бот антиспам с капчей, используется анализ сообщений локальной ML.*\n\n" +
+                             "Добавь меня в чат и дай права админа. Больше ничего делать не нужно.\n\n" +
+                             "*Принцип работы:*\n" +
+                             "Новый пользователь входит в чат. Ему высвечивается сообщение с просьбой выбрать названное изображение на эмодзи-кнопке.\n" +
+                             "Если пользователь не прошёл проверку, бот его банит.\n" +
+                             "Далее, первые 3 сообщения новых пользователей отправляются в локальную нейронку для проверки на спам. Нейронка дает оценку сообщению.\n\n" +
+                             "В случае обнаружения подозрительного сообщения, инициируются различные методы, в зависимости от уровня подозрения на спам: от моментальной блокировки и удаления сообщения до уведомления админов для ручного вмешательства.";
+        await _bot.SendTextMessageAsync(
+            message.Chat.Id,
+            welcomeMessage,
+            parseMode: ParseMode.Markdown
+        );
+        return;
+    }
+
         if (message.NewChatMembers != null && message.Chat.Id != Config.AdminChatId)
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
@@ -198,7 +217,20 @@ internal sealed class Worker(
         }
         if (_badMessageManager.KnownBadMessage(text))
         {
-            await HandleBadMessage(message, user, stoppingToken);
+            try
+            {
+                await _bot.DeleteMessageAsync(message.Chat, message.MessageId, stoppingToken);
+                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, cancellationToken: stoppingToken);
+                await _bot.SendTextMessageAsync(
+                    new ChatId(Config.AdminChatId),
+                    $"Автоматически забанили юзера {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} в чате {message.Chat.Title} (точно плохое сообщение)",
+                    cancellationToken: stoppingToken
+                );
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Unable to ban");
+            }
             return;
         }
         if (SimpleFilters.TooManyEmojis(text))
@@ -268,26 +300,6 @@ internal sealed class Worker(
             );
             await _userManager.Approve(user.Id);
             _goodUserMessages.TryRemove(user.Id, out _);
-        }
-    }
-
-    private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
-    {
-        try
-        {
-            var fwd = await _bot.ForwardMessageAsync(Config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
-            await _bot.DeleteMessageAsync(message.Chat, message.MessageId, stoppingToken);
-            await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, cancellationToken: stoppingToken);
-            await _bot.SendTextMessageAsync(
-                Config.AdminChatId,
-                $"Автоматически забанили в чате {message.Chat.Title}",
-                replyToMessageId: fwd.MessageId,
-                cancellationToken: stoppingToken
-            );
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Unable to ban");
         }
     }
 
