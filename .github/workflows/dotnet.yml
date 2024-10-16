@@ -29,16 +29,16 @@ jobs:
       run: dotnet test --no-restore
 
     - name: Build Docker image
-      run: docker build -t ghcr.io/${{ env.repo_name }}:latest -t ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }} ./ClubDoorman
+      run: docker build -t momai/clubdoorman:latest -t momai/clubdoorman:${{ steps.vars.outputs.version }} ./ClubDoorman
       
-    - name: Log in to GitHub Container Registry
+    - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Push Docker image to GitHub Container Registry
+    - name: Push Docker image to Docker Hub
       run: |
-        docker push ghcr.io/${{ env.repo_name }}:latest
-        docker push ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
+        docker push momai/clubdoorman:latest
+        docker push momai/clubdoorman:${{ steps.vars.outputs.version }}
+
