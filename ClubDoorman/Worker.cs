@@ -89,10 +89,18 @@ internal sealed class Worker(
         if (updates.Length == 0)
             return offset;
         offset = updates.Max(x => x.Id) + 1;
+        string? mediaGroupId = null;
         foreach (var update in updates)
         {
             try
             {
+                var prevMediaGroup = mediaGroupId;
+                mediaGroupId = update.Message?.MediaGroupId;
+                if (prevMediaGroup != null && prevMediaGroup == mediaGroupId)
+                {
+                    _logger.LogDebug("2+ message from an album, it could not have any text/caption, skip");
+                    continue;
+                }
                 await HandleUpdate(update, stoppingToken);
             }
             catch (Exception e)
