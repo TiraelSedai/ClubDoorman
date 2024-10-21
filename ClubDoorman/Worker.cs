@@ -155,12 +155,38 @@ internal sealed class Worker(
         var sentAsChannel = false;
         if (message.SenderChat != null)
         {
+            sentAsChannel = true;
             // to get linked_chat_id we need ChatFullInfo
             var chatFull = await _bot.GetChatAsync(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
             if (linked != null && linked == message.SenderChat.Id)
                 return;
-            sentAsChannel = true;
+
+            if (Config.ChannelAutoBan)
+            {
+                try
+                {
+                    var fwd = await _bot.ForwardMessageAsync(Config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
+                    await _bot.DeleteMessageAsync(chat, message.MessageId, stoppingToken);
+                    await _bot.BanChatSenderChatAsync(chat, message.SenderChat.Id, stoppingToken);
+                    await _bot.SendTextMessageAsync(
+                        Config.AdminChatId,
+                        $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
+                        replyToMessageId: fwd.MessageId,
+                        cancellationToken: stoppingToken
+                    );
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Unable to ban");
+                    await _bot.SendTextMessageAsync(
+                        Config.AdminChatId,
+                        $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
+                        cancellationToken: stoppingToken
+                    );
+                }
+                return;
+            }
         }
 
         var user = message.From!;
