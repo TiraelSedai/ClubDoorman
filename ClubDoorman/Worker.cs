@@ -221,10 +221,10 @@ internal sealed class Worker(
         {
             if (Config.BlacklistAutoBan)
             {
-                await _bot.BanChatMemberAsync(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
-                await _bot.DeleteMessageAsync(chat.Id, message.MessageId, stoppingToken);
                 var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
                 Interlocked.Increment(ref stats.BlacklistBanned);
+                await _bot.BanChatMemberAsync(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                await _bot.DeleteMessageAsync(chat.Id, message.MessageId, stoppingToken);
             }
             else
             {
@@ -314,10 +314,10 @@ internal sealed class Worker(
         try
         {
             var chat = message.Chat;
-            await _bot.DeleteMessageAsync(chat, message.MessageId, stoppingToken);
-            await _bot.BanChatMemberAsync(chat.Id, user.Id, cancellationToken: stoppingToken);
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.KnownBadMessage);
+            await _bot.DeleteMessageAsync(chat, message.MessageId, stoppingToken);
+            await _bot.BanChatMemberAsync(chat.Id, user.Id, cancellationToken: stoppingToken);
         }
         catch (Exception e)
         {
@@ -379,12 +379,12 @@ internal sealed class Worker(
         await info.Cts.CancelAsync();
         if (info.CorrectAnswer != chosen)
         {
+            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            Interlocked.Increment(ref stats.StoppedCaptcha);
             await _bot.BanChatMemberAsync(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
             if (info.UserJoinedMessage != null)
                 await _bot.DeleteMessageAsync(chat, info.UserJoinedMessage.MessageId);
             UnbanUserLater(chat, userId);
-            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.StoppedCaptcha);
         }
     }
 
@@ -507,9 +507,9 @@ internal sealed class Worker(
 
         try
         {
-            await _bot.BanChatMemberAsync(chat.Id, user.Id);
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.BlacklistBanned);
+            await _bot.BanChatMemberAsync(chat.Id, user.Id);
             return true;
         }
         catch (Exception e)
@@ -750,11 +750,11 @@ internal sealed class Worker(
             var minutes = (now - timestamp).TotalMinutes;
             if (minutes > 1)
             {
+                var stats = _stats.GetOrAdd(chatId, new Stats(title));
+                Interlocked.Increment(ref stats.StoppedCaptcha);
                 _captchaNeededUsers.TryRemove(key, out _);
                 await _bot.BanChatMemberAsync(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
                 UnbanUserLater(chatId, user.Id);
-                var stats = _stats.GetOrAdd(chatId, new Stats(title));
-                Interlocked.Increment(ref stats.StoppedCaptcha);
             }
         }
     }
