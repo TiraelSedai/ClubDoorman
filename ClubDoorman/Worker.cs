@@ -18,6 +18,7 @@ internal sealed class Worker(
 {
     private sealed record CaptchaInfo(
         long ChatId,
+        string? ChatTitle,
         DateTime Timestamp,
         User User,
         int CorrectAnswer,
@@ -25,10 +26,18 @@ internal sealed class Worker(
         Message? UserJoinedMessage
     );
 
+    private sealed class Stats(string? Title)
+    {
+        public string? ChatTitle = Title;
+        public int StoppedCaptcha;
+        public int BlacklistBanned;
+        public int KnownBadMessage;
+    }
+
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
     private readonly TelegramBotClient _bot = new(Config.BotApi);
-    private Dictionary<long, (string Title, List<string> Users)> _banned = [];
+    private readonly ConcurrentDictionary<long, Stats> _stats = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
     private readonly ILogger<Worker> _logger = logger;
     private readonly SpamHamClassifier _classifier = classifier;
@@ -48,7 +57,7 @@ internal sealed class Worker(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _ = CaptchaLoop(stoppingToken);
-        _ = ReportBanned(stoppingToken);
+        _ = ReportStatistics(stoppingToken);
         _classifier.Touch();
         const string offsetPath = "data/offset.txt";
         var offset = 0;
@@ -89,10 +98,18 @@ internal sealed class Worker(
         if (updates.Length == 0)
             return offset;
         offset = updates.Max(x => x.Id) + 1;
+        string? mediaGroupId = null;
         foreach (var update in updates)
         {
             try
             {
+                var prevMediaGroup = mediaGroupId;
+                mediaGroupId = update.Message?.MediaGroupId;
+                if (prevMediaGroup != null && prevMediaGroup == mediaGroupId)
+                {
+                    _logger.LogDebug("2+ message from an album, it could not have any text/caption, skip");
+                    continue;
+                }
                 await HandleUpdate(update, stoppingToken);
             }
             catch (Exception e)
@@ -121,47 +138,53 @@ internal sealed class Worker(
         var message = update.Message;
         if (message == null)
             return;
-    // Обработка команды /start в личных сообщениях
-    if (message.Chat.Type == ChatType.Private && message.Text == "/start")
-    {
-        var welcomeMessage = "Привет, бот был переписан!\n\n" +
-                             "*Я бот антиспам с капчей, используется анализ сообщений локальной ML.*\n\n" +
-                             "Добавь меня в чат и дай права админа. Больше ничего делать не нужно.\n\n" +
-                             "*Принцип работы:*\n" +
-                             "Новый пользователь входит в чат. Ему высвечивается сообщение с просьбой выбрать названное изображение на эмодзи-кнопке.\n" +
-                             "Если пользователь не прошёл проверку, бот его банит.\n" +
-                             "Далее, первые 3 сообщения новых пользователей отправляются в локальную нейронку для проверки на спам. Нейронка дает оценку сообщению.\n\n" +
-                             "В случае обнаружения подозрительного сообщения, инициируются различные методы, в зависимости от уровня подозрения на спам: от моментальной блокировки и удаления сообщения до уведомления админов для ручного вмешательства.";
-        await _bot.SendTextMessageAsync(
-            message.Chat.Id,
-            welcomeMessage,
-            parseMode: ParseMode.Markdown
-        );
-        return;
-    }
-
-        if (message.NewChatMembers != null && message.Chat.Id != Config.AdminChatId)
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
                 await IntroFlow(message, newUser);
             return;
         }
 
-        if (message.Chat.Id == Config.AdminChatId)
+        if (chat.Id == Config.AdminChatId)
         {
             await AdminChatMessage(message);
             return;
         }
 
-        var suspicious = false;
+        var sentAsChannel = false;
         if (message.SenderChat != null)
         {
+            sentAsChannel = true;
             // to get linked_chat_id we need ChatFullInfo
-            var chat = await _bot.GetChatAsync(message.Chat, stoppingToken);
-            var linked = chat.LinkedChatId;
+            var chatFull = await _bot.GetChatAsync(chat, stoppingToken);
+            var linked = chatFull.LinkedChatId;
             if (linked != null && linked == message.SenderChat.Id)
                 return;
-            suspicious = true;
+
+            if (Config.ChannelAutoBan)
+            {
+                try
+                {
+                    var fwd = await _bot.ForwardMessageAsync(Config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
+                    await _bot.DeleteMessageAsync(chat, message.MessageId, stoppingToken);
+                    await _bot.BanChatSenderChatAsync(chat, message.SenderChat.Id, stoppingToken);
+                    await _bot.SendTextMessageAsync(
+                        Config.AdminChatId,
+                        $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
+                        replyToMessageId: fwd.MessageId,
+                        cancellationToken: stoppingToken
+                    );
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Unable to ban");
+                    await _bot.SendTextMessageAsync(
+                        Config.AdminChatId,
+                        $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
+                        cancellationToken: stoppingToken
+                    );
+                }
+                return;
+            }
         }
 
         var user = message.From!;
@@ -169,21 +192,21 @@ internal sealed class Worker(
 
         if (text != null)
             MemoryCache.Default.Set(
-                new CacheItem($"{message.Chat.Id}_{user.Id}", text),
+                new CacheItem($"{chat.Id}_{user.Id}", text),
                 new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
             );
 
-        var key = UserToKey(message.Chat.Id, user);
+        var key = UserToKey(chat.Id, user);
         if (_captchaNeededUsers.ContainsKey(key))
         {
-            await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, stoppingToken);
+            await _bot.DeleteMessageAsync(chat.Id, message.MessageId, stoppingToken);
             return;
         }
 
         if (_userManager.Approved(user.Id))
             return;
 
-        _logger.LogDebug("First-time message, chat {Chat}, message {Message}", message.Chat.Title, text);
+        _logger.LogDebug("First-time message, chat {Chat}, message {Message}", chat.Title, text);
 
         // At this point we are believing we see first-timers, and we need to check for spam
         var name = await _userManager.GetClubUsername(user.Id);
@@ -196,11 +219,10 @@ internal sealed class Worker(
         {
             if (Config.BlacklistAutoBan)
             {
-                await _bot.BanChatMemberAsync(message.Chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
-                await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, stoppingToken);
-                _banned.TryAdd(message.Chat.Id, (message.Chat.Title ?? "", []));
-                var list = _banned[message.Chat.Id].Users;
-                list.Add(FullName(user.FirstName, user.LastName));
+                var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+                Interlocked.Increment(ref stats.BlacklistBanned);
+                await _bot.BanChatMemberAsync(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                await _bot.DeleteMessageAsync(chat.Id, message.MessageId, stoppingToken);
             }
             else
             {
@@ -265,7 +287,7 @@ internal sealed class Worker(
             return;
         }
 
-        if (suspicious)
+        if (sentAsChannel)
         {
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
@@ -273,16 +295,11 @@ internal sealed class Worker(
         // else - ham
         if (score > -0.7 && Config.LowConfidenceHamForward)
         {
-            var forward = await _bot.ForwardMessageAsync(
-                Config.AdminChatId,
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: stoppingToken
-            );
-            var postLink = LinkToMessage(message.Chat, message.MessageId);
+            var forward = await _bot.ForwardMessageAsync(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            var postLink = LinkToMessage(chat, message.MessageId);
             await _bot.SendTextMessageAsync(
                 Config.AdminChatId,
-                $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
+                $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                 replyToMessageId: forward.MessageId,
                 cancellationToken: stoppingToken
             );
@@ -302,7 +319,6 @@ internal sealed class Worker(
             _goodUserMessages.TryRemove(user.Id, out _);
         }
     }
-
     private async Task HandleCallback(Update update)
     {
         var cb = update.CallbackQuery;
@@ -344,9 +360,10 @@ internal sealed class Worker(
             return;
         }
 
-        var key = UserToKey(message.Chat.Id, cb.From);
+        var chat = message.Chat;
+        var key = UserToKey(chat.Id, cb.From);
         var ok = _captchaNeededUsers.TryRemove(key, out var info);
-        await _bot.DeleteMessageAsync(message.Chat, message.MessageId);
+        await _bot.DeleteMessageAsync(chat, message.MessageId);
         if (!ok)
         {
             _logger.LogWarning("{Key} was not found in the dictionary _captchaNeededUsers", key);
@@ -356,10 +373,12 @@ internal sealed class Worker(
         await info.Cts.CancelAsync();
         if (info.CorrectAnswer != chosen)
         {
-            await _bot.BanChatMemberAsync(message.Chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
+            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            Interlocked.Increment(ref stats.StoppedCaptcha);
+            await _bot.BanChatMemberAsync(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
             if (info.UserJoinedMessage != null)
-                await _bot.DeleteMessageAsync(message.Chat, info.UserJoinedMessage.MessageId);
-            UnbanUserLater(message.Chat, userId);
+                await _bot.DeleteMessageAsync(chat, info.UserJoinedMessage.MessageId);
+            UnbanUserLater(chat, userId);
         }
     }
 
@@ -419,11 +438,14 @@ internal sealed class Worker(
         if (userJoinMessage != null)
         {
             DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), cts.Token);
-            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, DateTime.UtcNow, user, correctAnswer, cts, userJoinMessage));
+            _captchaNeededUsers.TryAdd(
+                key,
+                new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, userJoinMessage)
+            );
         }
         else
         {
-            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, DateTime.UtcNow, user, correctAnswer, cts, null));
+            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, null));
         }
 
         return;
@@ -436,29 +458,27 @@ internal sealed class Worker(
         }
     }
 
-    private async Task ReportBanned(CancellationToken ct)
+    private async Task ReportStatistics(CancellationToken ct)
     {
         while (await _timer.WaitForNextTickAsync(ct))
         {
             if (DateTimeOffset.UtcNow.Hour != 12)
                 continue;
 
-            var report = _banned;
-            _banned = [];
-            if (report.Sum(x => x.Value.Users.Count) == 0)
-                continue;
+            var report = _stats.ToArray();
+            _stats.Clear();
             var sb = new StringBuilder();
-
-            sb.Append("За последние 24 часа были забанены по блеклистам:");
-            foreach (var (_, (title, users)) in report.OrderBy(x => x.Value.Title))
+            sb.Append("За последние 24 часа в чатах:");
+            foreach (var (_, stats) in report.OrderBy(x => x.Value.ChatTitle))
             {
                 sb.Append(Environment.NewLine);
                 sb.Append("В ");
-                sb.Append(title);
-                sb.Append($": {users.Count} пользователь(ей){Environment.NewLine}");
-                sb.Append(string.Join(", ", users.Take(5)));
-                if (users.Count > 5)
-                    sb.Append(", и другие");
+                sb.Append(stats.ChatTitle);
+                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha;
+                sb.Append($": {sum} раза сработала защита автоматом{Environment.NewLine}");
+                sb.Append(
+                    $"По блеклистам известных аккаунтов спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, за известные спам сообщения забанено: {stats.KnownBadMessage}"
+                );
             }
 
             try
@@ -481,10 +501,9 @@ internal sealed class Worker(
 
         try
         {
+            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            Interlocked.Increment(ref stats.BlacklistBanned);
             await _bot.BanChatMemberAsync(chat.Id, user.Id);
-            _banned.TryAdd(chat.Id, (chat.Title ?? "", []));
-            var list = _banned[chat.Id].Users;
-            list.Add(FullName(user.FirstName, user.LastName));
             return true;
         }
         catch (Exception e)
@@ -720,11 +739,13 @@ internal sealed class Worker(
             return;
         var now = DateTime.UtcNow;
         var users = _captchaNeededUsers.ToArray();
-        foreach (var (key, (chatId, timestamp, user, _, _, _)) in users)
+        foreach (var (key, (chatId, title, timestamp, user, _, _, _)) in users)
         {
             var minutes = (now - timestamp).TotalMinutes;
             if (minutes > 1)
             {
+                var stats = _stats.GetOrAdd(chatId, new Stats(title));
+                Interlocked.Increment(ref stats.StoppedCaptcha);
                 _captchaNeededUsers.TryRemove(key, out _);
                 await _bot.BanChatMemberAsync(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
                 UnbanUserLater(chatId, user.Id);
