@@ -138,6 +138,16 @@ internal sealed class Worker(
         var message = update.Message;
         if (message == null)
             return;
+        // Handle the new /approve command for adding users to approved-users.txt
+        if (message.Chat.Type == ChatType.Group || message.Chat.Type == ChatType.Supergroup)
+        {
+            if (message.Text != null && message.Text.StartsWith("/approve") && message.ReplyToMessage != null)
+            {
+                await HandleApproveCommand(message);
+                return;
+            }
+        }
+
         var chat = message.Chat;
         if (message.NewChatMembers != null && chat.Id != Config.AdminChatId)
         {
@@ -308,6 +318,35 @@ internal sealed class Worker(
             _goodUserMessages.TryRemove(user.Id, out _);
         }
     }
+
+    private async Task HandleApproveCommand(Message message)
+    {
+        // Проверяем, существует ли сообщение, на которое был отправлен ответ
+        var replyMessage = message.ReplyToMessage;
+        if (replyMessage == null)
+        {
+            await _bot.SendTextMessageAsync(message.Chat.Id, "Не могу определить сообщение для одобрения. Попробуйте ответить на сообщение юзера.");
+            return;
+        }
+
+        // Если сообщение было переслано ботом, ищем реального отправителя в поле ForwardFrom
+        var userToApprove = replyMessage.ForwardFrom;
+        if (userToApprove == null)
+        {
+            await _bot.SendTextMessageAsync(message.Chat.Id, "Не могу определить пользователя для одобрения. Убедитесь, что вы отвечаете на пересланное сообщение с валидным автором.");
+            return;
+        }
+
+        // Добавляем пользователя в список одобренных
+        await _userManager.Approve(userToApprove.Id);
+        await _bot.SendTextMessageAsync(
+            message.Chat.Id, 
+            $"Пользователь {FullName(userToApprove.FirstName, userToApprove.LastName)} одобрен и добавлен в approved-users.txt.",
+            replyToMessageId: message.MessageId
+        );
+        _logger.LogInformation("User {FullName} was approved by admin", FullName(userToApprove.FirstName, userToApprove.LastName));
+    }
+
 
     private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
     {
@@ -687,11 +726,12 @@ internal sealed class Worker(
             {
                 await _bot.SendTextMessageAsync(
                     message.Chat.Id,
-                    "Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
+                    "Похоже, что вы промахнулись и реплайнули на сообщение бота, а не форвард",
                     replyToMessageId: replyToMessage.MessageId
                 );
                 return;
             }
+
             var text = replyToMessage.Text ?? replyToMessage.Caption;
             if (!string.IsNullOrWhiteSpace(text))
             {
@@ -733,6 +773,31 @@ internal sealed class Worker(
                         );
                         break;
                 }
+            }
+        }
+        else if (message.Text == "/approve" && message.ReplyToMessage != null)
+        {
+            var originalMessage = message.ReplyToMessage;
+
+            if (originalMessage.ForwardFrom != null && originalMessage.ForwardFrom.Id != _me.Id)
+            {
+                var userToApprove = originalMessage.ForwardFrom;
+
+                await _userManager.Approve(userToApprove.Id);
+                await _bot.SendTextMessageAsync(
+                    message.Chat.Id,
+                    $"Пользователь {FullName(userToApprove.FirstName, userToApprove.LastName)} одобрен и добавлен в approved-users.txt.",
+                    replyToMessageId: originalMessage.MessageId
+                );
+                _logger.LogInformation("User {FullName} was approved by admin", FullName(userToApprove.FirstName, userToApprove.LastName));
+            }
+            else
+            {
+                await _bot.SendTextMessageAsync(
+                    message.Chat.Id,
+                    "Не могу определить пользователя для одобрения. Убедитесь, что команда /approve используется в ответ на пересланное сообщение с валидным автором.",
+                    replyToMessageId: message.ReplyToMessage.MessageId
+                );
             }
         }
     }
