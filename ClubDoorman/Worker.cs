@@ -530,7 +530,16 @@ internal sealed class Worker(
     private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
     {
         var split = cbData.Split('_').ToList();
-        if (split.Count > 2 && split[0] == "ban" && long.TryParse(split[1], out var chatId) && long.TryParse(split[2], out var userId))
+        if (split.Count > 1 && split[0] == "approve" && long.TryParse(split[1], out var approveUserId))
+        {
+            await _userManager.Approve(approveUserId);
+            await _bot.SendTextMessageAsync(
+                new ChatId(Config.AdminChatId),
+                $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список доверенных",
+                replyToMessageId: cb.Message?.MessageId
+            );
+        }
+        else if (split.Count > 2 && split[0] == "ban" && long.TryParse(split[1], out var chatId) && long.TryParse(split[2], out var userId))
         {
             var userMessage = MemoryCache.Default.Remove(cbData) as Message;
             var text = userMessage?.Caption ?? userMessage?.Text;
@@ -541,7 +550,7 @@ internal sealed class Worker(
                 await _bot.BanChatMemberAsync(new ChatId(chatId), userId);
                 await _bot.SendTextMessageAsync(
                     new ChatId(Config.AdminChatId),
-                    $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил",
+                    $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил, сообщение добавлено в список авто-бана",
                     replyToMessageId: cb.Message?.MessageId
                 );
             }
@@ -650,20 +659,23 @@ internal sealed class Worker(
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
 
-        var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
-        MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+        var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
+        MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         var postLink = LinkToMessage(message.Chat, message.MessageId);
+        var row = new List<InlineKeyboardButton>(
+            [
+                new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
+                new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" }
+            ]
+        );
+        if (Config.ApproveButtonEnabled)
+            row.Add(new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" });
 
         await _bot.SendTextMessageAsync(
             new ChatId(Config.AdminChatId),
             $"{deletionMessagePart}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
             replyToMessageId: forward.MessageId,
-            replyMarkup: new InlineKeyboardMarkup(
-                [
-                    new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
-                    new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
-                ]
-            ),
+            replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
         );
     }
@@ -720,7 +732,7 @@ internal sealed class Worker(
                         await _badMessageManager.MarkAsBad(text);
                         await _bot.SendTextMessageAsync(
                             message.Chat.Id,
-                            "Сообщение добавлено как пример спама в датасет",
+                            "Сообщение добавлено как пример спама в датасет, а так же в список авто-бана",
                             replyToMessageId: replyToMessage.MessageId
                         );
                         break;
