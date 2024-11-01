@@ -7,6 +7,8 @@ services:
       - DOORMAN_CLUB_SERVICE_TOKEN=${DOORMAN_CLUB_SERVICE_TOKEN}
       - DOORMAN_BOT_API=${DOORMAN_BOT_API}
       - DOORMAN_ADMIN_CHAT=${DOORMAN_ADMIN_CHAT}
+      - DOORMAN_BLACKLIST_AUTOBAN_DISABLE=${DOORMAN_BLACKLIST_AUTOBAN_DISABLE}
+      - DOORMAN_LOW_CONFIDENCE_HAM_ENABLE=${DOORMAN_LOW_CONFIDENCE_HAM_ENABLE}
     volumes:
-      - /home/tirael/clubdoorman/data:/app/data
+      - ./ClubDoorman/data:/app/data
     restart: unless-stopped
