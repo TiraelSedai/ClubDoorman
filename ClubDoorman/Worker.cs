@@ -68,7 +68,7 @@ internal sealed class Worker(
                 _logger.LogDebug("offset read ok");
         }
 
-        _me = await _bot.GetMeAsync(cancellationToken: stoppingToken);
+        _me = await _bot.GetMe(cancellationToken: stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -88,7 +88,7 @@ internal sealed class Worker(
 
     private async Task<int> UpdateLoop(int offset, CancellationToken stoppingToken)
     {
-        var updates = await _bot.GetUpdatesAsync(
+        var updates = await _bot.GetUpdates(
             offset,
             limit: 100,
             timeout: 100,
@@ -157,7 +157,7 @@ internal sealed class Worker(
         {
             sentAsChannel = true;
             // to get linked_chat_id we need ChatFullInfo
-            var chatFull = await _bot.GetChatAsync(chat, stoppingToken);
+            var chatFull = await _bot.GetChat(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
             if (linked != null && linked == message.SenderChat.Id)
                 return;
@@ -166,20 +166,20 @@ internal sealed class Worker(
             {
                 try
                 {
-                    var fwd = await _bot.ForwardMessageAsync(Config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
-                    await _bot.DeleteMessageAsync(chat, message.MessageId, stoppingToken);
-                    await _bot.BanChatSenderChatAsync(chat, message.SenderChat.Id, stoppingToken);
-                    await _bot.SendTextMessageAsync(
+                    var fwd = await _bot.ForwardMessage(Config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
+                    await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
+                    await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
+                    await _bot.SendMessage(
                         Config.AdminChatId,
                         $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
-                        replyToMessageId: fwd.MessageId,
+                        replyParameters: fwd,
                         cancellationToken: stoppingToken
                     );
                 }
                 catch (Exception e)
                 {
                     _logger.LogWarning(e, "Unable to ban");
-                    await _bot.SendTextMessageAsync(
+                    await _bot.SendMessage(
                         Config.AdminChatId,
                         $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
                         cancellationToken: stoppingToken
@@ -201,7 +201,7 @@ internal sealed class Worker(
         var key = UserToKey(chat.Id, user);
         if (_captchaNeededUsers.ContainsKey(key))
         {
-            await _bot.DeleteMessageAsync(chat.Id, message.MessageId, stoppingToken);
+            await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
             return;
         }
 
@@ -223,8 +223,8 @@ internal sealed class Worker(
             {
                 var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
                 Interlocked.Increment(ref stats.BlacklistBanned);
-                await _bot.BanChatMemberAsync(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
-                await _bot.DeleteMessageAsync(chat.Id, message.MessageId, stoppingToken);
+                await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
             }
             else
             {
@@ -284,12 +284,12 @@ internal sealed class Worker(
         // else - ham
         if (score > -0.7 && Config.LowConfidenceHamForward)
         {
-            var forward = await _bot.ForwardMessageAsync(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = LinkToMessage(chat, message.MessageId);
-            await _bot.SendTextMessageAsync(
+            await _bot.SendMessage(
                 Config.AdminChatId,
                 $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
-                replyToMessageId: forward.MessageId,
+                replyParameters: forward,
                 cancellationToken: stoppingToken
             );
         }
@@ -316,8 +316,8 @@ internal sealed class Worker(
             var chat = message.Chat;
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.KnownBadMessage);
-            await _bot.DeleteMessageAsync(chat, message.MessageId, stoppingToken);
-            await _bot.BanChatMemberAsync(chat.Id, user.Id, cancellationToken: stoppingToken);
+            await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
+            await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
         }
         catch (Exception e)
         {
@@ -362,14 +362,14 @@ internal sealed class Worker(
         // Prevent other people from ruining the flow
         if (cb.From.Id != userId)
         {
-            await _bot.AnswerCallbackQueryAsync(cb.Id);
+            await _bot.AnswerCallbackQuery(cb.Id);
             return;
         }
 
         var chat = message.Chat;
         var key = UserToKey(chat.Id, cb.From);
         var ok = _captchaNeededUsers.TryRemove(key, out var info);
-        await _bot.DeleteMessageAsync(chat, message.MessageId);
+        await _bot.DeleteMessage(chat, message.MessageId);
         if (!ok)
         {
             _logger.LogWarning("{Key} was not found in the dictionary _captchaNeededUsers", key);
@@ -381,9 +381,9 @@ internal sealed class Worker(
         {
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.StoppedCaptcha);
-            await _bot.BanChatMemberAsync(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
+            await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
             if (info.UserJoinedMessage != null)
-                await _bot.DeleteMessageAsync(chat, info.UserJoinedMessage.MessageId);
+                await _bot.DeleteMessage(chat, info.UserJoinedMessage.MessageId);
             UnbanUserLater(chat, userId);
         }
     }
@@ -427,13 +427,13 @@ internal sealed class Worker(
 
         var del =
             userJoinMessage != null
-                ? await _bot.SendTextMessageAsync(
+                ? await _bot.SendMessage(
                     chatId,
                     $"Привет! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-                    replyToMessageId: userJoinMessage.MessageId,
+                    replyParameters: userJoinMessage,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 )
-                : await _bot.SendTextMessageAsync(
+                : await _bot.SendMessage(
                     chatId,
                     $"Привет {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
@@ -489,7 +489,7 @@ internal sealed class Worker(
 
             try
             {
-                await _bot.SendTextMessageAsync(Config.AdminChatId, sb.ToString(), cancellationToken: ct);
+                await _bot.SendMessage(Config.AdminChatId, sb.ToString(), cancellationToken: ct);
             }
             catch (Exception e)
             {
@@ -509,13 +509,13 @@ internal sealed class Worker(
         {
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.BlacklistBanned);
-            await _bot.BanChatMemberAsync(chat.Id, user.Id);
+            await _bot.BanChatMember(chat.Id, user.Id);
             return true;
         }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Unable to ban");
-            await _bot.SendTextMessageAsync(
+            await _bot.SendMessage(
                 Config.AdminChatId,
                 $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
             );
@@ -533,10 +533,10 @@ internal sealed class Worker(
         if (split.Count > 1 && split[0] == "approve" && long.TryParse(split[1], out var approveUserId))
         {
             await _userManager.Approve(approveUserId);
-            await _bot.SendTextMessageAsync(
+            await _bot.SendMessage(
                 new ChatId(Config.AdminChatId),
                 $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список доверенных",
-                replyToMessageId: cb.Message?.MessageId
+                replyParameters: cb.Message?.MessageId
             );
         }
         else if (split.Count > 2 && split[0] == "ban" && long.TryParse(split[1], out var chatId) && long.TryParse(split[2], out var userId))
@@ -547,32 +547,32 @@ internal sealed class Worker(
                 await _badMessageManager.MarkAsBad(text);
             try
             {
-                await _bot.BanChatMemberAsync(new ChatId(chatId), userId);
-                await _bot.SendTextMessageAsync(
+                await _bot.BanChatMember(new ChatId(chatId), userId);
+                await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
                     $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил, сообщение добавлено в список авто-бана",
-                    replyToMessageId: cb.Message?.MessageId
+                    replyParameters: cb.Message?.MessageId
                 );
             }
             catch (Exception e)
             {
                 _logger.LogWarning(e, "Unable to ban");
-                await _bot.SendTextMessageAsync(
+                await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
                     $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
-                    replyToMessageId: cb.Message?.MessageId
+                    replyParameters: cb.Message?.MessageId
                 );
             }
             try
             {
                 if (userMessage != null)
-                    await _bot.DeleteMessageAsync(userMessage.Chat, userMessage.MessageId);
+                    await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
             }
             catch { }
         }
         var msg = cb.Message;
         if (msg != null)
-            await _bot.EditMessageReplyMarkupAsync(msg.Chat.Id, msg.MessageId);
+            await _bot.EditMessageReplyMarkup(msg.Chat.Id, msg.MessageId);
     }
 
     private async Task HandleChatMemberUpdated(Update update)
@@ -607,7 +607,7 @@ internal sealed class Worker(
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
                     ? ""
                     : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
-                await _bot.SendTextMessageAsync(
+                await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
                     $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
                 );
@@ -617,7 +617,7 @@ internal sealed class Worker(
 
     private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
     {
-        var forward = await _bot.ForwardMessageAsync(
+        var forward = await _bot.ForwardMessage(
             new ChatId(Config.AdminChatId),
             message.Chat.Id,
             message.MessageId,
@@ -625,15 +625,13 @@ internal sealed class Worker(
         );
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-        await _bot.SendTextMessageAsync(
+        await _bot.SendMessage(
             new ChatId(Config.AdminChatId),
             $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
-            replyToMessageId: forward.MessageId,
+            replyParameters: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
-                [
-                    new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
-                    new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
-                ]
+                new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
+                new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
             ),
             cancellationToken: stoppingToken
         );
@@ -641,7 +639,7 @@ internal sealed class Worker(
 
     private async Task DeleteAndReportMessage(Message message, User user, string reason, CancellationToken stoppingToken)
     {
-        var forward = await _bot.ForwardMessageAsync(
+        var forward = await _bot.ForwardMessage(
             new ChatId(Config.AdminChatId),
             message.Chat.Id,
             message.MessageId,
@@ -650,7 +648,7 @@ internal sealed class Worker(
         var deletionMessagePart = $"{reason}";
         try
         {
-            await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
             deletionMessagePart += ", сообщение удалено.";
         }
         catch (Exception e)
@@ -671,10 +669,10 @@ internal sealed class Worker(
         if (Config.ApproveButtonEnabled)
             row.Add(new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" });
 
-        await _bot.SendTextMessageAsync(
+        await _bot.SendMessage(
             new ChatId(Config.AdminChatId),
             $"{deletionMessagePart}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
-            replyToMessageId: forward.MessageId,
+            replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
         );
@@ -697,10 +695,10 @@ internal sealed class Worker(
         {
             if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardFrom == null && replyToMessage.ForwardSenderName == null)
             {
-                await _bot.SendTextMessageAsync(
+                await _bot.SendMessage(
                     message.Chat.Id,
                     "Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
-                    replyToMessageId: replyToMessage.MessageId
+                    replyParameters: replyToMessage
                 );
                 return;
             }
@@ -724,24 +722,24 @@ internal sealed class Worker(
                             + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
                             + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
                             + $"Если простые фильтры отработали, то в датасет добавлять не нужно";
-                        await _bot.SendTextMessageAsync(message.Chat.Id, msg);
+                        await _bot.SendMessage(message.Chat.Id, msg);
                         break;
                     }
                     case "/spam":
                         await _classifier.AddSpam(text);
                         await _badMessageManager.MarkAsBad(text);
-                        await _bot.SendTextMessageAsync(
+                        await _bot.SendMessage(
                             message.Chat.Id,
                             "Сообщение добавлено как пример спама в датасет, а так же в список авто-бана",
-                            replyToMessageId: replyToMessage.MessageId
+                            replyParameters: replyToMessage
                         );
                         break;
                     case "/ham":
                         await _classifier.AddHam(text);
-                        await _bot.SendTextMessageAsync(
+                        await _bot.SendMessage(
                             message.Chat.Id,
                             "Сообщение добавлено как пример НЕ-спама в датасет",
-                            replyToMessageId: replyToMessage.MessageId
+                            replyParameters: replyToMessage
                         );
                         break;
                 }
@@ -765,7 +763,7 @@ internal sealed class Worker(
                 var stats = _stats.GetOrAdd(chatId, new Stats(title));
                 Interlocked.Increment(ref stats.StoppedCaptcha);
                 _captchaNeededUsers.TryRemove(key, out _);
-                await _bot.BanChatMemberAsync(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
+                await _bot.BanChatMember(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
                 UnbanUserLater(chatId, user.Id);
             }
         }
@@ -790,7 +788,7 @@ internal sealed class Worker(
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(Math.Exp(attempts.Attempts)));
-                await _bot.UnbanChatMemberAsync(chatId, userId);
+                await _bot.UnbanChatMember(chatId, userId);
             }
             catch (Exception e)
             {
@@ -809,11 +807,11 @@ internal sealed class Worker(
                 try
                 {
                     await Task.Delay(after, cancellationToken);
-                    await _bot.DeleteMessageAsync(message.Chat.Id, message.MessageId, cancellationToken: cancellationToken);
+                    await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: cancellationToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    _logger.LogWarning(ex, "DeleteMessageAsync");
+                    _logger.LogWarning(ex, "DeleteMessage");
                 }
             },
             cancellationToken
