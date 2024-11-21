@@ -152,10 +152,8 @@ internal sealed class Worker(
             return;
         }
 
-        var sentAsChannel = false;
         if (message.SenderChat != null)
         {
-            sentAsChannel = true;
             // to get linked_chat_id we need ChatFullInfo
             var chatFull = await _bot.GetChat(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
@@ -187,6 +185,9 @@ internal sealed class Worker(
                 }
                 return;
             }
+
+            await DontDeleteButReportMessage(message, message.From!, stoppingToken);
+            return;
         }
 
         var user = message.From!;
@@ -236,7 +237,10 @@ internal sealed class Worker(
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            await DontDeleteButReportMessage(message, user, stoppingToken);
+            if (message.ReplyMarkup != null)
+                await DeleteAndReportMessage(message, user, "Сообщение без текста, но с кнопками", stoppingToken);
+            else
+                await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
         if (_badMessageManager.KnownBadMessage(text))
@@ -273,12 +277,6 @@ internal sealed class Worker(
         {
             var reason = $"ML решил что это спам, скор {score}";
             await DeleteAndReportMessage(message, user, reason, stoppingToken);
-            return;
-        }
-
-        if (sentAsChannel)
-        {
-            await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
         // else - ham
@@ -663,7 +661,7 @@ internal sealed class Worker(
         var row = new List<InlineKeyboardButton>(
             [
                 new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
-                new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" }
+                new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
             ]
         );
         if (Config.ApproveButtonEnabled)
@@ -679,11 +677,9 @@ internal sealed class Worker(
     }
 
     private static string LinkToMessage(Chat chat, long messageId) =>
-        chat.Type == ChatType.Supergroup
-            ? LinkToSuperGroupMessage(chat, messageId)
-            : chat.Username == null
-                ? ""
-                : LinkToGroupWithNameMessage(chat, messageId);
+        chat.Type == ChatType.Supergroup ? LinkToSuperGroupMessage(chat, messageId)
+        : chat.Username == null ? ""
+        : LinkToGroupWithNameMessage(chat, messageId);
 
     private static string LinkToSuperGroupMessage(Chat chat, long messageId) => $"https://t.me/c/{chat.Id.ToString()[4..]}/{messageId}";
 
