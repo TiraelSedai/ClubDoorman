@@ -92,7 +92,7 @@ internal sealed class Worker(
             offset,
             limit: 100,
             timeout: 100,
-            allowedUpdates: [UpdateType.Message, UpdateType.ChatMember, UpdateType.CallbackQuery],
+            allowedUpdates: [UpdateType.Message, UpdateType.EditedMessage, UpdateType.ChatMember, UpdateType.CallbackQuery],
             cancellationToken: stoppingToken
         );
         if (updates.Length == 0)
@@ -135,7 +135,7 @@ internal sealed class Worker(
             return;
         }
 
-        var message = update.Message;
+        var message = update.EditedMessage ?? update.Message;
         if (message == null)
             return;
         var chat = message.Chat;
