@@ -427,13 +427,13 @@ internal sealed class Worker(
             userJoinMessage != null
                 ? await _bot.SendMessage(
                     chatId,
-                    $"Привет! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет! Антиспам: на какой кнопке (It's captcha, choose a button with) {Captcha.CaptchaList[correctAnswer].Description}?",
                     replyParameters: userJoinMessage,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 )
                 : await _bot.SendMessage(
                     chatId,
-                    $"Привет {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке (It's captcha, choose a button with) {Captcha.CaptchaList[correctAnswer].Description}?",
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
 
