@@ -154,6 +154,8 @@ internal sealed class Worker(
 
         if (message.SenderChat != null)
         {
+            if (message.SenderChat.Id == chat.Id)
+                return;
             // to get linked_chat_id we need ChatFullInfo
             var chatFull = await _bot.GetChat(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
