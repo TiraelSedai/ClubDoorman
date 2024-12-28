@@ -236,13 +236,16 @@ internal sealed class Worker(
             }
             return;
         }
+
+        if (message.ReplyMarkup != null)
+        {
+            await DeleteAndReportMessage(message, user, "Сообщение с кнопками", stoppingToken);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            if (message.ReplyMarkup != null)
-                await DeleteAndReportMessage(message, user, "Сообщение без текста, но с кнопками", stoppingToken);
-            else
-                await DontDeleteButReportMessage(message, user, stoppingToken);
+            await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
         if (_badMessageManager.KnownBadMessage(text))
