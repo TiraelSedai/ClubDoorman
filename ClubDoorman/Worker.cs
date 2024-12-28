@@ -285,7 +285,7 @@ internal sealed class Worker(
             return;
         }
         // else - ham
-        if (score > -0.7 && Config.LowConfidenceHamForward)
+        if (score > -0.6 && Config.LowConfidenceHamForward)
         {
             var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = LinkToMessage(chat, message.MessageId);
