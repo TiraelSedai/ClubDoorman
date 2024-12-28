@@ -263,12 +263,30 @@ internal sealed class Worker(
         var normalized = TextProcessor.NormalizeText(text);
 
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-        if (lookalike.Count > 1)
+        if (lookalike.Count > 2)
         {
             var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
-            await DeleteAndReportMessage(message, user, reason, stoppingToken);
-            return;
+            if (!Config.LookAlikeAutoBan)
+            {
+                await DeleteAndReportMessage(message, user, reason, stoppingToken);
+                return;
+            }
+
+            var forward = await _bot.ForwardMessage(
+                new ChatId(Config.AdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: stoppingToken
+            );
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
+                replyParameters: forward,
+                cancellationToken: stoppingToken
+            );
+            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
         }
 
         if (SimpleFilters.HasStopWords(normalized))
