@@ -236,13 +236,16 @@ internal sealed class Worker(
             }
             return;
         }
+
+        if (message.ReplyMarkup != null)
+        {
+            await DeleteAndReportMessage(message, user, "Сообщение с кнопками", stoppingToken);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            if (message.ReplyMarkup != null)
-                await DeleteAndReportMessage(message, user, "Сообщение без текста, но с кнопками", stoppingToken);
-            else
-                await DontDeleteButReportMessage(message, user, stoppingToken);
+            await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
         if (_badMessageManager.KnownBadMessage(text))
@@ -260,12 +263,30 @@ internal sealed class Worker(
         var normalized = TextProcessor.NormalizeText(text);
 
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-        if (lookalike.Count > 1)
+        if (lookalike.Count > 2)
         {
             var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
-            await DeleteAndReportMessage(message, user, reason, stoppingToken);
-            return;
+            if (!Config.LookAlikeAutoBan)
+            {
+                await DeleteAndReportMessage(message, user, reason, stoppingToken);
+                return;
+            }
+
+            var forward = await _bot.ForwardMessage(
+                new ChatId(Config.AdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: stoppingToken
+            );
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
+                replyParameters: forward,
+                cancellationToken: stoppingToken
+            );
+            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
         }
 
         if (SimpleFilters.HasStopWords(normalized))
@@ -282,7 +303,7 @@ internal sealed class Worker(
             return;
         }
         // else - ham
-        if (score > -0.7 && Config.LowConfidenceHamForward)
+        if (score > -0.6 && Config.LowConfidenceHamForward)
         {
             var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = LinkToMessage(chat, message.MessageId);
