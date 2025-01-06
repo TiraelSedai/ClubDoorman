@@ -242,6 +242,11 @@ internal sealed class Worker(
             await DeleteAndReportMessage(message, user, "Сообщение с кнопками", stoppingToken);
             return;
         }
+        if (message.Story != null)
+        {
+            await DeleteAndReportMessage(message, user, "Сторис", stoppingToken);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
