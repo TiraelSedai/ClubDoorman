@@ -717,7 +717,7 @@ internal sealed class Worker(
     {
         if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" })
         {
-            if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardFrom == null && replyToMessage.ForwardSenderName == null)
+            if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardDate == null)
             {
                 await _bot.SendMessage(
                     message.Chat.Id,
