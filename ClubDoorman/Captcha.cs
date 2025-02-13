@@ -13,7 +13,7 @@
             ("\u26bd", "мяч/ball"),
             ("\ud83d\udc34", "лошадь/horse"),
             ("\ud83e\udd86", "утка/duck"),
-            ("\ud83e\udd9d", "енот/raccoon),
+            ("\ud83e\udd9d", "енот/raccoon"),
             ("\ud83e\udd89", "сова/owl"),
             ("\ud83d\udc22", "черепаха/turtle"),
             ("\ud83e\udd80", "краб/crab"),
