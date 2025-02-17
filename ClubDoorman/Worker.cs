@@ -655,10 +655,12 @@ internal sealed class Worker(
             new ChatId(Config.AdminChatId),
             $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
             replyParameters: forward.MessageId,
-            replyMarkup: new InlineKeyboardMarkup(
+            replyMarkup: new InlineKeyboardMarkup(new[]
+            {
                 new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
-                new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
-            ),
+                new InlineKeyboardButton("👍 ok") { CallbackData = "noop" },
+                new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+            }),
             cancellationToken: stoppingToken
         );
     }
@@ -686,14 +688,12 @@ internal sealed class Worker(
         var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         var postLink = LinkToMessage(message.Chat, message.MessageId);
-        var row = new List<InlineKeyboardButton>(
-            [
+        var row = new List<InlineKeyboardButton>
+        {
                 new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
                 new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
-            ]
-        );
-        if (Config.ApproveButtonEnabled)
-            row.Add(new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" });
+                new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+        };
 
         await _bot.SendMessage(
             new ChatId(Config.AdminChatId),
