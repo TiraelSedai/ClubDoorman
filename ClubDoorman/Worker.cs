@@ -232,19 +232,19 @@ internal sealed class Worker(
             else
             {
                 const string reason = "Пользователь в блеклисте спамеров";
-                await DeleteAndReportMessage(message, user, reason, stoppingToken);
+                await DeleteAndReportMessage(message, reason, stoppingToken);
             }
             return;
         }
 
         if (message.ReplyMarkup != null)
         {
-            await DeleteAndReportMessage(message, user, "Сообщение с кнопками", stoppingToken);
+            await AutoBan(message, "Сообщение с кнопками", stoppingToken);
             return;
         }
         if (message.Story != null)
         {
-            await DeleteAndReportMessage(message, user, "Сторис", stoppingToken);
+            await DeleteAndReportMessage(message, "Сторис", stoppingToken);
             return;
         }
         if (string.IsNullOrWhiteSpace(text))
@@ -261,7 +261,7 @@ internal sealed class Worker(
         if (SimpleFilters.TooManyEmojis(text))
         {
             const string reason = "В этом сообщении многовато эмоджи";
-            await DeleteAndReportMessage(message, user, reason, stoppingToken);
+            await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
 
@@ -274,37 +274,25 @@ internal sealed class Worker(
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
             if (!Config.LookAlikeAutoBan)
             {
-                await DeleteAndReportMessage(message, user, reason, stoppingToken);
+                await DeleteAndReportMessage(message, reason, stoppingToken);
                 return;
             }
 
-            var forward = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: stoppingToken
-            );
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
-                replyParameters: forward,
-                cancellationToken: stoppingToken
-            );
-            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
-            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+            await AutoBan(message, reason, stoppingToken);
+            return;
         }
 
         if (SimpleFilters.HasStopWords(normalized))
         {
             const string reason = "В этом сообщении есть стоп-слова";
-            await DeleteAndReportMessage(message, user, reason, stoppingToken);
+            await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
         var (spam, score) = await _classifier.IsSpam(normalized);
         if (spam)
         {
             var reason = $"ML решил что это спам, скор {score}";
-            await DeleteAndReportMessage(message, user, reason, stoppingToken);
+            await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
         // else - ham
@@ -333,6 +321,25 @@ internal sealed class Worker(
             await _userManager.Approve(user.Id);
             _goodUserMessages.TryRemove(user.Id, out _);
         }
+    }
+
+    private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
+    {
+        var user = message.From;
+        var forward = await _bot.ForwardMessage(
+            new ChatId(Config.AdminChatId),
+            message.Chat.Id,
+            message.MessageId,
+            cancellationToken: stoppingToken
+        );
+        await _bot.SendMessage(
+            Config.AdminChatId,
+            $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
+            replyParameters: forward,
+            cancellationToken: stoppingToken
+        );
+        await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
+        await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
     }
 
     private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
@@ -663,8 +670,9 @@ internal sealed class Worker(
         );
     }
 
-    private async Task DeleteAndReportMessage(Message message, User user, string reason, CancellationToken stoppingToken)
+    private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken stoppingToken)
     {
+        var user = message.From;
         var forward = await _bot.ForwardMessage(
             new ChatId(Config.AdminChatId),
             message.Chat.Id,
