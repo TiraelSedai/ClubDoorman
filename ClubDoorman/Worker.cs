@@ -312,13 +312,23 @@ internal sealed class Worker(
         {
             var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = LinkToMessage(chat, message.MessageId);
+            var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
+            // Сохраняем сообщение для обработки callback'а (удаление и бан)
+            MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
+                $"Классифаер думает, что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея — добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                 replyParameters: forward,
+                replyMarkup: new InlineKeyboardMarkup(new[]
+                {
+                    new InlineKeyboardButton("удалить и забанить") { CallbackData = callbackDataBan },
+                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+                }),
                 cancellationToken: stoppingToken
             );
         }
+
+
         _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
 
         // Now we need a mechanism for users who have been writing non-spam for some time
