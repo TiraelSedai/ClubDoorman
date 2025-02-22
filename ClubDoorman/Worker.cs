@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.Caching;
 using System.Text;
 using Telegram.Bot;
+using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -462,7 +463,8 @@ internal sealed class Worker(
             userJoinMessage != null
                 ? await _bot.SendMessage(
                     chatId,
-                    $"Привет! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет {Markdown.Escape(FullName(user.FirstName, user.LastName))}(tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    parseMode: ParseMode.Markdown,
                     replyParameters: userJoinMessage,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 )
