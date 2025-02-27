@@ -463,14 +463,14 @@ internal sealed class Worker(
             userJoinMessage != null
                 ? await _bot.SendMessage(
                     chatId,
-                    $"Привет {Markdown.Escape(FullName(user.FirstName, user.LastName))}(tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет, [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                     parseMode: ParseMode.Markdown,
                     replyParameters: userJoinMessage,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 )
                 : await _bot.SendMessage(
                     chatId,
-                    $"Привет {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет, {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
 
