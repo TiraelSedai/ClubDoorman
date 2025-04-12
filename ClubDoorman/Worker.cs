@@ -422,6 +422,8 @@ internal sealed class Worker(
         }
     }
 
+    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн"];
+
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
         _logger.LogDebug("Intro flow {@User}", user);
@@ -459,18 +461,21 @@ internal sealed class Worker(
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"cap_{user.Id}_{x}" })
             .ToList();
 
+        ReplyParameters? replyParams = null;
+        if (userJoinMessage != null)
+            replyParams = userJoinMessage;
+
+        var fullName = FullName(user.FirstName, user.LastName);
+        var fullNameLower = fullName.ToLowerInvariant();
+        if (_namesBlacklist.Any(x => fullNameLower.Contains(x)))
+            fullName = "новый участник чата";
+
         var del =
-            userJoinMessage != null
-                ? await _bot.SendMessage(
+                 await _bot.SendMessage(
                     chatId,
-                    $"Привет, [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    $"Привет, [{Markdown.Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                     parseMode: ParseMode.Markdown,
-                    replyParameters: userJoinMessage,
-                    replyMarkup: new InlineKeyboardMarkup(keyboard)
-                )
-                : await _bot.SendMessage(
-                    chatId,
-                    $"Привет, {AtUserNameOrFirstLast()}! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                    replyParameters: replyParams,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
 
