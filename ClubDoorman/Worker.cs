@@ -422,7 +422,7 @@ internal sealed class Worker(
         }
     }
 
-    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн"];
+    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
@@ -467,7 +467,8 @@ internal sealed class Worker(
 
         var fullName = FullName(user.FirstName, user.LastName);
         var fullNameLower = fullName.ToLowerInvariant();
-        if (_namesBlacklist.Any(x => fullNameLower.Contains(x)))
+        var username = user.Username?.ToLower();
+        if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
             fullName = "новый участник чата";
 
         var del =
