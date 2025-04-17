@@ -7,6 +7,7 @@ namespace ClubDoorman;
 internal sealed class UserManager
 {
     private readonly ILogger<UserManager> _logger;
+    private readonly ApprovedUsersStorage _approvedUsersStorage;
 
     private async Task Init()
     {
@@ -17,9 +18,10 @@ internal sealed class UserManager
                 _banlist.TryAdd(id, 0);
     }
 
-    public UserManager(ILogger<UserManager> logger)
+    public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage)
     {
         _logger = logger;
+        _approvedUsersStorage = approvedUsersStorage;
         Task.Run(Init);
         if (Config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
@@ -34,15 +36,11 @@ internal sealed class UserManager
     private readonly HttpClient _clubHttpClient = new();
     private readonly HttpClient _httpClient = new();
 
-    public bool Approved(long userId) => _approved.Contains(userId);
+    public bool Approved(long userId) => _approvedUsersStorage.IsApproved(userId);
 
     public async ValueTask Approve(long userId)
     {
-        if (_approved.Add(userId))
-        {
-            using var token = await SemaphoreHelper.AwaitAsync(_semaphore);
-            await File.AppendAllLinesAsync(Path, [userId.ToString(CultureInfo.InvariantCulture)]);
-        }
+        _approvedUsersStorage.ApproveUser(userId);
     }
 
     public async ValueTask<bool> InBanlist(long userId)
