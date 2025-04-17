@@ -43,6 +43,19 @@ internal sealed class UserManager
         _approvedUsersStorage.ApproveUser(userId);
     }
 
+    public bool RemoveApproval(long userId)
+    {
+        try
+        {
+            return _approvedUsersStorage.RemoveApproval(userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Не удалось удалить пользователя {UserId} из списка одобренных", userId);
+            return false;
+        }
+    }
+
     public async ValueTask<bool> InBanlist(long userId)
     {
         if (_banlist.ContainsKey(userId))
