@@ -42,8 +42,15 @@ public class ApprovedUsersStorage
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
+            // Создаем временный файл
+            var tempPath = Path.GetTempFileName();
             var json = JsonSerializer.Serialize(_approvedUsers);
-            File.WriteAllText(_filePath, json);
+            
+            // Сначала записываем во временный файл
+            File.WriteAllText(tempPath, json);
+            
+            // Затем атомарно заменяем целевой файл
+            File.Move(tempPath, _filePath, true);
         }
         catch (Exception ex)
         {
@@ -58,13 +65,41 @@ public class ApprovedUsersStorage
 
     public void ApproveUser(long userId)
     {
-        _approvedUsers.TryAdd(userId, DateTime.UtcNow);
-        SaveToFile();
+        try
+        {
+            if (_approvedUsers.TryAdd(userId, DateTime.UtcNow))
+            {
+                _logger.LogInformation("Пользователь {UserId} добавлен в список одобренных", userId);
+                SaveToFile();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при добавлении пользователя {UserId} в список одобренных", userId);
+            throw;
+        }
     }
 
-    public void RemoveApproval(long userId)
+    public bool RemoveApproval(long userId)
     {
-        if (_approvedUsers.TryRemove(userId, out _))
-            SaveToFile();
+        try
+        {
+            if (_approvedUsers.TryRemove(userId, out var approvedAt))
+            {
+                _logger.LogInformation(
+                    "Пользователь {UserId} удален из списка одобренных (был одобрен {ApprovedAt})", 
+                    userId, 
+                    approvedAt
+                );
+                SaveToFile();
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при удалении пользователя {UserId} из списка одобренных", userId);
+            throw;
+        }
     }
 } 

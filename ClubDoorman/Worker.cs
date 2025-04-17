@@ -352,6 +352,14 @@ internal sealed class Worker(
         );
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+        if (_userManager.RemoveApproval(user.Id))
+        {
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана",
+                cancellationToken: stoppingToken
+            );
+        }
     }
 
     private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
@@ -363,6 +371,14 @@ internal sealed class Worker(
             Interlocked.Increment(ref stats.KnownBadMessage);
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
             await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
+            if (_userManager.RemoveApproval(user.Id))
+            {
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана за спам",
+                    cancellationToken: stoppingToken
+                );
+            }
         }
         catch (Exception e)
         {
@@ -457,6 +473,10 @@ internal sealed class Worker(
                 revokeMessages: true  // Удаляем все сообщения пользователя
             );
             
+            // Удаляем из списка одобренных только при перманентном бане
+            if (!banDuration.HasValue)
+                _userManager.RemoveApproval(user.Id);
+            
             // Удаляем сообщение о входе
             if (userJoinMessage != null)
             {
@@ -501,11 +521,14 @@ internal sealed class Worker(
         }
 
         _logger.LogDebug("Intro flow {@User}", user);
-        if (_userManager.Approved(user.Id))
-            return;
+        
+        // Проверяем, является ли пользователь участником клуба
         var clubUser = await _userManager.GetClubUsername(user.Id);
         if (clubUser != null)
+        {
+            _logger.LogDebug("User is {Name} from club", clubUser);
             return;
+        }
 
         chat = userJoinMessage?.Chat ?? chat;
         Debug.Assert(chat != null);
@@ -545,14 +568,17 @@ internal sealed class Worker(
         if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
             fullNameForDisplay = "новый участник чата";
 
-        var del =
-                 await _bot.SendMessage(
-                    chatId,
-                    $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-                    parseMode: ParseMode.Markdown,
-                    replyParameters: replyParams,
-                    replyMarkup: new InlineKeyboardMarkup(keyboard)
-                );
+        var welcomeMessage = _userManager.Approved(user.Id)
+            ? $"С возвращением, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
+            : $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
+
+        var del = await _bot.SendMessage(
+            chatId,
+            welcomeMessage,
+            parseMode: ParseMode.Markdown,
+            replyParameters: replyParams,
+            replyMarkup: new InlineKeyboardMarkup(keyboard)
+        );
 
         var cts = new CancellationTokenSource();
         DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
@@ -567,15 +593,6 @@ internal sealed class Worker(
         else
         {
             _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, null));
-        }
-
-        return;
-
-        string AtUserNameOrFirstLast()
-        {
-            if (user.Username != null)
-                return "@" + user.Username;
-            return FullName(user.FirstName, user.LastName);
         }
     }
 
@@ -623,6 +640,16 @@ internal sealed class Worker(
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.BlacklistBanned);
             await _bot.BanChatMember(chat.Id, user.Id);
+            
+            // Удаляем из списка одобренных
+            if (_userManager.RemoveApproval(user.Id))
+            {
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана по блеклисту"
+                );
+            }
+            
             await _bot.SendMessage(
                 Config.AdminChatId,
                 $"🚫 Автобан в чате {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
@@ -665,6 +692,14 @@ internal sealed class Worker(
             try
             {
                 await _bot.BanChatMember(new ChatId(chatId), userId);
+                if (_userManager.RemoveApproval(userId))
+                {
+                    await _bot.SendMessage(
+                        Config.AdminChatId,
+                        $"⚠️ Пользователь удален из списка одобренных после ручного бана администратором {FullName(cb.From.FirstName, cb.From.LastName)}",
+                        replyParameters: cb.Message?.MessageId
+                    );
+                }
                 await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
                     $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил, сообщение добавлено в список авто-бана",
@@ -724,6 +759,16 @@ internal sealed class Worker(
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
                     ? ""
                     : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
+                
+                // Удаляем из списка доверенных
+                if (_userManager.RemoveApproval(user.Id))
+                {
+                    await _bot.SendMessage(
+                        Config.AdminChatId,
+                        $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после получения ограничений в чате {chatMember.Chat.Title}"
+                    );
+                }
+                
                 await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
                     $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
