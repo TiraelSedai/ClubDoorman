@@ -45,7 +45,6 @@ internal sealed class Worker(
     private readonly UserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
     private User _me = default!;
-    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
 
     private async Task CaptchaLoop(CancellationToken token)
     {
@@ -433,49 +432,7 @@ internal sealed class Worker(
         }
     }
 
-    private async Task BanUserForLongName(
-        Message? userJoinMessage,
-        User user,
-        string fullName,
-        TimeSpan? banDuration,
-        string banType,
-        string nameDescription,
-        Chat? chat = default)
-    {
-        try
-        {
-            chat = userJoinMessage?.Chat ?? chat;
-            Debug.Assert(chat != null);
-            
-            // Баним пользователя (если banDuration null - бан навсегда)
-            await _bot.BanChatMember(
-                chat.Id, 
-                user.Id,
-                banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null,
-                revokeMessages: true  // Удаляем все сообщения пользователя
-            );
-            
-            // Удаляем сообщение о входе
-            if (userJoinMessage != null)
-            {
-                await _bot.DeleteMessage(userJoinMessage.Chat.Id, message.MessageId);
-            }
-
-            // Логируем для статистики
-            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.BlacklistBanned);
-
-            // Уведомляем админов
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"{banType} в чате {chat.Title} за {nameDescription} длинное имя пользователя ({fullName.Length} символов): {fullName}"
-            );
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Unable to ban user with long username");
-        }
-    }
+    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
@@ -506,13 +463,6 @@ internal sealed class Worker(
                 isPermanent ? "экстремально" : "подозрительно",
                 chat
             );
-
-            // Если у пользователя уже есть капча, удаляем её
-            var key = UserToKey(chatId, user);
-            if (_captchaNeededUsers.TryRemove(key, out var info))
-            {
-                await info.Cts.CancelAsync();
-            }
             return;
         }
 
@@ -525,9 +475,6 @@ internal sealed class Worker(
             _logger.LogDebug("This user is already awaiting captcha challenge");
             return;
         }
-
-        if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
-            return;
 
         const int challengeLength = 8;
         var correctAnswerIndex = Random.Shared.Next(challengeLength);
@@ -556,7 +503,7 @@ internal sealed class Worker(
                  await _bot.SendMessage(
                     chatId,
                     $"Привет, [{Markdown.Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-                    parseMode: ParseMode.Markdown,
+                    parseMode: ParseMode.MarkdownV2,
                     replyParameters: replyParams,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
@@ -583,6 +530,60 @@ internal sealed class Worker(
             if (user.Username != null)
                 return "@" + user.Username;
             return FullName(user.FirstName, user.LastName);
+        }
+    }
+
+    private async Task BanUserForLongName(
+        Message? userJoinMessage,
+        User user,
+        string fullName,
+        TimeSpan? banDuration,
+        string banType,
+        string nameDescription,
+        Chat? chat = default)
+    {
+        try
+        {
+            chat = userJoinMessage?.Chat ?? chat;
+            Debug.Assert(chat != null);
+            
+            // Баним пользователя (если banDuration null - бан навсегда)
+            await _bot.BanChatMember(
+                chat.Id, 
+                user.Id,
+                banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null,
+                revokeMessages: true  // Удаляем все сообщения пользователя
+            );
+            
+            // Удаляем сообщение о входе
+            if (userJoinMessage != null)
+            {
+                await _bot.DeleteMessage(chat.Id, userJoinMessage.MessageId);
+            }
+
+            // Логируем для статистики
+            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            Interlocked.Increment(ref stats.BlacklistBanned);
+
+            // Уведомляем админов
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"{banType} в чате {chat.Title} за {nameDescription} длинное имя пользователя ({fullName.Length} символов): {fullName}"
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Unable to ban user with long username");
+            
+            // Пытаемся уведомить админов об ошибке
+            try 
+            {
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Не удалось забанить пользователя с длинным именем в чате {chat.Title}. Возможно, не хватает прав. Имя: {fullName}"
+                );
+            }
+            catch { /* игнорируем ошибку при отправке уведомления */ }
         }
     }
 
