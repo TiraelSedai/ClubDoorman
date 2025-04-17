@@ -434,6 +434,56 @@ internal sealed class Worker(
 
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
 
+    private async Task<bool> CheckNameLength(User user, Chat chat)
+    {
+        var fullName = FullName(user.FirstName, user.LastName);
+        var nameLength = fullName.Length;
+        
+        if (nameLength > 75)
+        {
+            try
+            {
+                await _bot.BanChatMember(chat.Id, user.Id);
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Пользователь {fullName} (tg://user?id={user.Id}) был перманентно забанен в чате {chat.Title} из-за слишком длинного имени ({nameLength} символов)"
+                );
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Unable to ban user with too long name");
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Не удалось забанить пользователя с длинным именем ({nameLength} символов). Чат: {chat.Title}"
+                );
+            }
+        }
+        else if (nameLength > 45)
+        {
+            try
+            {
+                var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(10);
+                await _bot.BanChatMember(chat.Id, user.Id, banUntil);
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Пользователь {fullName} (tg://user?id={user.Id}) был забанен на 10 минут в чате {chat.Title} из-за длинного имени ({nameLength} символов)"
+                );
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Unable to ban user with long name");
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Не удалось забанить пользователя с длинным именем ({nameLength} символов). Чат: {chat.Title}"
+                );
+            }
+        }
+        
+        return false;
+    }
+
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
         _logger.LogDebug("Intro flow {@User}", user);
@@ -446,6 +496,10 @@ internal sealed class Worker(
         chat = userJoinMessage?.Chat ?? chat;
         Debug.Assert(chat != null);
         var chatId = chat.Id;
+
+        // Проверяем длину имени до всех остальных проверок
+        if (await CheckNameLength(user, chat))
+            return;
 
         if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
             return;
