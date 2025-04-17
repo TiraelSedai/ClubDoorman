@@ -493,7 +493,7 @@ internal sealed class Worker(
                 user,
                 fullName,
                 isPermanent ? null : TimeSpan.FromMinutes(10),
-                isPermanent ? "Перманентный бан" : "Автобан на 10 минут",
+                isPermanent ? "🚫 Перманентный бан" : "Автобан на 10 минут",
                 isPermanent ? "экстремально" : "подозрительно",
                 chat
             );
@@ -615,8 +615,6 @@ internal sealed class Worker(
 
     private async Task<bool> BanIfBlacklisted(User user, Chat chat)
     {
-        if (!Config.BlacklistAutoBan)
-            return false;
         if (!await _userManager.InBanlist(user.Id))
             return false;
 
@@ -625,6 +623,10 @@ internal sealed class Worker(
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.BlacklistBanned);
             await _bot.BanChatMember(chat.Id, user.Id);
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"🚫 Автобан в чате {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
+            );
             return true;
         }
         catch (Exception e)
@@ -632,7 +634,7 @@ internal sealed class Worker(
             _logger.LogWarning(e, "Unable to ban");
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
+                $"⚠️ Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
             );
         }
 
