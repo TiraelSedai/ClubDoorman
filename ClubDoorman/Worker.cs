@@ -45,6 +45,7 @@ internal sealed class Worker(
     private readonly UserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
     private User _me = default!;
+    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
 
     private async Task CaptchaLoop(CancellationToken token)
     {
@@ -432,56 +433,48 @@ internal sealed class Worker(
         }
     }
 
-    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
-
-    private async Task<bool> CheckNameLength(User user, Chat chat)
+    private async Task BanUserForLongName(
+        Message? userJoinMessage,
+        User user,
+        string fullName,
+        TimeSpan? banDuration,
+        string banType,
+        string nameDescription,
+        Chat? chat = default)
     {
-        var fullName = FullName(user.FirstName, user.LastName);
-        var nameLength = fullName.Length;
-        
-        if (nameLength > 75)
+        try
         {
-            try
+            chat = userJoinMessage?.Chat ?? chat;
+            Debug.Assert(chat != null);
+            
+            // Баним пользователя (если banDuration null - бан навсегда)
+            await _bot.BanChatMember(
+                chat.Id, 
+                user.Id,
+                banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null,
+                revokeMessages: true  // Удаляем все сообщения пользователя
+            );
+            
+            // Удаляем сообщение о входе
+            if (userJoinMessage != null)
             {
-                await _bot.BanChatMember(chat.Id, user.Id);
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"Пользователь {fullName} (tg://user?id={user.Id}) был перманентно забанен в чате {chat.Title} из-за слишком длинного имени ({nameLength} символов)"
-                );
-                return true;
+                await _bot.DeleteMessage(userJoinMessage.Chat.Id, message.MessageId);
             }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Unable to ban user with too long name");
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"Не удалось забанить пользователя с длинным именем ({nameLength} символов). Чат: {chat.Title}"
-                );
-            }
+
+            // Логируем для статистики
+            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            Interlocked.Increment(ref stats.BlacklistBanned);
+
+            // Уведомляем админов
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"{banType} в чате {chat.Title} за {nameDescription} длинное имя пользователя ({fullName.Length} символов): {fullName}"
+            );
         }
-        else if (nameLength > 45)
+        catch (Exception e)
         {
-            try
-            {
-                var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(10);
-                await _bot.BanChatMember(chat.Id, user.Id, banUntil);
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"Пользователь {fullName} (tg://user?id={user.Id}) был забанен на 10 минут в чате {chat.Title} из-за длинного имени ({nameLength} символов)"
-                );
-                return true;
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Unable to ban user with long name");
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"Не удалось забанить пользователя с длинным именем ({nameLength} символов). Чат: {chat.Title}"
-                );
-            }
+            _logger.LogWarning(e, "Unable to ban user with long username");
         }
-        
-        return false;
     }
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
@@ -497,9 +490,31 @@ internal sealed class Worker(
         Debug.Assert(chat != null);
         var chatId = chat.Id;
 
-        // Проверяем длину имени до всех остальных проверок
-        if (await CheckNameLength(user, chat))
+        // Проверяем длину имени
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        
+        // Проверяем длину имени для обоих случаев
+        if (fullName.Length > 40)
+        {
+            var isPermanent = fullName.Length > 75;
+            await BanUserForLongName(
+                userJoinMessage,
+                user,
+                fullName,
+                isPermanent ? null : TimeSpan.FromMinutes(10),
+                isPermanent ? "Перманентный бан" : "Автобан на 10 минут",
+                isPermanent ? "экстремально" : "подозрительно",
+                chat
+            );
+
+            // Если у пользователя уже есть капча, удаляем её
+            var key = UserToKey(chatId, user);
+            if (_captchaNeededUsers.TryRemove(key, out var info))
+            {
+                await info.Cts.CancelAsync();
+            }
             return;
+        }
 
         if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
             return;
@@ -510,6 +525,9 @@ internal sealed class Worker(
             _logger.LogDebug("This user is already awaiting captcha challenge");
             return;
         }
+
+        if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
+            return;
 
         const int challengeLength = 8;
         var correctAnswerIndex = Random.Shared.Next(challengeLength);
@@ -529,7 +547,6 @@ internal sealed class Worker(
         if (userJoinMessage != null)
             replyParams = userJoinMessage;
 
-        var fullName = FullName(user.FirstName, user.LastName);
         var fullNameLower = fullName.ToLowerInvariant();
         var username = user.Username?.ToLower();
         if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
