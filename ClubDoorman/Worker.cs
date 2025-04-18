@@ -141,6 +141,22 @@ internal sealed class Worker(
         if (message == null)
             return;
         var chat = message.Chat;
+        
+        // Проверяем и удаляем сообщения о том, что бот кого-то исключил
+        if (message.LeftChatMember != null && message.From?.Id == _me.Id)
+        {
+            try 
+            {
+                await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
+                _logger.LogDebug("Удалено сообщение о бане/исключении пользователя");
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Не удалось удалить сообщение о бане/исключении");
+            }
+            return;
+        }
+        
         if (message.NewChatMembers != null && chat.Id != Config.AdminChatId)
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
@@ -779,38 +795,86 @@ internal sealed class Worker(
 
     private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
     {
-        var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: stoppingToken
-        );
-        var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
-        MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-        await _bot.SendMessage(
-            new ChatId(Config.AdminChatId),
-            $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
-            replyParameters: forward.MessageId,
-            replyMarkup: new InlineKeyboardMarkup(new[]
-            {
-                new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
-                new InlineKeyboardButton("👍 ok") { CallbackData = "noop" },
-                new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
-            }),
-            cancellationToken: stoppingToken
-        );
+        // Проверяем, является ли сообщение сообщением о выходе пользователя
+        if (message.LeftChatMember != null)
+        {
+            _logger.LogDebug("Пропускаем форвард сообщения о выходе пользователя");
+            return;
+        }
+        
+        try
+        {
+            var forward = await _bot.ForwardMessage(
+                new ChatId(Config.AdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: stoppingToken
+            );
+            var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
+            MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+            await _bot.SendMessage(
+                new ChatId(Config.AdminChatId),
+                $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
+                replyParameters: forward.MessageId,
+                replyMarkup: new InlineKeyboardMarkup(new[]
+                {
+                    new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
+                    new InlineKeyboardButton("👍 ok") { CallbackData = "noop" },
+                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+                }),
+                cancellationToken: stoppingToken
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Ошибка при пересылке сообщения");
+            // Если не удалось переслать, просто отправляем уведомление
+            await _bot.SendMessage(
+                new ChatId(Config.AdminChatId),
+                $"Не удалось переслать подозрительное сообщение из чата {message.Chat.Title} от пользователя {FullName(user.FirstName, user.LastName)}"
+            );
+        }
     }
 
     private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken stoppingToken)
     {
         var user = message.From;
-        var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: stoppingToken
-        );
+        
+        // Проверяем, является ли сообщение сообщением о выходе пользователя
+        if (message.LeftChatMember != null)
+        {
+            _logger.LogDebug("Пропускаем форвард сообщения о выходе пользователя");
+            
+            try
+            {
+                await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+                _logger.LogDebug("Сообщение о выходе пользователя удалено");
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Не удалось удалить сообщение о выходе пользователя");
+            }
+            return;
+        }
+        
+        Message? forward = null;
         var deletionMessagePart = $"{reason}";
+        
+        try 
+        {
+            // Пытаемся переслать сообщение
+            forward = await _bot.ForwardMessage(
+                new ChatId(Config.AdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: stoppingToken
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось переслать сообщение");
+        }
+        
         try
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
