@@ -113,9 +113,9 @@ public class SpamHamClassifier
                         {
                             Weighting = NgramExtractingEstimator.WeightingCriteria.TfIdf,
                             NgramLength = 2,
-                            UseAllLengths = true
+                            UseAllLengths = true,
                         },
-                        KeepPunctuations = false
+                        KeepPunctuations = false,
                     },
                     "Text"
                 )

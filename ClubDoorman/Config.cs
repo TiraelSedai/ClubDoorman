@@ -1,4 +1,7 @@
-﻿namespace ClubDoorman
+﻿using System.Collections.Frozen;
+using Serilog;
+
+namespace ClubDoorman
 {
     internal static class Config
     {
@@ -9,6 +12,29 @@
         public static bool ApproveButtonEnabled { get; } = GetEnvironmentBool("DOORMAN_APPROVE_BUTTON");
         public static string BotApi { get; } =
             Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new Exception("DOORMAN_BOT_API variable not set");
+
+        public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
+
+        public static FrozenSet<long> Tier2Chats { get; } = GetTier2Chats();
+
+        private static FrozenSet<long> GetTier2Chats()
+        {
+            var chats = new List<long>();
+            var tier2 = Environment.GetEnvironmentVariable("DOORMAN_TIER2_CHATS");
+            if (tier2 != null)
+            {
+                foreach (var chat in tier2.Split(','))
+                {
+                    if (long.TryParse(chat, out var num))
+                        chats.Add(num);
+                    else
+                        Log.Logger.Warning("{Chat} cannot be parsed to long", chat);
+                }
+            }
+            Log.Logger.Information("Tier2 chats: {Chats}", string.Join(',', chats));
+            return chats.ToFrozenSet();
+        }
+
         public static long AdminChatId { get; } =
             long.Parse(
                 Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set")

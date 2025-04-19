@@ -25,6 +25,7 @@ public class Program
                 services.AddSingleton<SpamHamClassifier>();
                 services.AddSingleton<UserManager>();
                 services.AddSingleton<BadMessageManager>();
+                services.AddSingleton<AiChecks>();
             })
             .Build();
 

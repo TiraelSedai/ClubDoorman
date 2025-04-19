@@ -14,7 +14,8 @@ internal sealed class Worker(
     ILogger<Worker> logger,
     SpamHamClassifier classifier,
     UserManager userManager,
-    BadMessageManager badMessageManager
+    BadMessageManager badMessageManager,
+    AiChecks aiChecks
 ) : BackgroundService
 {
     private sealed record CaptchaInfo(
@@ -77,7 +78,7 @@ internal sealed class Worker(
             {
                 offset = await UpdateLoop(offset, stoppingToken);
                 if (offset % 100 == 0)
-                    await System.IO.File.WriteAllTextAsync(offsetPath, offset.ToString(), stoppingToken);
+                    await File.WriteAllTextAsync(offsetPath, offset.ToString(), stoppingToken);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -296,6 +297,20 @@ internal sealed class Worker(
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
+        if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null)
+        {
+            var attentionProb = await aiChecks.GetAttentionSpammerProbability(message.From);
+            if (attentionProb >= 0.8)
+            {
+                var postLink = LinkToMessage(chat, message.MessageId);
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
+                    cancellationToken: stoppingToken
+                );
+            }
+        }
+
         // else - ham
         if (score > -0.6 && Config.LowConfidenceHamForward)
         {
@@ -471,14 +486,13 @@ internal sealed class Worker(
         if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
             fullName = "новый участник чата";
 
-        var del =
-                 await _bot.SendMessage(
-                    chatId,
-                    $"Привет, [{Markdown.Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-                    parseMode: ParseMode.Markdown,
-                    replyParameters: replyParams,
-                    replyMarkup: new InlineKeyboardMarkup(keyboard)
-                );
+        var del = await _bot.SendMessage(
+            chatId,
+            $"Привет, [{Markdown.Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+            parseMode: ParseMode.Markdown,
+            replyParameters: replyParams,
+            replyMarkup: new InlineKeyboardMarkup(keyboard)
+        );
 
         var cts = new CancellationTokenSource();
         DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
