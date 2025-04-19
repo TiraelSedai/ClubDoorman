@@ -6,8 +6,9 @@ namespace ClubDoorman;
 public class ApprovedUsersStorage
 {
     private readonly string _filePath;
-    private readonly ConcurrentDictionary<long, DateTime> _approvedUsers;
+    private readonly HashSet<long> _approvedUsers;
     private readonly ILogger<ApprovedUsersStorage> _logger;
+    private readonly object _lock = new object();
 
     public ApprovedUsersStorage(ILogger<ApprovedUsersStorage> logger)
     {
@@ -16,21 +17,42 @@ public class ApprovedUsersStorage
         _approvedUsers = LoadFromFile();
     }
 
-    private ConcurrentDictionary<long, DateTime> LoadFromFile()
+    private HashSet<long> LoadFromFile()
     {
         try
         {
             if (!File.Exists(_filePath))
-                return new ConcurrentDictionary<long, DateTime>();
+                return new HashSet<long>();
 
             var json = File.ReadAllText(_filePath);
-            var dict = JsonSerializer.Deserialize<Dictionary<long, DateTime>>(json);
-            return new ConcurrentDictionary<long, DateTime>(dict ?? new Dictionary<long, DateTime>());
+            if (string.IsNullOrWhiteSpace(json))
+                return new HashSet<long>();
+
+            try
+            {
+                // Пробуем сначала как List<long> (новый формат)
+                var list = JsonSerializer.Deserialize<List<long>>(json);
+                return new HashSet<long>(list ?? new List<long>());
+            }
+            catch
+            {
+                try
+                {
+                    // Если не получилось, пробуем как Dictionary<long, DateTime> (старый формат)
+                    var dict = JsonSerializer.Deserialize<Dictionary<long, DateTime>>(json);
+                    return dict != null ? new HashSet<long>(dict.Keys) : new HashSet<long>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Не удалось десериализовать JSON ни как список, ни как словарь. Создаем пустой список одобренных пользователей.");
+                    return new HashSet<long>();
+                }
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при загрузке списка одобренных пользователей");
-            return new ConcurrentDictionary<long, DateTime>();
+            return new HashSet<long>();
         }
     }
 
@@ -44,10 +66,14 @@ public class ApprovedUsersStorage
 
             // Создаем временный файл
             var tempPath = Path.GetTempFileName();
-            var json = JsonSerializer.Serialize(_approvedUsers);
-            
-            // Сначала записываем во временный файл
-            File.WriteAllText(tempPath, json);
+            lock (_lock)
+            {
+                var list = _approvedUsers.ToList();
+                var json = JsonSerializer.Serialize(list);
+                
+                // Сначала записываем во временный файл
+                File.WriteAllText(tempPath, json);
+            }
             
             // Затем атомарно заменяем целевой файл
             File.Move(tempPath, _filePath, true);
@@ -60,14 +86,23 @@ public class ApprovedUsersStorage
 
     public bool IsApproved(long userId)
     {
-        return _approvedUsers.ContainsKey(userId);
+        lock (_lock)
+        {
+            return _approvedUsers.Contains(userId);
+        }
     }
 
     public void ApproveUser(long userId)
     {
         try
         {
-            if (_approvedUsers.TryAdd(userId, DateTime.UtcNow))
+            bool added;
+            lock (_lock)
+            {
+                added = _approvedUsers.Add(userId);
+            }
+            
+            if (added)
             {
                 _logger.LogInformation("Пользователь {UserId} добавлен в список одобренных", userId);
                 SaveToFile();
@@ -84,13 +119,15 @@ public class ApprovedUsersStorage
     {
         try
         {
-            if (_approvedUsers.TryRemove(userId, out var approvedAt))
+            bool removed;
+            lock (_lock)
             {
-                _logger.LogInformation(
-                    "Пользователь {UserId} удален из списка одобренных (был одобрен {ApprovedAt})", 
-                    userId, 
-                    approvedAt
-                );
+                removed = _approvedUsers.Remove(userId);
+            }
+            
+            if (removed)
+            {
+                _logger.LogInformation("Пользователь {UserId} удален из списка одобренных", userId);
                 SaveToFile();
                 return true;
             }
