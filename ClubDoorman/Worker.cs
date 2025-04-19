@@ -655,7 +655,9 @@ internal sealed class Worker(
         {
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.BlacklistBanned);
-            await _bot.BanChatMember(chat.Id, user.Id);
+            
+            // Баним пользователя с параметром revokeMessages: true чтобы удалить все сообщения
+            await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: true);
             
             // Удаляем из списка одобренных
             if (_userManager.RemoveApproval(user.Id))
