@@ -506,7 +506,8 @@ internal sealed class Worker(
             // Уведомляем админов
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"{banType} в чате {chat.Title} за {nameDescription} длинное имя пользователя ({fullName.Length} символов): {fullName}"
+                $"{banType} в чате *{chat.Title}* за {nameDescription} длинное имя пользователя ({fullName.Length} символов):\n`{Markdown.Escape(fullName)}`",
+                parseMode: ParseMode.Markdown
             );
         }
         catch (Exception e)
@@ -612,6 +613,18 @@ internal sealed class Worker(
         }
     }
 
+    private static string GetChatLink(long chatId, string? chatTitle) 
+    {
+        // Преобразование ID для супергрупп (убираем -100 в начале)
+        var formattedId = chatId.ToString();
+        if (formattedId.StartsWith("-100"))
+        {
+            formattedId = formattedId.Substring(4);
+            return $"[{Markdown.Escape(chatTitle ?? "Неизвестный чат")}](https://t.me/c/{formattedId})";
+        }
+        return $"*{Markdown.Escape(chatTitle ?? "Неизвестный чат")}*";
+    }
+
     private async Task ReportStatistics(CancellationToken ct)
     {
         while (await _timer.WaitForNextTickAsync(ct))
@@ -622,22 +635,38 @@ internal sealed class Worker(
             var report = _stats.ToArray();
             _stats.Clear();
             var sb = new StringBuilder();
-            sb.Append("За последние 24 часа в чатах:");
-            foreach (var (_, stats) in report.OrderBy(x => x.Value.ChatTitle))
+            sb.AppendLine("📊 *Статистика за последние 24 часа:*");
+            
+            foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
             {
-                sb.Append(Environment.NewLine);
-                sb.Append("В ");
-                sb.Append(stats.ChatTitle);
-                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha;
-                sb.Append($": {sum} раза сработала защита автоматом{Environment.NewLine}");
-                sb.Append(
-                    $"По блеклистам известных аккаунтов спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, за известные спам сообщения забанено: {stats.KnownBadMessage}"
-                );
+                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.LongNameBanned;
+                if (sum == 0) continue;
+                
+                sb.AppendLine();
+                sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)}:");
+                sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
+                
+                if (stats.BlacklistBanned > 0)
+                    sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
+                
+                if (stats.StoppedCaptcha > 0)
+                    sb.AppendLine($"▫️ Не прошли капчу: *{stats.StoppedCaptcha}*");
+                
+                if (stats.KnownBadMessage > 0)
+                    sb.AppendLine($"▫️ Известные спам-сообщения: *{stats.KnownBadMessage}*");
+                
+                if (stats.LongNameBanned > 0)
+                    sb.AppendLine($"▫️ За длинные имена: *{stats.LongNameBanned}*");
+            }
+
+            if (sb.Length <= 35) // Если нет данных, кроме заголовка
+            {
+                sb.AppendLine("\nНичего интересного не произошло 🎉");
             }
 
             try
             {
-                await _bot.SendMessage(Config.AdminChatId, sb.ToString(), cancellationToken: ct);
+                await _bot.SendMessage(Config.AdminChatId, sb.ToString(), parseMode: ParseMode.Markdown, cancellationToken: ct);
             }
             catch (Exception e)
             {
@@ -665,13 +694,15 @@ internal sealed class Worker(
             {
                 await _bot.SendMessage(
                     Config.AdminChatId,
-                    $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана по блеклисту"
+                    $"⚠️ Пользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) удален из списка одобренных после бана по блеклисту",
+                    parseMode: ParseMode.Markdown
                 );
             }
             
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"🚫 Автобан на 4 часа в чате {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
+                $"🚫 *Автобан на 4 часа* в чате *{chat.Title}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) находится в блэклисте",
+                parseMode: ParseMode.Markdown
             );
             return true;
         }
@@ -680,7 +711,8 @@ internal sealed class Worker(
             _logger.LogWarning(e, "Unable to ban");
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"⚠️ Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
+                $"⚠️ Не могу забанить юзера из блеклиста в чате *{chat.Title}*. Не хватает могущества? Сходите забаньте руками.",
+                parseMode: ParseMode.Markdown
             );
         }
 
@@ -698,7 +730,8 @@ internal sealed class Worker(
             await _userManager.Approve(approveUserId);
             await _bot.SendMessage(
                 new ChatId(Config.AdminChatId),
-                $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список доверенных",
+                $"✅ [{Markdown.Escape(FullName(cb.From.FirstName, cb.From.LastName))}](tg://user?id={cb.From.Id}) добавил пользователя в список доверенных",
+                parseMode: ParseMode.Markdown,
                 replyParameters: cb.Message?.MessageId
             );
         }
@@ -715,13 +748,15 @@ internal sealed class Worker(
                 {
                     await _bot.SendMessage(
                         Config.AdminChatId,
-                        $"⚠️ Пользователь удален из списка одобренных после ручного бана администратором {FullName(cb.From.FirstName, cb.From.LastName)}",
+                        $"⚠️ Пользователь удален из списка одобренных после ручного бана администратором [{Markdown.Escape(FullName(cb.From.FirstName, cb.From.LastName))}](tg://user?id={cb.From.Id})",
+                        parseMode: ParseMode.Markdown,
                         replyParameters: cb.Message?.MessageId
                     );
                 }
                 await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
-                    $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил, сообщение добавлено в список авто-бана",
+                    $"🚫 [{Markdown.Escape(FullName(cb.From.FirstName, cb.From.LastName))}](tg://user?id={cb.From.Id}) забанил, сообщение добавлено в список авто-бана",
+                    parseMode: ParseMode.Markdown,
                     replyParameters: cb.Message?.MessageId
                 );
             }
@@ -730,7 +765,7 @@ internal sealed class Worker(
                 _logger.LogWarning(e, "Unable to ban");
                 await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
-                    $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
+                    $"⚠️ Не могу забанить. Не хватает могущества? Сходите забаньте руками",
                     replyParameters: cb.Message?.MessageId
                 );
             }
@@ -777,20 +812,22 @@ internal sealed class Worker(
                 var lastMessage = MemoryCache.Default.Get(key) as string;
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
                     ? ""
-                    : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
+                    : $" Его/её последним сообщением было:\n```\n{lastMessage}\n```";
                 
                 // Удаляем из списка доверенных
                 if (_userManager.RemoveApproval(user.Id))
                 {
                     await _bot.SendMessage(
                         Config.AdminChatId,
-                        $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после получения ограничений в чате {chatMember.Chat.Title}"
+                        $"⚠️ Пользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) удален из списка одобренных после получения ограничений в чате *{chatMember.Chat.Title}*",
+                        parseMode: ParseMode.Markdown
                     );
                 }
                 
                 await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
-                    $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
+                    $"🔔 В чате *{chatMember.Chat.Title}* пользователю [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}",
+                    parseMode: ParseMode.Markdown
                 );
                 break;
         }
@@ -817,7 +854,8 @@ internal sealed class Worker(
             MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
             await _bot.SendMessage(
                 new ChatId(Config.AdminChatId),
-                $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
+                $"⚠️ *Подозрительное сообщение* - например, медиа без подписи от 'нового' пользователя или сообщение от канала. Сообщение *НЕ удалено*.\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) в чате *{message.Chat.Title}*",
+                parseMode: ParseMode.Markdown,
                 replyParameters: forward.MessageId,
                 replyMarkup: new InlineKeyboardMarkup(new[]
                 {
@@ -834,7 +872,8 @@ internal sealed class Worker(
             // Если не удалось переслать, просто отправляем уведомление
             await _bot.SendMessage(
                 new ChatId(Config.AdminChatId),
-                $"Не удалось переслать подозрительное сообщение из чата {message.Chat.Title} от пользователя {FullName(user.FirstName, user.LastName)}"
+                $"⚠️ Не удалось переслать подозрительное сообщение из чата *{message.Chat.Title}* от пользователя [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id})",
+                parseMode: ParseMode.Markdown
             );
         }
     }
@@ -901,7 +940,8 @@ internal sealed class Worker(
 
         await _bot.SendMessage(
             new ChatId(Config.AdminChatId),
-            $"{deletionMessagePart}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
+            $"⚠️ *{deletionMessagePart}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) в чате *{message.Chat.Title}*\n{postLink}",
+            parseMode: ParseMode.Markdown,
             replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
@@ -925,7 +965,7 @@ internal sealed class Worker(
             {
                 await _bot.SendMessage(
                     message.Chat.Id,
-                    "Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
+                    "⚠️ Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
                     replyParameters: replyToMessage
                 );
                 return;
@@ -944,13 +984,13 @@ internal sealed class Worker(
                         var (spam, score) = await _classifier.IsSpam(normalized);
                         var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
                         var msg =
-                            $"Результат:{Environment.NewLine}"
-                            + $"Много эмодзи: {emojis}{Environment.NewLine}"
-                            + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
-                            + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
-                            + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
-                            + $"Если простые фильтры отработали, то в датасет добавлять не нужно";
-                        await _bot.SendMessage(message.Chat.Id, msg);
+                            $"*Результат проверки:*\n"
+                            + $"• Много эмодзи: *{emojis}*\n"
+                            + $"• Найдены стоп-слова: *{hasStopWords}*\n"
+                            + $"• Маскирующиеся слова: *{lookAlikeMsg}*\n"
+                            + $"• ML классификатор: спам *{spam}*, скор *{score}*\n\n"
+                            + $"_Если простые фильтры отработали, то в датасет добавлять не нужно_";
+                        await _bot.SendMessage(message.Chat.Id, msg, parseMode: ParseMode.Markdown);
                         break;
                     }
                     case "/spam":
@@ -958,7 +998,7 @@ internal sealed class Worker(
                         await _badMessageManager.MarkAsBad(text);
                         await _bot.SendMessage(
                             message.Chat.Id,
-                            "Сообщение добавлено как пример спама в датасет, а так же в список авто-бана",
+                            "✅ Сообщение добавлено как пример спама в датасет, а также в список авто-бана",
                             replyParameters: replyToMessage
                         );
                         break;
@@ -966,7 +1006,7 @@ internal sealed class Worker(
                         await _classifier.AddHam(text);
                         await _bot.SendMessage(
                             message.Chat.Id,
-                            "Сообщение добавлено как пример НЕ-спама в датасет",
+                            "✅ Сообщение добавлено как пример НЕ-спама в датасет",
                             replyParameters: replyToMessage
                         );
                         break;
