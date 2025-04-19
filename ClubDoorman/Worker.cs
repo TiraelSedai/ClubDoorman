@@ -656,8 +656,9 @@ internal sealed class Worker(
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.BlacklistBanned);
             
-            // Баним пользователя с параметром revokeMessages: true чтобы удалить все сообщения
-            await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: true);
+            // Баним пользователя на 25 минут с параметром revokeMessages: true чтобы удалить все сообщения
+            var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(25);
+            await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true);
             
             // Удаляем из списка одобренных
             if (_userManager.RemoveApproval(user.Id))
@@ -670,7 +671,7 @@ internal sealed class Worker(
             
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"🚫 Автобан в чате {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
+                $"🚫 Автобан на 25 минут в {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
             );
             return true;
         }
