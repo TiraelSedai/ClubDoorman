@@ -671,7 +671,7 @@ internal sealed class Worker(
             
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"🚫 Автобан на 25 минут в {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
+                $"🚫 Автобан на 25 минут в чате {chat.Title}\nПользователь {FullName(user.FirstName, user.LastName)} (tg://user?id={user.Id}) находится в блэклисте"
             );
             return true;
         }
