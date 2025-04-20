@@ -301,7 +301,7 @@ internal sealed class Worker(
         if (Config.OpenRouterApi != null && message.From != null)
         {
             var attentionProb = await aiChecks.GetAttentionSpammerProbability(message.From);
-            if (attentionProb >= 0.8)
+            if (attentionProb >= 0.6)
             {
                 var postLink = LinkToMessage(chat, message.MessageId);
                 await _bot.SendMessage(
