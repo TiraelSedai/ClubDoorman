@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Primitives;
 using Telegram.Bot;
 using tryAGI.OpenAI;
 
@@ -13,16 +14,18 @@ internal class AiChecks(ILogger<AiChecks> logger)
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
 
-    public async ValueTask<double> GetAttentionSpammerProbability(Telegram.Bot.Types.User user)
+    public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user)
     {
         var probability = 0.0;
+        var nameBioUser = "";
+        var pic = Array.Empty<byte>();
         if (api == null)
-            return probability;
+            return (probability, pic, nameBioUser);
 
         var cacheKey = $"attention:{user.Id}";
         var exists = MemoryCache.Default.Get(cacheKey) as double?;
         if (exists.HasValue)
-            return exists.Value;
+            return (exists.Value, pic, nameBioUser);
 
         try
         {
@@ -46,15 +49,15 @@ internal class AiChecks(ILogger<AiChecks> logger)
             var userName = user.Username;
 
             var sb = new StringBuilder();
-            sb.Append(
-                "Проанализируй, выглядит ли этот Telegram-профиль как подозрительный, созданный с целью привлечения внимания и продвижения чего-то (например, курсов, сомнительных схем заработка, OnlyFans и т.п.). Вот данные:\n Имя: "
-            );
-            sb.Append(fullName);
+            sb.Append($"Имя: {fullName}");
             if (userName != null)
                 sb.Append($"\nЮзернейм: @{userName}");
             sb.Append($"\nОписание профиля: {bio}");
             if (photoBytes != null)
                 sb.Append($"\nФото: ");
+
+            nameBioUser = sb.ToString();
+            var promt = $"Проанализируй, выглядит ли этот Telegram-профиль как подозрительный, созданный с целью привлечения внимания и продвижения чего-то (например, курсов, сомнительных схем заработка, OnlyFans и т.п.). Вот данные:\n{nameBioUser}";
 
             var messages = new List<ChatCompletionRequestMessage>
             {
@@ -85,7 +88,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
         {
             logger.LogWarning(e, "GetAttentionSpammerProbability");
         }
-        return probability;
+        return (probability, pic, nameBioUser);
     }
 
     internal class SpamProbability()

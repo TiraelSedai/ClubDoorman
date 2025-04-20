@@ -293,8 +293,8 @@ internal sealed class Worker(
         //if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null) temporary enable for all chats
         if (Config.OpenRouterApi != null && message.From != null)
         {
-            var attentionProb = await aiChecks.GetAttentionSpammerProbability(message.From);
-            if (attentionProb >= 0.6)
+            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From);
+            if (attentionProb >= 0.8)
             {
                 var postLink = LinkToMessage(chat, message.MessageId);
                 await _bot.SendMessage(
@@ -302,6 +302,11 @@ internal sealed class Worker(
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                     cancellationToken: stoppingToken
                 );
+                if (photo.Length != 0)
+                {
+                    using var ms = new MemoryStream(photo);
+                    await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), bio, cancellationToken: stoppingToken);
+                }
             }
         }
 
