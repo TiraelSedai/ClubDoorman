@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.Caching;
@@ -9,6 +10,11 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
+
+internal class ReactionCache
+{
+    public int ReactionCount { get; set; }
+}
 
 internal sealed class Worker(
     ILogger<Worker> logger,
@@ -94,7 +100,7 @@ internal sealed class Worker(
             offset,
             limit: 100,
             timeout: 100,
-            allowedUpdates: [UpdateType.Message, UpdateType.EditedMessage, UpdateType.ChatMember, UpdateType.CallbackQuery],
+            allowedUpdates: [UpdateType.Message, UpdateType.EditedMessage, UpdateType.ChatMember, UpdateType.CallbackQuery, UpdateType.MessageReaction],
             cancellationToken: stoppingToken
         );
         if (updates.Length == 0)
@@ -117,6 +123,11 @@ internal sealed class Worker(
 
     private async Task HandleUpdate(Update update, CancellationToken stoppingToken)
     {
+        if (update.MessageReaction != null)
+        {
+            await HandleReaction(update.MessageReaction);
+            return;
+        }
         if (update.CallbackQuery != null)
         {
             await HandleCallback(update);
@@ -335,6 +346,49 @@ internal sealed class Worker(
             );
             await _userManager.Approve(user.Id);
             _goodUserMessages.TryRemove(user.Id, out _);
+        }
+    }
+
+    private async ValueTask HandleReaction(MessageReactionUpdated reaction)
+    {
+        var user = reaction.User;
+        if (user == null)
+            return;
+        if (_userManager.Approved(user.Id))
+            return;
+        if (reaction.NewReaction.Length == 0)
+            return;
+
+        var key = UserToKey(reaction.Chat.Id, user);
+        var userKey = $"user:{user.Id}";
+
+        if (_captchaNeededUsers.ContainsKey(key))
+        {
+            await _bot.BanChatMember(reaction.Chat, user.Id, DateTime.UtcNow.AddMinutes(5));
+            return;
+        }
+
+        var cache = new ReactionCache();
+        if (MemoryCache.Default.AddOrGetExisting(userKey, new ReactionCache(), new CacheItemPolicy { SlidingExpiration = TimeSpan.FromMinutes(15) }) is ReactionCache reactionCache)
+            cache = reactionCache;
+        cache.ReactionCount++;
+
+        if (cache.ReactionCount > 2)
+        {
+            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(user);
+            if (attentionProb >= 0.8)
+            {
+                var postLink = LinkToMessage(reaction.Chat, reaction.MessageId);
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"Вероятность что на это сообщение поставил реакцию бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 минут{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}");
+                await _bot.BanChatMember(reaction.Chat, user.Id, DateTime.UtcNow.AddMinutes(15));
+                if (photo.Length != 0)
+                {
+                    using var ms = new MemoryStream(photo);
+                    await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), bio);
+                }
+            }
         }
     }
 
