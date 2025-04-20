@@ -615,14 +615,32 @@ internal sealed class Worker(
 
     private static string GetChatLink(long chatId, string? chatTitle) 
     {
+        // Экранируем название чата для Markdown
+        var escapedTitle = Markdown.Escape(chatTitle ?? "Неизвестный чат");
+        
         // Преобразование ID для супергрупп (убираем -100 в начале)
         var formattedId = chatId.ToString();
         if (formattedId.StartsWith("-100"))
         {
+            // Формат для супергрупп: t.me/c/1234567890
             formattedId = formattedId.Substring(4);
-            return $"[{Markdown.Escape(chatTitle ?? "Неизвестный чат")}](https://t.me/c/{formattedId})";
+            return $"[{escapedTitle}](https://t.me/c/{formattedId})";
         }
-        return $"*{Markdown.Escape(chatTitle ?? "Неизвестный чат")}*";
+        else if (formattedId.StartsWith("-"))
+        {
+            // Обычные группы без ссылки (нет способа перейти по ID)
+            return $"*{escapedTitle}*";
+        }
+        else
+        {
+            // Для каналов, если есть юзернейм в заголовке
+            if (chatTitle?.StartsWith("@") == true)
+            {
+                var username = chatTitle.Substring(1);
+                return $"[{escapedTitle}](https://t.me/{username})";
+            }
+            return $"*{escapedTitle}*";
+        }
     }
 
     private async Task ReportStatistics(CancellationToken ct)
