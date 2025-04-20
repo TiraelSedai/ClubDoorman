@@ -39,6 +39,7 @@ public class SpamHamClassifier
     private readonly MLContext _mlContext = new();
     private PredictionEngine<MessageData, MessagePrediction>? _engine;
     private bool _needsRetraining;
+    private readonly PeriodicTimer _retrainTimer = new(TimeSpan.FromMinutes(1));
 
     public void Touch()
     {
@@ -49,7 +50,7 @@ public class SpamHamClassifier
     {
         while (true)
         {
-            await Task.Delay(TimeSpan.FromMinutes(5));
+            await _retrainTimer.WaitForNextTickAsync();
             if (_needsRetraining)
             {
                 await Train();

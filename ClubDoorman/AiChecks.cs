@@ -30,7 +30,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
             var photo = userChat.Photo;
             byte[]? photoBytes = null;
             ChatCompletionRequestUserMessage? photoMessage = null;
-            
+
             if (photo != null)
             {
                 using var ms = new MemoryStream();
@@ -73,7 +73,11 @@ internal class AiChecks(ILogger<AiChecks> logger)
             if (response.Value1 != null)
             {
                 probability = response.Value1.Probability;
-                MemoryCache.Default.Add(cacheKey, (double?)probability, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
+                MemoryCache.Default.Add(
+                    cacheKey,
+                    (double?)probability,
+                    new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) }
+                );
                 logger.LogInformation("Ответ сервера {Prob}", probability);
             }
         }

@@ -63,9 +63,9 @@ internal sealed class Worker(
         _classifier.Touch();
         const string offsetPath = "data/offset.txt";
         var offset = 0;
-        if (System.IO.File.Exists(offsetPath))
+        if (File.Exists(offsetPath))
         {
-            var lines = await System.IO.File.ReadAllLinesAsync(offsetPath, stoppingToken);
+            var lines = await File.ReadAllLinesAsync(offsetPath, stoppingToken);
             if (lines.Length > 0 && int.TryParse(lines[0], out offset))
                 _logger.LogDebug("offset read ok");
         }
@@ -103,21 +103,14 @@ internal sealed class Worker(
         string? mediaGroupId = null;
         foreach (var update in updates)
         {
-            try
+            var prevMediaGroup = mediaGroupId;
+            mediaGroupId = update.Message?.MediaGroupId;
+            if (prevMediaGroup != null && prevMediaGroup == mediaGroupId)
             {
-                var prevMediaGroup = mediaGroupId;
-                mediaGroupId = update.Message?.MediaGroupId;
-                if (prevMediaGroup != null && prevMediaGroup == mediaGroupId)
-                {
-                    _logger.LogDebug("2+ message from an album, it could not have any text/caption, skip");
-                    continue;
-                }
-                await HandleUpdate(update, stoppingToken);
+                _logger.LogDebug("2+ message from an album, it could not have any text/caption, skip");
+                continue;
             }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "UpdateLoop");
-            }
+            HandleUpdate(update, stoppingToken).FireAndForget(_logger, nameof(HandleUpdate));
         }
         return offset;
     }
@@ -305,10 +298,10 @@ internal sealed class Worker(
             {
                 var postLink = LinkToMessage(chat, message.MessageId);
                 await _bot.SendMessage(
-                Config.AdminChatId,
-                $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
-                cancellationToken: stoppingToken
-            );
+                    Config.AdminChatId,
+                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
+                    cancellationToken: stoppingToken
+                );
             }
         }
 
@@ -487,14 +480,13 @@ internal sealed class Worker(
         if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
             fullName = "новый участник чата";
 
-        var del =
-                 await _bot.SendMessage(
-                    chatId,
-                    $"Привет, [{Markdown.Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-                    parseMode: ParseMode.Markdown,
-                    replyParameters: replyParams,
-                    replyMarkup: new InlineKeyboardMarkup(keyboard)
-                );
+        var del = await _bot.SendMessage(
+            chatId,
+            $"Привет, [{Markdown.Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+            parseMode: ParseMode.Markdown,
+            replyParameters: replyParams,
+            replyMarkup: new InlineKeyboardMarkup(keyboard)
+        );
 
         var cts = new CancellationTokenSource();
         DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
