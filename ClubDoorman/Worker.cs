@@ -8,6 +8,7 @@ using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using static System.Collections.Specialized.BitVector32;
 
 namespace ClubDoorman;
 
@@ -310,9 +311,10 @@ internal sealed class Worker(
                 var postLink = LinkToMessage(chat, message.MessageId);
                 await _bot.SendMessage(
                     Config.AdminChatId,
-                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
+                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 мин{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                     cancellationToken: stoppingToken
                 );
+                await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
