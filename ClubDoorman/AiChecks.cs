@@ -14,7 +14,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
 
-    public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user)
+    public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user, long chatId)
     {
         var probability = 0.0;
         var nameBioUser = "";
@@ -58,7 +58,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
 
             nameBioUser = sb.ToString();
             var promt =
-                $"Проанализируй, выглядит ли этот Telegram-профиль как подозрительный, созданный с целью привлечения внимания и продвижения чего-то (например, курсов, сомнительных схем заработка, OnlyFans и т.п.). Вот данные:\n{nameBioUser}";
+                $"Проанализируй, выглядит ли этот Telegram-профиль как подозрительный, созданный с целью привлечения внимания и продвижения чего-то (например, курсов, сомнительных схем заработка, OnlyFans, порно, сексуальные услуги и т.п.). Вот данные:\n{nameBioUser}";
 
             var messages = new List<ChatCompletionRequestMessage>
             {
@@ -68,9 +68,13 @@ internal class AiChecks(ILogger<AiChecks> logger)
             if (photoMessage != null)
                 messages.Add(photoMessage);
 
+            var model = "google/gemini-2.5-flash-preview";
+            if (Config.Tier2Chats.Contains(chatId))
+                model = "google/gemini-2.5-pro-preview-03-25";
+
             var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                 messages: messages,
-                model: "google/gemini-2.5-flash-preview",
+                model: model,
                 strict: true,
                 jsonSerializerOptions: jso
             );

@@ -305,7 +305,7 @@ internal sealed class Worker(
         //if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null) temporary enable for all chats
         if (Config.OpenRouterApi != null && message.From != null)
         {
-            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From);
+            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From, chat.Id);
             if (attentionProb >= 0.8)
             {
                 var postLink = LinkToMessage(chat, message.MessageId);
@@ -377,7 +377,7 @@ internal sealed class Worker(
 
         if (cache.ReactionCount > 2)
         {
-            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(user);
+            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(user, reaction.Chat.Id);
             if (attentionProb >= 0.8)
             {
                 var postLink = LinkToMessage(reaction.Chat, reaction.MessageId);
