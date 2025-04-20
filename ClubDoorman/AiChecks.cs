@@ -24,10 +24,11 @@ namespace ClubDoorman
                 var photo = userChat.Photo;
                 byte[]? photoBytes = null;
                 ChatCompletionRequestUserMessage? photoMessage = null;
+                
                 if (photo != null)
                 {
                     using var ms = new MemoryStream();
-                    await _bot.DownloadFile(photo.BigFileId, ms);
+                    await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
                     photoBytes = ms.ToArray();
                     photoMessage = photoBytes.AsUserMessage(
                         mimeType: "image/jpg",
