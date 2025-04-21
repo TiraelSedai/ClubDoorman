@@ -310,7 +310,7 @@ internal sealed class Worker(
         {
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From, chat.Id);
             const double lowProbability = 0.6;
-            const double highProbability = 0.8;
+            const double highProbability = 0.85;
             if (attentionProb >= lowProbability)
             {
                 var action = attentionProb >= highProbability ? "Забанен на 15 мин." : "";

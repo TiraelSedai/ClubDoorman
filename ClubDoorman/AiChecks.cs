@@ -30,6 +30,8 @@ internal class AiChecks(ILogger<AiChecks> logger)
         try
         {
             var userChat = await _bot.GetChat(user.Id);
+            if (string.IsNullOrWhiteSpace(userChat.Bio))
+                return (probability, pic, nameBioUser);
             var photo = userChat.Photo;
             byte[]? photoBytes = null;
             ChatCompletionRequestUserMessage? photoMessage = null;
