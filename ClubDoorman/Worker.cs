@@ -244,8 +244,16 @@ internal sealed class Worker(
             {
                 var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
                 Interlocked.Increment(ref stats.BlacklistBanned);
-                await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: true, cancellationToken: stoppingToken);
+                
+                // Удаляем текущее сообщение пользователя
                 await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
+                
+                // Проверяем, является ли сообщение о входе в чат
+                if (message.NewChatMembers != null)
+                {
+                    _logger.LogDebug("Удаляем сообщение о входе в чат пользователя из блэклиста");
+                }
             }
             else
             {
@@ -551,7 +559,7 @@ internal sealed class Worker(
         Debug.Assert(chat != null);
         var chatId = chat.Id;
 
-        if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
+        if (await BanIfBlacklisted(user, chat, userJoinMessage))
             return;
 
         var key = UserToKey(chatId, user);
@@ -693,7 +701,7 @@ internal sealed class Worker(
         }
     }
 
-    private async Task<bool> BanIfBlacklisted(User user, Chat chat)
+    private async Task<bool> BanIfBlacklisted(User user, Chat chat, Message? userJoinMessage = null)
     {
         if (!await _userManager.InBanlist(user.Id))
             return false;
@@ -706,6 +714,20 @@ internal sealed class Worker(
             // Баним пользователя на 4 часа с параметром revokeMessages: true чтобы удалить все сообщения
             var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
             await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true);
+            
+            // Явно удаляем сообщение о входе в чат, если оно есть
+            if (userJoinMessage != null)
+            {
+                try
+                {
+                    await _bot.DeleteMessage(chat.Id, userJoinMessage.MessageId);
+                    _logger.LogDebug("Удалено сообщение о входе пользователя из блэклиста");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Не удалось удалить сообщение о входе пользователя из блэклиста");
+                }
+            }
             
             // Удаляем из списка одобренных
             if (_userManager.RemoveApproval(user.Id))
