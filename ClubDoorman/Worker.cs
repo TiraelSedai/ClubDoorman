@@ -33,7 +33,10 @@ internal sealed class Worker(
         int CorrectAnswer,
         CancellationTokenSource Cts,
         Message? UserJoinedMessage
-    );
+    )
+    {
+        public Message? UserJoinedMessage { get; set; } = UserJoinedMessage;
+    }
 
     private sealed class Stats(string? Title)
     {
@@ -517,8 +520,10 @@ internal sealed class Worker(
             return;
 
         var key = UserToKey(chatId, user);
-        if (_captchaNeededUsers.ContainsKey(key))
+        if (_captchaNeededUsers.TryGetValue(key, out var captchaInfo))
         {
+            if (userJoinMessage != null)
+                captchaInfo.UserJoinedMessage = userJoinMessage;
             _logger.LogDebug("This user is already awaiting captcha challenge");
             return;
         }
@@ -693,19 +698,11 @@ internal sealed class Worker(
         {
             case ChatMemberStatus.Member:
             {
-                _logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
                 if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    // The reason we need to wait here is that we need to get message that user joined to have a chance to be processed first,
-                    // this is not mandatory but looks nicer, however sometimes Telegram doesn't send it at all so consider this a fallback.
-                    // There is no way real human would be able to solve this captcha in under 2 seconds so it's fine.
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(2));
-                        await IntroFlow(null, newChatMember.User, chatMember.Chat);
-                    });
+                    _logger.LogDebug("New chat member in chat {Chat}: {First} {Last}; Id = {Id}", chatMember.Chat.Title, newChatMember.User.FirstName, newChatMember.User.LastName, newChatMember.User.Id);
+                    await IntroFlow(null, newChatMember.User, chatMember.Chat);
                 }
-
                 break;
             }
             case ChatMemberStatus.Kicked
