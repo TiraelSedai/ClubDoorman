@@ -104,7 +104,14 @@ internal sealed class Worker(
             offset,
             limit: 100,
             timeout: 100,
-            allowedUpdates: [UpdateType.Message, UpdateType.EditedMessage, UpdateType.ChatMember, UpdateType.CallbackQuery, UpdateType.MessageReaction],
+            allowedUpdates:
+            [
+                UpdateType.Message,
+                UpdateType.EditedMessage,
+                UpdateType.ChatMember,
+                UpdateType.CallbackQuery,
+                UpdateType.MessageReaction,
+            ],
             cancellationToken: stoppingToken
         );
         if (updates.Length == 0)
@@ -310,19 +317,25 @@ internal sealed class Worker(
         {
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From, chat.Id);
             const double lowProbability = 0.6;
-            const double highProbability = 0.85;
+            const double highProbability = 0.8;
             if (attentionProb >= lowProbability)
             {
-                var action = attentionProb >= highProbability ? "Забанен на 15 мин." : "";
+                var keyboard = new List<InlineKeyboardButton>
+                {
+                    new("👍 ok") { CallbackData = $"attOk_{user.Id}" },
+                    new("🤖 ban") { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
+                };
+                var action = attentionProb >= highProbability ? "Забанен на 5 мин." : "";
                 await _bot.SendMessage(
                     Config.AdminChatId,
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}",
+                    replyMarkup: new InlineKeyboardMarkup(keyboard),
                     cancellationToken: stoppingToken
                 );
                 if (attentionProb >= highProbability)
                 {
                     await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
-                    await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
+                    await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(5), cancellationToken: stoppingToken);
                 }
                 if (photo.Length != 0)
                 {
@@ -380,7 +393,14 @@ internal sealed class Worker(
         }
 
         var cache = new ReactionCache();
-        if (MemoryCache.Default.AddOrGetExisting(userKey, new ReactionCache(), new CacheItemPolicy { SlidingExpiration = TimeSpan.FromMinutes(15) }) is ReactionCache reactionCache)
+        if (
+            MemoryCache.Default.AddOrGetExisting(
+                userKey,
+                new ReactionCache(),
+                new CacheItemPolicy { SlidingExpiration = TimeSpan.FromMinutes(15) }
+            )
+            is ReactionCache reactionCache
+        )
             cache = reactionCache;
         cache.ReactionCount++;
 
@@ -392,7 +412,8 @@ internal sealed class Worker(
                 var postLink = LinkToMessage(reaction.Chat, reaction.MessageId);
                 await _bot.SendMessage(
                     Config.AdminChatId,
-                    $"Вероятность что на это сообщение поставил реакцию бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 минут{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}");
+                    $"Вероятность что на это сообщение поставил реакцию бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 минут{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}"
+                );
                 await _bot.BanChatMember(reaction.Chat, user.Id, DateTime.UtcNow.AddMinutes(15));
                 if (photo.Length != 0)
                 {
@@ -653,6 +674,15 @@ internal sealed class Worker(
                 replyParameters: cb.Message?.MessageId
             );
         }
+        else if (split.Count > 1 && split[0] == "attOk" && long.TryParse(split[1], out var attOkUserId))
+        {
+            aiChecks.MarkUserOkay(attOkUserId);
+            await _bot.SendMessage(
+                new ChatId(Config.AdminChatId),
+                $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)",
+                replyParameters: cb.Message?.MessageId
+            );
+        }
         else if (split.Count > 2 && split[0] == "ban" && long.TryParse(split[1], out var chatId) && long.TryParse(split[2], out var userId))
         {
             var userMessage = MemoryCache.Default.Remove(cbData) as Message;
@@ -700,7 +730,13 @@ internal sealed class Worker(
             {
                 if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug("New chat member in chat {Chat}: {First} {Last}; Id = {Id}", chatMember.Chat.Title, newChatMember.User.FirstName, newChatMember.User.LastName, newChatMember.User.Id);
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Id
+                    );
                     await IntroFlow(null, newChatMember.User, chatMember.Chat);
                 }
                 break;

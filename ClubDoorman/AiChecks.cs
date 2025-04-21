@@ -2,7 +2,6 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Primitives;
 using Telegram.Bot;
 using tryAGI.OpenAI;
 
@@ -13,6 +12,12 @@ internal class AiChecks(ILogger<AiChecks> logger)
     private readonly TelegramBotClient _bot = new(Config.BotApi);
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
+
+    public void MarkUserOkay(long userId)
+    {
+        var cacheKey = $"attention:{userId}";
+        MemoryCache.Default.Add(cacheKey, (double?)0.0, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
+    }
 
     public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user, long chatId)
     {
@@ -66,7 +71,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
             var messages = new List<ChatCompletionRequestMessage>
             {
                 "Ты — ассистент, оценивающий профили на предмет того, созданы ли они для привлечения внимания и продвижения сторонних ресурсов или услуг. Учитывай признаки:\nсексуализированные женские профили (эмодзи капелек, поцелуйчиков, персиков и прочих в имени, любой намёк на эротику и порно, голые фото),\nупоминания о курсах, заработке, трейдинге, арбитраже,\nслова вроде \"миллион\", \"марафон\", \"путь к свободе\", \"доход\", \"коуч\", \"успей\",\nссылки на OnlyFans, каналы, соцсети.".AsSystemMessage(),
-               promt.AsUserMessage(),
+                promt.AsUserMessage(),
             };
             if (photoMessage != null)
                 messages.Add(photoMessage);
