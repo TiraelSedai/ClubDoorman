@@ -577,8 +577,8 @@ internal sealed class Worker(
             var report = _stats.ToArray();
             _stats.Clear();
             var sb = new StringBuilder();
-            sb.Append("За последние 24 часа в чатах:");
-            foreach (var (_, stats) in report.OrderBy(x => x.Value.ChatTitle))
+            sb.Append("За последние 24 часа в топ-10 чатах:");
+            foreach (var (_, stats) in report.OrderByDescending(x => x.Value.BlacklistBanned + x.Value.StoppedCaptcha).Take(10))
             {
                 sb.Append(Environment.NewLine);
                 sb.Append("В ");
