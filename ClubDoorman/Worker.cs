@@ -308,12 +308,12 @@ internal sealed class Worker(
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From, chat.Id);
             if (attentionProb >= 0.8)
             {
-                var postLink = LinkToMessage(chat, message.MessageId);
                 await _bot.SendMessage(
                     Config.AdminChatId,
-                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 мин{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
+                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 мин{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}",
                     cancellationToken: stoppingToken
                 );
+                await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
                 await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
                 if (photo.Length != 0)
                 {
