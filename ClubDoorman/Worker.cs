@@ -306,15 +306,21 @@ internal sealed class Worker(
         if (Config.OpenRouterApi != null && message.From != null)
         {
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From, chat.Id);
-            if (attentionProb >= 0.8)
+            const double lowProbability = 0.6;
+            const double highProbability = 0.8;
+            if (attentionProb >= lowProbability)
             {
+                var action = attentionProb >= highProbability ? "Забанен на 15 мин." : "";
                 await _bot.SendMessage(
                     Config.AdminChatId,
-                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 мин{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}",
+                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}",
                     cancellationToken: stoppingToken
                 );
-                await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
-                await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
+                if (attentionProb >= highProbability)
+                {
+                    await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
+                    await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
+                }
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
