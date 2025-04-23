@@ -52,10 +52,7 @@ jobs:
           ## GateTroitsBot v${{ steps.vars.outputs.version }}
           
           **Сборка:**
-          - Дата: ${{ steps.build_info.outputs.date }}
-          - Ветка: ${{ steps.build_info.outputs.branch }}
           - Коммит: ${{ steps.build_info.outputs.commit }}
-          - Автор: ${{ steps.build_info.outputs.author }}
           
           **Docker образ:** 
           ```
@@ -75,6 +72,9 @@ jobs:
                 - DOORMAN_BOT_API=1234567890:AAAA-YOUR-TOKEN-HERE
                 - DOORMAN_ADMIN_CHAT=-1001234567890
           ```
+          
+          **Документация:**
+          🔗 [Инструкция по использованию бота](https://telegra.ph/GateTroitsBot-04-19) - всё о настройке, возможностях и рекомендациях
         draft: false
         prerelease: false
       env:
