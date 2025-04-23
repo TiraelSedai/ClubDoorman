@@ -45,15 +45,15 @@ jobs:
         # Получаем список коммитов с последнего тега или последние 10 коммитов
         if git describe --tags --abbrev=0 2>/dev/null; then
           last_tag=$(git describe --tags --abbrev=0)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "changelog<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
           echo "### Changes since $last_tag:" >> $GITHUB_OUTPUT
           git log --pretty=format:"- %s (%h) by %an" $last_tag..HEAD | head -10 >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
         else
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "changelog<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
           echo "### Latest changes:" >> $GITHUB_OUTPUT
           git log --pretty=format:"- %s (%h) by %an" -n 10 >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
         fi
 
     - name: Create Release
