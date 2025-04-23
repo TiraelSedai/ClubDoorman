@@ -9,8 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Получаем полную историю для создания списка коммитов
 
     - name: Extract version number
       id: vars
@@ -39,23 +37,6 @@ jobs:
     - name: Create zip artifact
       run: zip -r GateTroitsBot-${{ steps.vars.outputs.version }}.zip publish
 
-    - name: Get commit log
-      id: commits
-      run: |
-        # Получаем список коммитов с последнего тега или последние 10 коммитов
-        if git describe --tags --abbrev=0 2>/dev/null; then
-          last_tag=$(git describe --tags --abbrev=0)
-          echo "changelog<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
-          echo "### Changes since $last_tag:" >> $GITHUB_OUTPUT
-          git log --pretty=format:"- %s (%h) by %an" $last_tag..HEAD | head -10 >> $GITHUB_OUTPUT
-          echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
-        else
-          echo "changelog<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
-          echo "### Latest changes:" >> $GITHUB_OUTPUT
-          git log --pretty=format:"- %s (%h) by %an" -n 10 >> $GITHUB_OUTPUT
-          echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
-        fi
-
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
@@ -66,8 +47,6 @@ jobs:
           ## GateTroitsBot v${{ steps.vars.outputs.version }}
           
           Docker image: `ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}`
-          
-          ${{ steps.commits.outputs.changelog }}
         files: GateTroitsBot-${{ steps.vars.outputs.version }}.zip
         draft: false
         prerelease: false
