@@ -1,18 +1,20 @@
-name: Build and Push Docker Image
+name: Build, Release and Push Docker Image
 
 on:
   push:
     branches: [ develop ]
 
 jobs:
-  build-and-push:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Получаем полную историю для создания списка коммитов
 
     - name: Extract version number
       id: vars
-      run: echo "::set-output name=version::1.0.${{ github.run_number }}"
+      run: echo "version=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
       
     - name: Set lowercase repo name
       run: echo "repo_name=${{ github.repository }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
@@ -25,8 +27,52 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
+    - name: Build application
+      run: dotnet build --configuration Release --no-restore
+      
     - name: Run tests
       run: dotnet test --no-restore
+
+    - name: Publish application
+      run: dotnet publish ClubDoorman/ClubDoorman.csproj -c Release -o publish
+
+    - name: Create zip artifact
+      run: zip -r GateTroitsBot-${{ steps.vars.outputs.version }}.zip publish
+
+    - name: Get commit log
+      id: commits
+      run: |
+        # Получаем список коммитов с последнего тега или последние 10 коммитов
+        if git describe --tags --abbrev=0 2>/dev/null; then
+          last_tag=$(git describe --tags --abbrev=0)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "### Changes since $last_tag:" >> $GITHUB_OUTPUT
+          git log --pretty=format:"- %s (%h) by %an" $last_tag..HEAD | head -10 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "### Latest changes:" >> $GITHUB_OUTPUT
+          git log --pretty=format:"- %s (%h) by %an" -n 10 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.vars.outputs.version }}
+        name: Release v${{ steps.vars.outputs.version }}
+        body: |
+          ## GateTroitsBot v${{ steps.vars.outputs.version }}
+          
+          Docker image: `ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}`
+          
+          ${{ steps.commits.outputs.changelog }}
+        files: GateTroitsBot-${{ steps.vars.outputs.version }}.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build Docker image
       run: docker build -t ghcr.io/${{ env.repo_name }}:latest -t ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }} ./ClubDoorman
