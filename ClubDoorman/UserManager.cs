@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ClubDoorman;
 
@@ -21,6 +22,7 @@ internal sealed class UserManager
     {
         _logger = logger;
         Task.Run(Init);
+        Task.Run(InjestChatHistories);
         if (Config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
         else
@@ -30,11 +32,60 @@ internal sealed class UserManager
     private const string Path = "data/approved-users.txt";
     private readonly ConcurrentDictionary<long, byte> _banlist = [];
     private readonly SemaphoreSlim _semaphore = new(1);
-    private readonly HashSet<long> _approved = File.ReadAllLines(Path).Select(long.Parse).ToHashSet();
+    private readonly HashSet<long> _approved = [.. File.ReadAllLines(Path).Select(long.Parse)];
     private readonly HttpClient _clubHttpClient = new();
     private readonly HttpClient _httpClient = new();
 
     public bool Approved(long userId) => _approved.Contains(userId);
+
+    private async Task InjestChatHistories()
+    {
+        var jsons = Directory.EnumerateFiles("data", "*.json");
+        foreach (var json in jsons)
+        {
+            try
+            {
+                var users = await GetUsersWithAtLeastThreeMessagesAsync(json);
+                if (users.Count > 0)
+                    await Approve(users);
+                File.Delete(json);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, nameof(InjestChatHistories));
+            }
+        }
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromMinutes(15));
+            _ = InjestChatHistories();
+        });
+    }
+
+    public static async Task<List<long>> GetUsersWithAtLeastThreeMessagesAsync(string jsonFilePath)
+    {
+        await using var stream = File.OpenRead(jsonFilePath);
+        using var document = await JsonDocument.ParseAsync(stream);
+        if (!document.RootElement.TryGetProperty("messages", out var messages) || messages.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var userMessageCounts = new Dictionary<long, int>();
+        foreach (var message in messages.EnumerateArray())
+        {
+            if (!message.TryGetProperty("from_id", out var fromIdProp) || fromIdProp.ValueKind != JsonValueKind.String)
+                continue;
+
+            var fromIdStr = fromIdProp.GetString();
+            if (fromIdStr == null || !fromIdStr.StartsWith("user") || !long.TryParse(fromIdStr.AsSpan(4), out var userId))
+                continue;
+
+            if (userMessageCounts.ContainsKey(userId))
+                userMessageCounts[userId]++;
+            else
+                userMessageCounts[userId] = 1;
+        }
+        return userMessageCounts.Where(x => x.Value >= 3).Select(x => x.Key).ToList();
+    }
 
     public async ValueTask Approve(long userId)
     {
@@ -43,6 +94,17 @@ internal sealed class UserManager
             using var token = await SemaphoreHelper.AwaitAsync(_semaphore);
             await File.AppendAllLinesAsync(Path, [userId.ToString(CultureInfo.InvariantCulture)]);
         }
+    }
+
+    private async ValueTask Approve(IEnumerable<long> userId)
+    {
+        var newGuys = new HashSet<long>();
+        foreach (var id in userId)
+            if (_approved.Add(id))
+                newGuys.Add(id);
+        var lines = newGuys.Select(x => x.ToString(CultureInfo.InvariantCulture)).ToList();
+        using var token = await SemaphoreHelper.AwaitAsync(_semaphore);
+        await File.AppendAllLinesAsync(Path, lines);
     }
 
     public async ValueTask<bool> InBanlist(long userId)
