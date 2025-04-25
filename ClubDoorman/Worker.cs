@@ -315,7 +315,7 @@ internal sealed class Worker(
         //if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null) temporary enable for all chats
         if (Config.OpenRouterApi != null && message.From != null)
         {
-            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From, chat.Id);
+            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From);
             const double lowProbability = 0.6;
             const double highProbability = 0.8;
             if (attentionProb >= lowProbability)
@@ -343,6 +343,12 @@ internal sealed class Worker(
                     await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}", cancellationToken: stoppingToken);
                 }
             }
+        }
+        if (Config.OpenRouterApi != null && message.From != null)
+        {
+            var prob = await aiChecks.GetSpammerProbability(message);
+            if (prob >= 0.7)
+                await DontDeleteButReportMessage(message, message.From, stoppingToken);
         }
 
         // else - ham
@@ -406,7 +412,7 @@ internal sealed class Worker(
 
         if (cache.ReactionCount > 2)
         {
-            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(user, reaction.Chat.Id);
+            var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(user);
             if (attentionProb >= 0.8)
             {
                 var postLink = LinkToMessage(reaction.Chat, reaction.MessageId);
@@ -676,7 +682,7 @@ internal sealed class Worker(
         }
         else if (split.Count > 1 && split[0] == "attOk" && long.TryParse(split[1], out var attOkUserId))
         {
-            aiChecks.MarkUserOkay(attOkUserId);
+            AiChecks.MarkUserOkay(attOkUserId);
             await _bot.SendMessage(
                 new ChatId(Config.AdminChatId),
                 $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)",

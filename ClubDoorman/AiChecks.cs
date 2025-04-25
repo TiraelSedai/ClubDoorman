@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 using tryAGI.OpenAI;
 
 namespace ClubDoorman;
@@ -13,13 +14,13 @@ internal class AiChecks(ILogger<AiChecks> logger)
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
 
-    public void MarkUserOkay(long userId)
+    public static void MarkUserOkay(long userId)
     {
         var cacheKey = $"attention:{userId}";
         MemoryCache.Default.Add(cacheKey, (double?)0.0, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
     }
 
-    public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user, long chatId)
+    public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user)
     {
         var probability = 0.0;
         var nameBioUser = "";
@@ -102,6 +103,58 @@ internal class AiChecks(ILogger<AiChecks> logger)
             logger.LogWarning(e, "GetAttentionSpammerProbability");
         }
         return (probability, pic, nameBioUser);
+    }
+
+    public async ValueTask<double> GetSpammerProbability(Message message)
+    {
+        var probability = 0.0;
+        if (api == null)
+            return probability;
+
+        try
+        {
+            byte[]? imageBytes = null;
+            if (message.Photo != null)
+            {
+                using var ms = new MemoryStream();
+                await _bot.GetInfoAndDownloadFile(message.Photo.OrderBy(x => x.Width).First().FileId, ms);
+                imageBytes = ms.ToArray();
+            }
+
+            var promt =
+                $"Проанализируй, выглядит ли это сообщение как спам или мошенничество, созданное с целью привлечения внимания и продвижения. Частые примеры: казино, гэмблинг, наркотики, эротика, порно, сексуализированные сообщения, схема заработка с обещаниями высокой прибыли, схема заработка без подробностей, неофициальное трудоустройство, срочный набор на работу, NFT, крипто, призыв перейти по ссылке, призыв писать в личные сообщения (или же \"в ЛС\"), услуги рассылки и продвижения, выпрашивание денег под жалобным предлогом, предложение поделиться ресурсами и книгами по трейдингу или инвестициям, промокоды, реклама, увеличение трафика или потока клиентов, подарочные сертификаты и другие цифровые промокоды со скидкой. Сообщение:\n";
+
+            var messages = new List<ChatCompletionRequestMessage>
+            {
+                "Ты — ассистент, оценивающий сообщения в Telegram-чате на спам, мошенничество и продвижения сторонних ресурсов или услуг".AsSystemMessage(),
+                (promt + (message.Caption ?? message.Text)).AsUserMessage(),
+            };
+            if (imageBytes != null)
+                messages.Add(
+                imageBytes.AsUserMessage(
+                    mimeType: "image/jpg",
+                    detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
+                ));
+
+            var model = "google/gemini-2.5-flash-preview";
+
+            var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                messages: messages,
+                model: model,
+                strict: true,
+                jsonSerializerOptions: jso
+            );
+            if (response.Value1 != null)
+            {
+                probability = response.Value1.Probability;
+                logger.LogInformation("Ответ AI {Prob}", probability);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, nameof(GetSpammerProbability));
+        }
+        return probability;
     }
 
     internal class SpamProbability()
