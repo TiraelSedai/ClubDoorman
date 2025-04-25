@@ -325,7 +325,7 @@ internal sealed class Worker(
                     new("👍 ok") { CallbackData = $"attOk_{user.Id}" },
                     new("🤖 ban") { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
                 };
-                var action = attentionProb >= highProbability ? "Забанен на 5 мин." : "";
+                var action = attentionProb >= highProbability ? "Даём ридонли на 15 минут" : "";
                 await _bot.SendMessage(
                     Config.AdminChatId,
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}",
@@ -335,12 +335,12 @@ internal sealed class Worker(
                 if (attentionProb >= highProbability)
                 {
                     await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
-                    await _bot.BanChatMember(chat, user.Id, DateTime.UtcNow.AddMinutes(5), cancellationToken: stoppingToken);
+                    await _bot.RestrictChatMember(chat, user.Id, new ChatPermissions(false), untilDate: DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
                 }
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
-                    await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), bio, cancellationToken: stoppingToken);
+                    await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}", cancellationToken: stoppingToken);
                 }
             }
         }
