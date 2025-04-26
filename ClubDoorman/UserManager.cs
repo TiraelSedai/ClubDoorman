@@ -11,11 +11,48 @@ internal sealed class UserManager
 
     private async Task Init()
     {
-        var httpClient = new HttpClient();
-        var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json");
-        if (banlist != null)
-            foreach (var id in banlist)
-                _banlist.TryAdd(id, 0);
+        await RefreshBanlist();
+    }
+
+    public async Task RefreshBanlist()
+    {
+        try
+        {
+            await _semaphore.WaitAsync();
+            try
+            {
+                var httpClient = new HttpClient();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)); // Таймаут 15 сек
+                var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json", cts.Token);
+                
+                if (banlist != null && banlist.Length > 0)
+                {
+                    var oldCount = _banlist.Count;
+                    
+                    // Очищаем текущий список
+                    foreach (var key in _banlist.Keys.ToArray())
+                        _banlist.TryRemove(key, out _);
+                    
+                    // Заполняем его новыми значениями
+                    foreach (var id in banlist)
+                        _banlist.TryAdd(id, 0);
+                    
+                    _logger.LogInformation("Обновлен банлист из lols.bot: было {OldCount}, стало {NewCount} записей", oldCount, _banlist.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("Получен пустой банлист от lols.bot или ответ был null");
+                }
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Не удалось обновить банлист из lols.bot");
+        }
     }
 
     public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage)
