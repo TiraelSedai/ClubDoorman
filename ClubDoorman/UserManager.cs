@@ -9,11 +9,6 @@ internal sealed class UserManager
     private readonly ILogger<UserManager> _logger;
     private readonly ApprovedUsersStorage _approvedUsersStorage;
 
-    private async Task Init()
-    {
-        await RefreshBanlist();
-    }
-
     public async Task RefreshBanlist()
     {
         try
@@ -59,7 +54,6 @@ internal sealed class UserManager
     {
         _logger = logger;
         _approvedUsersStorage = approvedUsersStorage;
-        Task.Run(Init);
         if (Config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
         else
