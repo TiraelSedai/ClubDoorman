@@ -122,6 +122,11 @@ internal sealed class UserManager
             _banlist.TryAdd(userId, 0);
             return true;
         }
+        catch (OperationCanceledException oce)
+        {
+            _logger.LogInformation("LolsBotApi timeout");
+            return false;
+        }
         catch (Exception e)
         {
             _logger.LogWarning(e, "LolsBotApi exception");
