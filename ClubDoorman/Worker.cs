@@ -156,14 +156,14 @@ internal sealed class Worker(
         if (message == null)
             return;
         var chat = message.Chat;
-        if (message.NewChatMembers != null && chat.Id != Config.AdminChatId)
+        if (message.NewChatMembers != null && chat.Id != Config.AdminChatId && !Config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
                 await IntroFlow(message, newUser);
             return;
         }
 
-        if (chat.Id == Config.AdminChatId)
+        if (chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             await AdminChatMessage(message);
             return;
@@ -181,13 +181,15 @@ internal sealed class Worker(
 
             if (Config.ChannelAutoBan)
             {
+                var admChat = GetAdminChat(message.Chat.Id);
+
                 try
                 {
-                    var fwd = await _bot.ForwardMessage(Config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
+                    var fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
                     await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                     await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
                     await _bot.SendMessage(
-                        Config.AdminChatId,
+                        admChat,
                         $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
                         replyParameters: fwd,
                         cancellationToken: stoppingToken
@@ -197,7 +199,7 @@ internal sealed class Worker(
                 {
                     _logger.LogWarning(e, "Unable to ban");
                     await _bot.SendMessage(
-                        Config.AdminChatId,
+                        admChat,
                         $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
                         cancellationToken: stoppingToken
                     );
@@ -315,6 +317,8 @@ internal sealed class Worker(
         //if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null) temporary enable for all chats
         if (Config.OpenRouterApi != null && message.From != null)
         {
+            var admChat = GetAdminChat(message.Chat.Id);
+
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From);
             const double lowProbability = 0.6;
             const double highProbability = 0.8;
@@ -327,7 +331,7 @@ internal sealed class Worker(
                 };
                 var action = attentionProb >= highProbability ? "Даём ридонли на 15 минут" : "";
                 await _bot.SendMessage(
-                    Config.AdminChatId,
+                    admChat,
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}",
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
                     cancellationToken: stoppingToken
@@ -340,7 +344,7 @@ internal sealed class Worker(
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
-                    await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}", cancellationToken: stoppingToken);
+                    await _bot.SendPhoto(admChat, new InputFileStream(ms), $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}", cancellationToken: stoppingToken);
                 }
             }
         }
@@ -354,10 +358,12 @@ internal sealed class Worker(
         // else - ham
         if (score > -0.6 && Config.LowConfidenceHamForward)
         {
-            var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            var admChat = GetAdminChat(message.Chat.Id);
+
+            var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = LinkToMessage(chat, message.MessageId);
             await _bot.SendMessage(
-                Config.AdminChatId,
+                admChat,
                 $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                 replyParameters: forward,
                 cancellationToken: stoppingToken
@@ -410,21 +416,22 @@ internal sealed class Worker(
             cache = reactionCache;
         cache.ReactionCount++;
 
-        if (cache.ReactionCount > 2)
+        if (cache.ReactionCount > 2 && Config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
         {
+            var admChat = GetAdminChat(reaction.Chat.Id);
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(user);
             if (attentionProb >= 0.8)
             {
                 var postLink = LinkToMessage(reaction.Chat, reaction.MessageId);
                 await _bot.SendMessage(
-                    Config.AdminChatId,
+                    admChat,
                     $"Вероятность что на это сообщение поставил реакцию бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 минут{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}"
                 );
                 await _bot.BanChatMember(reaction.Chat, user.Id, DateTime.UtcNow.AddMinutes(15));
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
-                    await _bot.SendPhoto(Config.AdminChatId, new InputFileStream(ms), bio);
+                    await _bot.SendPhoto(admChat, new InputFileStream(ms), bio);
                 }
             }
         }
@@ -432,15 +439,17 @@ internal sealed class Worker(
 
     private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
     {
+        var admChat = GetAdminChat(message.Chat.Id);
+
         var user = message.From;
         var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
+            admChat,
             message.Chat.Id,
             message.MessageId,
             cancellationToken: stoppingToken
         );
         await _bot.SendMessage(
-            Config.AdminChatId,
+            admChat,
             $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
             replyParameters: forward,
             cancellationToken: stoppingToken
@@ -473,7 +482,7 @@ internal sealed class Worker(
         if (cbData == null)
             return;
         var message = cb.Message;
-        if (message == null || message.Chat.Id == Config.AdminChatId)
+        if (message == null || message.Chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(message.Chat.Id))
             await HandleAdminCallback(cbData, cb);
         else
             await HandleCaptchaCallback(update);
@@ -614,29 +623,50 @@ internal sealed class Worker(
 
             var report = _stats.ToArray();
             _stats.Clear();
-            var sb = new StringBuilder();
-            sb.Append("За последние 24 часа в топ-10 чатах:");
-            foreach (var (_, stats) in report.OrderByDescending(x => x.Value.BlacklistBanned + x.Value.StoppedCaptcha).Take(10))
+            var free = new List<string>();
+            var assigned = new Dictionary<long, List<string>>();
+
+            foreach (var (chatId, stats) in report)
             {
-                sb.Append(Environment.NewLine);
-                sb.Append("В ");
-                sb.Append(stats.ChatTitle);
-                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha;
-                sb.Append($": {sum} раза сработала защита автоматом{Environment.NewLine}");
-                sb.Append(
-                    $"По блеклистам известных аккаунтов спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, за известные спам сообщения забанено: {stats.KnownBadMessage}"
-                );
+                var list = free;
+                if (Config.MultiAdminChatMap.TryGetValue(chatId, out var adminChat))
+                {
+                    if (!assigned.TryGetValue(chatId, out list))
+                    {
+                        list = [];
+                        assigned[chatId] = list;
+                    }
+                }
+                list.Add(ChatToStatsString(stats));
             }
 
             try
             {
-                await _bot.SendMessage(Config.AdminChatId, sb.ToString(), cancellationToken: ct);
+                await _bot.SendMessage(Config.AdminChatId, $"В фри чатах за 24 часа:\n{string.Join('\n', free)}", cancellationToken: ct);
+                foreach (var (chatId, list) in assigned)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                    await _bot.SendMessage(chatId, $"За последние 24 часа:\n{string.Join('\n', free)}", cancellationToken: ct);
+                }
             }
             catch (Exception e)
             {
                 _logger.LogWarning(e, "Unable to sent report to admin chat");
             }
         }
+    }
+
+    private static string ChatToStatsString(Stats stats)
+    {
+        var sb = new StringBuilder();
+        sb.Append("В ");
+        sb.Append(stats.ChatTitle);
+        var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha;
+        sb.Append($": {sum} раза сработала защита автоматом{Environment.NewLine}");
+        sb.Append(
+            $"По блеклистам известных аккаунтов спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, за известные спам сообщения забанено: {stats.KnownBadMessage}"
+        );
+        return sb.ToString();
     }
 
     private async Task<bool> BanIfBlacklisted(User user, Chat chat)
@@ -657,7 +687,7 @@ internal sealed class Worker(
         {
             _logger.LogWarning(e, "Unable to ban");
             await _bot.SendMessage(
-                Config.AdminChatId,
+                GetAdminChat(chat.Id),
                 $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
             );
         }
@@ -670,12 +700,14 @@ internal sealed class Worker(
 
     private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
     {
+        var chat = cb.Message?.Chat.Id;
+        var admChat = chat != null ? GetAdminChat(chat.Value) : Config.AdminChatId;
         var split = cbData.Split('_').ToList();
         if (split.Count > 1 && split[0] == "approve" && long.TryParse(split[1], out var approveUserId))
         {
             await _userManager.Approve(approveUserId);
             await _bot.SendMessage(
-                new ChatId(Config.AdminChatId),
+                admChat,
                 $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список доверенных",
                 replyParameters: cb.Message?.MessageId
             );
@@ -684,7 +716,7 @@ internal sealed class Worker(
         {
             AiChecks.MarkUserOkay(attOkUserId);
             await _bot.SendMessage(
-                new ChatId(Config.AdminChatId),
+                admChat,
                 $"{FullName(cb.From.FirstName, cb.From.LastName)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)",
                 replyParameters: cb.Message?.MessageId
             );
@@ -697,9 +729,9 @@ internal sealed class Worker(
                 await _badMessageManager.MarkAsBad(text);
             try
             {
-                await _bot.BanChatMember(new ChatId(chatId), userId);
+                await _bot.BanChatMember(chatId, userId);
                 await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
+                    admChat,
                     $"{FullName(cb.From.FirstName, cb.From.LastName)} забанил, сообщение добавлено в список авто-бана",
                     replyParameters: cb.Message?.MessageId
                 );
@@ -708,7 +740,7 @@ internal sealed class Worker(
             {
                 _logger.LogWarning(e, "Unable to ban");
                 await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
+                    admChat,
                     $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
                     replyParameters: cb.Message?.MessageId
                 );
@@ -765,8 +797,9 @@ internal sealed class Worker(
 
     private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
     {
+        var admChat = GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
+            admChat,
             message.Chat.Id,
             message.MessageId,
             cancellationToken: stoppingToken
@@ -774,7 +807,7 @@ internal sealed class Worker(
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         await _bot.SendMessage(
-            new ChatId(Config.AdminChatId),
+            admChat,
             $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}",
             replyParameters: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
@@ -785,11 +818,15 @@ internal sealed class Worker(
         );
     }
 
+    private static long GetAdminChat(long chatId) => Config.MultiAdminChatMap.TryGetValue(chatId, out var adm) ? adm : Config.AdminChatId;
+
     private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken stoppingToken)
     {
+        var admChat = GetAdminChat(message.Chat.Id);
+
         var user = message.From;
         var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
+            admChat,
             message.Chat.Id,
             message.MessageId,
             cancellationToken: stoppingToken
@@ -819,7 +856,7 @@ internal sealed class Worker(
             row.Add(new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" });
 
         await _bot.SendMessage(
-            new ChatId(Config.AdminChatId),
+            admChat,
             $"{deletionMessagePart}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
             replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(row),
