@@ -631,11 +631,15 @@ internal sealed class Worker(
                 var list = free;
                 if (Config.MultiAdminChatMap.TryGetValue(chatId, out var adminChat))
                 {
-                    if (!assigned.TryGetValue(chatId, out list))
+                    if (!assigned.TryGetValue(adminChat, out list))
                     {
                         list = [];
-                        assigned[chatId] = list;
+                        assigned[adminChat] = list;
                     }
+                }
+                else
+                {
+                    list.Add($"Unmapped ID {chatId} {stats.ChatTitle}");
                 }
                 list.Add(ChatToStatsString(stats));
             }
