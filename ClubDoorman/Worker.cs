@@ -153,19 +153,25 @@ internal sealed class Worker(
         var message = update.EditedMessage ?? update.Message;
         if (message == null)
             return;
+
         var chat = message.Chat;
+        if (chat.Type == ChatType.Private)
+        {
+            await _bot.SendMessage(chat, "Сорян, я не отвечаю в личке", replyParameters: message, cancellationToken: stoppingToken);
+            return;
+        }
         if (message.NewChatMembers != null && chat.Id != Config.AdminChatId && !Config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
                 await IntroFlow(message, newUser);
             return;
         }
-
         if (chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             await AdminChatMessage(message);
             return;
         }
+        var admChat = GetAdminChat(message.Chat.Id);
 
         if (message.SenderChat != null)
         {
@@ -179,8 +185,6 @@ internal sealed class Worker(
 
             if (Config.ChannelAutoBan)
             {
-                var admChat = GetAdminChat(message.Chat.Id);
-
                 try
                 {
                     var fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
@@ -313,10 +317,8 @@ internal sealed class Worker(
             return;
         }
         //if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null) temporary enable for all chats
-        if (Config.OpenRouterApi != null && message.From != null)
+        if (Config.OpenRouterApi != null && message.From != null && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id)))
         {
-            var admChat = GetAdminChat(message.Chat.Id);
-
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From);
             const double lowProbability = 0.6;
             const double highProbability = 0.8;
@@ -357,7 +359,7 @@ internal sealed class Worker(
                 }
             }
         }
-        if (Config.OpenRouterApi != null && message.From != null)
+        if (Config.OpenRouterApi != null && message.From != null && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id)))
         {
             var prob = await aiChecks.GetSpammerProbability(message);
             if (prob >= 0.7)
@@ -365,14 +367,16 @@ internal sealed class Worker(
         }
 
         // else - ham
-        if (score > -0.6 && Config.LowConfidenceHamForward)
+        if (
+            score > -0.6
+            && Config.LowConfidenceHamForward
+            && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+        )
         {
-            var admChat = GetAdminChat(message.Chat.Id);
-
-            var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = LinkToMessage(chat, message.MessageId);
             await _bot.SendMessage(
-                admChat,
+                Config.AdminChatId,
                 $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                 replyParameters: forward,
                 cancellationToken: stoppingToken
@@ -448,16 +452,18 @@ internal sealed class Worker(
 
     private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
     {
-        var admChat = GetAdminChat(message.Chat.Id);
-
         var user = message.From;
-        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        await _bot.SendMessage(
-            admChat,
-            $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
-            replyParameters: forward,
-            cancellationToken: stoppingToken
-        );
+        if (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+        {
+            var admChat = GetAdminChat(message.Chat.Id);
+            var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.SendMessage(
+                admChat,
+                $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
+                replyParameters: forward,
+                cancellationToken: stoppingToken
+            );
+        }
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
     }
@@ -574,7 +580,10 @@ internal sealed class Worker(
         {
             _logger.LogDebug("This user is already awaiting captcha challenge");
             if (userJoinMessage != null)
+            {
                 captchaInfo.UserJoinedMessage = userJoinMessage;
+                DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), captchaInfo.Cts.Token);
+            }
             return;
         }
 
@@ -659,11 +668,19 @@ internal sealed class Worker(
 
             try
             {
-                await _bot.SendMessage(Config.AdminChatId, $"В фри чатах за 24 часа:\n{string.Join('\n', free)}", cancellationToken: ct);
                 foreach (var (adminChat, list) in assigned)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
                     await _bot.SendMessage(adminChat, $"За последние 24 часа:\n{string.Join('\n', list)}", cancellationToken: ct);
+                }
+                foreach (var chunk in free.Chunk(10))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                    await _bot.SendMessage(
+                        Config.AdminChatId,
+                        $"В фри чатах за 24 часа:\n{string.Join('\n', chunk)}",
+                        cancellationToken: ct
+                    );
                 }
             }
             catch (Exception e)
@@ -805,7 +822,7 @@ internal sealed class Worker(
                     ? ""
                     : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
                 await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
+                    GetAdminChat(chatMember.Chat.Id),
                     $"В чате {chatMember.Chat.Title} юзеру {FullName(user.FirstName, user.LastName)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
                 );
                 break;
@@ -843,7 +860,13 @@ internal sealed class Worker(
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
             deletionMessagePart += ", сообщение удалено.";
-            await _bot.RestrictChatMember(message.Chat.Id, user.Id, new ChatPermissions(false), untilDate: DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
+            await _bot.RestrictChatMember(
+                message.Chat.Id,
+                user.Id,
+                new ChatPermissions(false),
+                untilDate: DateTime.UtcNow.AddMinutes(15),
+                cancellationToken: stoppingToken
+            );
         }
         catch (Exception e)
         {
