@@ -31,7 +31,7 @@ internal static class Config
                 var split = pair.Split('=').ToList();
                 if (split.Count > 1)
                 {
-                    if (long.TryParse(split[0], out var from) && long.TryParse(split[1], out var to))
+                    if (long.TryParse(split[0].Trim(), out var from) && long.TryParse(split[1].Trim(), out var to))
                         map.TryAdd(from, to);
                 }
             }

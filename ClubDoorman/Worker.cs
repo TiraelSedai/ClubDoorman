@@ -660,10 +660,10 @@ internal sealed class Worker(
             try
             {
                 await _bot.SendMessage(Config.AdminChatId, $"В фри чатах за 24 часа:\n{string.Join('\n', free)}", cancellationToken: ct);
-                foreach (var (chatId, list) in assigned)
+                foreach (var (adminChat, list) in assigned)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
-                    await _bot.SendMessage(chatId, $"За последние 24 часа:\n{string.Join('\n', free)}", cancellationToken: ct);
+                    await _bot.SendMessage(adminChat, $"За последние 24 часа:\n{string.Join('\n', list)}", cancellationToken: ct);
                 }
             }
             catch (Exception e)
