@@ -151,6 +151,11 @@ internal sealed class UserManager
                 await Approve(userId);
             return fullName;
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("GetClubUsername timeout");
+            return null;
+        }
         catch (Exception e)
         {
             _logger.LogWarning(e, "GetClubUsername");

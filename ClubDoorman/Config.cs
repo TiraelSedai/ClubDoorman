@@ -16,9 +16,7 @@ internal static class Config
     public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
 
     public static long AdminChatId { get; } =
-        long.Parse(
-            Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set")
-        );
+        long.Parse(Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set"));
 
     public static FrozenDictionary<long, long> MultiAdminChatMap { get; } = GetMultiAdminChatMap();
 

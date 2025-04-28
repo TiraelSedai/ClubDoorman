@@ -25,17 +25,15 @@ internal sealed class Worker(
     AiChecks aiChecks
 ) : BackgroundService
 {
-    private sealed record CaptchaInfo(
-        long ChatId,
-        string? ChatTitle,
-        DateTime Timestamp,
-        User User,
-        int CorrectAnswer,
-        CancellationTokenSource Cts,
-        Message? UserJoinedMessage
-    )
+    private sealed class CaptchaInfo
     {
-        public Message? UserJoinedMessage { get; set; } = UserJoinedMessage;
+        public long ChatId { get; set; }
+        public string? ChatTitle { get; set; }
+        public DateTime Timestamp { get; set; }
+        public User User { get; set; }
+        public int CorrectAnswer { get; set; }
+        public CancellationTokenSource Cts { get; set; }
+        public Message? UserJoinedMessage { get; set; }
     }
 
     private sealed class Stats(string? Title)
@@ -339,12 +337,23 @@ internal sealed class Worker(
                 if (attentionProb >= highProbability)
                 {
                     await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
-                    await _bot.RestrictChatMember(chat, user.Id, new ChatPermissions(false), untilDate: DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
+                    await _bot.RestrictChatMember(
+                        chat,
+                        user.Id,
+                        new ChatPermissions(false),
+                        untilDate: DateTime.UtcNow.AddMinutes(15),
+                        cancellationToken: stoppingToken
+                    );
                 }
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
-                    await _bot.SendPhoto(admChat, new InputFileStream(ms), $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}", cancellationToken: stoppingToken);
+                    await _bot.SendPhoto(
+                        admChat,
+                        new InputFileStream(ms),
+                        $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}",
+                        cancellationToken: stoppingToken
+                    );
                 }
             }
         }
@@ -442,12 +451,7 @@ internal sealed class Worker(
         var admChat = GetAdminChat(message.Chat.Id);
 
         var user = message.From;
-        var forward = await _bot.ForwardMessage(
-            admChat,
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: stoppingToken
-        );
+        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         await _bot.SendMessage(
             admChat,
             $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
@@ -556,11 +560,21 @@ internal sealed class Worker(
             return;
 
         var key = UserToKey(chatId, user);
-        if (_captchaNeededUsers.TryGetValue(key, out var captchaInfo))
+
+        var justAdded = false;
+        var captchaInfo = _captchaNeededUsers.GetOrAdd(
+            key,
+            (_) =>
+            {
+                justAdded = true;
+                return new CaptchaInfo() { Timestamp = DateTime.MaxValue };
+            }
+        );
+        if (!justAdded)
         {
+            _logger.LogDebug("This user is already awaiting captcha challenge");
             if (userJoinMessage != null)
                 captchaInfo.UserJoinedMessage = userJoinMessage;
-            _logger.LogDebug("This user is already awaiting captcha challenge");
             return;
         }
 
@@ -598,17 +612,16 @@ internal sealed class Worker(
 
         var cts = new CancellationTokenSource();
         DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
+        captchaInfo.ChatId = chatId;
+        captchaInfo.ChatTitle = chat.Title;
+        captchaInfo.Timestamp = DateTime.UtcNow;
+        captchaInfo.User = user;
+        captchaInfo.CorrectAnswer = correctAnswer;
+        captchaInfo.Cts = cts;
         if (userJoinMessage != null)
         {
+            captchaInfo.UserJoinedMessage = userJoinMessage;
             DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), cts.Token);
-            _captchaNeededUsers.TryAdd(
-                key,
-                new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, userJoinMessage)
-            );
-        }
-        else
-        {
-            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, null));
         }
 
         return;
@@ -802,12 +815,7 @@ internal sealed class Worker(
     private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
     {
         var admChat = GetAdminChat(message.Chat.Id);
-        var forward = await _bot.ForwardMessage(
-            admChat,
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: stoppingToken
-        );
+        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         await _bot.SendMessage(
@@ -829,12 +837,7 @@ internal sealed class Worker(
         var admChat = GetAdminChat(message.Chat.Id);
 
         var user = message.From;
-        var forward = await _bot.ForwardMessage(
-            admChat,
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: stoppingToken
-        );
+        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var deletionMessagePart = $"{reason}";
         try
         {

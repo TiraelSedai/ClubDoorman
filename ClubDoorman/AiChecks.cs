@@ -131,10 +131,8 @@ internal class AiChecks(ILogger<AiChecks> logger)
             };
             if (imageBytes != null)
                 messages.Add(
-                imageBytes.AsUserMessage(
-                    mimeType: "image/jpg",
-                    detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-                ));
+                    imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low)
+                );
 
             var model = "google/gemini-2.5-flash-preview";
 
