@@ -843,6 +843,7 @@ internal sealed class Worker(
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
             deletionMessagePart += ", сообщение удалено.";
+            await _bot.RestrictChatMember(message.Chat.Id, user.Id, new ChatPermissions(false), untilDate: DateTime.UtcNow.AddMinutes(15), cancellationToken: stoppingToken);
         }
         catch (Exception e)
         {
@@ -946,16 +947,16 @@ internal sealed class Worker(
             return;
         var now = DateTime.UtcNow;
         var users = _captchaNeededUsers.ToArray();
-        foreach (var (key, (chatId, title, timestamp, user, _, _, _)) in users)
+        foreach (var (key, info) in users)
         {
-            var minutes = (now - timestamp).TotalMinutes;
+            var minutes = (now - info.Timestamp).TotalMinutes;
             if (minutes > 1)
             {
-                var stats = _stats.GetOrAdd(chatId, new Stats(title));
+                var stats = _stats.GetOrAdd(info.ChatId, new Stats(info.ChatTitle));
                 Interlocked.Increment(ref stats.StoppedCaptcha);
                 _captchaNeededUsers.TryRemove(key, out _);
-                await _bot.BanChatMember(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
-                UnbanUserLater(chatId, user.Id);
+                await _bot.BanChatMember(info.ChatId, info.User.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
+                UnbanUserLater(info.ChatId, info.User.Id);
             }
         }
     }
