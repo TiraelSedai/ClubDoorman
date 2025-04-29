@@ -612,7 +612,7 @@ internal sealed class Worker(
         var fullName = FullName(user.FirstName, user.LastName);
         var fullNameLower = fullName.ToLowerInvariant();
         var username = user.Username?.ToLower();
-        if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
+        if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true || username?.Contains('_') == true)
             fullName = "новый участник чата";
 
         var del = await _bot.SendMessage(
