@@ -262,7 +262,14 @@ internal sealed class Worker(
         if (message.ReplyMarkup != null)
         {
             _logger.LogDebug("Buttons");
-            await AutoBan(message, "Сообщение с кнопками", stoppingToken);
+            if (Config.ButtonAutoBan)
+            {
+                await DeleteAndReportMessage(message, "Сообщение с кнопками", stoppingToken);
+            }
+            else
+            {
+                await AutoBan(message, "Сообщение с кнопками", stoppingToken);
+            }
             return;
         }
         if (message.Story != null)
