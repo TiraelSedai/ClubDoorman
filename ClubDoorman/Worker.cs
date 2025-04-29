@@ -555,7 +555,7 @@ internal sealed class Worker(
         }
     }
 
-    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
+    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "ponr", "bot", "child", "chlid"];
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
@@ -611,8 +611,8 @@ internal sealed class Worker(
 
         var fullName = FullName(user.FirstName, user.LastName);
         var fullNameLower = fullName.ToLowerInvariant();
-        var username = user.Username?.ToLower();
-        if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true || username?.Contains('_') == true)
+        var usernameLower = user.Username?.ToLower();
+        if (_namesBlacklist.Any(fullNameLower.Contains) || (usernameLower != null && _namesBlacklist.Any(x => x == usernameLower)))
             fullName = "новый участник чата";
 
         var del = await _bot.SendMessage(
@@ -811,7 +811,11 @@ internal sealed class Worker(
                         newChatMember.User.LastName,
                         newChatMember.User.Id
                     );
-                    await IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2));
+                        await IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    });
                 }
                 break;
             }
