@@ -171,7 +171,7 @@ internal sealed class Worker(
             await AdminChatMessage(message);
             return;
         }
-        var admChat = GetAdminChat(message.Chat.Id);
+        var admChat = GetAdminChat(chat.Id);
 
         if (message.SenderChat != null)
         {
@@ -243,6 +243,7 @@ internal sealed class Worker(
         }
         if (await _userManager.InBanlist(user.Id))
         {
+            _logger.LogDebug("InBanlist");
             if (Config.BlacklistAutoBan)
             {
                 var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
@@ -260,11 +261,13 @@ internal sealed class Worker(
 
         if (message.ReplyMarkup != null)
         {
+            _logger.LogDebug("Buttons");
             await AutoBan(message, "Сообщение с кнопками", stoppingToken);
             return;
         }
         if (message.Story != null)
         {
+            _logger.LogDebug("Stories");
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
             return;
         }
@@ -276,11 +279,13 @@ internal sealed class Worker(
         }
         if (_badMessageManager.KnownBadMessage(text))
         {
+            _logger.LogDebug("KnownBadMessage");
             await HandleBadMessage(message, user, stoppingToken);
             return;
         }
         if (SimpleFilters.TooManyEmojis(text))
         {
+            _logger.LogDebug("TooManyEmojis");
             const string reason = "В этом сообщении многовато эмоджи";
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
@@ -291,6 +296,7 @@ internal sealed class Worker(
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
         if (lookalike.Count > 2)
         {
+            _logger.LogDebug("lookalike");
             var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
             if (!Config.LookAlikeAutoBan)
@@ -461,13 +467,15 @@ internal sealed class Worker(
     private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
     {
         var user = message.From;
+        var fullName = FullName(user!.FirstName, user.LastName);
+        _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", message.Chat.Title, message.Chat.Id, fullName);
         if (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         {
             var admChat = GetAdminChat(message.Chat.Id);
             var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
                 admChat,
-                $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
+                $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
                 replyParameters: forward,
                 cancellationToken: stoppingToken
             );
@@ -811,11 +819,7 @@ internal sealed class Worker(
                         newChatMember.User.LastName,
                         newChatMember.User.Id
                     );
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(2));
-                        await IntroFlow(null, newChatMember.User, chatMember.Chat);
-                    });
+                    await IntroFlow(null, newChatMember.User, chatMember.Chat);
                 }
                 break;
             }
@@ -837,6 +841,7 @@ internal sealed class Worker(
 
     private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
     {
+        _logger.LogDebug("DontDeleteButReportMessage");
         var admChat = GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
@@ -857,6 +862,7 @@ internal sealed class Worker(
 
     private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken stoppingToken)
     {
+        _logger.LogDebug("DeleteAndReportMessage");
         var admChat = GetAdminChat(message.Chat.Id);
 
         var user = message.From;
