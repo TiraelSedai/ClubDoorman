@@ -737,7 +737,7 @@ internal sealed class Worker(
     private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
     {
         var chat = cb.Message?.Chat.Id;
-        var admChat = chat != null ? GetAdminChat(chat.Value) : Config.AdminChatId;
+        var admChat = chat ?? Config.AdminChatId;
         var split = cbData.Split('_').ToList();
         if (split.Count > 1 && split[0] == "approve" && long.TryParse(split[1], out var approveUserId))
         {
