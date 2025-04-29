@@ -317,7 +317,11 @@ internal sealed class Worker(
             return;
         }
         //if (Config.Tier2Chats.Contains(chat.Id) && Config.OpenRouterApi != null && message.From != null) temporary enable for all chats
-        if (Config.OpenRouterApi != null && message.From != null && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id)))
+        if (
+            Config.OpenRouterApi != null
+            && message.From != null
+            && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+        )
         {
             var (attentionProb, photo, bio) = await aiChecks.GetAttentionSpammerProbability(message.From);
             const double lowProbability = 0.6;
@@ -359,7 +363,11 @@ internal sealed class Worker(
                 }
             }
         }
-        if (Config.OpenRouterApi != null && message.From != null && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id)))
+        if (
+            Config.OpenRouterApi != null
+            && message.From != null
+            && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+        )
         {
             var prob = await aiChecks.GetSpammerProbability(message);
             if (prob >= 0.7)
@@ -567,15 +575,11 @@ internal sealed class Worker(
 
         var key = UserToKey(chatId, user);
 
-        var justAdded = false;
-        var captchaInfo = _captchaNeededUsers.GetOrAdd(
+        var justAdded = _captchaNeededUsers.TryAdd(
             key,
-            (_) =>
-            {
-                justAdded = true;
-                return new CaptchaInfo() { Timestamp = DateTime.MaxValue };
-            }
+            new CaptchaInfo() { Timestamp = DateTime.MaxValue, Cts = new CancellationTokenSource() }
         );
+        var captchaInfo = _captchaNeededUsers[key];
         if (!justAdded)
         {
             _logger.LogDebug("This user is already awaiting captcha challenge");
@@ -619,18 +623,16 @@ internal sealed class Worker(
             replyMarkup: new InlineKeyboardMarkup(keyboard)
         );
 
-        var cts = new CancellationTokenSource();
-        DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
+        DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), captchaInfo.Cts.Token);
         captchaInfo.ChatId = chatId;
         captchaInfo.ChatTitle = chat.Title;
         captchaInfo.Timestamp = DateTime.UtcNow;
         captchaInfo.User = user;
         captchaInfo.CorrectAnswer = correctAnswer;
-        captchaInfo.Cts = cts;
         if (userJoinMessage != null)
         {
             captchaInfo.UserJoinedMessage = userJoinMessage;
-            DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), cts.Token);
+            DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), captchaInfo.Cts.Token);
         }
 
         return;
