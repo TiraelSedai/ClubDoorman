@@ -1,5 +1,6 @@
 using Serilog;
 using Serilog.Events;
+using Telegram.Bot;
 
 namespace ClubDoorman;
 
@@ -22,8 +23,14 @@ public class Program
             .ConfigureServices(services =>
             {
                 services.AddHostedService<Worker>();
+                services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(Config.BotApi));
+                services.AddSingleton<CaptchaManager>();
+                services.AddSingleton<MessageProcessor>();
+                services.AddSingleton<StatisticsReporter>();
                 services.AddSingleton<SpamHamClassifier>();
                 services.AddSingleton<UserManager>();
+                services.AddSingleton<AdminCommandHandler>();
+                services.AddSingleton<ReactionHandler>();
                 services.AddSingleton<BadMessageManager>();
                 services.AddSingleton<AiChecks>();
             })

@@ -8,9 +8,8 @@ using tryAGI.OpenAI;
 
 namespace ClubDoorman;
 
-internal class AiChecks(ILogger<AiChecks> logger)
+internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 {
-    private readonly TelegramBotClient _bot = new(Config.BotApi);
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
 
@@ -35,7 +34,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
 
         try
         {
-            var userChat = await _bot.GetChat(user.Id);
+            var userChat = await bot.GetChat(user.Id);
             if (string.IsNullOrWhiteSpace(userChat.Bio))
                 return (probability, pic, nameBioUser);
             var photo = userChat.Photo;
@@ -45,7 +44,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
             if (photo != null)
             {
                 using var ms = new MemoryStream();
-                await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
+                await bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
                 photoBytes = ms.ToArray();
                 pic = photoBytes;
                 photoMessage = photoBytes.AsUserMessage(
@@ -54,7 +53,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
                 );
             }
             var bio = userChat.Bio;
-            var fullName = string.IsNullOrEmpty(user.LastName) ? user.FirstName : $"{user.FirstName} {user.LastName}";
+            var fullName = Utils.FullName(user);
             var userName = user.Username;
 
             var sb = new StringBuilder();
@@ -117,7 +116,7 @@ internal class AiChecks(ILogger<AiChecks> logger)
             if (message.Photo != null)
             {
                 using var ms = new MemoryStream();
-                await _bot.GetInfoAndDownloadFile(message.Photo.OrderBy(x => x.Width).First().FileId, ms);
+                await bot.GetInfoAndDownloadFile(message.Photo.OrderBy(x => x.Width).First().FileId, ms);
                 imageBytes = ms.ToArray();
             }
 

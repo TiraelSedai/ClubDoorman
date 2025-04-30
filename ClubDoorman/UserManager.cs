@@ -47,7 +47,10 @@ internal sealed class UserManager
             {
                 var users = await GetUsersWithAtLeastThreeMessagesAsync(json);
                 if (users.Count > 0)
+                {
                     await Approve(users);
+                    _logger.LogInformation("Added {Count} new approved users", users.Count);
+                }
                 File.Delete(json);
             }
             catch (Exception e)
@@ -122,7 +125,7 @@ internal sealed class UserManager
             _banlist.TryAdd(userId, 0);
             return true;
         }
-        catch (OperationCanceledException oce)
+        catch (OperationCanceledException)
         {
             _logger.LogInformation("LolsBotApi timeout");
             return false;

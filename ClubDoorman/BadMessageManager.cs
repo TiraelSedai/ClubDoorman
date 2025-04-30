@@ -10,7 +10,7 @@ internal sealed class BadMessageManager
 
     public ValueTask MarkAsBad(string message)
     {
-        if (!string.IsNullOrWhiteSpace(message))
+        if (!string.IsNullOrWhiteSpace(message) && message.Length > 30)
             _badMessages.TryAdd(message, true);
 
         return ValueTask.CompletedTask;
