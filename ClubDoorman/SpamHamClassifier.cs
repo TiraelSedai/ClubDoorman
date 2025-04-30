@@ -34,7 +34,7 @@ public class SpamHamClassifier
 
     private const string SpamHamDataset = "data/spam-ham.txt";
     private readonly SemaphoreSlim _datasetLock = new(1);
-    private readonly SemaphoreSlim _predictionLock = new(1);
+    private readonly Lock _predictionLock = new();
     private readonly ILogger<SpamHamClassifier> _logger;
     private readonly MLContext _mlContext = new();
     private PredictionEngine<MessageData, MessagePrediction>? _engine;
@@ -62,12 +62,14 @@ public class SpamHamClassifier
 
     public async Task<(bool Spam, float Score)> IsSpam(string message)
     {
-        using var token = await SemaphoreHelper.AwaitAsync(_predictionLock);
         var msg = new MessageData { Text = message.ReplaceLineEndings(" ") };
         while (_engine == null)
-            await Task.Delay(100);
-        var predict = _engine.Predict(msg);
-        return (predict.PredictedLabel, predict.Score);
+            await Task.Delay(10);
+        lock (_predictionLock)
+        {
+            var predict = _engine.Predict(msg);
+            return (predict.PredictedLabel, predict.Score);
+        }
     }
 
     public Task AddSpam(string message) => AddSpamHam(message, true);
@@ -96,9 +98,8 @@ public class SpamHamClassifier
             List<MessageData> dataset;
             using (var reader = new StreamReader(SpamHamDataset))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-            {
                 dataset = csv.GetRecords<MessageData>().ToList();
-            }
+            
 
             foreach (var item in dataset)
                 item.Text = TextProcessor.NormalizeText(item.Text);
