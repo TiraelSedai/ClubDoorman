@@ -41,11 +41,6 @@ public class SpamHamClassifier
     private bool _needsRetraining;
     private readonly PeriodicTimer _retrainTimer = new(TimeSpan.FromMinutes(1));
 
-    public void Touch()
-    {
-        _logger.LogDebug("Touch");
-    }
-
     private async Task RetrainLoop()
     {
         while (true)
