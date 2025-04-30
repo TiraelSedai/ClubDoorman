@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Runtime.Caching;
+﻿using System.Runtime.Caching;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -69,16 +68,43 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 
             nameBioUser = sb.ToString();
             var promt =
-                $"Проанализируй, выглядит ли этот Telegram-профиль как подозрительный, созданный с целью привлечения внимания и продвижения чего-то (например, курсов, крипто-схем, сомнительных схем заработка, OnlyFans, эротика и порно, сексуальные услуги и т.п.). Вот данные:\n{nameBioUser}";
+                $"Проанализируй, выглядит ли этот Telegram-профиль как подозрительный, созданный с целью привлечения внимания и продвижения чего-то (например, курсов, крипто-схем, сомнительных схем заработка, OnlyFans, эротика и порно, сексуальные услуги и т.п.). Вот данные профиля:\n{nameBioUser}";
 
             var messages = new List<ChatCompletionRequestMessage>
             {
-                "Ты — ассистент, оценивающий профили на предмет того, созданы ли они для привлечения внимания и продвижения сторонних ресурсов или услуг. Учитывай признаки:\nсексуализированные женские профили (эмодзи капелек, поцелуйчиков, персиков и прочих в имени, любой намёк на эротику и порно, голые фото),\nупоминания о курсах, заработке, трейдинге, арбитраже,\nслова вроде \"миллион\", \"марафон\", \"путь к свободе\", \"доход\", \"коуч\", \"успей\",\nссылки на OnlyFans, каналы, соцсети.".AsSystemMessage(),
+                "Ты — ассистент, оценивающий профили на предмет того, созданы ли они для привлечения внимания и продвижения сторонних ресурсов или услуг. Учитывай признаки:\nсексуализированные женские профили (эмодзи 💦, 💋, 👄, 🍑, 🍆, 🍒 и прочих в имени, любой намёк на эротику и порно, голые фото), упоминания о курсах, заработке, трейдинге, арбитраже; ссылки на OnlyFans, соцсети".AsSystemMessage(),
                 promt.AsUserMessage(),
             };
             if (photoMessage != null)
                 messages.Add(photoMessage);
 
+            var linked = userChat.LinkedChatId;
+            if (linked != null)
+            {
+                byte[]? channelPhoto = null;
+                var linkedChat = await bot.GetChat(linked);
+                var info = new StringBuilder();
+                sb.Append($"Информация о прикреплённом канале:\nНазвание: {linkedChat.Title}");
+                if (linkedChat.Username != null)
+                    sb.Append($"\nЮзернейм: {linkedChat.Username}");
+                if (linkedChat.Description != null)
+                    sb.Append($"\nОписание: {linkedChat.Description}");
+                if (linkedChat.Photo != null) {
+                    sb.Append($"\nФото:");
+                    using var ms = new MemoryStream();
+                    await bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms);
+                    channelPhoto = ms.ToArray();
+                }
+
+                messages.Add(sb.ToString().AsUserMessage());
+                if (channelPhoto != null)
+                    messages.Add(channelPhoto.AsUserMessage(
+                    mimeType: "image/jpg",
+                    detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
+                ));
+            }
+
+            logger.LogDebug("LLM full promt: {@Promt}", messages);
 
             var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                 messages: messages,
@@ -99,7 +125,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, "GetAttentionSpammerProbability");
+            logger.LogWarning(e, "GetAttentionBaitProbability");
         }
         return (probability, pic, nameBioUser);
     }
