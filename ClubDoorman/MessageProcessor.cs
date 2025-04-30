@@ -259,7 +259,7 @@ internal class MessageProcessor
             && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
-            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionSpammerProbability(message.From);
+            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
             const double lowProbability = 0.6;
             const double highProbability = 0.8;
             if (attentionProb >= lowProbability)
@@ -309,7 +309,7 @@ internal class MessageProcessor
             && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
-            var prob = await _aiChecks.GetSpammerProbability(message);
+            var prob = await _aiChecks.GetSpamProbability(message);
             if (prob >= 0.7)
                 await DontDeleteButReportMessage(message, message.From, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
         }

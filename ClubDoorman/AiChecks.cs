@@ -1,4 +1,5 @@
-﻿using System.Runtime.Caching;
+﻿using System.Reflection;
+using System.Runtime.Caching;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,8 +9,10 @@ using tryAGI.OpenAI;
 
 namespace ClubDoorman;
 
+
 internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 {
+    const string Model = "google/gemini-2.5-flash-preview";
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
 
@@ -19,7 +22,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         MemoryCache.Default.Add(cacheKey, (double?)0.0, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
     }
 
-    public async ValueTask<(double, byte[], string)> GetAttentionSpammerProbability(Telegram.Bot.Types.User user)
+    public async ValueTask<(double, byte[], string)> GetAttentionBaitProbability(Telegram.Bot.Types.User user)
     {
         var probability = 0.0;
         var nameBioUser = "";
@@ -76,13 +79,10 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (photoMessage != null)
                 messages.Add(photoMessage);
 
-            var model = "google/gemini-2.5-flash-preview";
-            //if (Config.Tier2Chats.Contains(chatId))
-            //    model = "google/gemini-2.5-pro-preview-03-25";
 
             var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                 messages: messages,
-                model: model,
+                model: Model,
                 strict: true,
                 jsonSerializerOptions: jso
             );
@@ -94,7 +94,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     (double?)probability,
                     new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) }
                 );
-                logger.LogInformation("Ответ сервера {Prob}", probability);
+                logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
             }
         }
         catch (Exception e)
@@ -104,7 +104,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         return (probability, pic, nameBioUser);
     }
 
-    public async ValueTask<double> GetSpammerProbability(Message message)
+    public async ValueTask<double> GetSpamProbability(Message message)
     {
         var probability = 0.0;
         if (api == null)
@@ -133,23 +133,21 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low)
                 );
 
-            var model = "google/gemini-2.5-flash-preview";
-
             var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                 messages: messages,
-                model: model,
+                model: Model,
                 strict: true,
                 jsonSerializerOptions: jso
             );
             if (response.Value1 != null)
             {
                 probability = response.Value1.Probability;
-                logger.LogInformation("Ответ AI {Prob}", probability);
+                logger.LogInformation("LLM GetSpamProbability {Prob}", probability);
             }
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, nameof(GetSpammerProbability));
+            logger.LogWarning(e, nameof(GetSpamProbability));
         }
         return probability;
     }

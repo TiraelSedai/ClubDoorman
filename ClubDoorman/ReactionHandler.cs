@@ -47,7 +47,7 @@ internal class ReactionHandler
         if (cache.ReactionCount > 2 && Config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
         {
             var admChat = Config.GetAdminChat(reaction.Chat.Id);
-            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionSpammerProbability(user);
+            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
             if (attentionProb >= 0.8)
             {
                 var postLink = Utils.LinkToMessage(reaction.Chat, reaction.MessageId);
