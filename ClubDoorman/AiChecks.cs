@@ -8,7 +8,6 @@ using tryAGI.OpenAI;
 
 namespace ClubDoorman;
 
-
 internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 {
     const string Model = "google/gemini-2.5-flash-preview";
@@ -89,7 +88,8 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     sb.Append($"\nЮзернейм: {linkedChat.Username}");
                 if (linkedChat.Description != null)
                     sb.Append($"\nОписание: {linkedChat.Description}");
-                if (linkedChat.Photo != null) {
+                if (linkedChat.Photo != null)
+                {
                     sb.Append($"\nФото:");
                     using var ms = new MemoryStream();
                     await bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms);
@@ -98,10 +98,12 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 
                 messages.Add(sb.ToString().AsUserMessage());
                 if (channelPhoto != null)
-                    messages.Add(channelPhoto.AsUserMessage(
-                    mimeType: "image/jpg",
-                    detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-                ));
+                    messages.Add(
+                        channelPhoto.AsUserMessage(
+                            mimeType: "image/jpg",
+                            detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
+                        )
+                    );
             }
 
             logger.LogDebug("LLM full promt: {@Promt}", messages);
