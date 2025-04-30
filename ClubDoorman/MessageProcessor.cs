@@ -127,7 +127,7 @@ internal class MessageProcessor
                 return;
             }
 
-            await DontDeleteButReportMessage(message, message.From!, stoppingToken);
+            await DontDeleteButReportMessage(message, message.From!, "сообщение от канала", stoppingToken);
             return;
         }
 
@@ -191,7 +191,7 @@ internal class MessageProcessor
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            await DontDeleteButReportMessage(message, user, stoppingToken);
+            await DontDeleteButReportMessage(message, user, null, stoppingToken);
             return;
         }
         if (_badMessageManager.KnownBadMessage(text))
@@ -293,7 +293,7 @@ internal class MessageProcessor
         {
             var prob = await _aiChecks.GetSpammerProbability(message);
             if (prob >= 0.7)
-                await DontDeleteButReportMessage(message, message.From, stoppingToken);
+                await DontDeleteButReportMessage(message, message.From, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
         }
 
         // else - ham
@@ -402,16 +402,17 @@ internal class MessageProcessor
         }
     }
 
-    private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
+    private async Task DontDeleteButReportMessage(Message message, User user, string reason = null, CancellationToken stoppingToken = default)
     {
         _logger.LogDebug("DontDeleteButReportMessage");
         var admChat = Config.GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+        var msg = reason ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
         await _bot.SendMessage(
             admChat,
-            $"Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала. Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}",
+            $". Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}",
             replyParameters: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
