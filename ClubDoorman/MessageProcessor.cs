@@ -263,11 +263,25 @@ internal class MessageProcessor
                     new("👍 ok") { CallbackData = $"attOk_{user.Id}" },
                     new("🤖 ban") { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
                 };
+
+                ReplyParameters? replyParams = null;
+                if (photo.Length != 0)
+                {
+                    using var ms = new MemoryStream(photo);
+                    var photoMsg = await _bot.SendPhoto(
+                        admChat,
+                        new InputFileStream(ms),
+                        $"{bio}{Environment.NewLine}Сообщение специально не привожу, потому что должно быть понятно без контекста, если это аттеншн-бейт",
+                        cancellationToken: stoppingToken
+                    );
+                    replyParams = photoMsg;
+                }
                 var action = attentionProb >= highProbability ? "Даём ридонли на 15 минут" : "";
                 await _bot.SendMessage(
                     admChat,
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}",
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
+                    replyParameters: replyParams,
                     cancellationToken: stoppingToken
                 );
                 if (attentionProb >= highProbability)
@@ -278,16 +292,6 @@ internal class MessageProcessor
                         user.Id,
                         new ChatPermissions(false),
                         untilDate: DateTime.UtcNow.AddMinutes(15),
-                        cancellationToken: stoppingToken
-                    );
-                }
-                if (photo.Length != 0)
-                {
-                    using var ms = new MemoryStream(photo);
-                    await _bot.SendPhoto(
-                        admChat,
-                        new InputFileStream(ms),
-                        $"{bio}{Environment.NewLine}Сообщение: {message.Caption ?? message.Text}",
                         cancellationToken: stoppingToken
                     );
                 }
