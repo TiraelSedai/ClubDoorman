@@ -20,25 +20,24 @@ internal static class Config
         long.Parse(Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set"));
 
     public static FrozenDictionary<long, long> MultiAdminChatMap { get; } = GetMultiAdminChatMap();
+
     public static long GetAdminChat(long chatId) => MultiAdminChatMap.TryGetValue(chatId, out var adm) ? adm : AdminChatId;
 
     private static FrozenDictionary<long, long> GetMultiAdminChatMap()
     {
         var map = new Dictionary<long, long>();
         var items = Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT_MAP");
+        Log.Logger.Information("MultiAdminChatMap raw: {Raw}", items);
         if (items != null)
         {
             foreach (var pair in items.Split(','))
             {
                 var split = pair.Split('=').ToList();
-                if (split.Count > 1)
-                {
-                    if (long.TryParse(split[0].Trim(), out var from) && long.TryParse(split[1].Trim(), out var to))
-                        map.TryAdd(from, to);
-                }
+                if (split.Count > 1 && long.TryParse(split[0].Trim(), out var from) && long.TryParse(split[1].Trim(), out var to))
+                    map.TryAdd(from, to);
             }
         }
-        Log.Logger.Information("MultiAdminChatMap {@Chats}", map);
+        Log.Logger.Information("MultiAdminChatMap parsed: {@Chats}", map);
         return map.ToFrozenDictionary();
     }
 

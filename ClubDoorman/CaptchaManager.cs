@@ -116,10 +116,7 @@ internal class CaptchaManager
 
         var key = UserToKey(chatId, user);
 
-        var justAdded = _captchaNeededUsers.TryAdd(
-            key,
-            new CaptchaInfo() { Timestamp = DateTime.MaxValue, User = user }
-        );
+        var justAdded = _captchaNeededUsers.TryAdd(key, new CaptchaInfo() { Timestamp = DateTime.MaxValue, User = user });
         var captchaInfo = _captchaNeededUsers[key];
         if (!justAdded)
         {

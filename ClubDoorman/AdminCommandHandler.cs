@@ -18,7 +18,8 @@ internal class AdminCommandHandler
         UserManager userManager,
         BadMessageManager badMessageManager,
         SpamHamClassifier classifier,
-        ILogger<AdminCommandHandler> logger)
+        ILogger<AdminCommandHandler> logger
+    )
     {
         _bot = bot;
         _userManager = userManager;

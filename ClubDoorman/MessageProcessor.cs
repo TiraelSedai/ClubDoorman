@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.Caching;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using System.Diagnostics;
 
 namespace ClubDoorman;
 
@@ -32,7 +32,9 @@ internal class MessageProcessor
         AiChecks aiChecks,
         CaptchaManager captchaManager,
         StatisticsReporter statistics,
-        ReactionHandler reactionHandler, AdminCommandHandler adminCommandHandler)
+        ReactionHandler reactionHandler,
+        AdminCommandHandler adminCommandHandler
+    )
     {
         _bot = bot;
         _logger = logger;
@@ -146,7 +148,7 @@ internal class MessageProcessor
             MemoryCache.Default.Set(
                 new CacheItem($"{chat.Id}_{user.Id}", text),
                 new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
-        );
+            );
 
         if (_captchaManager.IsCaptchaNeeded(chat.Id, user))
         {
@@ -187,7 +189,11 @@ internal class MessageProcessor
         if (message.ReplyMarkup != null)
         {
             _logger.LogDebug("Buttons");
-			await (Config.ButtonAutoBan ? AutoBan(message, "Сообщение с кнопками", stoppingToken) : DeleteAndReportMessage(message, "Сообщение с кнопками", stoppingToken));
+            await (
+                Config.ButtonAutoBan
+                    ? AutoBan(message, "Сообщение с кнопками", stoppingToken)
+                    : DeleteAndReportMessage(message, "Сообщение с кнопками", stoppingToken)
+            );
             return;
         }
         if (message.Story != null)
@@ -199,7 +205,7 @@ internal class MessageProcessor
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            await DontDeleteButReportMessage(message, user, null, stoppingToken);
+            await DontDeleteButReportMessage(message, user, "картинка/видео/кружок/голосовуха без подписи", stoppingToken);
             return;
         }
         if (_badMessageManager.KnownBadMessage(text))
@@ -414,14 +420,21 @@ internal class MessageProcessor
         }
     }
 
-    private async Task DontDeleteButReportMessage(Message message, User user, string reason = null, CancellationToken stoppingToken = default)
+    private async Task DontDeleteButReportMessage(
+        Message message,
+        User user,
+        string reason = null,
+        CancellationToken stoppingToken = default
+    )
     {
         _logger.LogDebug("DontDeleteButReportMessage");
         var admChat = Config.GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-        var msg = reason ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
+        var msg =
+            reason
+            ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
         await _bot.SendMessage(
             admChat,
             $". Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}",

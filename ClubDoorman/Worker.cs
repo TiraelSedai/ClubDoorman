@@ -7,12 +7,12 @@ namespace ClubDoorman;
 
 internal sealed class Worker(
     ITelegramBotClient botClient,
-        CaptchaManager captchaManager,
-        MessageProcessor messageProcessor,
-        StatisticsReporter statisticsReporter,
-    ILogger<Worker> logger) : BackgroundService
+    CaptchaManager captchaManager,
+    MessageProcessor messageProcessor,
+    StatisticsReporter statisticsReporter,
+    ILogger<Worker> logger
+) : BackgroundService
 {
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _ = captchaManager.CaptchaLoop(stoppingToken);
