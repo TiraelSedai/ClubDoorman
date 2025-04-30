@@ -57,7 +57,15 @@ internal class MessageProcessor
         }
         if (update.CallbackQuery != null)
         {
-            await _captchaManager.HandleCaptchaCallback(update);
+            var cb = update.CallbackQuery;
+            if (cb.Data == null)
+                return;
+            var msg = cb.Message;
+
+            if (msg == null || msg.Chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(msg.Chat.Id))
+                await _adminCommandHandler.HandleAdminCallback(cb.Data, cb);
+            else
+                await _captchaManager.HandleCaptchaCallback(update);
             return;
         }
         if (update.ChatMember != null)
