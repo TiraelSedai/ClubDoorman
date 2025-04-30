@@ -137,7 +137,7 @@ internal class MessageProcessor
                 return;
             }
 
-            await DontDeleteButReportMessage(message, message.From!, "сообщение от канала", stoppingToken);
+            await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
             return;
         }
 
@@ -205,7 +205,7 @@ internal class MessageProcessor
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            await DontDeleteButReportMessage(message, user, "картинка/видео/кружок/голосовуха без подписи", stoppingToken);
+            await DontDeleteButReportMessage(message, "картинка/видео/кружок/голосовуха без подписи", stoppingToken);
             return;
         }
         if (_badMessageManager.KnownBadMessage(text))
@@ -311,12 +311,17 @@ internal class MessageProcessor
         {
             var prob = await _aiChecks.GetSpamProbability(message);
             if (prob >= 0.7)
-                await DontDeleteButReportMessage(message, message.From, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
+            {
+                if (prob >= 0.9)
+                    await DeleteAndReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
+                else
+                    await DontDeleteButReportMessage(message,$"LLM сказал что вероятность что это спам {prob}", stoppingToken);
+            }
         }
 
         // else - ham
         if (
-            score > -0.6
+            score > -0.5
             && Config.LowConfidenceHamForward
             && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
@@ -422,12 +427,12 @@ internal class MessageProcessor
 
     private async Task DontDeleteButReportMessage(
         Message message,
-        User user,
         string? reason = null,
         CancellationToken stoppingToken = default
     )
     {
         _logger.LogDebug("DontDeleteButReportMessage");
+        var user = message.From!;
         var admChat = Config.GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
@@ -458,12 +463,12 @@ internal class MessageProcessor
         try
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            deletionMessagePart += ", сообщение удалено.";
+            deletionMessagePart += ", сообщение удалено. Юзеру дали ридонли на 10 мин";
             await _bot.RestrictChatMember(
                 message.Chat.Id,
                 user!.Id,
                 new ChatPermissions(false),
-                untilDate: DateTime.UtcNow.AddMinutes(15),
+                untilDate: DateTime.UtcNow.AddMinutes(10),
                 cancellationToken: stoppingToken
             );
         }
