@@ -423,7 +423,7 @@ internal class MessageProcessor
     private async Task DontDeleteButReportMessage(
         Message message,
         User user,
-        string reason = null,
+        string? reason = null,
         CancellationToken stoppingToken = default
     )
     {
@@ -437,7 +437,7 @@ internal class MessageProcessor
             ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
         await _bot.SendMessage(
             admChat,
-            $". Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}",
+            $"{msg}. Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}",
             replyParameters: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
