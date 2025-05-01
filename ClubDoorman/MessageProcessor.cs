@@ -315,7 +315,7 @@ internal class MessageProcessor
                 if (prob >= 0.9)
                     await DeleteAndReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
                 else
-                    await DontDeleteButReportMessage(message,$"LLM сказал что вероятность что это спам {prob}", stoppingToken);
+                    await DontDeleteButReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
             }
         }
 
@@ -425,11 +425,7 @@ internal class MessageProcessor
         }
     }
 
-    private async Task DontDeleteButReportMessage(
-        Message message,
-        string? reason = null,
-        CancellationToken stoppingToken = default
-    )
+    private async Task DontDeleteButReportMessage(Message message, string? reason = null, CancellationToken stoppingToken = default)
     {
         _logger.LogDebug("DontDeleteButReportMessage");
         var user = message.From!;

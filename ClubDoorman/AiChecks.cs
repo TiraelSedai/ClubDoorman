@@ -104,7 +104,10 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     );
             }
 
-            logger.LogDebug("LLM full promt: {@Promt}", messages);
+            logger.LogDebug(
+                "LLM full promt: {@Promt}",
+                messages.Where(x => !x.IsUser || !(x.User.Content.IsValue2 && x.User.Content.Value2.Any(c => c.IsImageUrl)))
+            );
 
             var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                 messages: messages,

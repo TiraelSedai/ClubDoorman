@@ -94,7 +94,6 @@ public class SpamHamClassifier
             using (var reader = new StreamReader(SpamHamDataset))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
                 dataset = csv.GetRecords<MessageData>().ToList();
-            
 
             foreach (var item in dataset)
                 item.Text = TextProcessor.NormalizeText(item.Text);
