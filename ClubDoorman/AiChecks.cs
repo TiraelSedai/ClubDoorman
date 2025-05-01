@@ -64,6 +64,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                 sb.Append($"\nФото: ");
 
             nameBioUser = sb.ToString();
+            var promptDebugString = nameBioUser;
             var prompt =
                 $"Проанализируй, выглядит ли этот Telegram-профиль как «продажный» и созданный с целью привлечения внимания. Отвечай вероятностью от 0 до 1. Особенно внимательно учитывай признаки:\nсексуализированные женские профили (эмодзи с двойным смыслом - 💦, 💋, 👄, 🍑, 🍆, 🍒, 🍓, 🍌 и прочих в имени, любой намёк на эротику и порно, голые фото),\nупоминания о курсах, заработке, трейдинге, арбитраже,\nссылки на OnlyFans, соцсети. Вот данные профиля:\n{nameBioUser}";
 
@@ -93,8 +94,9 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     await bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms);
                     channelPhoto = ms.ToArray();
                 }
-
-                messages.Add(sb.ToString().AsUserMessage());
+                var sbStr = sb.ToString();
+                promptDebugString += "\n" + sbStr;
+                messages.Add(sbStr.AsUserMessage());
                 if (channelPhoto != null)
                     messages.Add(
                         channelPhoto.AsUserMessage(
@@ -104,10 +106,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     );
             }
 
-            logger.LogDebug(
-                "LLM full promt: {@Promt}",
-                messages.Where(x => !x.IsUser || !(x.User.Content.IsValue2 && x.User.Content.Value2.Any(c => c.IsImageUrl)))
-            );
+            logger.LogDebug("LLM prompt: {Promt}", promptDebugString);
 
             var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                 messages: messages,

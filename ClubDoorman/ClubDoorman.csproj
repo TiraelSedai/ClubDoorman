@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
-
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -9,7 +8,6 @@
     <TrimMode>partial</TrimMode>
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
@@ -23,7 +21,6 @@
     <PackageReference Include="Telegram.Bot" Version="22.5.0" />
     <PackageReference Include="tryAGI.OpenAI" Version="4.2.0" />
   </ItemGroup>
-
   <ItemGroup>
     <None Update="data\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -60,7 +60,11 @@ internal class StatisticsReporter
                 foreach (var (adminChat, list) in assigned)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
-                    await _bot.SendMessage(adminChat, $"За последние 24 часа:\n{string.Join('\n', list)}", cancellationToken: ct);
+                    await _bot.SendMessage(
+                        adminChat,
+                        $"За последние 24 часа - статистика того что даже не прилетало в админку:\n{string.Join('\n', list)}",
+                        cancellationToken: ct
+                    );
                 }
                 foreach (var chunk in free.Chunk(10))
                 {

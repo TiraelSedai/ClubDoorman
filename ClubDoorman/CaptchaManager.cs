@@ -240,7 +240,6 @@ internal class CaptchaManager
                 _logger.LogWarning(e, nameof(UnbanUserLater));
             }
         });
-
     }
 
     private void DeleteMessageLater(Message message, TimeSpan after = default, CancellationToken cancellationToken = default)

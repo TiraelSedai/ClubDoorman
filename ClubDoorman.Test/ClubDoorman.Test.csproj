@@ -1,40 +1,43 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <InvariantGlobalization>false</InvariantGlobalization>
-        <IsPackable>false</IsPackable>
-        <IsTestProject>true</IsTestProject>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="coverlet.collector" Version="6.0.4">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-        <PackageReference Include="NUnit" Version="4.3.2" />
-        <PackageReference Include="NUnit.Analyzers" Version="4.7.0">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Using Include="NUnit.Framework" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\ClubDoorman\ClubDoorman.csproj" />
-    </ItemGroup>
-
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="cp -n &quot;$(SolutionDir)ClubDoorman/data/stop-words.txt&quot; &quot;$(TargetDir)data/stop-words.txt&quot;" Condition="'$(OS)' != 'Windows_NT'" />
-        <Exec Command="if not exist &quot;$(TargetDir)data&quot; mkdir &quot;$(TargetDir)data&quot;" Condition="'$(OS)' == 'Windows_NT'" />
-        <Exec Command="copy &quot;$(SolutionDir)ClubDoorman\\data\\stop-words.txt&quot; &quot;$(TargetDir)data\\stop-words.txt&quot;" Condition="'$(OS)' == 'Windows_NT'" />
-    </Target>
-
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="NUnit" Version="4.3.2" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.7.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ClubDoorman\ClubDoorman.csproj" />
+  </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec
+      Command="cp -n &quot;$(SolutionDir)ClubDoorman/data/stop-words.txt&quot; &quot;$(TargetDir)data/stop-words.txt&quot;"
+      Condition="'$(OS)' != 'Windows_NT'"
+    />
+    <Exec
+      Command="if not exist &quot;$(TargetDir)data&quot; mkdir &quot;$(TargetDir)data&quot;"
+      Condition="'$(OS)' == 'Windows_NT'"
+    />
+    <Exec
+      Command="copy &quot;$(SolutionDir)ClubDoorman\\data\\stop-words.txt&quot; &quot;$(TargetDir)data\\stop-words.txt&quot;"
+      Condition="'$(OS)' == 'Windows_NT'"
+    />
+  </Target>
 </Project>
