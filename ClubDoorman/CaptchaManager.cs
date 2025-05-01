@@ -91,7 +91,7 @@ internal class CaptchaManager
         {
             var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.StoppedCaptcha);
-            await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
+            await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(10), revokeMessages: false);
             if (info.UserJoinedMessage != null)
                 await _bot.DeleteMessage(chat, info.UserJoinedMessage.MessageId);
             UnbanUserLater(chat, userId);
@@ -228,18 +228,11 @@ internal class CaptchaManager
 
     private void UnbanUserLater(ChatId chatId, long userId)
     {
-        var key = $"captcha_{userId}";
-        var cache = MemoryCache.Default.AddOrGetExisting(
-            new CacheItem(key, new CaptchaAttempts()),
-            new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(4) }
-        );
-        var attempts = (CaptchaAttempts)cache.Value;
-        attempts.Attempts++;
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Exp(attempts.Attempts)));
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 await _bot.UnbanChatMember(chatId, userId);
             }
             catch (Exception e)
@@ -247,6 +240,7 @@ internal class CaptchaManager
                 _logger.LogWarning(e, nameof(UnbanUserLater));
             }
         });
+
     }
 
     private void DeleteMessageLater(Message message, TimeSpan after = default, CancellationToken cancellationToken = default)

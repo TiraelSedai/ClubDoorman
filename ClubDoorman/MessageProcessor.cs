@@ -250,7 +250,10 @@ internal class MessageProcessor
         if (spam)
         {
             var reason = $"ML решил что это спам, скор {score}";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
+            if (score > 3 && Config.HighConfidenceAutoBan)
+                await AutoBan(message, reason, stoppingToken);
+            else
+                await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
         if (
