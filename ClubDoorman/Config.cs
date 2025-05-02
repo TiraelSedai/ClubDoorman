@@ -35,6 +35,7 @@ internal static class Config
                     list.Add(group);
             }
         }
+        Log.Logger.Information("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION chats {@Chats}", list);
         return list.ToFrozenSet();
     }
 
