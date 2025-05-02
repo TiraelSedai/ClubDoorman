@@ -2,6 +2,8 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Polly;
+using Polly.Retry;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using tryAGI.OpenAI;
@@ -10,6 +12,9 @@ namespace ClubDoorman;
 
 internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 {
+    private readonly ResiliencePipeline _retry = new ResiliencePipelineBuilder()
+        .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
+        .Build();
     const string Model = "google/gemini-2.5-flash-preview";
     private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
@@ -108,11 +113,14 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 
             logger.LogDebug("LLM prompt: {Promt}", promptDebugString);
 
-            var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
-                messages: messages,
-                model: Model,
-                strict: true,
-                jsonSerializerOptions: jso
+            var response = await _retry.ExecuteAsync(async token =>
+                await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                    messages: messages,
+                    model: Model,
+                    strict: true,
+                    jsonSerializerOptions: jso,
+                    cancellationToken: token
+                )
             );
             if (response.Value1 != null)
             {
@@ -161,11 +169,14 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low)
                 );
 
-            var response = await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
-                messages: messages,
-                model: Model,
-                strict: true,
-                jsonSerializerOptions: jso
+            var response = await _retry.ExecuteAsync(async token =>
+                await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                    messages: messages,
+                    model: Model,
+                    strict: true,
+                    jsonSerializerOptions: jso,
+                    cancellationToken: token
+                )
             );
             if (response.Value1 != null)
             {
