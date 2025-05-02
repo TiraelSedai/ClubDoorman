@@ -21,6 +21,22 @@ internal static class Config
         long.Parse(Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set"));
 
     public static FrozenDictionary<long, long> MultiAdminChatMap { get; } = GetMultiAdminChatMap();
+    public static FrozenSet<long> ChannelsCheckExclusionChats { get; } = GetChannelsCheckExclusionChats();
+
+    private static FrozenSet<long> GetChannelsCheckExclusionChats()
+    {
+        var list = new List<long>();
+        var items = Environment.GetEnvironmentVariable("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION");
+        if (items != null)
+        {
+            foreach (var ch in items.Split(','))
+            {
+                if (long.TryParse(ch, out var group))
+                    list.Add(group);
+            }
+        }
+        return list.ToFrozenSet();
+    }
 
     public static long GetAdminChat(long chatId) => MultiAdminChatMap.TryGetValue(chatId, out var adm) ? adm : AdminChatId;
 

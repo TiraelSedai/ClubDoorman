@@ -111,7 +111,7 @@ internal class MessageProcessor
             if (linked != null && linked == message.SenderChat.Id)
                 return;
 
-            if (Config.ChannelAutoBan)
+            if (Config.ChannelAutoBan && !Config.ChannelsCheckExclusionChats.Contains(chat.Id))
             {
                 try
                 {
