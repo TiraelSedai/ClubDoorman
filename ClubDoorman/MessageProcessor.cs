@@ -105,6 +105,8 @@ internal class MessageProcessor
         {
             if (message.SenderChat.Id == chat.Id)
                 return;
+            if (message.IsAutomaticForward)
+                return;
             // to get linked_chat_id we need ChatFullInfo
             var chatFull = await _bot.GetChat(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
@@ -115,6 +117,13 @@ internal class MessageProcessor
             {
                 try
                 {
+                    var subs = await _bot.GetChatMemberCount(message.SenderChat.Id, cancellationToken: stoppingToken);
+                    if (subs > 5000)
+                    {
+                        _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
+                        return;
+                    }
+
                     var fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
                     await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                     await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
