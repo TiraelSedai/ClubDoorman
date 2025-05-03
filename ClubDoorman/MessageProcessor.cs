@@ -167,7 +167,7 @@ internal class MessageProcessor
 
         if (_userManager.Approved(user.Id))
             return;
-
+        using var _logScope = _logger.BeginScope("User {User} message {Id}", Utils.FullName(user), message.Id);
         _logger.LogDebug("First-time message, chat {Chat}, message {Message}", chat.Title, text);
 
         // At this point we are believing we see first-timers, and we need to check for spam
