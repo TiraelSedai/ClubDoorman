@@ -167,8 +167,7 @@ internal class MessageProcessor
 
         if (_userManager.Approved(user.Id))
             return;
-        using var _logScope = _logger.BeginScope("User {User} message {Id}", Utils.FullName(user), message.Id);
-        _logger.LogDebug("First-time message, chat {Chat}, message {Message}", chat.Title, text);
+        _logger.LogDebug("First-time message, chat {Chat} user {User} message {Id}, message {Message}", chat.Title, Utils.FullName(user), message.Id, text);
 
         // At this point we are believing we see first-timers, and we need to check for spam
         var name = await _userManager.GetClubUsername(user.Id);
@@ -271,7 +270,9 @@ internal class MessageProcessor
             && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
+            _logger.LogDebug("Message {Id} GetAttentionBaitProbability start", message.Id);
             var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
+            _logger.LogDebug("Message {Id} GetAttentionBaitProbability end, result = {Prob}", message.Id, attentionProb);
             const double lowProbability = 0.6;
             const double highProbability = 0.8;
             if (attentionProb >= lowProbability)
