@@ -210,6 +210,11 @@ internal class MessageProcessor
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
             return;
         }
+        if (message.Sticker!=null)
+        {
+            _logger.LogDebug("Sticker");
+            return;
+        }
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
@@ -439,10 +444,11 @@ internal class MessageProcessor
     private async Task DontDeleteButReportMessage(Message message, string? reason = null, CancellationToken stoppingToken = default)
     {
         _logger.LogDebug("DontDeleteButReportMessage");
+        var fromChat = message.SenderChat;
         var user = message.From!;
         var admChat = Config.GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
+        var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         var msg =
             reason
@@ -464,9 +470,10 @@ internal class MessageProcessor
         _logger.LogDebug("DeleteAndReportMessage");
         var admChat = Config.GetAdminChat(message.Chat.Id);
 
-        var user = message.From!;
+        var user = message.From;
+        var fromChat = message.SenderChat;
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        var deletionMessagePart = $"{reason}";
+        var deletionMessagePart = reason;
         try
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
@@ -485,8 +492,8 @@ internal class MessageProcessor
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
 
-        var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
-        MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+        var callbackDataBan = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
+        MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
         var row = new List<InlineKeyboardButton>(
             [
