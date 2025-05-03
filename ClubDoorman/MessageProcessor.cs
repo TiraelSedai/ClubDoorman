@@ -118,7 +118,7 @@ internal class MessageProcessor
                 try
                 {
                     var subs = await _bot.GetChatMemberCount(message.SenderChat.Id, cancellationToken: stoppingToken);
-                    if (subs > 5000)
+                    if (subs > Consts.BigChannelSubsCount)
                     {
                         _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
                         return;
@@ -273,9 +273,7 @@ internal class MessageProcessor
             _logger.LogDebug("Message {Id} GetAttentionBaitProbability start", message.Id);
             var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
             _logger.LogDebug("Message {Id} GetAttentionBaitProbability end, result = {Prob}", message.Id, attentionProb);
-            const double lowProbability = 0.6;
-            const double highProbability = 0.8;
-            if (attentionProb >= lowProbability)
+            if (attentionProb >= Consts.LlmLowProbability)
             {
                 var keyboard = new List<InlineKeyboardButton>
                 {
@@ -295,7 +293,7 @@ internal class MessageProcessor
                     );
                     replyParams = photoMsg;
                 }
-                var action = attentionProb >= highProbability ? "Даём ридонли на 15 минут" : "";
+                var action = attentionProb >= Consts.LlmHighProbability ? "Даём ридонли на 15 минут" : "";
                 await _bot.SendMessage(
                     admChat,
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}",
@@ -303,7 +301,7 @@ internal class MessageProcessor
                     replyParameters: replyParams,
                     cancellationToken: stoppingToken
                 );
-                if (attentionProb >= highProbability)
+                if (attentionProb >= Consts.LlmHighProbability)
                 {
                     await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
                     await _bot.RestrictChatMember(
@@ -323,9 +321,9 @@ internal class MessageProcessor
         )
         {
             var prob = await _aiChecks.GetSpamProbability(message);
-            if (prob >= 0.7)
+            if (prob >= Consts.LlmLowProbability)
             {
-                if (prob >= 0.9)
+                if (prob >= Consts.LlmHighProbability)
                     await DeleteAndReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
                 else
                     await DontDeleteButReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);

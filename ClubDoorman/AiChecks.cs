@@ -128,7 +128,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                 MemoryCache.Default.Add(
                     cacheKey,
                     (double?)probability,
-                    new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) }
+                    new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(3) }
                 );
                 logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
             }
@@ -146,6 +146,13 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         if (api == null)
             return probability;
 
+
+        var text = message.Caption ?? message.Text; 
+        var cacheKey = $"llm_spam_prob:{text}";
+        var exists = MemoryCache.Default.Get(cacheKey) as double?;
+        if (exists.HasValue)
+            return exists.Value;
+
         try
         {
             byte[]? imageBytes = null;
@@ -162,7 +169,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             var messages = new List<ChatCompletionRequestMessage>
             {
                 "Ты — модератор Telegram-группы, оценивающий сообщения в чате на спам, мошенничество и продвижения сторонних ресурсов или услуг".AsSystemMessage(),
-                (promt + (message.Caption ?? message.Text)).AsUserMessage(),
+                (promt + text).AsUserMessage(),
             };
             if (imageBytes != null)
                 messages.Add(
@@ -181,6 +188,11 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (response.Value1 != null)
             {
                 probability = response.Value1.Probability;
+                MemoryCache.Default.Add(
+                    cacheKey,
+                    (double?)probability,
+                    new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(1) }
+                );
                 logger.LogInformation("LLM GetSpamProbability {Prob}", probability);
             }
         }

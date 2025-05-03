@@ -35,7 +35,7 @@ internal class ReactionHandler
             MemoryCache.Default.AddOrGetExisting(
                 userKey,
                 new ReactionCache(),
-                new CacheItemPolicy { SlidingExpiration = TimeSpan.FromMinutes(15) }
+                new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(1) }
             )
             is ReactionCache reactionCache
         )
