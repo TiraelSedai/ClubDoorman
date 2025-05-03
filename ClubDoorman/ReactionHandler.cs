@@ -44,18 +44,19 @@ internal class ReactionHandler
         }
         cache.ReactionCount++;
 
-        if (cache.ReactionCount > 2 && Config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
+        if (cache.ReactionCount > 0 && Config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
         {
+            _logger.LogDebug("Reaction {Count} from {User}", cache.ReactionCount, Utils.FullName(user));
             var admChat = Config.GetAdminChat(reaction.Chat.Id);
             var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
-            if (attentionProb >= 0.8)
+            if (attentionProb >= 0.6)
             {
                 var postLink = Utils.LinkToMessage(reaction.Chat, reaction.MessageId);
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что на это сообщение поставил реакцию бейт спаммер {attentionProb * 100}%. ЗАБАНЕН на 15 минут{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}"
+                    $"Вероятность что на это сообщение поставил реакцию бейт спаммер {attentionProb * 100}%. в тестовом режиме не забанен, просто сообщаю.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}"
                 );
-                await _bot.BanChatMember(reaction.Chat, user.Id, DateTime.UtcNow.AddMinutes(15));
+                //await _bot.BanChatMember(reaction.Chat, user.Id, DateTime.UtcNow.AddMinutes(15));
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
@@ -67,6 +68,6 @@ internal class ReactionHandler
 
     private class ReactionCache
     {
-        public int ReactionCount { get; set; }
+        public int ReactionCount;
     }
 }
