@@ -47,7 +47,8 @@ internal class StatisticsReporter
         while (await _timer.WaitForNextTickAsync(ct))
         {
             var utcNow = DateTimeOffset.UtcNow;
-            if (utcNow.Hour != 12 && utcNow.Minute != 0)
+            bool reportingTime = utcNow.Hour == 7 && utcNow.Minute == 0;
+            if (!reportingTime)
             {
                 _ = WriteToDb();
                 continue;
