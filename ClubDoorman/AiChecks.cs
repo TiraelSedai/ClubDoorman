@@ -37,12 +37,11 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         var exists = MemoryCache.Default.Get(cacheKey) as double?;
         if (exists.HasValue)
             return (exists.Value, pic, nameBioUser);
+        logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
 
         try
         {
             var userChat = await bot.GetChat(user.Id);
-            if (string.IsNullOrWhiteSpace(userChat.Bio))
-                return (probability, pic, nameBioUser);
             var photo = userChat.Photo;
             byte[]? photoBytes = null;
             ChatCompletionRequestUserMessage? photoMessage = null;
@@ -131,6 +130,10 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(3) }
                 );
                 logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
+            }
+            else
+            {
+                logger.LogInformation("LLM GetAttentionBaitProbability: {@Resp}", response);
             }
         }
         catch (Exception e)

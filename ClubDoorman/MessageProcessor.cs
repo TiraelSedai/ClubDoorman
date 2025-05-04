@@ -433,9 +433,10 @@ internal class MessageProcessor
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
                     ? ""
                     : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
+                var mentionAt = user.Username != null ? $"@{user.Username}" : "";
                 await _bot.SendMessage(
                     Config.GetAdminChat(chatMember.Chat.Id),
-                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)} tg://user?id={user.Id} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
+                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)} {mentionAt} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
                 );
                 break;
         }
