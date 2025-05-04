@@ -33,11 +33,7 @@ internal class AdminCommandHandler
         var chat = cb.Message?.Chat.Id;
         var admChat = chat ?? Config.AdminChatId;
         var split = cbData.Split('_').ToList();
-        if (split.Count < 2)
-        {
-            _logger.LogWarning("Unexpected callback data");
-            return;
-        }
+        if (split.Count > 1)
         switch (split[0])
         {
             case "approve":
