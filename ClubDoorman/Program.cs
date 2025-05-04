@@ -36,7 +36,7 @@ public class Program
                 services.AddSingleton<ReactionHandler>();
                 services.AddSingleton<BadMessageManager>();
                 services.AddSingleton<AiChecks>();
-                services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=/app/db/app.db"));
+                services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
             })
             .Build();
 
