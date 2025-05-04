@@ -1,36 +1,57 @@
 using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
 
 namespace ClubDoorman;
 
-internal sealed class Stats(string? Title)
+public sealed class Stats
 {
-    public string? ChatTitle = Title;
-    public int StoppedCaptcha;
-    public int BlacklistBanned;
-    public int KnownBadMessage;
+    public Stats() { }
+
+    public Stats(string? Title)
+    {
+        ChatTitle = Title;
+    }
+
+    /// <summary>
+    /// Chat Id, database Id.
+    /// </summary>
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public long Id { get; set; }
+    public string? ChatTitle { get; set; }
+    public int StoppedCaptcha { get; set; }
+    public int BlacklistBanned { get; set; }
+    public int KnownBadMessage { get; set; }
 }
 
 internal class StatisticsReporter
 {
     private readonly ITelegramBotClient _bot;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<StatisticsReporter> _logger;
     public readonly ConcurrentDictionary<long, Stats> Stats = new();
-    private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
+    private readonly PeriodicTimer _timer = new(TimeSpan.FromMinutes(1));
 
-    public StatisticsReporter(ITelegramBotClient bot, ILogger<StatisticsReporter> logger)
+    public StatisticsReporter(ITelegramBotClient bot, IServiceScopeFactory scopeFactory, ILogger<StatisticsReporter> logger)
     {
         _bot = bot;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
-    public async Task ReportStatistics(CancellationToken ct)
+    public async Task MainStatisticsLoop(CancellationToken ct)
     {
+        _ = Init();
         while (await _timer.WaitForNextTickAsync(ct))
         {
-            if (DateTimeOffset.UtcNow.Hour != 12)
+            var utcNow = DateTimeOffset.UtcNow;
+            if (utcNow.Hour != 12 && utcNow.Minute != 0)
+            {
+                _ = WriteToDb();
                 continue;
+            }
 
             var report = Stats.ToArray();
             Stats.Clear();
@@ -81,6 +102,48 @@ internal class StatisticsReporter
                 _logger.LogWarning(e, "Unable to sent report to admin chat");
             }
         }
+    }
+
+    private async Task WriteToDb()
+    {
+        if (Stats.IsEmpty)
+            return;
+
+        var report = Stats.ToArray();
+        var keys = report.Select(x => x.Key).ToHashSet();
+
+        using var scope = _scopeFactory.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var stats = await db.Stats.ToListAsync();
+
+        foreach (var chat in report)
+        {
+            var inDb = stats.SingleOrDefault(x => x.Id == chat.Key);
+            if (inDb != null)
+            {
+                inDb.BlacklistBanned = chat.Value.BlacklistBanned;
+                inDb.StoppedCaptcha = chat.Value.StoppedCaptcha;
+                inDb.KnownBadMessage = chat.Value.KnownBadMessage;
+            }
+            else
+            {
+                db.Add(chat.Value);
+            }
+        }
+
+        foreach (var stat in stats.Where(x => !keys.Contains(x.Id)))
+            db.Remove(stat);
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task Init()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var stats = await db.Stats.AsNoTracking().ToListAsync();
+        foreach (var stat in stats)
+            Stats[stat.Id] = stat;
     }
 
     private static string ChatToStatsString(Stats stats)

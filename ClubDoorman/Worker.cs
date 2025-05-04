@@ -16,7 +16,7 @@ internal sealed class Worker(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _ = captchaManager.CaptchaLoop(stoppingToken);
-        _ = statisticsReporter.ReportStatistics(stoppingToken);
+        _ = statisticsReporter.MainStatisticsLoop(stoppingToken);
         const string offsetPath = "data/offset.txt";
         var offset = 0;
         if (File.Exists(offsetPath))

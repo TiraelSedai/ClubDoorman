@@ -90,7 +90,7 @@ internal class CaptchaManager
         if (info.CorrectAnswer != chosen)
         {
             var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.StoppedCaptcha);
+            stats.StoppedCaptcha++;
             await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(10), revokeMessages: false);
             if (info.UserJoinedMessage != null)
                 await _bot.DeleteMessage(chat, info.UserJoinedMessage.MessageId);
@@ -185,7 +185,7 @@ internal class CaptchaManager
         try
         {
             var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.BlacklistBanned);
+            stats.BlacklistBanned++;
             await _bot.BanChatMember(chat.Id, user.Id);
             return true;
         }
@@ -213,7 +213,7 @@ internal class CaptchaManager
             if (seconds > 45)
             {
                 var stats = _statistics.Stats.GetOrAdd(info.ChatId, new Stats(info.ChatTitle));
-                Interlocked.Increment(ref stats.StoppedCaptcha);
+                stats.StoppedCaptcha++;
                 _captchaNeededUsers.TryRemove(key, out _);
                 await _bot.BanChatMember(info.ChatId, info.User.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
                 UnbanUserLater(info.ChatId, info.User.Id);

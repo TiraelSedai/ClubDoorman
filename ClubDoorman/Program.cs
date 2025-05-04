@@ -1,3 +1,6 @@
+using System;
+using System.Runtime.InteropServices;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
 using Telegram.Bot;
@@ -33,8 +36,15 @@ public class Program
                 services.AddSingleton<ReactionHandler>();
                 services.AddSingleton<BadMessageManager>();
                 services.AddSingleton<AiChecks>();
+                services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=/app/db/app.db"));
             })
             .Build();
+
+        using (var scope = host.Services.CreateScope())
+        {
+            using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+        }
 
         await host.RunAsync();
     }
