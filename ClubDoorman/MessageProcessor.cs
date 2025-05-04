@@ -91,7 +91,7 @@ internal class MessageProcessor
         if (message.NewChatMembers != null && chat.Id != Config.AdminChatId && !Config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
-                await _captchaManager.IntroFlow(message, newUser); // Handled by CaptchaManager
+                await _captchaManager.IntroFlow(message, newUser);
             return;
         }
         if (chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(chat.Id))
@@ -303,7 +303,15 @@ internal class MessageProcessor
                     );
                     replyParams = photoMsg;
                 }
-                var action = attentionProb >= Consts.LlmHighProbability ? "Даём ридонли на 15 минут" : "";
+
+                var replyToRecentPost =
+                    message.ReplyToMessage?.IsAutomaticForward == true
+                    && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
+                if (replyToRecentPost)
+                    _logger.LogDebug("Message {Id} is a reply to recent post", message.Id);
+                var delete = attentionProb >= Consts.LlmHighProbability || replyToRecentPost;
+
+                var action = delete ? "Даём ридонли на 10 минут" : "";
                 await _bot.SendMessage(
                     admChat,
                     $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}",
@@ -311,14 +319,15 @@ internal class MessageProcessor
                     replyParameters: replyParams,
                     cancellationToken: stoppingToken
                 );
-                if (attentionProb >= Consts.LlmHighProbability)
+
+                if (delete)
                 {
                     await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
                     await _bot.RestrictChatMember(
                         chat,
                         user.Id,
                         new ChatPermissions(false),
-                        untilDate: DateTime.UtcNow.AddMinutes(15),
+                        untilDate: DateTime.UtcNow.AddMinutes(10),
                         cancellationToken: stoppingToken
                     );
                 }
@@ -476,7 +485,7 @@ internal class MessageProcessor
         _logger.LogDebug("DeleteAndReportMessage");
         var admChat = Config.GetAdminChat(message.Chat.Id);
 
-        var user = message.From;
+        var user = message.From!;
         var fromChat = message.SenderChat;
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var deletionMessagePart = reason;

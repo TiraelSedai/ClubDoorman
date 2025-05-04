@@ -124,7 +124,7 @@ internal class CaptchaManager
             if (userJoinMessage != null)
             {
                 captchaInfo.UserJoinedMessage = userJoinMessage;
-                DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), captchaInfo.Cts.Token);
+                DeleteMessageLater(userJoinMessage, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
             }
             return;
         }
@@ -161,7 +161,7 @@ internal class CaptchaManager
             replyMarkup: new InlineKeyboardMarkup(keyboard)
         );
 
-        DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), captchaInfo.Cts.Token);
+        DeleteMessageLater(del, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
         captchaInfo.ChatId = chatId;
         captchaInfo.ChatTitle = chat.Title;
         captchaInfo.Timestamp = DateTime.UtcNow;
@@ -169,7 +169,7 @@ internal class CaptchaManager
         if (userJoinMessage != null)
         {
             captchaInfo.UserJoinedMessage = userJoinMessage;
-            DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), captchaInfo.Cts.Token);
+            DeleteMessageLater(userJoinMessage, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
         }
 
         return;
@@ -209,8 +209,8 @@ internal class CaptchaManager
         var users = _captchaNeededUsers.ToArray();
         foreach (var (key, info) in users)
         {
-            var minutes = (now - info.Timestamp).TotalMinutes;
-            if (minutes > 1)
+            var seconds = (now - info.Timestamp).TotalSeconds;
+            if (seconds > 45)
             {
                 var stats = _statistics.Stats.GetOrAdd(info.ChatId, new Stats(info.ChatTitle));
                 Interlocked.Increment(ref stats.StoppedCaptcha);
@@ -219,11 +219,6 @@ internal class CaptchaManager
                 UnbanUserLater(info.ChatId, info.User.Id);
             }
         }
-    }
-
-    private class CaptchaAttempts
-    {
-        public int Attempts { get; set; }
     }
 
     private void UnbanUserLater(ChatId chatId, long userId)
