@@ -34,97 +34,97 @@ internal class AdminCommandHandler
         var admChat = chat ?? Config.AdminChatId;
         var split = cbData.Split('_').ToList();
         if (split.Count > 1)
-        switch (split[0])
-        {
-            case "approve":
-                if (!long.TryParse(split[1], out var approveUserId))
-                    return;
-                await _userManager.Approve(approveUserId);
-                await _bot.SendMessage(
-                    admChat,
-                    $"{Utils.FullName(cb.From)} добавил пользователя в список доверенных",
-                    replyParameters: cb.Message?.MessageId
-                );
-                break;
-            case "attOk":
-                if (!long.TryParse(split[1], out var attOkUserId))
-                    return;
-                AiChecks.MarkUserOkay(attOkUserId);
-                await _bot.SendMessage(
-                    admChat,
-                    $"{Utils.FullName(cb.From)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)",
-                    replyParameters: cb.Message?.MessageId
-                );
-                break;
-            case "ban":
-                {
-                    if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var userId))
-                    return;
-                    var userMessage = MemoryCache.Default.Remove(cbData) as Message;
-                    var text = userMessage?.Caption ?? userMessage?.Text;
-                    if (!string.IsNullOrWhiteSpace(text))
-                        await _badMessageManager.MarkAsBad(text);
-                    try
+            switch (split[0])
+            {
+                case "approve":
+                    if (!long.TryParse(split[1], out var approveUserId))
+                        return;
+                    await _userManager.Approve(approveUserId);
+                    await _bot.SendMessage(
+                        admChat,
+                        $"{Utils.FullName(cb.From)} добавил пользователя в список доверенных",
+                        replyParameters: cb.Message?.MessageId
+                    );
+                    break;
+                case "attOk":
+                    if (!long.TryParse(split[1], out var attOkUserId))
+                        return;
+                    AiChecks.MarkUserOkay(attOkUserId);
+                    await _bot.SendMessage(
+                        admChat,
+                        $"{Utils.FullName(cb.From)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)",
+                        replyParameters: cb.Message?.MessageId
+                    );
+                    break;
+                case "ban":
                     {
-                        await _bot.BanChatMember(chatId, userId);
-                        await _bot.SendMessage(
-                            admChat,
-                            $"{Utils.FullName(cb.From)} забанил, сообщение добавлено в список авто-бана",
-                            replyParameters: cb.Message?.MessageId
-                        );
+                        if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var userId))
+                            return;
+                        var userMessage = MemoryCache.Default.Remove(cbData) as Message;
+                        var text = userMessage?.Caption ?? userMessage?.Text;
+                        if (!string.IsNullOrWhiteSpace(text))
+                            await _badMessageManager.MarkAsBad(text);
+                        try
+                        {
+                            await _bot.BanChatMember(chatId, userId);
+                            await _bot.SendMessage(
+                                admChat,
+                                $"{Utils.FullName(cb.From)} забанил, сообщение добавлено в список авто-бана",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Unable to ban");
+                            await _bot.SendMessage(
+                                admChat,
+                                $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
+                        try
+                        {
+                            if (userMessage != null)
+                                await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
+                        }
+                        catch { }
                     }
-                    catch (Exception e)
+                    break;
+                case "banchan":
                     {
-                        _logger.LogWarning(e, "Unable to ban");
-                        await _bot.SendMessage(
-                            admChat,
-                            $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
-                            replyParameters: cb.Message?.MessageId
-                        );
+                        if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var fromChannelId))
+                            return;
+                        var userMessage = MemoryCache.Default.Remove(cbData) as Message;
+                        var text = userMessage?.Caption ?? userMessage?.Text;
+                        if (!string.IsNullOrWhiteSpace(text))
+                            await _badMessageManager.MarkAsBad(text);
+                        try
+                        {
+                            await _bot.BanChatSenderChat(chatId, fromChannelId);
+                            await _bot.SendMessage(
+                                admChat,
+                                $"{Utils.FullName(cb.From)} забанил, сообщение добавлено в список авто-бана",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Unable to ban");
+                            await _bot.SendMessage(
+                                admChat,
+                                $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
+                        try
+                        {
+                            if (userMessage != null)
+                                await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
+                        }
+                        catch { }
                     }
-                    try
-                    {
-                        if (userMessage != null)
-                            await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
-                    }
-                    catch { }
-                }
-                break;
-            case "banchan":
-                {
-                    if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var fromChannelId))
-                    return;
-                    var userMessage = MemoryCache.Default.Remove(cbData) as Message;
-                    var text = userMessage?.Caption ?? userMessage?.Text;
-                    if (!string.IsNullOrWhiteSpace(text))
-                        await _badMessageManager.MarkAsBad(text);
-                    try
-                    {
-                        await _bot.BanChatSenderChat(chatId, fromChannelId);
-                        await _bot.SendMessage(
-                            admChat,
-                            $"{Utils.FullName(cb.From)} забанил, сообщение добавлено в список авто-бана",
-                            replyParameters: cb.Message?.MessageId
-                        );
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(e, "Unable to ban");
-                        await _bot.SendMessage(
-                            admChat,
-                            $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
-                            replyParameters: cb.Message?.MessageId
-                        );
-                    }
-                    try
-                    {
-                        if (userMessage != null)
-                            await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
-                    }
-                    catch { }
-                }
-                break;
-        }
+                    break;
+            }
 
         var msg = cb.Message;
         if (msg != null)

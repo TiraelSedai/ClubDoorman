@@ -46,7 +46,12 @@ internal class ReactionHandler
 
         if (cache.ReactionCount > 0 && Config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
         {
-            _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", cache.ReactionCount, Utils.FullName(user), reaction.Chat.Title);
+            _logger.LogDebug(
+                "Reaction number {Count} from {User} in chat {Chat}",
+                cache.ReactionCount,
+                Utils.FullName(user),
+                reaction.Chat.Title
+            );
             var admChat = Config.GetAdminChat(reaction.Chat.Id);
             var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
             _logger.LogDebug("Reaction bait spam probability {Prob}", attentionProb);

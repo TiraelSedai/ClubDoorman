@@ -130,11 +130,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (response.Value1 != null)
             {
                 probability = response.Value1.Probability;
-                MemoryCache.Default.Add(
-                    cacheKey,
-                    (double?)probability,
-                    new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(3) }
-                );
+                MemoryCache.Default.Add(cacheKey, (double?)probability, new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(3) });
                 logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
             }
             else
@@ -155,8 +151,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         if (api == null)
             return probability;
 
-
-        var text = message.Caption ?? message.Text; 
+        var text = message.Caption ?? message.Text;
         var cacheKey = $"llm_spam_prob:{text}";
         var exists = MemoryCache.Default.Get(cacheKey) as double?;
         if (exists.HasValue)
@@ -197,11 +192,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (response.Value1 != null)
             {
                 probability = response.Value1.Probability;
-                MemoryCache.Default.Add(
-                    cacheKey,
-                    (double?)probability,
-                    new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(1) }
-                );
+                MemoryCache.Default.Add(cacheKey, (double?)probability, new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(1) });
                 logger.LogInformation("LLM GetSpamProbability {Prob}", probability);
             }
         }

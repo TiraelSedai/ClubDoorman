@@ -167,7 +167,13 @@ internal class MessageProcessor
 
         if (_userManager.Approved(user.Id))
             return;
-        _logger.LogDebug("First-time message, chat {Chat} user {User} message {Id}, message {Message}", chat.Title, Utils.FullName(user), message.Id, text);
+        _logger.LogDebug(
+            "First-time message, chat {Chat} user {User} message {Id}, message {Message}",
+            chat.Title,
+            Utils.FullName(user),
+            message.Id,
+            text
+        );
 
         // At this point we are believing we see first-timers, and we need to check for spam
         var name = await _userManager.GetClubUsername(user.Id);
@@ -210,7 +216,7 @@ internal class MessageProcessor
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
             return;
         }
-        if (message.Sticker!=null)
+        if (message.Sticker != null)
         {
             _logger.LogDebug("Sticker");
             return;
