@@ -275,9 +275,8 @@ internal class MessageProcessor
             && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
-            _logger.LogDebug("Message {Id} GetAttentionBaitProbability start", message.Id);
             var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
-            _logger.LogDebug("Message {Id} GetAttentionBaitProbability end, result = {Prob}", message.Id, attentionProb);
+            _logger.LogDebug("Message {Id} GetAttentionBaitProbability, result = {Prob}", message.Id, attentionProb);
             if (attentionProb >= Consts.LlmLowProbability)
             {
                 var keyboard = new List<InlineKeyboardButton>

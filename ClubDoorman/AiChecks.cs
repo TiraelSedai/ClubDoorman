@@ -37,11 +37,17 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         var exists = MemoryCache.Default.Get(cacheKey) as double?;
         if (exists.HasValue)
             return (exists.Value, pic, nameBioUser);
-        logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
 
         try
         {
             var userChat = await bot.GetChat(user.Id);
+            if (userChat.Bio == null && userChat.LinkedChatId == null)
+            {
+                logger.LogDebug("GetAttentionBaitProbability {User} skipping: no bio, no channel", Utils.FullName(user));
+                return (probability, pic, nameBioUser);
+            }
+
+            logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
             var photo = userChat.Photo;
             byte[]? photoBytes = null;
             ChatCompletionRequestUserMessage? photoMessage = null;
@@ -70,7 +76,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             nameBioUser = sb.ToString();
             var promptDebugString = nameBioUser;
             var prompt =
-                $"Проанализируй, выглядит ли этот Telegram-профиль как «продажный» и созданный с целью привлечения внимания. Отвечай вероятностью от 0 до 1. Особенно внимательно учитывай признаки:\nсексуализированные женские профили (эмодзи с двойным смыслом - 💦, 💋, 👄, 🍑, 🍆, 🍒, 🍓, 🍌 и прочих в имени, любой намёк на эротику и порно, голые фото),\nупоминания о курсах, заработке, трейдинге, арбитраже,\nссылки на OnlyFans, соцсети. Вот данные профиля:\n{nameBioUser}";
+                $"Проанализируй, выглядит ли этот Telegram-профиль как «продажный» и созданный с целью привлечения внимания. Отвечай вероятностью от 0 до 1. Особенно внимательно учитывай признаки:\nсексуализированные профили (эмодзи с двойным смыслом - 💦, 💋, 👄, 🍑, 🍆, 🍒, 🍓, 🍌 и прочих в имени, любой намёк на эротику и порно, голые фото),\nупоминания о курсах, заработке, трейдинге, арбитраже,\nссылки на OnlyFans, соцсети. Вот данные профиля:\n{nameBioUser}";
 
             var messages = new List<ChatCompletionRequestMessage>
             {
