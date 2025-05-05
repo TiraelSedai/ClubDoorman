@@ -65,10 +65,12 @@ internal sealed class UserManager
         });
     }
 
-    public static async Task<List<long>> GetUsersWithAtLeastThreeMessagesAsync(string jsonFilePath)
+    public async Task<List<long>> GetUsersWithAtLeastThreeMessagesAsync(string jsonFilePath)
     {
         await using var stream = File.OpenRead(jsonFilePath);
         using var document = await JsonDocument.ParseAsync(stream);
+        if (document.RootElement.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
+            _logger.LogInformation("Injesting messages from chat {Name}", name.GetString());
         if (!document.RootElement.TryGetProperty("messages", out var messages) || messages.ValueKind != JsonValueKind.Array)
             return [];
 

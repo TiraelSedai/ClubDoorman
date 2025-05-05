@@ -168,13 +168,7 @@ internal class MessageProcessor
 
         if (_userManager.Approved(user.Id))
             return;
-        _logger.LogDebug(
-            "First-time message, chat {Chat} user {User} message {Id}, message {Message}",
-            chat.Title,
-            Utils.FullName(user),
-            message.Id,
-            text
-        );
+        _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
 
         // At this point we are believing we see first-timers, and we need to check for spam
         var name = await _userManager.GetClubUsername(user.Id);
@@ -286,7 +280,7 @@ internal class MessageProcessor
                 message.ReplyToMessage?.IsAutomaticForward == true
                 && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
             var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From, replyToRecentPost);
-            _logger.LogDebug("Message {Id} GetAttentionBaitProbability, result = {Prob}", message.Id, attentionProb);
+            _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attentionProb);
             if (attentionProb >= Consts.LlmLowProbability)
             {
                 var keyboard = new List<InlineKeyboardButton>
@@ -309,7 +303,7 @@ internal class MessageProcessor
                 }
 
                 if (replyToRecentPost)
-                    _logger.LogDebug("Message {Id} is a reply to recent post", message.Id);
+                    _logger.LogDebug("It's a reply to recent post, high alert");
                 var delete = attentionProb >= Consts.LlmHighProbability || replyToRecentPost;
 
                 var action = delete ? "Даём ридонли на 10 минут" : "";
