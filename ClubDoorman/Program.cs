@@ -18,7 +18,11 @@ public class Program
                         .MinimumLevel.Debug()
                         .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
                         .Enrich.FromLogContext()
-                        .WriteTo.Async(a => a.Console());
+                        .WriteTo.Async(a =>
+                            a.Console(
+                                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Scope} {Message:lj}{NewLine}{Exception}"
+                            )
+                        );
                 }
             )
             .ConfigureServices(services =>

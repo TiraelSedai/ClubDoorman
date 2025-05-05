@@ -50,6 +50,7 @@ internal class MessageProcessor
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
     {
+        using var logScope = _logger.BeginScope("Update Id = {Id}", update.Id);
         // TODO: this is not ideal, share getter with AdminCommandHandler
         _me ??= await _bot.GetMe(cancellationToken: stoppingToken);
         if (update.MessageReaction != null)
