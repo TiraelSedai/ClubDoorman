@@ -99,7 +99,6 @@ internal class CaptchaManager
 
     public async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
-        _logger.LogDebug("Intro flow {First} {Last} {Username}", user.FirstName, user.LastName, user.Username);
         if (_userManager.Approved(user.Id))
             return;
         var clubUser = await _userManager.GetClubUsername(user.Id);

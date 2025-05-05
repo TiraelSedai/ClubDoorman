@@ -430,10 +430,11 @@ internal class MessageProcessor
                 if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
                     _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last}; Id = {Id}",
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
                         chatMember.Chat.Title,
                         newChatMember.User.FirstName,
                         newChatMember.User.LastName,
+                        newChatMember.User.Username,
                         newChatMember.User.Id
                     );
                     await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
