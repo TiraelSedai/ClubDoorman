@@ -281,7 +281,10 @@ internal class MessageProcessor
             && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
-            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
+            var replyToRecentPost =
+                message.ReplyToMessage?.IsAutomaticForward == true
+                && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
+            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From, replyToRecentPost);
             _logger.LogDebug("Message {Id} GetAttentionBaitProbability, result = {Prob}", message.Id, attentionProb);
             if (attentionProb >= Consts.LlmLowProbability)
             {
@@ -304,9 +307,6 @@ internal class MessageProcessor
                     replyParams = photoMsg;
                 }
 
-                var replyToRecentPost =
-                    message.ReplyToMessage?.IsAutomaticForward == true
-                    && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
                 if (replyToRecentPost)
                     _logger.LogDebug("Message {Id} is a reply to recent post", message.Id);
                 var delete = attentionProb >= Consts.LlmHighProbability || replyToRecentPost;

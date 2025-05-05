@@ -25,7 +25,10 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         MemoryCache.Default.Add(cacheKey, (double?)0.0, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
     }
 
-    public async ValueTask<(double, byte[], string)> GetAttentionBaitProbability(Telegram.Bot.Types.User user)
+    public async ValueTask<(double, byte[], string)> GetAttentionBaitProbability(
+        Telegram.Bot.Types.User user,
+        bool checkEvenIfNoBio = false
+    )
     {
         var probability = 0.0;
         var nameBioUser = "";
@@ -41,7 +44,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         try
         {
             var userChat = await bot.GetChat(user.Id);
-            if (userChat.Bio == null && userChat.LinkedChatId == null)
+            if (!checkEvenIfNoBio && userChat.Bio == null && userChat.LinkedChatId == null)
             {
                 logger.LogDebug("GetAttentionBaitProbability {User} skipping: no bio, no channel", Utils.FullName(user));
                 return (probability, pic, nameBioUser);
