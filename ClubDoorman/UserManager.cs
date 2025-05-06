@@ -13,19 +13,26 @@ internal sealed class UserManager
 
     private async Task Init()
     {
-        var httpClient = new HttpClient();
-        var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json");
-        if (banlist != null)
+        try
         {
-            foreach (var id in banlist)
-                _banlist.TryAdd(id, 0);
+            var httpClient = new HttpClient();
+            var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json");
+            if (banlist != null)
+            {
+                foreach (var id in banlist)
+                    _banlist.TryAdd(id, 0);
 
-            using var scope = _serviceScopeFactory.CreateScope();
-            using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                using var scope = _serviceScopeFactory.CreateScope();
+                using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var existing = await db.BlacklistedUsers.AsNoTracking().Select(x => x.Id).ToListAsync();
-            db.AddRange(banlist.Except(existing).Select(id => new BlacklistedUser { Id = id }));
-            await db.SaveChangesAsync();
+                var existing = await db.BlacklistedUsers.AsNoTracking().Select(x => x.Id).ToListAsync();
+                db.AddRange(banlist.Except(existing).Select(id => new BlacklistedUser { Id = id }));
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "UserManager.Init");
         }
     }
 
