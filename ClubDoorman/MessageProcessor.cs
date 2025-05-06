@@ -285,8 +285,8 @@ internal class MessageProcessor
             {
                 var keyboard = new List<InlineKeyboardButton>
                 {
-                    new("👍 ok") { CallbackData = $"attOk_{user.Id}" },
-                    new("🤖 ban") { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
+                    new("❌❌❌ ban") { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
+                    new("✅✅✅ ok") { CallbackData = $"attOk_{user.Id}" },
                 };
 
                 ReplyParameters? replyParams = null;
@@ -469,8 +469,8 @@ internal class MessageProcessor
             $"{msg}. Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}",
             replyParameters: forward.MessageId,
             replyMarkup: new InlineKeyboardMarkup(
-                new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
-                new InlineKeyboardButton("👍 ok") { CallbackData = "noop" }
+                new InlineKeyboardButton("❌❌❌ ban") { CallbackData = callbackData },
+                new InlineKeyboardButton("✅✅✅ ok") { CallbackData = "noop" }
             ),
             cancellationToken: stoppingToken
         );
