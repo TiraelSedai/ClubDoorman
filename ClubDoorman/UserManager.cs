@@ -1,60 +1,22 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace ClubDoorman;
 
 internal sealed class UserManager
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly HybridCache _cache;
     private readonly ILogger<UserManager> _logger;
 
-    private async Task Init()
-    {
-        var sw = Stopwatch.StartNew();
-        try
-        {
-            var httpClient = new HttpClient();
-            var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json");
-            _logger.LogDebug("Init: banlist get elapsed {Ms}", sw.Elapsed);
-            if (banlist != null)
-            {
-                foreach (var id in banlist)
-                    _banlist.TryAdd(id, 0);
-                _logger.LogDebug("Init: banlist add to dictionary elapsed {Ms}", sw.Elapsed);
-
-                using var scope = _serviceScopeFactory.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                var existing = await db.BlacklistedUsers.AsNoTracking().Select(x => x.Id).ToListAsync();
-                _logger.LogDebug("Init: before adding all users {Ms}", sw.Elapsed);
-                var usersToAdd = banlist.Except(existing).Select(id => new BlacklistedUser { Id = id });
-                var count = 0;
-                foreach (var chunk in usersToAdd.Chunk(1000))
-                {
-                    db.AddRange(chunk);
-                    await db.SaveChangesAsync();
-                    count += chunk.Length;
-                    _logger.LogDebug("Init: saved {Count} to database {Ms}", count, sw.Elapsed);
-                }
-
-                _logger.LogDebug("Init: after saving to database {Ms}", sw.Elapsed);
-            }
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "UserManager.Init");
-        }
-    }
-
-    public UserManager(IServiceScopeFactory serviceScopeFactory, ILogger<UserManager> logger)
+    public UserManager(IServiceScopeFactory serviceScopeFactory, HybridCache cache, ILogger<UserManager> logger)
     {
         _serviceScopeFactory = serviceScopeFactory;
+        _cache = cache;
         _logger = logger;
-        Task.Run(Init);
         Task.Run(InjestChatHistories);
         if (Config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
@@ -63,7 +25,6 @@ internal sealed class UserManager
     }
 
     private const string Path = "data/approved-users.txt";
-    private readonly ConcurrentDictionary<long, byte> _banlist = [];
     private readonly SemaphoreSlim _semaphore = new(1);
     private readonly HashSet<long> _approved = [.. File.ReadAllLines(Path).Select(long.Parse)];
     private readonly HttpClient _clubHttpClient = new();
@@ -147,17 +108,38 @@ internal sealed class UserManager
 
     public async ValueTask<bool> InBanlist(long userId)
     {
-        if (_banlist.ContainsKey(userId))
+        var key = $"user:banned:{userId}";
+        var justCreated = false;
+        var banned = await _cache.GetOrCreateAsync(
+            key,
+            _ =>
+            {
+                justCreated = true;
+                return GetUserBanned(userId);
+            },
+            new HybridCacheEntryOptions() { LocalCacheExpiration = TimeSpan.FromSeconds(5) }
+        );
+        if (justCreated && banned)
+            await _cache.SetAsync(key, true, new HybridCacheEntryOptions() { LocalCacheExpiration = TimeSpan.FromHours(3) });
+        return banned;
+    }
+
+    private async ValueTask<bool> GetUserBanned(long userId)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var count = await db.BlacklistedUsers.Where(x => x.Id == userId).CountAsync();
+        if (count > 0)
             return true;
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(3));
         try
         {
-            using var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(5));
             var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}", cts.Token);
             if (!result!.banned)
                 return false;
-
-            _banlist.TryAdd(userId, 0);
+            db.Add(new BlacklistedUser { Id = userId });
+            await db.SaveChangesAsync();
             return true;
         }
         catch (OperationCanceledException)

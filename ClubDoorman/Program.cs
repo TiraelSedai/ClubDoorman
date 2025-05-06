@@ -42,6 +42,7 @@ public class Program
                     services.AddSingleton<BadMessageManager>();
                     services.AddSingleton<AiChecks>();
                     services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
+                    services.AddHybridCache();
                 })
                 .Build();
 
