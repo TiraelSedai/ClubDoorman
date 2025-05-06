@@ -2,11 +2,13 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace ClubDoorman;
 
 internal sealed class UserManager
 {
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<UserManager> _logger;
 
     private async Task Init()
@@ -14,12 +16,22 @@ internal sealed class UserManager
         var httpClient = new HttpClient();
         var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json");
         if (banlist != null)
+        {
             foreach (var id in banlist)
                 _banlist.TryAdd(id, 0);
+
+            using var scope = _serviceScopeFactory.CreateScope();
+            using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var existing = await db.BlacklistedUsers.AsNoTracking().Select(x => x.Id).ToListAsync();
+            db.AddRange(banlist.Except(existing).Select(id => new BlacklistedUser { Id = id }));
+            await db.SaveChangesAsync();
+        }
     }
 
-    public UserManager(ILogger<UserManager> logger)
+    public UserManager(IServiceScopeFactory serviceScopeFactory, ILogger<UserManager> logger)
     {
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         Task.Run(Init);
         Task.Run(InjestChatHistories);
