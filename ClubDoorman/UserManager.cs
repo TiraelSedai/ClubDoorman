@@ -32,10 +32,13 @@ internal sealed class UserManager
                 var existing = await db.BlacklistedUsers.AsNoTracking().Select(x => x.Id).ToListAsync();
                 _logger.LogDebug("Init: before adding all users {Ms}", sw.Elapsed);
                 var usersToAdd = banlist.Except(existing).Select(id => new BlacklistedUser { Id = id });
+                var count = 0;
                 foreach (var chunk in usersToAdd.Chunk(1000))
                 {
                     db.AddRange(chunk);
                     await db.SaveChangesAsync();
+                    count += chunk.Length;
+                    _logger.LogDebug("Init: saved {Count} to database {Ms}", count, sw.Elapsed);
                 }
 
                 _logger.LogDebug("Init: after saving to database {Ms}", sw.Elapsed);
