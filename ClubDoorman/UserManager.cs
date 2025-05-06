@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -13,21 +14,28 @@ internal sealed class UserManager
 
     private async Task Init()
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             var httpClient = new HttpClient();
             var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json");
+            _logger.LogDebug("Init: banlist get elapsed {Ms}", sw.Elapsed);
             if (banlist != null)
             {
                 foreach (var id in banlist)
                     _banlist.TryAdd(id, 0);
+                _logger.LogDebug("Init: banlist add to dictionary elapsed {Ms}", sw.Elapsed);
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
                 var existing = await db.BlacklistedUsers.AsNoTracking().Select(x => x.Id).ToListAsync();
+                _logger.LogDebug("Init: before adding all users {Ms}", sw.Elapsed);
                 db.AddRange(banlist.Except(existing).Select(id => new BlacklistedUser { Id = id }));
+                _logger.LogDebug("Init: after adding all users {Ms}", sw.Elapsed);
                 await db.SaveChangesAsync();
+
+                _logger.LogDebug("Init: after saving to database {Ms}", sw.Elapsed);
             }
         }
         catch (Exception e)
