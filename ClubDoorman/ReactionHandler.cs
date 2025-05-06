@@ -68,9 +68,9 @@ internal class ReactionHandler
                 }
 
                 var keyboard = new List<InlineKeyboardButton>
-				{
-					new("❌❌❌ ban") { CallbackData = $"ban_{reaction.Chat.Id}_{user.Id}" },
-					new("✅✅✅ ok") { CallbackData = $"attOk_{user.Id}" },
+                {
+                    new(Consts.BanButton) { CallbackData = $"ban_{reaction.Chat.Id}_{user.Id}" },
+                    new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" },
                 };
                 await _bot.SendMessage(
                     admChat,
