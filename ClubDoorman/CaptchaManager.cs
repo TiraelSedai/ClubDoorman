@@ -88,7 +88,7 @@ internal class CaptchaManager
         await info.Cts.CancelAsync();
         if (info.CorrectAnswer != chosen)
         {
-            var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
             stats.StoppedCaptcha++;
             await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(10), revokeMessages: false);
             if (info.UserJoinedMessage != null)
@@ -182,7 +182,7 @@ internal class CaptchaManager
 
         try
         {
-            var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
             stats.BlacklistBanned++;
             await _bot.BanChatMember(chat.Id, user.Id);
             return true;
@@ -210,7 +210,7 @@ internal class CaptchaManager
             var seconds = (now - info.Timestamp).TotalSeconds;
             if (seconds > 45)
             {
-                var stats = _statistics.Stats.GetOrAdd(info.ChatId, new Stats(info.ChatTitle));
+                var stats = _statistics.Stats.GetOrAdd(info.ChatId, new Stats(info.ChatTitle) { Id = info.ChatId });
                 stats.StoppedCaptcha++;
                 _captchaNeededUsers.TryRemove(key, out _);
                 await _bot.BanChatMember(info.ChatId, info.User.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);

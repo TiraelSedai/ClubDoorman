@@ -182,7 +182,7 @@ internal class MessageProcessor
             _logger.LogDebug("InBanlist");
             if (Config.BlacklistAutoBan)
             {
-                var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+                var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
                 stats.BlacklistBanned++;
                 await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
                 await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
@@ -401,7 +401,7 @@ internal class MessageProcessor
         try
         {
             var chat = message.Chat;
-            var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title));
+            var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
             stats.KnownBadMessage++;
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
             await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
