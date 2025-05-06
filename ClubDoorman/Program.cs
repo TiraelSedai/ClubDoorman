@@ -9,47 +9,55 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        InitData();
-        var host = Host.CreateDefaultBuilder(args)
-            .UseSerilog(
-                (_, _, config) =>
-                {
-                    config
-                        .MinimumLevel.Debug()
-                        .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                        .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database", LogEventLevel.Warning)
-                        .Enrich.FromLogContext()
-                        .WriteTo.Async(a =>
-                            a.Console(
-                                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Scope} {Message:lj}{NewLine}{Exception}"
-                            )
-                        );
-                }
-            )
-            .ConfigureServices(services =>
-            {
-                services.AddHostedService<Worker>();
-                services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(Config.BotApi));
-                services.AddSingleton<CaptchaManager>();
-                services.AddSingleton<MessageProcessor>();
-                services.AddSingleton<StatisticsReporter>();
-                services.AddSingleton<SpamHamClassifier>();
-                services.AddSingleton<UserManager>();
-                services.AddSingleton<AdminCommandHandler>();
-                services.AddSingleton<ReactionHandler>();
-                services.AddSingleton<BadMessageManager>();
-                services.AddSingleton<AiChecks>();
-                services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
-            })
-            .Build();
-
-        using (var scope = host.Services.CreateScope())
+        try
         {
-            using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.Migrate();
-        }
+            InitData();
+            var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog(
+                    (_, _, config) =>
+                    {
+                        config
+                            .MinimumLevel.Debug()
+                            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database", LogEventLevel.Warning)
+                            .Enrich.FromLogContext()
+                            .WriteTo.Async(a =>
+                                a.Console(
+                                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Scope} {Message:lj}{NewLine}{Exception}"
+                                )
+                            );
+                    }
+                )
+                .ConfigureServices(services =>
+                {
+                    services.AddHostedService<Worker>();
+                    services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(Config.BotApi));
+                    services.AddSingleton<CaptchaManager>();
+                    services.AddSingleton<MessageProcessor>();
+                    services.AddSingleton<StatisticsReporter>();
+                    services.AddSingleton<SpamHamClassifier>();
+                    services.AddSingleton<UserManager>();
+                    services.AddSingleton<AdminCommandHandler>();
+                    services.AddSingleton<ReactionHandler>();
+                    services.AddSingleton<BadMessageManager>();
+                    services.AddSingleton<AiChecks>();
+                    services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
+                })
+                .Build();
 
-        await host.RunAsync();
+            using (var scope = host.Services.CreateScope())
+            {
+                using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.Migrate();
+            }
+
+            await host.RunAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Unhandled exception in Main");
+            Console.WriteLine(e.Message);
+        }
     }
 
     private static void InitData()
