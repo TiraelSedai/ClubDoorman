@@ -41,7 +41,7 @@ public class Program
                     services.AddSingleton<ReactionHandler>();
                     services.AddSingleton<BadMessageManager>();
                     services.AddSingleton<AiChecks>();
-                    services.AddSingleton<NsfwChecks>();
+                    //services.AddSingleton<NsfwChecks>();
                     services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
                     services.AddHybridCache();
                 })

@@ -274,9 +274,9 @@ internal class MessageProcessor
             return;
         }
 
-        var nudity = await _nsfwChecks.GetPicturesNsfwRating(user, stoppingToken);
-        if (nudity?.User == "NotSafe" || nudity?.Channel == "NotSafe")
-            await DontDeleteButReportMessage(message, "ML нашёл обнажёнку в картинке профиля или канала пользователя", stoppingToken);
+        //var nudity = await _nsfwChecks.GetPicturesNsfwRating(user, stoppingToken);
+        //if (nudity?.User == "NotSafe" || nudity?.Channel == "NotSafe")
+        //    await DontDeleteButReportMessage(message, "ML нашёл обнажёнку в картинке профиля или канала пользователя", stoppingToken);
 
         if (
             Config.OpenRouterApi != null
