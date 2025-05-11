@@ -277,7 +277,7 @@ internal class MessageProcessor
         var nudity = await _nsfwChecks.GetPicturesNsfwRating(user, stoppingToken);
         if (nudity.User?.IsNsfw == true || nudity.Channel?.IsNsfw == true)
         {
-            await DontDeleteButReportMessage(message, "ML нашёл обнажёнку в картинке профиля или канала пользователя", stoppingToken);
+            //await DontDeleteButReportMessage(message, "ML нашёл обнажёнку в картинке профиля или канала пользователя", stoppingToken);
             _logger.LogDebug("GetPicturesNsfwRating raw info: {@Info}", nudity);
         }
 
