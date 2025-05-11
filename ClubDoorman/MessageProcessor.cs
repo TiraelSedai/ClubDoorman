@@ -21,6 +21,7 @@ internal class MessageProcessor
     private readonly StatisticsReporter _statistics;
     private readonly ReactionHandler _reactionHandler;
     private readonly AdminCommandHandler _adminCommandHandler;
+    private readonly NsfwChecks _nsfwChecks;
     private User? _me;
 
     public MessageProcessor(
@@ -33,7 +34,8 @@ internal class MessageProcessor
         CaptchaManager captchaManager,
         StatisticsReporter statistics,
         ReactionHandler reactionHandler,
-        AdminCommandHandler adminCommandHandler
+        AdminCommandHandler adminCommandHandler,
+        NsfwChecks nsfwChecks
     )
     {
         _bot = bot;
@@ -46,6 +48,7 @@ internal class MessageProcessor
         _statistics = statistics;
         _reactionHandler = reactionHandler;
         _adminCommandHandler = adminCommandHandler;
+        _nsfwChecks = nsfwChecks;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
@@ -270,6 +273,14 @@ internal class MessageProcessor
                 await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
+
+        var nudity = await _nsfwChecks.GetPicturesNsfwRating(user, stoppingToken);
+        if (nudity.User?.IsNsfw == true || nudity.Channel?.IsNsfw == true)
+        {
+            await DontDeleteButReportMessage(message, "ML нашёл обнажёнку в картинке профиля или канала пользователя", stoppingToken);
+            _logger.LogDebug("GetPicturesNsfwRating raw info: {@Info}", nudity);
+        }
+
         if (
             Config.OpenRouterApi != null
             && message.From != null
