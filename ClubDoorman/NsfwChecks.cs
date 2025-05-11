@@ -1,18 +1,19 @@
 ﻿using Microsoft.Extensions.Caching.Hybrid;
-using NsfwSpyNS;
+using NsfwONNX;
 using Telegram.Bot;
+using UMapx.Core;
 
 namespace ClubDoorman;
 
-internal sealed record UserAndChannelNsfw(NsfwSpyResult? User, NsfwSpyResult? Channel);
+internal sealed record UserAndChannelNsfw(string? User, string? Channel);
 
-internal class NsfwChecks(ITelegramBotClient bot, INsfwSpy nsfwSpy, HybridCache hybridCache, ILogger<NsfwChecks> logger)
+internal class NsfwChecks(ITelegramBotClient bot, HybridCache hybridCache, ILogger<NsfwChecks> logger)
 {
     private readonly ITelegramBotClient _bot = bot;
-    private readonly INsfwSpy _nsfwSpy = nsfwSpy;
     private readonly HybridCache _hybridCache = hybridCache;
     private readonly ILogger<NsfwChecks> _logger = logger;
     private readonly Lock _lock = new();
+    private readonly OpenNsfwClassifier _nsfwClassifier = new();
 
     public ValueTask<UserAndChannelNsfw> GetPicturesNsfwRating(
         Telegram.Bot.Types.User user,
@@ -22,8 +23,8 @@ internal class NsfwChecks(ITelegramBotClient bot, INsfwSpy nsfwSpy, HybridCache 
             $"nsfw:{user.Id}",
             async ct =>
             {
-                NsfwSpyResult? userRes = null;
-                NsfwSpyResult? chanRes = null;
+                string? userRes = null;
+                string? chanRes = null;
 
                 try
                 {
@@ -35,7 +36,15 @@ internal class NsfwChecks(ITelegramBotClient bot, INsfwSpy nsfwSpy, HybridCache 
                     {
                         using var ms = new MemoryStream();
                         await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms, cancellationToken: ct);
-                        photo = ms.ToArray();
+                        ms.Seek(0, SeekOrigin.Begin);
+                        var bytes = ImageSharpConverter.ConvertToNormalizedBgrFloatChannels(ms);
+                        lock (_lock)
+                        {
+                            var results = _nsfwClassifier.Forward(bytes);
+                            _logger.LogDebug("Results matrix: {@Matrix}", results);
+                            var prob = Matrice.Max(results, out int index);
+                            userRes = OpenNsfwClassifier.Labels[index];
+                        }
                     }
                     if (userChat.LinkedChatId != null)
                     {
@@ -44,16 +53,17 @@ internal class NsfwChecks(ITelegramBotClient bot, INsfwSpy nsfwSpy, HybridCache 
                         {
                             using var ms = new MemoryStream();
                             await _bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms, cancellationToken: ct);
-                            chanPhoto = ms.ToArray();
+                            ms.Seek(0, SeekOrigin.Begin);
+                            var bytes = ImageSharpConverter.ConvertToNormalizedBgrFloatChannels(ms);
+                            lock (_lock)
+                            {
+                                var results = _nsfwClassifier.Forward(bytes);
+                                _logger.LogDebug("Results matrix: {@Matrix}", results);
+                                var prob = Matrice.Max(results, out int index);
+                                chanRes = OpenNsfwClassifier.Labels[index];
+                            }
                         }
                     }
-
-                    if (photo.Length > 0)
-                        lock (_lock)
-                            userRes = _nsfwSpy.ClassifyImage(photo);
-                    if (chanPhoto.Length > 0)
-                        lock (_lock)
-                            chanRes = _nsfwSpy.ClassifyImage(chanPhoto);
                 }
                 catch (Exception e)
                 {
