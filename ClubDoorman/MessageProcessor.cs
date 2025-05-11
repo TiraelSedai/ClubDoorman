@@ -21,7 +21,8 @@ internal class MessageProcessor
     private readonly StatisticsReporter _statistics;
     private readonly ReactionHandler _reactionHandler;
     private readonly AdminCommandHandler _adminCommandHandler;
-    private readonly NsfwChecks _nsfwChecks;
+
+    //private readonly NsfwChecks _nsfwChecks;
     private User? _me;
 
     public MessageProcessor(
@@ -34,8 +35,8 @@ internal class MessageProcessor
         CaptchaManager captchaManager,
         StatisticsReporter statistics,
         ReactionHandler reactionHandler,
-        AdminCommandHandler adminCommandHandler,
-        NsfwChecks nsfwChecks
+        AdminCommandHandler adminCommandHandler
+    //NsfwChecks nsfwChecks
     )
     {
         _bot = bot;
@@ -48,7 +49,7 @@ internal class MessageProcessor
         _statistics = statistics;
         _reactionHandler = reactionHandler;
         _adminCommandHandler = adminCommandHandler;
-        _nsfwChecks = nsfwChecks;
+        //_nsfwChecks = nsfwChecks;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
