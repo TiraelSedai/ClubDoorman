@@ -118,41 +118,44 @@ internal class MessageProcessor
             if (linked != null && linked == message.SenderChat.Id)
                 return;
 
-            if (Config.ChannelAutoBan && !Config.ChannelsCheckExclusionChats.Contains(chat.Id))
+            if (!Config.ChannelsCheckExclusionChats.Contains(chat.Id))
             {
-                try
+                if (Config.ChannelAutoBan)
                 {
-                    var subs = await _bot.GetChatMemberCount(message.SenderChat.Id, cancellationToken: stoppingToken);
-                    if (subs > Consts.BigChannelSubsCount)
+                    try
                     {
-                        _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
-                        return;
-                    }
+                        var subs = await _bot.GetChatMemberCount(message.SenderChat.Id, cancellationToken: stoppingToken);
+                        if (subs > Consts.BigChannelSubsCount)
+                        {
+                            _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
+                            return;
+                        }
 
-                    var fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
-                    await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
-                    await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
-                    await _bot.SendMessage(
-                        admChat,
-                        $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
-                        replyParameters: fwd,
-                        cancellationToken: stoppingToken
-                    );
+                        var fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
+                        await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
+                        await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
+                        await _bot.SendMessage(
+                            admChat,
+                            $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
+                            replyParameters: fwd,
+                            cancellationToken: stoppingToken
+                        );
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning(e, "Unable to ban");
+                        await _bot.SendMessage(
+                            admChat,
+                            $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
+                            cancellationToken: stoppingToken
+                        );
+                    }
+                    return;
                 }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Unable to ban");
-                    await _bot.SendMessage(
-                        admChat,
-                        $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
-                        cancellationToken: stoppingToken
-                    );
-                }
+
+                await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
                 return;
             }
-
-            await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
-            return;
         }
 
         var user = message.From!;
