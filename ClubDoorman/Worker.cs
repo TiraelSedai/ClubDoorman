@@ -41,6 +41,7 @@ internal sealed class Worker(
     private readonly TelegramBotClient _bot = new(Config.BotApi);
     private readonly ConcurrentDictionary<long, Stats> _stats = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
+    private readonly PeriodicTimer _banlistRefreshTimer = new(TimeSpan.FromHours(12));
     private readonly ILogger<Worker> _logger = logger;
     private readonly SpamHamClassifier _classifier = classifier;
     private readonly UserManager _userManager = userManager;
@@ -56,10 +57,38 @@ internal sealed class Worker(
         }
     }
 
+    private async Task RefreshBanlistLoop(CancellationToken token)
+    {
+        // Обновляем банлист сразу после запуска бота
+        try 
+        {
+            _logger.LogInformation("Начальное обновление банлиста из lols.bot при старте бота");
+            await _userManager.RefreshBanlist();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при начальном обновлении банлиста");
+        }
+
+        while (await _banlistRefreshTimer.WaitForNextTickAsync(token))
+        {
+            try
+            {
+                _logger.LogInformation("Обновляем банлист из lols.bot");
+                await _userManager.RefreshBanlist();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении банлиста");
+            }
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _ = CaptchaLoop(stoppingToken);
         _ = ReportStatistics(stoppingToken);
+        _ = RefreshBanlistLoop(stoppingToken);
         _classifier.Touch();
         const string offsetPath = "data/offset.txt";
         var offset = 0;
