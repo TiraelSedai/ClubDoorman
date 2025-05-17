@@ -739,11 +739,12 @@ internal sealed class Worker(
                 );
             }
             
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"🚫 *Автобан на 4 часа* в чате *{chat.Title}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) находится в блэклисте",
-                parseMode: ParseMode.Markdown
-            );
+            // Отключено
+            // await _bot.SendMessage(
+            //     Config.AdminChatId,
+            //     $"🚫 *Автобан на 4 часа* в чате *{chat.Title}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) находится в блэклисте",
+            //     parseMode: ParseMode.Markdown
+            // );
             return true;
         }
         catch (Exception e)
