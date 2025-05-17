@@ -308,7 +308,7 @@ internal class MessageProcessor
                     var photoMsg = await _bot.SendPhoto(
                         admChat,
                         new InputFileStream(ms),
-                        $"{bio}{Environment.NewLine}Сообщение специально не привожу, потому что должно быть понятно без контекста, если это аттеншн-бейт",
+                        $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
                         cancellationToken: stoppingToken
                     );
                     replyParams = photoMsg;
