@@ -745,6 +745,7 @@ internal sealed class Worker(
             //     $"🚫 *Автобан на 4 часа* в чате *{chat.Title}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) находится в блэклисте",
             //     parseMode: ParseMode.Markdown
             // );
+            _logger.LogInformation("Пользователь {User} (id={UserId}) из блэклиста забанен на 4 часа в чате {ChatTitle} (id={ChatId})", FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id);
             return true;
         }
         catch (Exception e)
