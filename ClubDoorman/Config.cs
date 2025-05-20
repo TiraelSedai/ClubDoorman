@@ -69,43 +69,10 @@ internal class Config
                 {
                     try
                     {
-                        var fromChat = await _hybridCache.GetOrCreateAsync(
-                            $"full_chan:{from}",
-                            async ct =>
-                            {
-                                try
-                                {
-                                    var chat = await _bot.GetChat(from, cancellationToken: ct);
-                                    return new ChatInfo(from, chat.Title);
-                                }
-                                catch (Exception e)
-                                {
-                                    _logger.LogDebug(e, "GetChat");
-                                }
-                                return new ChatInfo(from, "FAIL");
-                            },
-                            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromMinutes(5) }
-                        );
-
-                        var toChat = await _hybridCache.GetOrCreateAsync(
-                            $"full_chan:{to}",
-                            async ct =>
-                            {
-                                try
-                                {
-                                    var chat = await _bot.GetChat(to, cancellationToken: ct);
-                                    return new ChatInfo(to, chat.Title);
-                                }
-                                catch (Exception e)
-                                {
-                                    _logger.LogDebug(e, "GetChat");
-                                }
-                                return new ChatInfo(to, "FAIL");
-                            },
-                            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromMinutes(5) }
-                        );
+                        var fromChat = await GetChat(from);
+                        var toChat = await GetChat(to);
                         _logger.LogInformation(
-                            "Messages from channel {Id} {Title} are going to admin chat {Id} {Title}",
+                            "Messages from channel {FromId} {FromTitle} are going to admin chat {ToId} {ToTitle}",
                             fromChat.Id,
                             fromChat.Title,
                             toChat.Id,
@@ -121,6 +88,28 @@ internal class Config
             }
         }
         MultiAdminChatMap = map.ToFrozenDictionary();
+    }
+
+    private async Task<ChatInfo> GetChat(long id)
+    {
+        return await _hybridCache.GetOrCreateAsync(
+            $"full_chan:{id}",
+            async ct =>
+            {
+                using var logScope = _logger.BeginScope("Get chat {ChId}", id);
+                try
+                {
+                    var chat = await _bot.GetChat(id, cancellationToken: ct);
+                    return new ChatInfo(id, chat.Title);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogDebug(e, "GetChat");
+                }
+                return new ChatInfo(id, "FAIL");
+            },
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromMinutes(5) }
+        );
     }
 
     public string? ClubServiceToken { get; } = Environment.GetEnvironmentVariable("DOORMAN_CLUB_SERVICE_TOKEN");
