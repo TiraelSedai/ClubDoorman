@@ -77,7 +77,7 @@ internal class Config
 
                         var toChat = await _hybridCache.GetOrCreateAsync(
                             $"full_chan:{to}",
-                            async ct => await _bot.GetChat(from, cancellationToken: ct),
+                            async ct => await _bot.GetChat(to, cancellationToken: ct),
                             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromMinutes(5) }
                         );
                         _logger.LogInformation(
