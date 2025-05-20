@@ -135,7 +135,7 @@ internal sealed class UserManager
         cts.CancelAfter(TimeSpan.FromSeconds(3));
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}", cts.Token);
+            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}&quick=true", cts.Token);
             if (!result!.banned)
                 return false;
             db.Add(new BlacklistedUser { Id = userId });
