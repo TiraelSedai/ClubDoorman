@@ -10,14 +10,27 @@ using tryAGI.OpenAI;
 
 namespace ClubDoorman;
 
-internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
+internal class AiChecks
 {
+
+    public AiChecks(ITelegramBotClient bot, Config config, ILogger<AiChecks> logger)
+    {
+        _bot = bot;
+        _config = config;
+        _logger = logger;
+        _api = _config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_config.OpenRouterApi);
+    }
+
+
     private readonly ResiliencePipeline _retry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
         .Build();
     const string Model = "google/gemini-2.5-flash-preview";
-    private static readonly OpenAiClient? api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
+    private readonly OpenAiClient? _api;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
+    private readonly ITelegramBotClient _bot;
+    private readonly Config _config;
+    private readonly ILogger<AiChecks> _logger;
 
     public static void MarkUserOkay(long userId)
     {
@@ -33,7 +46,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
         var probability = 0.0;
         var nameBioUser = "";
         var pic = Array.Empty<byte>();
-        if (api == null)
+        if (_api == null)
             return (probability, pic, nameBioUser);
 
         var cacheKey = $"attention:{user.Id}";
@@ -43,14 +56,14 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
 
         try
         {
-            var userChat = await bot.GetChat(user.Id);
+            var userChat = await _bot.GetChat(user.Id);
             if (!checkEvenIfNoBio && userChat.Bio == null && userChat.LinkedChatId == null)
             {
-                logger.LogDebug("GetAttentionBaitProbability {User} skipping: no bio, no channel", Utils.FullName(user));
+                _logger.LogDebug("GetAttentionBaitProbability {User} skipping: no bio, no channel", Utils.FullName(user));
                 return (probability, pic, nameBioUser);
             }
 
-            logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
+            _logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
             var photo = userChat.Photo;
             byte[]? photoBytes = null;
             ChatCompletionRequestUserMessage? photoMessage = null;
@@ -58,7 +71,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (photo != null)
             {
                 using var ms = new MemoryStream();
-                await bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
+                await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
                 photoBytes = ms.ToArray();
                 pic = photoBytes;
                 photoMessage = photoBytes.AsUserMessage(
@@ -93,7 +106,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (linked != null)
             {
                 byte[]? channelPhoto = null;
-                var linkedChat = await bot.GetChat(linked);
+                var linkedChat = await _bot.GetChat(linked);
                 var info = new StringBuilder();
                 sb.Append($"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
                 if (linkedChat.Username != null)
@@ -104,7 +117,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                 {
                     sb.Append($"\nФото:");
                     using var ms = new MemoryStream();
-                    await bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms);
+                    await _bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms);
                     channelPhoto = ms.ToArray();
                 }
                 var sbStr = sb.ToString();
@@ -119,10 +132,10 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                     );
             }
 
-            logger.LogDebug("LLM prompt: {Promt}", promptDebugString);
+            _logger.LogDebug("LLM prompt: {Promt}", promptDebugString);
 
             var response = await _retry.ExecuteAsync(async token =>
-                await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                     messages: messages,
                     model: Model,
                     strict: true,
@@ -134,16 +147,16 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             {
                 probability = response.Value1.Probability;
                 MemoryCache.Default.Add(cacheKey, (double?)probability, new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(3) });
-                logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
+                _logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
             }
             else
             {
-                logger.LogInformation("LLM GetAttentionBaitProbability: {@Resp}", response);
+                _logger.LogInformation("LLM GetAttentionBaitProbability: {@Resp}", response);
             }
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, "GetAttentionBaitProbability");
+            _logger.LogWarning(e, "GetAttentionBaitProbability");
         }
         return (probability, pic, nameBioUser);
     }
@@ -151,7 +164,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
     public async ValueTask<double> GetSpamProbability(Message message)
     {
         var probability = 0.0;
-        if (api == null)
+        if (_api == null)
             return probability;
 
         var text = message.Caption ?? message.Text;
@@ -166,7 +179,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             if (message.Photo != null)
             {
                 using var ms = new MemoryStream();
-                await bot.GetInfoAndDownloadFile(message.Photo.OrderBy(x => x.Width).First().FileId, ms);
+                await _bot.GetInfoAndDownloadFile(message.Photo.OrderBy(x => x.Width).First().FileId, ms);
                 imageBytes = ms.ToArray();
             }
 
@@ -184,7 +197,7 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
                 );
 
             var response = await _retry.ExecuteAsync(async token =>
-                await api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                     messages: messages,
                     model: Model,
                     strict: true,
@@ -196,12 +209,12 @@ internal class AiChecks(ITelegramBotClient bot, ILogger<AiChecks> logger)
             {
                 probability = response.Value1.Probability;
                 MemoryCache.Default.Add(cacheKey, (double?)probability, new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(1) });
-                logger.LogInformation("LLM GetSpamProbability {Prob}", probability);
+                _logger.LogInformation("LLM GetSpamProbability {Prob}", probability);
             }
         }
         catch (Exception e)
         {
-            logger.LogWarning(e, nameof(GetSpamProbability));
+            _logger.LogWarning(e, nameof(GetSpamProbability));
         }
         return probability;
     }

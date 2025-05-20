@@ -10,6 +10,7 @@ internal class AdminCommandHandler
     private readonly UserManager _userManager;
     private readonly BadMessageManager _badMessageManager;
     private readonly SpamHamClassifier _classifier;
+    private readonly Config _config;
     private readonly ILogger<AdminCommandHandler> _logger;
     private User? _me;
 
@@ -18,6 +19,7 @@ internal class AdminCommandHandler
         UserManager userManager,
         BadMessageManager badMessageManager,
         SpamHamClassifier classifier,
+        Config config,
         ILogger<AdminCommandHandler> logger
     )
     {
@@ -25,13 +27,14 @@ internal class AdminCommandHandler
         _userManager = userManager;
         _badMessageManager = badMessageManager;
         _classifier = classifier;
+        _config = config;
         _logger = logger;
     }
 
     public async Task HandleAdminCallback(string cbData, CallbackQuery cb)
     {
         var chat = cb.Message?.Chat.Id;
-        var admChat = chat ?? Config.AdminChatId;
+        var admChat = chat ?? _config.AdminChatId;
         var split = cbData.Split('_').ToList();
         if (split.Count > 1)
             switch (split[0])

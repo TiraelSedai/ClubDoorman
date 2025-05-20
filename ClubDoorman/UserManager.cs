@@ -10,18 +10,20 @@ internal sealed class UserManager
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly HybridCache _cache;
+    private readonly Config _config;
     private readonly ILogger<UserManager> _logger;
 
-    public UserManager(IServiceScopeFactory serviceScopeFactory, HybridCache cache, ILogger<UserManager> logger)
+    public UserManager(IServiceScopeFactory serviceScopeFactory, HybridCache cache, Config config, ILogger<UserManager> logger)
     {
         _serviceScopeFactory = serviceScopeFactory;
         _cache = cache;
+        _config = config;
         _logger = logger;
         Task.Run(InjestChatHistories);
-        if (Config.ClubServiceToken == null)
+        if (_config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
         else
-            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", _config.ClubServiceToken);
     }
 
     private const string Path = "data/approved-users.txt";
@@ -135,7 +137,10 @@ internal sealed class UserManager
         cts.CancelAfter(TimeSpan.FromSeconds(3));
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}&quick=true", cts.Token);
+            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>(
+                $"https://api.lols.bot/account?id={userId}&quick=true",
+                cts.Token
+            );
             if (!result!.banned)
                 return false;
             db.Add(new BlacklistedUser { Id = userId });
@@ -156,9 +161,9 @@ internal sealed class UserManager
 
     public async ValueTask<string?> GetClubUsername(long userId)
     {
-        if (Config.ClubServiceToken == null)
+        if (_config.ClubServiceToken == null)
             return null;
-        var url = $"{Config.ClubUrl}user/by_telegram_id/{userId}.json";
+        var url = $"{_config.ClubUrl}user/by_telegram_id/{userId}.json";
         try
         {
             using var cts = new CancellationTokenSource();

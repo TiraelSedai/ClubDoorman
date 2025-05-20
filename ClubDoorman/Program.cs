@@ -31,7 +31,10 @@ public class Program
                 .ConfigureServices(services =>
                 {
                     services.AddHostedService<Worker>();
-                    services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(Config.BotApi));
+                    services.AddSingleton<Config>();
+                    services.AddSingleton<ITelegramBotClient>(provider => new TelegramBotClient(
+                        provider.GetRequiredService<Config>().BotApi
+                    ));
                     services.AddSingleton<CaptchaManager>();
                     services.AddSingleton<MessageProcessor>();
                     services.AddSingleton<StatisticsReporter>();

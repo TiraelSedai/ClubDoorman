@@ -25,15 +25,17 @@ internal class CaptchaManager
     private readonly ITelegramBotClient _bot;
     private readonly UserManager _userManager;
     private readonly StatisticsReporter _statistics;
+    private readonly Config _config;
     private readonly ILogger<CaptchaManager> _logger;
 
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "ponr", "bot", "child", "chlid"];
 
-    public CaptchaManager(ITelegramBotClient bot, UserManager userManager, StatisticsReporter statistics, ILogger<CaptchaManager> logger)
+    public CaptchaManager(ITelegramBotClient bot, UserManager userManager, StatisticsReporter statistics, Config config, ILogger<CaptchaManager> logger)
     {
         _bot = bot;
         _userManager = userManager;
         _statistics = statistics;
+        _config = config;
         _logger = logger;
     }
 
@@ -175,7 +177,7 @@ internal class CaptchaManager
 
     private async Task<bool> BanIfBlacklisted(User user, Chat chat)
     {
-        if (!Config.BlacklistAutoBan)
+        if (!_config.BlacklistAutoBan)
             return false;
         if (!await _userManager.InBanlist(user.Id))
             return false;
@@ -191,7 +193,7 @@ internal class CaptchaManager
         {
             _logger.LogWarning(e, "Unable to ban");
             await _bot.SendMessage(
-                Config.GetAdminChat(chat.Id),
+                _config.GetAdminChat(chat.Id),
                 $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
             );
         }

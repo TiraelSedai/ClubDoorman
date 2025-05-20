@@ -30,14 +30,16 @@ internal class StatisticsReporter
 {
     private readonly ITelegramBotClient _bot;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Config _config;
     private readonly ILogger<StatisticsReporter> _logger;
     public readonly ConcurrentDictionary<long, Stats> Stats = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromMinutes(1));
 
-    public StatisticsReporter(ITelegramBotClient bot, IServiceScopeFactory scopeFactory, ILogger<StatisticsReporter> logger)
+    public StatisticsReporter(ITelegramBotClient bot, IServiceScopeFactory scopeFactory, Config config, ILogger<StatisticsReporter> logger)
     {
         _bot = bot;
         _scopeFactory = scopeFactory;
+        _config = config;
         _logger = logger;
     }
 
@@ -62,7 +64,7 @@ internal class StatisticsReporter
             foreach (var (chatId, stats) in report)
             {
                 var list = free;
-                if (Config.MultiAdminChatMap.TryGetValue(chatId, out var adminChat))
+                if (_config.MultiAdminChatMap.TryGetValue(chatId, out var adminChat))
                 {
                     if (!assigned.TryGetValue(adminChat, out list))
                     {
@@ -92,7 +94,7 @@ internal class StatisticsReporter
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
                     await _bot.SendMessage(
-                        Config.AdminChatId,
+                        _config.AdminChatId,
                         $"В фри чатах за 24 часа:\n{string.Join('\n', chunk)}",
                         cancellationToken: ct
                     );

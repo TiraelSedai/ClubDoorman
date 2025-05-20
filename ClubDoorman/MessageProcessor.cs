@@ -19,6 +19,7 @@ internal class MessageProcessor
     private readonly CaptchaManager _captchaManager;
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
     private readonly StatisticsReporter _statistics;
+    private readonly Config _config;
     private readonly ReactionHandler _reactionHandler;
     private readonly AdminCommandHandler _adminCommandHandler;
 
@@ -33,6 +34,7 @@ internal class MessageProcessor
         AiChecks aiChecks,
         CaptchaManager captchaManager,
         StatisticsReporter statistics,
+        Config config,
         ReactionHandler reactionHandler,
         AdminCommandHandler adminCommandHandler
     )
@@ -45,6 +47,7 @@ internal class MessageProcessor
         _aiChecks = aiChecks;
         _captchaManager = captchaManager;
         _statistics = statistics;
+        _config = config;
         _reactionHandler = reactionHandler;
         _adminCommandHandler = adminCommandHandler;
     }
@@ -66,7 +69,7 @@ internal class MessageProcessor
                 return;
             var msg = cb.Message;
 
-            if (msg == null || msg.Chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(msg.Chat.Id))
+            if (msg == null || msg.Chat.Id == _config.AdminChatId || _config.MultiAdminChatMap.Values.Contains(msg.Chat.Id))
                 await _adminCommandHandler.HandleAdminCallback(cb.Data, cb);
             else
                 await _captchaManager.HandleCaptchaCallback(update);
@@ -90,18 +93,18 @@ internal class MessageProcessor
             await _bot.SendMessage(chat, "Сорян, я не отвечаю в личке", replyParameters: message, cancellationToken: stoppingToken);
             return;
         }
-        if (message.NewChatMembers != null && chat.Id != Config.AdminChatId && !Config.MultiAdminChatMap.Values.Contains(chat.Id))
+        if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
                 await _captchaManager.IntroFlow(message, newUser);
             return;
         }
-        if (chat.Id == Config.AdminChatId || Config.MultiAdminChatMap.Values.Contains(chat.Id))
+        if (chat.Id == _config.AdminChatId || _config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
             await _adminCommandHandler.AdminChatMessage(message);
             return;
         }
-        var admChat = Config.GetAdminChat(chat.Id);
+        var admChat = _config.GetAdminChat(chat.Id);
 
         if (message.SenderChat != null)
         {
@@ -115,9 +118,9 @@ internal class MessageProcessor
             if (linked != null && linked == message.SenderChat.Id)
                 return;
 
-            if (!Config.ChannelsCheckExclusionChats.Contains(chat.Id))
+            if (!_config.ChannelsCheckExclusionChats.Contains(chat.Id))
             {
-                if (Config.ChannelAutoBan)
+                if (_config.ChannelAutoBan)
                 {
                     try
                     {
@@ -184,7 +187,7 @@ internal class MessageProcessor
         if (await _userManager.InBanlist(user.Id))
         {
             _logger.LogDebug("InBanlist");
-            if (Config.BlacklistAutoBan)
+            if (_config.BlacklistAutoBan)
             {
                 var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
                 stats.BlacklistBanned++;
@@ -203,7 +206,7 @@ internal class MessageProcessor
         {
             _logger.LogDebug("Buttons");
             await (
-                Config.ButtonAutoBan
+                _config.ButtonAutoBan
                     ? AutoBan(message, "Сообщение с кнопками", stoppingToken)
                     : DeleteAndReportMessage(message, "Сообщение с кнопками", stoppingToken)
             );
@@ -248,7 +251,7 @@ internal class MessageProcessor
             _logger.LogDebug("lookalike");
             var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
-            if (!Config.LookAlikeAutoBan)
+            if (!_config.LookAlikeAutoBan)
             {
                 await DeleteAndReportMessage(message, reason, stoppingToken);
                 return;
@@ -268,17 +271,17 @@ internal class MessageProcessor
         if (spam)
         {
             var reason = $"ML решил что это спам, скор {score}";
-            if (score > 3 && Config.HighConfidenceAutoBan)
+            if (score > 3 && _config.HighConfidenceAutoBan)
                 await AutoBan(message, reason, stoppingToken);
             else
                 await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        
+
         if (
-            Config.OpenRouterApi != null
+            _config.OpenRouterApi != null
             && message.From != null
-            && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+            && (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
             var replyToRecentPost =
@@ -334,9 +337,9 @@ internal class MessageProcessor
             }
         }
         if (
-            Config.OpenRouterApi != null
+            _config.OpenRouterApi != null
             && message.From != null
-            && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+            && (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
             var prob = await _aiChecks.GetSpamProbability(message);
@@ -352,14 +355,14 @@ internal class MessageProcessor
         // else - ham
         if (
             score > -0.5
-            && Config.LowConfidenceHamForward
-            && (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+            && _config.LowConfidenceHamForward
+            && (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         )
         {
-            var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = Utils.LinkToMessage(chat, message.MessageId);
             await _bot.SendMessage(
-                Config.AdminChatId,
+                _config.AdminChatId,
                 $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                 replyParameters: forward,
                 cancellationToken: stoppingToken
@@ -386,9 +389,9 @@ internal class MessageProcessor
         var user = message.From!;
         var fullName = Utils.FullName(user);
         _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", message.Chat.Title, message.Chat.Id, fullName);
-        if (Config.MultiAdminChatMap.Count == 0 || Config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
+        if (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
         {
-            var admChat = Config.GetAdminChat(message.Chat.Id);
+            var admChat = _config.GetAdminChat(message.Chat.Id);
             var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
                 admChat,
@@ -450,7 +453,7 @@ internal class MessageProcessor
                     : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
                 var mentionAt = user.Username != null ? $"@{user.Username}" : "";
                 await _bot.SendMessage(
-                    Config.GetAdminChat(chatMember.Chat.Id),
+                    _config.GetAdminChat(chatMember.Chat.Id),
                     $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)} {mentionAt} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
                 );
                 break;
@@ -462,7 +465,7 @@ internal class MessageProcessor
         _logger.LogDebug("DontDeleteButReportMessage");
         var fromChat = message.SenderChat;
         var user = message.From!;
-        var admChat = Config.GetAdminChat(message.Chat.Id);
+        var admChat = _config.GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
@@ -484,7 +487,7 @@ internal class MessageProcessor
     private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken stoppingToken)
     {
         _logger.LogDebug("DeleteAndReportMessage");
-        var admChat = Config.GetAdminChat(message.Chat.Id);
+        var admChat = _config.GetAdminChat(message.Chat.Id);
 
         var user = message.From!;
         var fromChat = message.SenderChat;
@@ -517,7 +520,7 @@ internal class MessageProcessor
                 new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" },
             ]
         );
-        if (Config.ApproveButtonEnabled)
+        if (_config.ApproveButtonEnabled)
             row.Add(new InlineKeyboardButton("🥰🥰🥰 approve") { CallbackData = $"approve_{user.Id}" });
 
         await _bot.SendMessage(
