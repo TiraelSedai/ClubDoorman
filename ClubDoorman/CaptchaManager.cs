@@ -30,7 +30,13 @@ internal class CaptchaManager
 
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "ponr", "bot", "child", "chlid"];
 
-    public CaptchaManager(ITelegramBotClient bot, UserManager userManager, StatisticsReporter statistics, Config config, ILogger<CaptchaManager> logger)
+    public CaptchaManager(
+        ITelegramBotClient bot,
+        UserManager userManager,
+        StatisticsReporter statistics,
+        Config config,
+        ILogger<CaptchaManager> logger
+    )
     {
         _bot = bot;
         _userManager = userManager;

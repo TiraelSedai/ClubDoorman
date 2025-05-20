@@ -71,13 +71,37 @@ internal class Config
                     {
                         var fromChat = await _hybridCache.GetOrCreateAsync(
                             $"full_chan:{from}",
-                            async ct => await _bot.GetChat(from, cancellationToken: ct),
+                            async ct =>
+                            {
+                                try
+                                {
+                                    var chat = await _bot.GetChat(from, cancellationToken: ct);
+                                    return new ChatInfo(from, chat.Title);
+                                }
+                                catch (Exception e)
+                                {
+                                    _logger.LogDebug(e, "GetChat");
+                                }
+                                return new ChatInfo(from, "FAIL");
+                            },
                             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromMinutes(5) }
                         );
 
                         var toChat = await _hybridCache.GetOrCreateAsync(
                             $"full_chan:{to}",
-                            async ct => await _bot.GetChat(to, cancellationToken: ct),
+                            async ct =>
+                            {
+                                try
+                                {
+                                    var chat = await _bot.GetChat(to, cancellationToken: ct);
+                                    return new ChatInfo(to, chat.Title);
+                                }
+                                catch (Exception e)
+                                {
+                                    _logger.LogDebug(e, "GetChat");
+                                }
+                                return new ChatInfo(to, "FAIL");
+                            },
                             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromMinutes(5) }
                         );
                         _logger.LogInformation(
@@ -125,4 +149,6 @@ internal class Config
             throw new Exception("DOORMAN_CLUB_URL variable is set to invalid URL");
         return url;
     }
+
+    internal sealed record ChatInfo(long Id, string? Title);
 }

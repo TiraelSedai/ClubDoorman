@@ -14,7 +14,13 @@ internal class ReactionHandler
     private readonly Config _config;
     private readonly ILogger<ReactionHandler> _logger;
 
-    public ReactionHandler(ITelegramBotClient bot, UserManager userManager, AiChecks aiChecks, Config config, ILogger<ReactionHandler> logger)
+    public ReactionHandler(
+        ITelegramBotClient bot,
+        UserManager userManager,
+        AiChecks aiChecks,
+        Config config,
+        ILogger<ReactionHandler> logger
+    )
     {
         _bot = bot;
         _userManager = userManager;

@@ -12,7 +12,6 @@ namespace ClubDoorman;
 
 internal class AiChecks
 {
-
     public AiChecks(ITelegramBotClient bot, Config config, ILogger<AiChecks> logger)
     {
         _bot = bot;
@@ -20,7 +19,6 @@ internal class AiChecks
         _logger = logger;
         _api = _config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_config.OpenRouterApi);
     }
-
 
     private readonly ResiliencePipeline _retry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
