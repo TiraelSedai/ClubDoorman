@@ -389,17 +389,14 @@ internal class MessageProcessor
         var user = message.From!;
         var fullName = Utils.FullName(user);
         _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", message.Chat.Title, message.Chat.Id, fullName);
-        if (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
-        {
-            var admChat = _config.GetAdminChat(message.Chat.Id);
-            var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            await _bot.SendMessage(
-                admChat,
-                $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {message.Chat.Title}{Environment.NewLine}{Utils.LinkToMessage(message.Chat, message.MessageId)}",
-                replyParameters: forward,
-                cancellationToken: stoppingToken
-            );
-        }
+        var admChat = _config.AdminChatId;
+        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        await _bot.SendMessage(
+            admChat,
+            $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {message.Chat.Title}{Environment.NewLine}{Utils.LinkToMessage(message.Chat, message.MessageId)}",
+            replyParameters: forward,
+            cancellationToken: stoppingToken
+        );
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
     }

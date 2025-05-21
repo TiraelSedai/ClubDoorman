@@ -72,7 +72,7 @@ internal class Config
                         var fromChat = await GetChat(from);
                         var toChat = await GetChat(to);
                         _logger.LogInformation(
-                            "Messages from channel {FromId} {FromTitle} are going to admin chat {ToId} {ToTitle}",
+                            "Messages from chat {FromId} {FromTitle} are going to admin chat {ToId} {ToTitle}",
                             fromChat.Id,
                             fromChat.Title,
                             toChat.Id,
