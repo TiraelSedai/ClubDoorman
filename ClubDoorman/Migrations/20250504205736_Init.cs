@@ -18,19 +18,19 @@ namespace ClubDoorman.Migrations
                     ChatTitle = table.Column<string>(type: "TEXT", nullable: true),
                     StoppedCaptcha = table.Column<int>(type: "INTEGER", nullable: false),
                     BlacklistBanned = table.Column<int>(type: "INTEGER", nullable: false),
-                    KnownBadMessage = table.Column<int>(type: "INTEGER", nullable: false)
+                    KnownBadMessage = table.Column<int>(type: "INTEGER", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Stats", x => x.Id);
-                });
+                }
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "Stats");
+            migrationBuilder.DropTable(name: "Stats");
         }
     }
 }

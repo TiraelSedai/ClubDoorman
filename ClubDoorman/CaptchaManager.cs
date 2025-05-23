@@ -198,10 +198,11 @@ internal class CaptchaManager
         catch (Exception e)
         {
             _logger.LogWarning(e, "Unable to ban");
-            await _bot.SendMessage(
-                _config.GetAdminChat(chat.Id),
-                $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
-            );
+            if (_config.NonFreeChat(chat.Id))
+                await _bot.SendMessage(
+                    _config.GetAdminChat(chat.Id),
+                    $"Не могу забанить юзера из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}"
+                );
         }
 
         return false;

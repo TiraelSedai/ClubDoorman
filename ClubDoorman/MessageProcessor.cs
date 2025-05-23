@@ -90,7 +90,7 @@ internal class MessageProcessor
         var chat = message.Chat;
         if (chat.Type == ChatType.Private)
         {
-            await _bot.SendMessage(chat, "Сорян, я не отвечаю в личке", replyParameters: message, cancellationToken: stoppingToken);
+            await _bot.SendMessage(chat, "Сорян, я не отвечаю в личке, если вы хотели написать создателю то информация есть в описании", replyParameters: message, cancellationToken: stoppingToken);
             return;
         }
         if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
@@ -108,9 +108,9 @@ internal class MessageProcessor
 
         if (message.SenderChat != null)
         {
-            if (message.SenderChat.Id == chat.Id)
-                return;
             if (message.IsAutomaticForward)
+                return;
+            if (message.SenderChat.Id == chat.Id)
                 return;
             // to get linked_chat_id we need ChatFullInfo
             var chatFull = await _bot.GetChat(chat, stoppingToken);
@@ -130,25 +130,28 @@ internal class MessageProcessor
                             _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
                             return;
                         }
-
-                        var fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
+                        Message? fwd = null;
+                        if (_config.NonFreeChat(chat.Id))
+                            fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
                         await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                         await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
-                        await _bot.SendMessage(
-                            admChat,
-                            $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
-                            replyParameters: fwd,
-                            cancellationToken: stoppingToken
-                        );
+                        if (_config.NonFreeChat(chat.Id))
+                            await _bot.SendMessage(
+                                admChat,
+                                $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
+                                replyParameters: fwd!,
+                                cancellationToken: stoppingToken
+                            );
                     }
                     catch (Exception e)
                     {
                         _logger.LogWarning(e, "Unable to ban");
-                        await _bot.SendMessage(
-                            admChat,
-                            $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
-                            cancellationToken: stoppingToken
-                        );
+                        if (_config.NonFreeChat(chat.Id))
+                            await _bot.SendMessage(
+                                admChat,
+                                $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
+                                cancellationToken: stoppingToken
+                            );
                     }
                     return;
                 }
@@ -278,11 +281,7 @@ internal class MessageProcessor
             return;
         }
 
-        if (
-            _config.OpenRouterApi != null
-            && message.From != null
-            && (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
-        )
+        if (_config.OpenRouterApi != null && message.From != null && _config.NonFreeChat(message.Chat.Id))
         {
             var replyToRecentPost =
                 message.ReplyToMessage?.IsAutomaticForward == true
@@ -336,11 +335,7 @@ internal class MessageProcessor
                 }
             }
         }
-        if (
-            _config.OpenRouterApi != null
-            && message.From != null
-            && (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
-        )
+        if (_config.OpenRouterApi != null && message.From != null && _config.NonFreeChat(message.Chat.Id))
         {
             var prob = await _aiChecks.GetSpamProbability(message);
             if (prob >= Consts.LlmLowProbability)
@@ -353,11 +348,7 @@ internal class MessageProcessor
         }
 
         // else - ham
-        if (
-            score > -0.5
-            && _config.LowConfidenceHamForward
-            && (_config.MultiAdminChatMap.Count == 0 || _config.MultiAdminChatMap.ContainsKey(message.Chat.Id))
-        )
+        if (score > -0.5 && _config.LowConfidenceHamForward && _config.NonFreeChat(message.Chat.Id))
         {
             var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = Utils.LinkToMessage(chat, message.MessageId);

@@ -38,6 +38,8 @@ internal class Config
     public FrozenDictionary<long, long> MultiAdminChatMap { get; private set; }
     public FrozenSet<long> ChannelsCheckExclusionChats { get; }
 
+    public bool NonFreeChat(long chatId) => MultiAdminChatMap.Count == 0 || MultiAdminChatMap.ContainsKey(chatId);
+
     private FrozenSet<long> GetChannelsCheckExclusionChats()
     {
         var list = new List<long>();
