@@ -24,6 +24,8 @@ public sealed class Stats
     public int StoppedCaptcha { get; set; }
     public int BlacklistBanned { get; set; }
     public int KnownBadMessage { get; set; }
+    public int Autoban { get; set; }
+    public int Channels { get; set; }
 }
 
 internal class StatisticsReporter
@@ -154,10 +156,10 @@ internal class StatisticsReporter
         var sb = new StringBuilder();
         sb.Append("В ");
         sb.Append(stats.ChatTitle);
-        var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha;
+        var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.Channels + stats.Autoban;
         sb.Append($": {sum} раза сработала защита автоматом{Environment.NewLine}");
         sb.Append(
-            $"По блеклистам известных аккаунтов спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, за известные спам сообщения забанено: {stats.KnownBadMessage}"
+            $"По блеклистам известных спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, автобан (например: кнопки на сообщении, ML супер уверен, сообщения маскирующиеся под русские - а там греческие буквы): {stats.Autoban}, каналов с малым количеством подписчиков: {stats.Channels}, за строгому соответствию блеклистам спам сообщений: {stats.KnownBadMessage}"
         );
         return sb.ToString();
     }

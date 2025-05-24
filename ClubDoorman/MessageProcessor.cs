@@ -90,7 +90,12 @@ internal class MessageProcessor
         var chat = message.Chat;
         if (chat.Type == ChatType.Private)
         {
-            await _bot.SendMessage(chat, "Сорян, я не отвечаю в личке, если вы хотели написать создателю то информация есть в описании", replyParameters: message, cancellationToken: stoppingToken);
+            await _bot.SendMessage(
+                chat,
+                "Сорян, я не отвечаю в личке, если вы хотели написать создателю - в описании",
+                replyParameters: message,
+                cancellationToken: stoppingToken
+            );
             return;
         }
         if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
@@ -135,6 +140,8 @@ internal class MessageProcessor
                             fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
                         await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                         await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
+                        var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
+                        stats.Channels++;
                         if (_config.NonFreeChat(chat.Id))
                             await _bot.SendMessage(
                                 admChat,
@@ -379,17 +386,20 @@ internal class MessageProcessor
     {
         var user = message.From!;
         var fullName = Utils.FullName(user);
-        _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", message.Chat.Title, message.Chat.Id, fullName);
+        var chat = message.Chat;
+        _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", chat.Title, chat.Id, fullName);
         var admChat = _config.AdminChatId;
-        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
         await _bot.SendMessage(
             admChat,
-            $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {message.Chat.Title}{Environment.NewLine}{Utils.LinkToMessage(message.Chat, message.MessageId)}",
+            $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, message.MessageId)}",
             replyParameters: forward,
             cancellationToken: stoppingToken
         );
-        await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
-        await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+        await _bot.DeleteMessage(chat, message.MessageId, cancellationToken: stoppingToken);
+        var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
+        stats.Autoban++;
+        await _bot.BanChatMember(chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
     }
 
     private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
