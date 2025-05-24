@@ -437,12 +437,12 @@ internal class MessageProcessor
                 var key = $"{chatMember.Chat.Id}_{user.Id}";
                 var lastMessage = MemoryCache.Default.Get(key) as string;
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
-                    ? ""
-                    : $" Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
+                    ? "Если его забанили за спам, а ML не распознал спам - киньте его сообщение сюда."
+                    : $"Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
                 var mentionAt = user.Username != null ? $"@{user.Username}" : "";
                 await _bot.SendMessage(
                     _config.GetAdminChat(chatMember.Chat.Id),
-                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)} {mentionAt} дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}"
+                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)} {mentionAt} дали ридонли или забанили. {tailMessage}"
                 );
                 break;
         }
