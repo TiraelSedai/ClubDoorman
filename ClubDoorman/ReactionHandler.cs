@@ -1,5 +1,4 @@
 using System.Runtime.Caching;
-using Microsoft.VisualBasic;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -39,7 +38,7 @@ internal class ReactionHandler
         if (reaction.NewReaction.Length == 0)
             return;
 
-        var userKey = $"user:{user.Id}";
+        var userKey = $"attention:{user.Id}";
         var cache = new ReactionCache();
         if (
             MemoryCache.Default.AddOrGetExisting(
@@ -80,9 +79,10 @@ internal class ReactionHandler
                     new(Consts.BanButton) { CallbackData = $"ban_{reaction.Chat.Id}_{user.Id}" },
                     new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" },
                 };
+                var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что реакцию поставил бейт спаммер {attentionProb * 100}%. Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}",
+                    $"Вероятность что реакцию поставил бейт спаммер {attentionProb * 100}%. Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}",
                     replyParameters: replyParameters,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );

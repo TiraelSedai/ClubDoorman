@@ -321,9 +321,10 @@ internal class MessageProcessor
                 var delete = attentionProb >= Consts.LlmHighProbability || replyToRecentPost;
 
                 var action = delete ? "Даём ридонли на 10 минут" : "";
+                var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}",
+                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
                     replyParameters: replyParams,
                     cancellationToken: stoppingToken
@@ -369,16 +370,19 @@ internal class MessageProcessor
         _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
 
         // Now we need a mechanism for users who have been writing non-spam for some time
-        var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
-        if (goodInteractions >= 3)
+        if (update.Message != null)
         {
-            _logger.LogInformation(
-                "User {FullName} behaved well for the last {Count} messages, approving",
-                Utils.FullName(user),
-                goodInteractions
-            );
-            await _userManager.Approve(user.Id);
-            _goodUserMessages.TryRemove(user.Id, out _);
+            var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
+            if (goodInteractions >= 3)
+            {
+                _logger.LogInformation(
+                    "User {FullName} behaved well for the last {Count} messages, approving",
+                    Utils.FullName(user),
+                    goodInteractions
+                );
+                await _userManager.Approve(user.Id);
+                _goodUserMessages.TryRemove(user.Id, out _);
+            }
         }
     }
 
