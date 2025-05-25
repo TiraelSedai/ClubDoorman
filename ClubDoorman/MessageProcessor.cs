@@ -293,9 +293,9 @@ internal class MessageProcessor
             var replyToRecentPost =
                 message.ReplyToMessage?.IsAutomaticForward == true
                 && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
-            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From, replyToRecentPost);
-            _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attentionProb);
-            if (attentionProb >= Consts.LlmLowProbability)
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From, replyToRecentPost);
+            _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attention);
+            if (attention.Probability >= Consts.LlmLowProbability)
             {
                 var keyboard = new List<InlineKeyboardButton>
                 {
@@ -318,13 +318,13 @@ internal class MessageProcessor
 
                 if (replyToRecentPost)
                     _logger.LogDebug("It's a reply to recent post, high alert");
-                var delete = attentionProb >= Consts.LlmHighProbability || replyToRecentPost;
+                var delete = attention.Probability >= Consts.LlmHighProbability || replyToRecentPost;
 
                 var action = delete ? "Даём ридонли на 10 минут" : "";
                 var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что это профиль бейт спаммер {attentionProb * 100}%. {action}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
+                    $"Вероятность что это профиль бейт спаммер {attention.Probability * 100}%. {action}{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
                     replyParameters: replyParams,
                     cancellationToken: stoppingToken
@@ -345,13 +345,15 @@ internal class MessageProcessor
         }
         if (_config.OpenRouterApi != null && message.From != null && _config.NonFreeChat(message.Chat.Id))
         {
-            var prob = await _aiChecks.GetSpamProbability(message);
-            if (prob >= Consts.LlmLowProbability)
+            var spamCheck = await _aiChecks.GetSpamProbability(message);
+            if (spamCheck.Probability >= Consts.LlmLowProbability)
             {
-                if (prob >= Consts.LlmHighProbability)
-                    await DeleteAndReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
+                var reason =
+                    $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
+                if (spamCheck.Probability >= Consts.LlmHighProbability)
+                    await DeleteAndReportMessage(message, reason, stoppingToken);
                 else
-                    await DontDeleteButReportMessage(message, $"LLM сказал что вероятность что это спам {prob}", stoppingToken);
+                    await DontDeleteButReportMessage(message, reason, stoppingToken);
             }
         }
 
