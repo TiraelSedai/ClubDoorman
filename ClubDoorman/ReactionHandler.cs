@@ -62,9 +62,9 @@ internal class ReactionHandler
                 reaction.Chat.Title
             );
             var admChat = _config.GetAdminChat(reaction.Chat.Id);
-            var (attentionProb, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
-            _logger.LogDebug("Reaction bait spam probability {Prob}", attentionProb);
-            if (attentionProb >= Consts.LlmLowProbability)
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
+            _logger.LogDebug("Reaction bait spam probability {Prob}", attention);
+            if (attention.Probability >= Consts.LlmLowProbability)
             {
                 var postLink = Utils.LinkToMessage(reaction.Chat, reaction.MessageId);
                 ReplyParameters? replyParameters = null;
@@ -82,7 +82,7 @@ internal class ReactionHandler
                 var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что реакцию поставил бейт спаммер {attentionProb * 100}%. Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}",
+                    $"Вероятность что реакцию поставил бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}",
                     replyParameters: replyParameters,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
