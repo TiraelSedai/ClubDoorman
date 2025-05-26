@@ -53,7 +53,7 @@ internal class ReactionHandler
         }
         cache.ReactionCount++;
 
-        if (cache.ReactionCount <= 1  && _config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
+        if (cache.ReactionCount <= 1 && _config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
         {
             _logger.LogDebug(
                 "Reaction number {Count} from {User} in chat {Chat}",
@@ -63,7 +63,7 @@ internal class ReactionHandler
             );
             var admChat = _config.GetAdminChat(reaction.Chat.Id);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
-            _logger.LogDebug("Reaction bait spam probability {Prob}", attention);
+            _logger.LogDebug("Reaction bait spam probability {@Att}", attention);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
                 var postLink = Utils.LinkToMessage(reaction.Chat, reaction.MessageId);
