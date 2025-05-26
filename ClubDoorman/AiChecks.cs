@@ -144,7 +144,7 @@ internal class AiChecks
             {
                 probability = response.Value1;
                 MemoryCache.Default.Add(cacheKey, probability, new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(3) });
-                _logger.LogInformation("LLM GetAttentionBaitProbability: {Prob}", probability);
+                _logger.LogInformation("LLM GetAttentionBaitProbability: {@Prob}", probability);
             }
             else
             {

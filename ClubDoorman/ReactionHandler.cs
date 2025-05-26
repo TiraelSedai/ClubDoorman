@@ -53,7 +53,7 @@ internal class ReactionHandler
         }
         cache.ReactionCount++;
 
-        if (cache.ReactionCount < 1 && _config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
+        if (cache.ReactionCount <= 1  && _config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
         {
             _logger.LogDebug(
                 "Reaction number {Count} from {User} in chat {Chat}",
