@@ -136,48 +136,52 @@ internal class AiChecks
                 var matches = MyRegexes.TelegramUsername().Matches(userChat.Bio);
                 foreach (Match match in matches)
                 {
-                    if (match.Groups.Count < 2)
+                    if (!match.Success)
                         continue;
-                    try
+                    var relevantGroups = match.Groups
+                        .Cast<Group>()
+                        .Skip(1) // 0th groups is full match
+                        .Where(g => g.Success);
+
+                    foreach (Group group in relevantGroups)
                     {
-                        // in C# 0'th group is whole match, and we need next
-                        var group = match.Groups[1];
-                        if (group.Success == false)
-                            continue;
-                        var username = $"@{group.Value}";
-                        if (alreadyIncluded.Contains(username))
-                            continue;
-                        if (alreadyIncluded.Count >= 3)
-                            continue;
-                        byte[]? channelPhoto = null;
-                        var mentionedChat = await _bot.GetChat(username);
-                        var info = new StringBuilder();
-                        sb.Append($"Информация об упомянутом канале:\nНазвание: {mentionedChat.Title}");
-                        if (mentionedChat.Username != null)
-                            sb.Append($"\nЮзернейм: @{mentionedChat.Username}");
-                        if (mentionedChat.Description != null)
-                            sb.Append($"\nОписание: {mentionedChat.Description}");
-                        if (mentionedChat.Photo != null)
+                        try
                         {
-                            sb.Append($"\nФото:");
-                            using var ms = new MemoryStream();
-                            await _bot.GetInfoAndDownloadFile(mentionedChat.Photo.BigFileId, ms);
-                            channelPhoto = ms.ToArray();
+                            var username = $"@{group.Value}";
+                            if (alreadyIncluded.Contains(username))
+                                continue;
+                            if (alreadyIncluded.Count >= 3)
+                                continue;
+                            byte[]? channelPhoto = null;
+                            var mentionedChat = await _bot.GetChat(username);
+                            var info = new StringBuilder();
+                            sb.Append($"Информация об упомянутом канале:\nНазвание: {mentionedChat.Title}");
+                            if (mentionedChat.Username != null)
+                                sb.Append($"\nЮзернейм: @{mentionedChat.Username}");
+                            if (mentionedChat.Description != null)
+                                sb.Append($"\nОписание: {mentionedChat.Description}");
+                            if (mentionedChat.Photo != null)
+                            {
+                                sb.Append($"\nФото:");
+                                using var ms = new MemoryStream();
+                                await _bot.GetInfoAndDownloadFile(mentionedChat.Photo.BigFileId, ms);
+                                channelPhoto = ms.ToArray();
+                            }
+                            var sbStr = sb.ToString();
+                            promptDebugString += "\n" + sbStr;
+                            messages.Add(sbStr.AsUserMessage());
+                            if (channelPhoto != null)
+                                messages.Add(
+                                    channelPhoto.AsUserMessage(
+                                        mimeType: "image/jpg",
+                                        detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
+                                    )
+                                );
                         }
-                        var sbStr = sb.ToString();
-                        promptDebugString += "\n" + sbStr;
-                        messages.Add(sbStr.AsUserMessage());
-                        if (channelPhoto != null)
-                            messages.Add(
-                                channelPhoto.AsUserMessage(
-                                    mimeType: "image/jpg",
-                                    detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-                                )
-                            );
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(e, "Exception in matches");
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Exception in matches");
+                        }
                     }
                 }
             }
