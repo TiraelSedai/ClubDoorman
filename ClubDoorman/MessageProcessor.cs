@@ -245,16 +245,7 @@ internal class MessageProcessor
             await HandleBadMessage(message, user, stoppingToken);
             return;
         }
-        if (SimpleFilters.TooManyEmojis(text))
-        {
-            _logger.LogDebug("TooManyEmojis");
-            const string reason = "В этом сообщении многовато эмоджи";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
-            return;
-        }
-
         var normalized = TextProcessor.NormalizeText(text);
-
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
         if (lookalike.Count > 2)
         {
@@ -268,6 +259,14 @@ internal class MessageProcessor
             }
 
             await AutoBan(message, reason, stoppingToken);
+            return;
+        }
+
+        if (SimpleFilters.TooManyEmojis(text))
+        {
+            _logger.LogDebug("TooManyEmojis");
+            const string reason = "В этом сообщении многовато эмоджи";
+            await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
 
