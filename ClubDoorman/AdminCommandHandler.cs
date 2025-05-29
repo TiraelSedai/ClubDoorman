@@ -11,6 +11,7 @@ internal class AdminCommandHandler
     private readonly BadMessageManager _badMessageManager;
     private readonly SpamHamClassifier _classifier;
     private readonly Config _config;
+    private readonly AiChecks _aiChecks;
     private readonly ILogger<AdminCommandHandler> _logger;
     private User? _me;
 
@@ -20,6 +21,7 @@ internal class AdminCommandHandler
         BadMessageManager badMessageManager,
         SpamHamClassifier classifier,
         Config config,
+        AiChecks aiChecks,
         ILogger<AdminCommandHandler> logger
     )
     {
@@ -28,6 +30,7 @@ internal class AdminCommandHandler
         _badMessageManager = badMessageManager;
         _classifier = classifier;
         _config = config;
+        _aiChecks = aiChecks;
         _logger = logger;
     }
 
@@ -52,7 +55,7 @@ internal class AdminCommandHandler
                 case "attOk":
                     if (!long.TryParse(split[1], out var attOkUserId))
                         return;
-                    AiChecks.MarkUserOkay(attOkUserId);
+                    await _aiChecks.MarkUserOkay(attOkUserId);
                     await _bot.SendMessage(
                         admChat,
                         $"{Utils.FullName(cb.From)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)",
