@@ -63,7 +63,7 @@ internal class ReactionHandler
             );
             var admChat = _config.GetAdminChat(reaction.Chat.Id);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
-            _logger.LogDebug("Reaction bait spam probability {@Att}", attention);
+            _logger.LogDebug("Reaction bait spam probability {Prob}", attention.Probability);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
                 var postLink = Utils.LinkToMessage(reaction.Chat, reaction.MessageId);
