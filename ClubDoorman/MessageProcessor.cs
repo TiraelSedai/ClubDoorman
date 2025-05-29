@@ -530,7 +530,9 @@ internal class MessageProcessor
 
         var user = message.From!;
         var fromChat = message.SenderChat;
-        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        Message? forward = null;
+        if (_config.NonFreeChat(message.Chat.Id))
+            forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var deletionMessagePart = reason;
         try
         {
@@ -550,6 +552,9 @@ internal class MessageProcessor
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
 
+        if (!_config.NonFreeChat(message.Chat.Id))
+            return;
+
         var callbackDataBan = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
         MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
@@ -562,10 +567,11 @@ internal class MessageProcessor
         if (_config.ApproveButtonEnabled)
             row.Add(new InlineKeyboardButton("🥰🥰🥰 approve") { CallbackData = $"approve_{user.Id}" });
 
+        var username = user.Username == null ? "" : $" @{user.Username}";
         await _bot.SendMessage(
             admChat,
-            $"{deletionMessagePart}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
-            replyParameters: forward,
+            $"{deletionMessagePart}{Environment.NewLine}Юзер {Utils.FullName(user)}{username} из чата {message.Chat.Title}{Environment.NewLine}{postLink}",
+            replyParameters: forward!,
             replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
         );
