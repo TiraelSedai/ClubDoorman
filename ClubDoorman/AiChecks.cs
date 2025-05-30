@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Polly;
 using Polly.Retry;
@@ -13,11 +14,18 @@ namespace ClubDoorman;
 
 internal class AiChecks
 {
-    public AiChecks(ITelegramBotClient bot, Config config, HybridCache hybridCache, ILogger<AiChecks> logger)
+    public AiChecks(
+        ITelegramBotClient bot,
+        Config config,
+        HybridCache hybridCache,
+        IServiceScopeFactory serviceScopeFactory,
+        ILogger<AiChecks> logger
+    )
     {
         _bot = bot;
         _config = config;
         _hybridCache = hybridCache;
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         _api = _config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_config.OpenRouterApi);
     }
@@ -31,16 +39,28 @@ internal class AiChecks
     private readonly ITelegramBotClient _bot;
     private readonly Config _config;
     private readonly HybridCache _hybridCache;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<AiChecks> _logger;
 
     private static string CacheKey(long userId) => $"attention:{userId}";
 
-    public ValueTask MarkUserOkay(long userId) =>
-        _hybridCache.SetAsync(
+    public async Task MarkUserOkay(long userId, CancellationToken ct = default)
+    {
+        await _hybridCache.SetAsync(
             CacheKey(userId),
             new SpamPhotoBio(new SpamProbability(), [], ""),
-            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(100) }
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(100) },
+            cancellationToken: ct
         );
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var halfApproved = await db.HalfApprovedUsers.AsNoTracking().SingleOrDefaultAsync(x => x.Id == userId, cancellationToken: ct);
+        if (halfApproved == default)
+        {
+            db.Add(new HalfApprovedUser { Id = userId });
+            await db.SaveChangesAsync(ct);
+        }
+    }
 
     private async ValueTask<SpamPhotoBio> GetEroticPhotoBaitProbability(
         Telegram.Bot.Types.User user,
@@ -100,6 +120,14 @@ internal class AiChecks
             CacheKey(user.Id),
             async ct =>
             {
+                using var scope = _serviceScopeFactory.CreateScope();
+                await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var halfApproved = await db
+                    .HalfApprovedUsers.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == user.Id, cancellationToken: ct);
+                if (halfApproved != default)
+                    return new SpamPhotoBio(new SpamProbability(), [], "");
+
                 var probability = new SpamProbability();
                 var pic = Array.Empty<byte>();
                 var nameBioUser = string.Empty;

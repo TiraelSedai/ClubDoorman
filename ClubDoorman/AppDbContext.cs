@@ -7,6 +7,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 {
     public DbSet<Stats> Stats { get; init; }
     public DbSet<BlacklistedUser> BlacklistedUsers { get; init; }
+    public DbSet<HalfApprovedUser> HalfApprovedUsers { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -15,6 +16,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 }
 
 public sealed class BlacklistedUser
+{
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public long Id { get; set; }
+}
+
+public sealed class HalfApprovedUser
 {
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public long Id { get; set; }
