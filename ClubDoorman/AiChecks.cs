@@ -66,7 +66,7 @@ internal class AiChecks
                     if (photo != null)
                     {
                         using var ms = new MemoryStream();
-                        await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
+                        await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms, cancellationToken: ct);
                         photoBytes = ms.ToArray();
                         pic = photoBytes;
                         photoMessage = photoBytes.AsUserMessage(
@@ -103,19 +103,19 @@ internal class AiChecks
                         byte[]? channelPhoto = null;
                         var linkedChat = await _bot.GetChat(linked);
                         var info = new StringBuilder();
-                        sb.Append($"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
+                        info.Append($"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
                         if (linkedChat.Username != null)
                             sb.Append($"\nЮзернейм: @{linkedChat.Username}");
                         if (linkedChat.Description != null)
-                            sb.Append($"\nОписание: {linkedChat.Description}");
+                            info.Append($"\nОписание: {linkedChat.Description}");
                         if (linkedChat.Photo != null)
                         {
-                            sb.Append($"\nФото:");
+                            info.Append($"\nФото:");
                             using var ms = new MemoryStream();
-                            await _bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms);
+                            await _bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms, cancellationToken: ct);
                             channelPhoto = ms.ToArray();
                         }
-                        var sbStr = sb.ToString();
+                        var sbStr = info.ToString();
                         promptDebugString += "\n" + sbStr;
                         messages.Add(sbStr.AsUserMessage());
                         if (channelPhoto != null)
@@ -152,19 +152,19 @@ internal class AiChecks
                                     byte[]? channelPhoto = null;
                                     var mentionedChat = await _bot.GetChat(username, cancellationToken: ct);
                                     var info = new StringBuilder();
-                                    sb.Append($"Информация об упомянутом канале:\nНазвание: {mentionedChat.Title}");
+                                    info.Append($"Информация об упомянутом канале:\nНазвание: {mentionedChat.Title}");
                                     if (mentionedChat.Username != null)
-                                        sb.Append($"\nЮзернейм: @{mentionedChat.Username}");
+                                        info.Append($"\nЮзернейм: @{mentionedChat.Username}");
                                     if (mentionedChat.Description != null)
-                                        sb.Append($"\nОписание: {mentionedChat.Description}");
+                                        info.Append($"\nОписание: {mentionedChat.Description}");
                                     if (mentionedChat.Photo != null)
                                     {
-                                        sb.Append($"\nФото:");
+                                        info.Append($"\nФото:");
                                         using var ms = new MemoryStream();
-                                        await _bot.GetInfoAndDownloadFile(mentionedChat.Photo.BigFileId, ms);
+                                        await _bot.GetInfoAndDownloadFile(mentionedChat.Photo.BigFileId, ms, cancellationToken: ct);
                                         channelPhoto = ms.ToArray();
                                     }
-                                    var sbStr = sb.ToString();
+                                    var sbStr = info.ToString();
                                     promptDebugString += "\n" + sbStr;
                                     messages.Add(sbStr.AsUserMessage());
                                     if (channelPhoto != null)
