@@ -284,6 +284,8 @@ internal class AiChecks
                     if (response.Value1 != null)
                     {
                         probability = response.Value1;
+                        if (probability.Probability < Consts.LlmLowProbability)
+                            pic = []; // cache optimization, don't store all user photos who are not spammers
                         _logger.LogInformation("LLM GetAttentionBaitProbability: {@Prob}", probability);
                     }
                     else
@@ -297,7 +299,7 @@ internal class AiChecks
                 }
                 return new SpamPhotoBio(probability, pic, nameBioUser);
             },
-            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(8) }
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(7) }
         );
     }
 
