@@ -286,6 +286,8 @@ internal class MessageProcessor
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                else
+                    await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
             }
             else
             {
@@ -315,6 +317,8 @@ internal class MessageProcessor
                     var spamCheck = await _aiChecks.GetSpamProbability(message);
                     if (spamCheck.Probability >= Consts.LlmHighProbability)
                         await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                    else
+                        await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
                 }
                 else
                 {
