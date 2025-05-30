@@ -129,6 +129,8 @@ internal class StatisticsReporter
                 inDb.BlacklistBanned = chat.Value.BlacklistBanned;
                 inDb.StoppedCaptcha = chat.Value.StoppedCaptcha;
                 inDb.KnownBadMessage = chat.Value.KnownBadMessage;
+                inDb.Autoban = chat.Value.Autoban;
+                inDb.Channels = chat.Value.Channels;
             }
             else
             {
