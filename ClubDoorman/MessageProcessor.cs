@@ -333,7 +333,7 @@ internal class MessageProcessor
             var replyToRecentPost =
                 message.ReplyToMessage?.IsAutomaticForward == true
                 && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From, replyToRecentPost);
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
             _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attention.Probability);
             if (attention.Probability >= Consts.LlmLowProbability)
             {

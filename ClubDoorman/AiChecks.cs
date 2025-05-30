@@ -33,11 +33,66 @@ internal class AiChecks
     private readonly HybridCache _hybridCache;
     private readonly ILogger<AiChecks> _logger;
 
-    private string CacheKey(long userId) => $"attention:{userId}";
+    private static string CacheKey(long userId) => $"attention:{userId}";
 
-    public ValueTask MarkUserOkay(long userId) => _hybridCache.SetAsync(CacheKey(userId), new SpamPhotoBio(new SpamProbability(), [], ""));
+    public ValueTask MarkUserOkay(long userId) =>
+        _hybridCache.SetAsync(
+            CacheKey(userId),
+            new SpamPhotoBio(new SpamProbability(), [], ""),
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(100) }
+        );
 
-    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user, bool checkEvenIfNoBio = false)
+    private async ValueTask<SpamPhotoBio> GetEroticPhotoBaitProbability(
+        Telegram.Bot.Types.User user,
+        ChatFullInfo userChat,
+        CancellationToken ct = default
+    )
+    {
+        if (_api == null)
+            return new SpamPhotoBio(new SpamProbability(), [], "");
+        var probability = new SpamProbability();
+        var pic = Array.Empty<byte>();
+
+        try
+        {
+            var photo = userChat.Photo!;
+            using var ms = new MemoryStream();
+            await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms, cancellationToken: ct);
+            var photoBytes = ms.ToArray();
+            pic = photoBytes;
+            var photoMessage = photoBytes.AsUserMessage(
+                mimeType: "image/jpg",
+                detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
+            );
+
+            var prompt =
+                "Проанализируй, выглядит ли эта аватарка пользователя сексуализированно или развратно. Отвечай вероятностью от 0 до 1.";
+            var messages = new List<ChatCompletionRequestMessage> { prompt.AsUserMessage(), photoMessage };
+            var response = await _retry.ExecuteAsync(
+                async token =>
+                    await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                        messages: messages,
+                        model: Model,
+                        strict: true,
+                        jsonSerializerOptions: jso,
+                        cancellationToken: token
+                    ),
+                ct
+            );
+            if (response.Value1 != null)
+            {
+                probability = response.Value1;
+                _logger.LogInformation("LLM GetEroticPhotoBaitProbability: {@Prob}", probability);
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "GetEroticPhotoBaitProbability");
+        }
+        return new SpamPhotoBio(probability, pic, Utils.FullName(user));
+    }
+
+    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user)
     {
         if (_api == null)
             return ValueTask.FromResult(new SpamPhotoBio(new SpamProbability(), [], ""));
@@ -46,16 +101,18 @@ internal class AiChecks
             async ct =>
             {
                 var probability = new SpamProbability();
-                var nameBioUser = "";
                 var pic = Array.Empty<byte>();
+                var nameBioUser = string.Empty;
 
                 try
                 {
                     var userChat = await _bot.GetChat(user.Id, cancellationToken: ct);
-                    if (!checkEvenIfNoBio && userChat.Bio == null && userChat.LinkedChatId == null)
+                    if (userChat.Bio == null && userChat.LinkedChatId == null)
                     {
-                        _logger.LogDebug("GetAttentionBaitProbability {User} skipping: no bio, no channel", Utils.FullName(user));
-                        return new SpamPhotoBio(probability, pic, nameBioUser);
+                        _logger.LogDebug("GetAttentionBaitProbability {User}: no bio, no channel", Utils.FullName(user));
+                        if (userChat.Photo != null)
+                            return await GetEroticPhotoBaitProbability(user, userChat, ct);
+                        return new SpamPhotoBio(new SpamProbability(), [], "");
                     }
 
                     _logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
@@ -101,7 +158,7 @@ internal class AiChecks
                     if (linked != null)
                     {
                         byte[]? channelPhoto = null;
-                        var linkedChat = await _bot.GetChat(linked);
+                        var linkedChat = await _bot.GetChat(linked, cancellationToken: ct);
                         var info = new StringBuilder();
                         info.Append($"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
                         if (linkedChat.Username != null)
@@ -185,14 +242,16 @@ internal class AiChecks
 
                     _logger.LogDebug("LLM prompt: {Promt}", promptDebugString);
 
-                    var response = await _retry.ExecuteAsync(async token =>
-                        await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
-                            messages: messages,
-                            model: Model,
-                            strict: true,
-                            jsonSerializerOptions: jso,
-                            cancellationToken: token
-                        )
+                    var response = await _retry.ExecuteAsync(
+                        async token =>
+                            await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                                messages: messages,
+                                model: Model,
+                                strict: true,
+                                jsonSerializerOptions: jso,
+                                cancellationToken: token
+                            ),
+                        ct
                     );
                     if (response.Value1 != null)
                     {
@@ -286,5 +345,5 @@ internal class AiChecks
         public string Reason { get; set; } = "";
     }
 
-    internal sealed record SpamPhotoBio(SpamProbability SpamProbability, byte[] Photo, string Bio);
+    internal sealed record SpamPhotoBio(SpamProbability SpamProbability, byte[] Photo, string NameBio);
 }
