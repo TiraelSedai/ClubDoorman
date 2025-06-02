@@ -436,13 +436,16 @@ internal class MessageProcessor
         var chat = message.Chat;
         _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", chat.Title, chat.Id, fullName);
         var admChat = _config.AdminChatId;
-        var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        await _bot.SendMessage(
-            admChat,
-            $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, message.MessageId)}",
-            replyParameters: forward,
-            cancellationToken: stoppingToken
-        );
+        if (_config.NonFreeChat(chat.Id))
+        {
+            var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            await _bot.SendMessage(
+                admChat,
+                $"Авто-бан: {reason}{Environment.NewLine}Юзер {fullName} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, message.MessageId)}",
+                replyParameters: forward,
+                cancellationToken: stoppingToken
+            );
+        }
         await _bot.DeleteMessage(chat, message.MessageId, cancellationToken: stoppingToken);
         var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
         stats.Autoban++;
@@ -490,6 +493,8 @@ internal class MessageProcessor
             }
             case ChatMemberStatus.Kicked
             or ChatMemberStatus.Restricted:
+                if (!_config.NonFreeChat(chatMember.Chat.Id))
+                    break;
                 var user = newChatMember.User;
                 var key = $"{chatMember.Chat.Id}_{user.Id}";
                 var lastMessage = MemoryCache.Default.Get(key) as string;
