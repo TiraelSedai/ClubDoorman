@@ -236,7 +236,9 @@ internal class MessageProcessor
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            if (message.Photo != null && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            if (!_config.NonFreeChat(chat.Id))
+                return;
+            if (message.Photo != null && _config.OpenRouterApi != null)
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmLowProbability)
