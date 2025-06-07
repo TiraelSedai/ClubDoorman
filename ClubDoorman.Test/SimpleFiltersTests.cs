@@ -21,6 +21,7 @@ public class Tests
     [TestCase("натомість використовують код альтернативних клієнтів", false, TestName = "Ukrainian")]
     [TestCase("Велико Търново, Зелено дърво", false, TestName = "Bulgarian")]
     [TestCase("Дорћол, Љекар, Њега", false, TestName = "Serbian")]
+    [TestCase("најмање, пријављено, територији, србије, критеријум", false, TestName = "Serbian2")]
     public void HasLookAlikeSymbols_Tests(string word, bool expectedResult)
     {
         var result = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(word);
