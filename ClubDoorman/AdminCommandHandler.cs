@@ -186,7 +186,8 @@ internal class AdminCommandHandler
                                 + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
                                 + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
                                 + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
-                                + $"Если простые фильтры отработали, то в датасет добавлять не нужно";
+                                + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
+                                + $"Нормализованный текст: {normalized}";
                             await _bot.SendMessage(message.Chat.Id, msg);
                             break;
                         }
