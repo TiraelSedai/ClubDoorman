@@ -650,27 +650,49 @@ internal sealed class Worker(
         }
     }
 
-    private static string GetChatLink(long chatId, string? chatTitle) 
+    private static string GetChatLink(Chat chat)
     {
-        // Экранируем название чата для Markdown
-        var escapedTitle = Markdown.Escape(chatTitle ?? "Неизвестный чат");
-        
-        // Преобразование ID для супергрупп (убираем -100 в начале)
-        var formattedId = chatId.ToString();
+        var escapedTitle = Markdown.Escape(chat.Title ?? "Неизвестный чат");
+        if (!string.IsNullOrEmpty(chat.Username))
+        {
+            // Публичная группа или канал
+            return $"[{escapedTitle}](https://t.me/{chat.Username})";
+        }
+        var formattedId = chat.Id.ToString();
         if (formattedId.StartsWith("-100"))
         {
-            // Формат для супергрупп: t.me/c/1234567890
+            // Супергруппа без username
             formattedId = formattedId.Substring(4);
             return $"[{escapedTitle}](https://t.me/c/{formattedId})";
         }
         else if (formattedId.StartsWith("-"))
         {
-            // Обычные группы без ссылки (нет способа перейти по ID)
+            // Обычная группа без username
             return $"*{escapedTitle}*";
         }
         else
         {
-            // Для каналов, если есть юзернейм в заголовке
+            // Канал без username
+            return $"*{escapedTitle}*";
+        }
+    }
+
+    private static string GetChatLink(long chatId, string? chatTitle)
+    {
+        // Для обратной совместимости: используем только если нет объекта Chat
+        var escapedTitle = Markdown.Escape(chatTitle ?? "Неизвестный чат");
+        var formattedId = chatId.ToString();
+        if (formattedId.StartsWith("-100"))
+        {
+            formattedId = formattedId.Substring(4);
+            return $"[{escapedTitle}](https://t.me/c/{formattedId})";
+        }
+        else if (formattedId.StartsWith("-"))
+        {
+            return $"*{escapedTitle}*";
+        }
+        else
+        {
             if (chatTitle?.StartsWith("@") == true)
             {
                 var username = chatTitle.Substring(1);
@@ -697,19 +719,26 @@ internal sealed class Worker(
                 var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.LongNameBanned;
                 if (sum == 0) continue;
                 
+                // Попробуем получить объект чата, если он есть в кэше
+                Chat? chat = null;
+                try
+                {
+                    chat = await _bot.GetChat(chatId);
+                }
+                catch { /* fallback на старый вариант */ }
+
                 sb.AppendLine();
-                sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)}:");
+                if (chat != null)
+                    sb.AppendLine($"{GetChatLink(chat)}:");
+                else
+                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)}:");
                 sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
-                
                 if (stats.BlacklistBanned > 0)
                     sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
-                
                 if (stats.StoppedCaptcha > 0)
                     sb.AppendLine($"▫️ Не прошли капчу: *{stats.StoppedCaptcha}*");
-                
                 if (stats.KnownBadMessage > 0)
                     sb.AppendLine($"▫️ Известные спам-сообщения: *{stats.KnownBadMessage}*");
-                
                 if (stats.LongNameBanned > 0)
                     sb.AppendLine($"▫️ За длинные имена: *{stats.LongNameBanned}*");
             }
@@ -826,7 +855,7 @@ internal sealed class Worker(
                 }
                 await _bot.SendMessage(
                     new ChatId(Config.AdminChatId),
-                    $"🚫 [{Markdown.Escape(FullName(cb.From.FirstName, cb.From.LastName))}](tg://user?id={cb.From.Id}) забанил, сообщение добавлено в список авто-бана",
+                    $"🚫 {AdminDisplayName(cb.From)} забанил, сообщение добавлено в список авто-бана",
                     parseMode: ParseMode.Markdown,
                     replyParameters: cb.Message?.MessageId
                 );
@@ -1155,5 +1184,13 @@ internal sealed class Worker(
             },
             cancellationToken
         );
+    }
+
+    // Вспомогательная функция для отображения имени админа: username (без @), иначе имя-фамилия
+    private static string AdminDisplayName(User user)
+    {
+        return !string.IsNullOrEmpty(user.Username)
+            ? user.Username
+            : FullName(user.FirstName, user.LastName);
     }
 }
