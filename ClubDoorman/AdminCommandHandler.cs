@@ -147,11 +147,7 @@ internal class AdminCommandHandler
             if (split.Length > 1 && long.TryParse(split[1], out var userId))
             {
                 await _userManager.Unban(userId);
-                await _bot.SendMessage(
-                    message.Chat.Id,
-                    $"Unbanned user {userId}",
-                    replyParameters: message
-                );
+                await _bot.SendMessage(message.Chat.Id, $"Unbanned user {userId}", replyParameters: message);
                 return;
             }
         }
@@ -173,24 +169,24 @@ internal class AdminCommandHandler
                 switch (message.Text)
                 {
                     case "/check":
-                        {
-                            var emojis = SimpleFilters.TooManyEmojis(text);
-                            var normalized = TextProcessor.NormalizeText(text);
-                            var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-                            var hasStopWords = SimpleFilters.HasStopWords(normalized);
-                            var (spam, score) = await _classifier.IsSpam(normalized);
-                            var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
-                            var msg =
-                                $"Результат:{Environment.NewLine}"
-                                + $"Много эмодзи: {emojis}{Environment.NewLine}"
-                                + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
-                                + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
-                                + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
-                                + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
-                                + $"Нормализованный текст: {normalized}";
-                            await _bot.SendMessage(message.Chat.Id, msg);
-                            break;
-                        }
+                    {
+                        var emojis = SimpleFilters.TooManyEmojis(text);
+                        var normalized = TextProcessor.NormalizeText(text);
+                        var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
+                        var hasStopWords = SimpleFilters.HasStopWords(normalized);
+                        var (spam, score) = await _classifier.IsSpam(normalized);
+                        var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
+                        var msg =
+                            $"Результат:{Environment.NewLine}"
+                            + $"Много эмодзи: {emojis}{Environment.NewLine}"
+                            + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
+                            + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
+                            + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
+                            + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
+                            + $"Нормализованный текст: {normalized}";
+                        await _bot.SendMessage(message.Chat.Id, msg);
+                        break;
+                    }
                     case "/spam":
                         await _classifier.AddSpam(text);
                         await _badMessageManager.MarkAsBad(text);

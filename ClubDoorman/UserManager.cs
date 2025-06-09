@@ -125,7 +125,7 @@ internal sealed class UserManager
             await _cache.SetAsync(key, true, new HybridCacheEntryOptions() { LocalCacheExpiration = TimeSpan.FromHours(3) });
         return banned;
     }
-    
+
     public async Task Unban(long userId, CancellationToken ct = default)
     {
         var key = $"user:banned:{userId}";

@@ -35,6 +35,17 @@ internal class ReactionHandler
             return;
         if (_userManager.Approved(user.Id))
             return;
+        var chat = reaction.Chat;
+        if (await _userManager.InBanlist(user.Id))
+        {
+            try
+            {
+                await _bot.BanChatMember(chat.Id, user.Id);
+                _logger.LogDebug("Banned blacklisted user {FullName} @{Username} based on reaction", Utils.FullName(user), user.Username);
+            }
+            catch { }
+            return;
+        }
         if (reaction.NewReaction.Length == 0)
             return;
 
@@ -53,20 +64,15 @@ internal class ReactionHandler
         }
         cache.ReactionCount++;
 
-        if (cache.ReactionCount <= 1 && _config.MultiAdminChatMap.ContainsKey(reaction.Chat.Id))
+        if (cache.ReactionCount <= 1 && _config.MultiAdminChatMap.ContainsKey(chat.Id))
         {
-            _logger.LogDebug(
-                "Reaction number {Count} from {User} in chat {Chat}",
-                cache.ReactionCount,
-                Utils.FullName(user),
-                reaction.Chat.Title
-            );
-            var admChat = _config.GetAdminChat(reaction.Chat.Id);
+            _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", cache.ReactionCount, Utils.FullName(user), chat.Title);
+            var admChat = _config.GetAdminChat(chat.Id);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
             _logger.LogDebug("Reaction bait spam probability {Prob}", attention.Probability);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
-                var postLink = Utils.LinkToMessage(reaction.Chat, reaction.MessageId);
+                var postLink = Utils.LinkToMessage(chat, reaction.MessageId);
                 ReplyParameters? replyParameters = null;
                 if (photo.Length != 0)
                 {
@@ -76,13 +82,13 @@ internal class ReactionHandler
 
                 var keyboard = new List<InlineKeyboardButton>
                 {
-                    new(Consts.BanButton) { CallbackData = $"ban_{reaction.Chat.Id}_{user.Id}" },
+                    new(Consts.BanButton) { CallbackData = $"ban_{chat.Id}_{user.Id}" },
                     new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" },
                 };
                 var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что реакцию поставил бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {reaction.Chat.Title}{Environment.NewLine}{postLink}",
+                    $"Вероятность что реакцию поставил бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{postLink}",
                     replyParameters: replyParameters,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
