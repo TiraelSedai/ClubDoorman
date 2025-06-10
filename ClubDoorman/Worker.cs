@@ -1117,7 +1117,6 @@ internal sealed class Worker(
         else if (message.Text?.Trim().ToLower() == "/stat" || message.Text?.Trim().ToLower() == "/stats")
         {
             var report = _stats.ToArray();
-            _stats.Clear();
             var sb = new StringBuilder();
             sb.AppendLine("📊 *Статистика по группам:*\n");
             foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
