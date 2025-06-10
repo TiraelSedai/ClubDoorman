@@ -1113,6 +1113,39 @@ internal sealed class Worker(
                 }
             }
         }
+        // Команда статистики по группам
+        else if (message.Text?.Trim().ToLower() == "/stat" || message.Text?.Trim().ToLower() == "/stats")
+        {
+            var report = _stats.ToArray();
+            _stats.Clear();
+            var sb = new StringBuilder();
+            sb.AppendLine("📊 *Статистика по группам:*\n");
+            foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
+            {
+                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.LongNameBanned;
+                if (sum == 0) continue;
+                Chat? chat = null;
+                try { chat = await _bot.GetChat(chatId); } catch { }
+                sb.AppendLine();
+                if (chat != null)
+                    sb.AppendLine($"{GetChatLink(chat)}:");
+                else
+                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)}:");
+                sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
+                if (stats.BlacklistBanned > 0)
+                    sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
+                if (stats.StoppedCaptcha > 0)
+                    sb.AppendLine($"▫️ Не прошли капчу: *{stats.StoppedCaptcha}*");
+                if (stats.KnownBadMessage > 0)
+                    sb.AppendLine($"▫️ Известные спам-сообщения: *{stats.KnownBadMessage}*");
+                if (stats.LongNameBanned > 0)
+                    sb.AppendLine($"▫️ За длинные имена: *{stats.LongNameBanned}*");
+            }
+            if (sb.Length <= 35)
+                sb.AppendLine("\nНичего интересного не произошло 🎉");
+            await _bot.SendMessage(message.Chat.Id, sb.ToString(), parseMode: ParseMode.Markdown);
+            return;
+        }
     }
 
     private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
