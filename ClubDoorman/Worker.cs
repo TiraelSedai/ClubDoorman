@@ -171,6 +171,10 @@ internal sealed class Worker(
             return;
         var chat = message.Chat;
         
+        // Игнорировать полностью отключённые чаты
+        if (Config.DisabledChats.Contains(chat.Id))
+            return;
+        
         // Проверяем и удаляем сообщения о том, что бот кого-то исключил
         if (message.LeftChatMember != null && message.From?.Id == _me.Id)
         {
