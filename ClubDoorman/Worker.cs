@@ -42,10 +42,12 @@ internal sealed class Worker(
     private readonly ConcurrentDictionary<long, Stats> _stats = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
     private readonly PeriodicTimer _banlistRefreshTimer = new(TimeSpan.FromHours(12));
+    private readonly PeriodicTimer _membersCountUpdateTimer = new(TimeSpan.FromHours(8));
     private readonly ILogger<Worker> _logger = logger;
     private readonly SpamHamClassifier _classifier = classifier;
     private readonly UserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
+    private readonly GlobalStatsManager _globalStatsManager = new();
     private User _me = default!;
 
     private async Task CaptchaLoop(CancellationToken token)
@@ -84,11 +86,28 @@ internal sealed class Worker(
         }
     }
 
+    private async Task UpdateMembersCountLoop(CancellationToken stoppingToken)
+    {
+        while (await _membersCountUpdateTimer.WaitForNextTickAsync(stoppingToken))
+        {
+            try
+            {
+                await _globalStatsManager.UpdateAllMembersAsync(_bot);
+                _logger.LogInformation("Обновлено количество участников во всех чатах для статистики");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Ошибка при обновлении количества участников чатов");
+            }
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _ = CaptchaLoop(stoppingToken);
         _ = ReportStatistics(stoppingToken);
         _ = RefreshBanlistLoop(stoppingToken);
+        _ = UpdateMembersCountLoop(stoppingToken);
         _classifier.Touch();
         const string offsetPath = "data/offset.txt";
         var offset = 0;
@@ -100,6 +119,9 @@ internal sealed class Worker(
         }
 
         _me = await _bot.GetMe(cancellationToken: stoppingToken);
+        await _globalStatsManager.UpdateAllMembersAsync(_bot);
+        await _globalStatsManager.UpdateZeroMemberChatsAsync(_bot);
+        _logger.LogInformation("Первичное обновление количества участников во всех чатах для статистики");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -193,7 +215,9 @@ internal sealed class Worker(
         if (message.NewChatMembers != null && chat.Id != Config.AdminChatId)
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
+            {
                 await IntroFlow(message, newUser);
+            }
             return;
         }
 
@@ -409,6 +433,7 @@ internal sealed class Worker(
         );
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+        _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
         if (_userManager.RemoveApproval(user.Id))
         {
             await _bot.SendMessage(
@@ -428,6 +453,7 @@ internal sealed class Worker(
             Interlocked.Increment(ref stats.KnownBadMessage);
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
             await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
+            _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
             if (_userManager.RemoveApproval(user.Id))
             {
                 await _bot.SendMessage(
@@ -550,6 +576,7 @@ internal sealed class Worker(
                 $"{banType} в чате *{chat.Title}* за {nameDescription} длинное имя пользователя ({fullName.Length} символов):\n`{Markdown.Escape(fullName)}`",
                 parseMode: ParseMode.Markdown
             );
+            _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
         }
         catch (Exception e)
         {
@@ -652,6 +679,7 @@ internal sealed class Worker(
         {
             _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, null));
         }
+        _globalStatsManager.IncCaptcha(chatId, chat.Title ?? "");
     }
 
     private static string GetChatLink(Chat chat)
@@ -808,6 +836,7 @@ internal sealed class Worker(
             //     parseMode: ParseMode.Markdown
             // );
             _logger.LogInformation("Пользователь {User} (id={UserId}) из блэклиста забанен на 4 часа в чате {ChatTitle} (id={ChatId})", FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id);
+            _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
             return true;
         }
         catch (Exception e)
