@@ -1186,7 +1186,6 @@ internal sealed class Worker(
         );
     }
 
-    // Вспомогательная функция для отображения имени админа: username (без @), иначе имя-фамилия
     private static string AdminDisplayName(User user)
     {
         return !string.IsNullOrEmpty(user.Username)
