@@ -15,6 +15,11 @@
             );
         public static string? ClubServiceToken { get; } = Environment.GetEnvironmentVariable("DOORMAN_CLUB_SERVICE_TOKEN");
         public static string ClubUrl { get; } = GetClubUrlOrDefault();
+        public static HashSet<long> DisabledChats { get; } =
+            (Environment.GetEnvironmentVariable("DOORMAN_DISABLED_CHATS") ?? "")
+            .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => long.Parse(x.Trim()))
+            .ToHashSet();
 
         private static bool GetEnvironmentBool(string envName)
         {
