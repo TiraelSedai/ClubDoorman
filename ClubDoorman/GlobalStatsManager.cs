@@ -70,6 +70,29 @@ public class GlobalStatsManager
         lock (_lock) { Save(); }
     }
 
+    // Обновляет количество участников только в чатах, где сейчас 0 участников
+    public async Task UpdateZeroMemberChatsAsync(ITelegramBotClient bot)
+    {
+        var zeroChats = _stats.Chats.Where(x => x.Value.Members == 0).Select(x => x.Key).ToList();
+        foreach (var chatId in zeroChats)
+        {
+            try
+            {
+                var count = await bot.GetChatMemberCount(chatId);
+                lock (_lock)
+                {
+                    if (_stats.Chats.TryGetValue(chatId, out var chat))
+                        chat.Members = count;
+                    Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Можно логировать ошибку
+            }
+        }
+    }
+
     // Инкрементирует показ капчи
     public void IncCaptcha(long chatId, string chatTitle = "")
     {
@@ -112,6 +135,26 @@ public class GlobalStatsManager
         }
     }
 
+    public void GenerateGlobalJson()
+    {
+        lock (_lock)
+        {
+            var totalMembers = _stats.Chats.Values.Sum(c => c.Members);
+            var totalBans = _stats.Chats.Values.Sum(c => c.Bans);
+            var totalCaptcha = _stats.Chats.Values.Sum(c => c.CaptchaShown);
+            var totalChats = _stats.Chats.Count;
+            var global = new
+            {
+                start_date = _stats.StartDate,
+                total_members = totalMembers,
+                total_bans = totalBans,
+                total_captcha_shown = totalCaptcha,
+                total_chats = totalChats
+            };
+            File.WriteAllText("data/stats_global.json", JsonSerializer.Serialize(global, new JsonSerializerOptions { WriteIndented = true }));
+        }
+    }
+
     private StatsRoot Load()
     {
         try
@@ -121,11 +164,17 @@ public class GlobalStatsManager
                 var json = File.ReadAllText(_jsonPath);
                 var stats = JsonSerializer.Deserialize<StatsRoot>(json);
                 if (stats != null)
+                {
+                    if (string.IsNullOrWhiteSpace(stats.StartDate))
+                        stats.StartDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
                     return stats;
+                }
             }
         }
         catch { }
-        return new StatsRoot();
+        var s = new StatsRoot();
+        s.StartDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        return s;
     }
 
     private void Save()
@@ -133,11 +182,13 @@ public class GlobalStatsManager
         var options = new JsonSerializerOptions { WriteIndented = true };
         File.WriteAllText(_jsonPath, JsonSerializer.Serialize(_stats, options));
         GenerateHtml();
+        GenerateGlobalJson();
     }
 }
 
 public class StatsRoot
 {
+    public string StartDate { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd");
     public Dictionary<long, ChatStat> Chats { get; set; } = new();
 }
 

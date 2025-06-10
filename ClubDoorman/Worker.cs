@@ -120,6 +120,7 @@ internal sealed class Worker(
 
         _me = await _bot.GetMe(cancellationToken: stoppingToken);
         await _globalStatsManager.UpdateAllMembersAsync(_bot);
+        await _globalStatsManager.UpdateZeroMemberChatsAsync(_bot);
         _logger.LogInformation("Первичное обновление количества участников во всех чатах для статистики");
 
         while (!stoppingToken.IsCancellationRequested)
