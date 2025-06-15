@@ -69,10 +69,11 @@ internal class Config
                 var split = pair.Split('=').ToList();
                 if (split.Count > 1 && long.TryParse(split[0].Trim(), out var from) && long.TryParse(split[1].Trim(), out var to))
                 {
+                    map.TryAdd(from, to);
                     try
                     {
-                        var fromChat = await GetChat(from);
                         var toChat = await GetChat(to);
+                        var fromChat = await GetChat(from);
                         _logger.LogInformation(
                             "Messages from chat {FromId} {FromTitle} are going to admin chat {ToId} {ToTitle}",
                             fromChat.Id,
@@ -80,7 +81,6 @@ internal class Config
                             toChat.Id,
                             toChat.Title
                         );
-                        map.TryAdd(from, to);
                     }
                     catch (Exception e)
                     {
