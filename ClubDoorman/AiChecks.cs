@@ -112,7 +112,7 @@ internal class AiChecks
         return new SpamPhotoBio(probability, pic, Utils.FullName(user));
     }
 
-    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user)
+    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user, Func<string, Task>? ifChanged = default)
     {
         if (_api == null)
             return ValueTask.FromResult(new SpamPhotoBio(new SpamProbability(), [], ""));
@@ -135,6 +135,8 @@ internal class AiChecks
                 try
                 {
                     var userChat = await _bot.GetChat(user.Id, cancellationToken: ct);
+                    _ = CheckLater(userChat, ifChanged);
+
                     if (userChat.Bio == null && userChat.LinkedChatId == null)
                     {
                         _logger.LogDebug("GetAttentionBaitProbability {User}: no bio, no channel", Utils.FullName(user));
@@ -301,6 +303,47 @@ internal class AiChecks
             },
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(7) }
         );
+    }
+
+    private async Task CheckLater(ChatFullInfo userChat, Func<string, Task>? ifChanged = default)
+    {
+        try
+        {
+            if (userChat.Type != Telegram.Bot.Types.Enums.ChatType.Private)
+                _logger.LogError("Assert failed: unexpected chat type {Type}", userChat.Type);
+
+            var wait = TimeSpan.Zero;
+            for (var i = 1; i <= 3; i++)
+            {
+                wait += TimeSpan.FromMinutes(5 * i);
+                await Task.Delay(wait);
+                var chat = await _bot.GetChat(userChat.Id);
+                if (chat.Photo != userChat.Photo)
+                {
+                    _ = ifChanged?.Invoke("пользователь сменил фото");
+                    return;
+                }
+                if (chat.Bio != userChat.Bio)
+                {
+                    _ = ifChanged?.Invoke("пользователь сменил био");
+                    return;
+                }
+                if (chat.FirstName != userChat.FirstName)
+                {
+                    _ = ifChanged?.Invoke("пользователь сменил имя");
+                    return;
+                }
+                if (chat.LastName != userChat.LastName)
+                {
+                    _ = ifChanged?.Invoke("пользователь сменил фамилию");
+                    return;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, nameof(CheckLater));
+        }
     }
 
     public ValueTask<SpamProbability> GetSpamProbability(Message message)

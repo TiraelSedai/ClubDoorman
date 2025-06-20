@@ -335,7 +335,10 @@ internal class MessageProcessor
             var replyToRecentPost =
                 message.ReplyToMessage?.IsAutomaticForward == true
                 && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(message.From);
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
+                message.From,
+                x => DontDeleteButReportMessage(message, x, stoppingToken)
+            );
             _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attention.Probability);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
@@ -519,7 +522,7 @@ internal class MessageProcessor
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
         MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-        
+
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
         var reply = "";
         if (message.ReplyToMessage != null)
@@ -578,7 +581,7 @@ internal class MessageProcessor
         var reply = "";
         if (message.ReplyToMessage != null)
             reply = $"{Environment.NewLine}реплай на {Utils.LinkToMessage(message.Chat, message.ReplyToMessage.MessageId)}";
-        
+
         var row = new List<InlineKeyboardButton>(
             [
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackDataBan },
