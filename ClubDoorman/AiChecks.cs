@@ -318,7 +318,7 @@ internal class AiChecks
                 wait += TimeSpan.FromMinutes(5 * i);
                 await Task.Delay(wait);
                 var chat = await _bot.GetChat(userChat.Id);
-                if (chat.Photo != userChat.Photo)
+                if (chat.Photo?.BigFileUniqueId != userChat.Photo?.BigFileUniqueId)
                 {
                     _ = ifChanged?.Invoke("пользователь сменил фото");
                     return;
