@@ -328,6 +328,11 @@ internal class AiChecks
                     _ = ifChanged?.Invoke("пользователь сменил био");
                     return;
                 }
+                if (chat.LinkedChatId != userChat.LinkedChatId)
+                {
+                    _ = ifChanged?.Invoke("у пользователя сменился привязанный канал");
+                    return;
+                }
                 if (chat.FirstName != userChat.FirstName)
                 {
                     _ = ifChanged?.Invoke("пользователь сменил имя");
