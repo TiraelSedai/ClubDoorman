@@ -164,6 +164,10 @@ internal class AdminCommandHandler
                 return;
             }
             var text = replyToMessage.Text ?? replyToMessage.Caption;
+
+            if (replyToMessage.Quote?.Text != null)
+                text = $"{replyToMessage.Quote.Text} {text}";
+
             if (!string.IsNullOrWhiteSpace(text))
             {
                 switch (message.Text)

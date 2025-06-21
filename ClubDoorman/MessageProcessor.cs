@@ -171,6 +171,9 @@ internal class MessageProcessor
         var user = message.From!;
         var text = message.Text ?? message.Caption;
 
+        if (message.Quote?.Text != null)
+            text = $"{message.Quote.Text} {text}";
+
         if (text != null)
             MemoryCache.Default.Set(
                 new CacheItem($"{chat.Id}_{user.Id}", text),
