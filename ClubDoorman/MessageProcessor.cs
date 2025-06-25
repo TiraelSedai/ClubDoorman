@@ -282,6 +282,24 @@ internal class MessageProcessor
             return;
         }
 
+        if (SimpleFilters.HasUnwantedChars(normalized))
+        {
+            const string reason = "В этом сообщении необычные буквы";
+            if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            {
+                var spamCheck = await _aiChecks.GetSpamProbability(message);
+                if (spamCheck.Probability >= Consts.LlmHighProbability)
+                    await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                else
+                    await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+            }
+            else
+            {
+                await DeleteAndReportMessage(message, reason, stoppingToken);
+            }
+            return;
+        }
+
         if (SimpleFilters.TooManyEmojis(text))
         {
             _logger.LogDebug("TooManyEmojis");
