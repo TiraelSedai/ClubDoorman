@@ -33,7 +33,7 @@ internal class AiChecks
     private readonly ResiliencePipeline _retry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
         .Build();
-    const string Model = "google/gemini-2.5-flash-preview-05-20";
+    const string Model = "google/gemini-2.5-flash";
     private readonly OpenAiClient? _api;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
     private readonly ITelegramBotClient _bot;
