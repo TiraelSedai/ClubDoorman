@@ -530,6 +530,19 @@ internal sealed class Worker(
                 await _bot.DeleteMessage(chat, info.UserJoinedMessage.MessageId);
             UnbanUserLater(chat, userId);
         }
+        else
+        {
+            // Приветственное сообщение: строгий вариант 2 с форматированием (HTML)
+            var displayName = !string.IsNullOrEmpty(cb.From.FirstName)
+                ? System.Net.WebUtility.HtmlEncode(FullName(cb.From.FirstName, cb.From.LastName))
+                : (!string.IsNullOrEmpty(cb.From.Username) ? "@" + cb.From.Username : "гость");
+            var mention = $"<a href=\"tg://user?id={cb.From.Id}\">{displayName}</a>";
+            var greetMsg = $"👋 {mention}\n\n" +
+                           "<b>Внимание!</b> В первых трёх сообщениях запрещены эмодзи, изображения и реклама — они будут удаляться автоматически.\n" +
+                           "Пишите только <b>текст</b>.";
+            var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
+            DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
+        }
     }
 
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
