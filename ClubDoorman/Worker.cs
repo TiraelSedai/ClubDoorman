@@ -7,6 +7,7 @@ using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Text.Json;
 
 namespace ClubDoorman;
 
@@ -104,6 +105,7 @@ internal sealed class Worker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        ChatSettingsManager.InitConfigFileIfMissing();
         _ = CaptchaLoop(stoppingToken);
         _ = ReportStatistics(stoppingToken);
         _ = RefreshBanlistLoop(stoppingToken);
@@ -231,6 +233,8 @@ internal sealed class Worker(
         {
             if (message.SenderChat.Id == chat.Id)
                 return;
+            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
+                return;
             // to get linked_chat_id we need ChatFullInfo
             var chatFull = await _bot.GetChat(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
@@ -263,7 +267,8 @@ internal sealed class Worker(
                 return;
             }
 
-            await DontDeleteButReportMessage(message, message.From!, stoppingToken);
+            if (ChatSettingsManager.GetChatType(chat.Id) != "announcement")
+                await DontDeleteButReportMessage(message, message.From!, stoppingToken);
             return;
         }
 
@@ -287,6 +292,9 @@ internal sealed class Worker(
             return;
 
         _logger.LogDebug("First-time message, chat {Chat}, message {Message}", chat.Title, text);
+
+        // Автоматически добавляем чат в конфиг, если его там нет
+        ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
 
         // At this point we are believing we see first-timers, and we need to check for spam
         var name = await _userManager.GetClubUsername(user.Id);
@@ -333,6 +341,9 @@ internal sealed class Worker(
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
+            // Не репортим медиа (включая пересланные) в announcement-группах
+            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+                return;
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
         }
@@ -341,10 +352,25 @@ internal sealed class Worker(
             await HandleBadMessage(message, user, stoppingToken);
             return;
         }
-        if (SimpleFilters.TooManyEmojis(text))
+        var chatType = ChatSettingsManager.GetChatType(chat.Id);
+        if (chatType == "announcement")
+            return;
+        var isAnnouncement = chatType == "announcement";
+        if (!isAnnouncement && SimpleFilters.TooManyEmojis(text))
         {
             const string reason = "В этом сообщении многовато эмоджи";
             await DeleteAndReportMessage(message, reason, stoppingToken);
+            return;
+        }
+        if (!isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        {
+            const string reason = "В первых трёх сообщениях нельзя отправлять картинки, стикеры или документы";
+            await DeleteAndReportMessage(message, reason, stoppingToken);
+            return;
+        }
+        if (isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        {
+            // В announcement-группах не репортим медиа
             return;
         }
 
@@ -532,14 +558,20 @@ internal sealed class Worker(
         }
         else
         {
-            // Приветственное сообщение: строгий вариант 2 с форматированием (HTML)
+            // Приветственное сообщение: разное для обычных и announcement чатов
             var displayName = !string.IsNullOrEmpty(cb.From.FirstName)
                 ? System.Net.WebUtility.HtmlEncode(FullName(cb.From.FirstName, cb.From.LastName))
                 : (!string.IsNullOrEmpty(cb.From.Username) ? "@" + cb.From.Username : "гость");
             var mention = $"<a href=\"tg://user?id={cb.From.Id}\">{displayName}</a>";
-            var greetMsg = $"👋 {mention}\n\n" +
-                           "<b>Внимание!</b> В первых трёх сообщениях запрещены эмодзи, изображения и реклама — они будут удаляться автоматически.\n" +
-                           "Пишите только <b>текст</b>.";
+            string greetMsg;
+            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
+            {
+                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, ваш пост может быть удалён.";
+            }
+            else
+            {
+                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> В первых трёх сообщениях запрещены эмодзи, изображения и реклама — они будут удаляться автоматически.\nПишите только <b>текст</b>.";
+            }
             var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
             DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
         }
@@ -774,9 +806,9 @@ internal sealed class Worker(
 
                 sb.AppendLine();
                 if (chat != null)
-                    sb.AppendLine($"{GetChatLink(chat)}:");
+                    sb.AppendLine($"{GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
                 else
-                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)}:");
+                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
                 sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
                 if (stats.BlacklistBanned > 0)
                     sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
@@ -1005,7 +1037,7 @@ internal sealed class Worker(
                 replyParameters: forward.MessageId,
                 replyMarkup: new InlineKeyboardMarkup(new[]
                 {
-                    new InlineKeyboardButton("🤖 ban") { CallbackData = callbackData },
+                    new InlineKeyboardButton("🤖 бан") { CallbackData = callbackData },
                     new InlineKeyboardButton("👍 ok") { CallbackData = "noop" },
                     new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
                 }),
@@ -1173,9 +1205,9 @@ internal sealed class Worker(
                 try { chat = await _bot.GetChat(chatId); } catch { }
                 sb.AppendLine();
                 if (chat != null)
-                    sb.AppendLine($"{GetChatLink(chat)}:");
+                    sb.AppendLine($"{GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
                 else
-                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)}:");
+                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
                 sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
                 if (stats.BlacklistBanned > 0)
                     sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
