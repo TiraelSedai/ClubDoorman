@@ -177,6 +177,10 @@ internal sealed class Worker(
 
     private async Task HandleUpdate(Update update, CancellationToken stoppingToken)
     {
+        var chat = update.EditedMessage?.Chat ?? update.Message?.Chat ?? update.ChatMember?.Chat;
+        if (chat != null)
+            ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
+
         if (update.CallbackQuery != null)
         {
             await HandleCallback(update);
@@ -193,7 +197,6 @@ internal sealed class Worker(
         var message = update.EditedMessage ?? update.Message;
         if (message == null)
             return;
-        var chat = message.Chat;
         
         // Игнорировать полностью отключённые чаты
         if (Config.DisabledChats.Contains(chat.Id))
@@ -566,11 +569,11 @@ internal sealed class Worker(
             string greetMsg;
             if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, ваш пост может быть удалён.";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, ваше объявление может быть удалено.";
             }
             else
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> В первых трёх сообщениях запрещены эмодзи, изображения и реклама — они будут удаляться автоматически.\nПишите только <b>текст</b>.";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> В первых трёх сообщениях запрещены эмодзи, изображения и реклама — они могут удаляться автоматически.\nПишите только <b>текст</b>.";
             }
             var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
             DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
@@ -964,6 +967,7 @@ internal sealed class Worker(
         var chatMember = update.ChatMember;
         Debug.Assert(chatMember != null);
         var newChatMember = chatMember.NewChatMember;
+        ChatSettingsManager.EnsureChatInConfig(chatMember.Chat.Id, chatMember.Chat.Title);
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
