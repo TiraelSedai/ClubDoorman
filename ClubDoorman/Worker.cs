@@ -1233,6 +1233,62 @@ internal sealed class Worker(
             await _bot.SendMessage(message.Chat.Id, sb.ToString(), parseMode: ParseMode.Markdown);
             return;
         }
+        // Добавляю обработку команды /say
+        if (message.Text != null && message.Text.StartsWith("/say "))
+        {
+            var parts = message.Text.Split(' ', 3);
+            if (parts.Length < 3)
+            {
+                await _bot.SendMessage(message.Chat.Id, "Формат: /say @username сообщение или /say user_id сообщение");
+                return;
+            }
+            var target = parts[1];
+            var textToSend = parts[2];
+            long? userId = null;
+            if (target.StartsWith("@"))
+            {
+                // Пробуем найти userId по username среди недавних пользователей (по кэшу)
+                // Если нет — не отправляем
+                userId = TryFindUserIdByUsername(target.Substring(1));
+            }
+            else if (long.TryParse(target, out var id))
+            {
+                userId = id;
+            }
+            if (userId == null)
+            {
+                await _bot.SendMessage(message.Chat.Id, $"Не удалось найти пользователя {target}. Сообщение не отправлено.");
+                return;
+            }
+            try
+            {
+                await _bot.SendMessage(userId.Value, textToSend);
+                await _bot.SendMessage(message.Chat.Id, $"Сообщение отправлено пользователю {target}");
+            }
+            catch (Exception ex)
+            {
+                await _bot.SendMessage(message.Chat.Id, $"Не удалось доставить сообщение пользователю {target}: {ex.Message}");
+            }
+            return;
+        }
+    }
+
+    // Вспомогательная функция для поиска userId по username среди недавних пользователей (по кэшу)
+    private long? TryFindUserIdByUsername(string username)
+    {
+        // Можно использовать MemoryCache или другой кэш, если он есть
+        // Здесь пример с MemoryCache: ищем по ключам, где username встречался
+        foreach (var item in MemoryCache.Default)
+        {
+            if (item.Value is string text && text.Contains(username, StringComparison.OrdinalIgnoreCase))
+            {
+                // Ключи вида chatId_userId
+                var parts = item.Key.ToString().Split('_');
+                if (parts.Length == 2 && long.TryParse(parts[1], out var uid))
+                    return uid;
+            }
+        }
+        return null;
     }
 
     private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
