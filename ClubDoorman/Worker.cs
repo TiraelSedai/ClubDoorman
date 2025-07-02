@@ -1262,7 +1262,7 @@ internal sealed class Worker(
             }
             try
             {
-                await _bot.SendMessage(userId.Value, textToSend);
+                await _bot.SendMessage(userId.Value, textToSend, parseMode: ParseMode.Markdown, disableNotification: true);
                 await _bot.SendMessage(message.Chat.Id, $"Сообщение отправлено пользователю {target}");
             }
             catch (Exception ex)
