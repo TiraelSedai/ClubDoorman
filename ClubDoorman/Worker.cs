@@ -50,6 +50,7 @@ internal sealed class Worker(
     private readonly BadMessageManager _badMessageManager = badMessageManager;
     private readonly GlobalStatsManager _globalStatsManager = new();
     private User _me = default!;
+    private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
 
     private async Task CaptchaLoop(CancellationToken token)
     {
@@ -257,7 +258,7 @@ $"""
 
 <b>💎 Премиум-версия:</b>
 
-Всего <b>$12/год</b> за отдельную копию бота с персональным ML-датасетом под вашу группу. Без рекламы, с доступом к управлению и доработкой функций под ваши потребности.
+Всего <b>$12/год</b> за отдельную копию бота с персональным ML-датасетом под вашу группу. Без рекламы, с доступом к управлению и доработке функций под ваши потребности.
 
 🌐 <a href="https://momai.dev/antispambot">Подробнее о премиуме</a>
 
@@ -298,6 +299,14 @@ $"""
         {
             foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
             {
+                var joinKey = $"joined_{chat.Id}_{newUser.Id}";
+                if (!_joinedUserFlags.ContainsKey(joinKey))
+                {
+                    _logger.LogInformation("==================== НОВЫЙ УЧАСТНИК ====================\nПользователь {User} (id={UserId}, username={Username}) зашел в группу '{ChatTitle}' (id={ChatId})\n========================================================", 
+                        (newUser.FirstName + (string.IsNullOrEmpty(newUser.LastName) ? "" : " " + newUser.LastName)), newUser.Id, newUser.Username ?? "-", chat.Title ?? "-", chat.Id);
+                    _joinedUserFlags.TryAdd(joinKey, 1);
+                    _ = Task.Run(async () => { await Task.Delay(15000); _joinedUserFlags.TryRemove(joinKey, out _); });
+                }
                 await IntroFlow(message, newUser);
             }
             return;
@@ -629,6 +638,8 @@ $"""
         await info.Cts.CancelAsync();
         if (info.CorrectAnswer != chosen)
         {
+            // Логируем неуспешное прохождение капчи
+            _logger.LogInformation("==================== КАПЧА НЕ ПРОЙДЕНА ====================\nПользователь {User} (id={UserId}) не прошёл капчу в группе '{ChatTitle}' (id={ChatId})\n===========================================================", info.User.FirstName + (string.IsNullOrEmpty(info.User.LastName) ? "" : " " + info.User.LastName), info.User.Id, info.ChatTitle ?? "-", info.ChatId);
             var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
             Interlocked.Increment(ref stats.StoppedCaptcha);
             await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
@@ -638,6 +649,8 @@ $"""
         }
         else
         {
+            // Логируем успешное прохождение капчи
+            _logger.LogInformation("==================== КАПЧА ПРОЙДЕНА ====================\nПользователь {User} (id={UserId}) успешно прошёл капчу в группе '{ChatTitle}' (id={ChatId}) — показываем приветствие\n========================================================", cb.From.FirstName + (string.IsNullOrEmpty(cb.From.LastName) ? "" : " " + cb.From.LastName), cb.From.Id, chat.Title ?? "-", chat.Id);
             // Приветственное сообщение: разное для обычных и announcement чатов
             var displayName = !string.IsNullOrEmpty(cb.From.FirstName)
                 ? System.Net.WebUtility.HtmlEncode(FullName(cb.From.FirstName, cb.From.LastName))
@@ -646,7 +659,7 @@ $"""
             string greetMsg;
             
             // Реклама VPN для всех приветственных сообщений
-            var vpnAd = "\n\n━━━━━━━━━━━━━━━\n🌐 <b>Ваш VPN</b> — @vpn_momai_dev_bot  <i>Два дня бесплатно</i>";
+            var vpnAd = "\n\n\n🌐 <b>Твой VPN</b> — @vpn_momai_dev_bot \n <i>Два дня бесплатно</i>";
             
             if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
             {
@@ -654,7 +667,7 @@ $"""
             }
             else
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> В первых трёх сообщениях запрещены эмодзи, изображения и реклама — они могут удаляться автоматически.\nПишите только <b>текст</b>.{vpnAd}";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи, изображения и реклама запрещены — они могут удаляться автоматически.\nПишите только <b>текст</b>.{vpnAd}";
             }
             var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
             DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
@@ -786,10 +799,17 @@ $"""
             ? $"С возвращением, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
 
+        // Добавляем рекламу VPN к welcomeMessage (HTML-совместимо)
+        var vpnAdHtml = "\n\n Твой VPN — @vpn_momai_dev_bot\n<i>2 дня бесплатно</i>";
+        var welcomeMessageHtml = (_userManager.Approved(user.Id)
+            ? $"С возвращением, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
+            : $"Привет, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?")
+            + vpnAdHtml;
+
         var del = await _bot.SendMessage(
             chatId,
-            welcomeMessage,
-            parseMode: ParseMode.Markdown,
+            welcomeMessageHtml,
+            parseMode: ParseMode.Html,
             replyParameters: replyParams,
             replyMarkup: new InlineKeyboardMarkup(keyboard)
         );
@@ -1056,9 +1076,16 @@ $"""
                 _logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
                 if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    // The reason we need to wait here is that we need to get message that user joined to have a chance to be processed first,
-                    // this is not mandatory but looks nicer, however sometimes Telegram doesn't send it at all so consider this a fallback.
-                    // There is no way real human would be able to solve this captcha in under 2 seconds so it's fine.
+                    var u = newChatMember.User;
+                    var joinKey = $"joined_{chatMember.Chat.Id}_{u.Id}";
+                    await Task.Delay(200); // Дать шанс NewChatMembers выставить флаг
+                    if (!_joinedUserFlags.ContainsKey(joinKey))
+                    {
+                        _logger.LogInformation("==================== НОВЫЙ УЧАСТНИК ====================\nПользователь {User} (id={UserId}, username={Username}) зашел в группу '{ChatTitle}' (id={ChatId})\n========================================================", 
+                            (u.FirstName + (string.IsNullOrEmpty(u.LastName) ? "" : " " + u.LastName)), u.Id, u.Username ?? "-", chatMember.Chat.Title ?? "-", chatMember.Chat.Id);
+                        _joinedUserFlags.TryAdd(joinKey, 1);
+                        _ = Task.Run(async () => { await Task.Delay(15000); _joinedUserFlags.TryRemove(joinKey, out _); });
+                    }
                     _ = Task.Run(async () =>
                     {
                         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -1379,6 +1406,8 @@ $"""
             var minutes = (now - timestamp).TotalMinutes;
             if (minutes > 1)
             {
+                // Логируем неуспешное прохождение капчи по таймауту
+                _logger.LogInformation("==================== КАПЧА НЕ ПРОЙДЕНА (таймаут) ====================\nПользователь {User} (id={UserId}) не прошёл капчу (таймаут) в группе '{ChatTitle}' (id={ChatId})\n====================================================================", user.FirstName + (string.IsNullOrEmpty(user.LastName) ? "" : " " + user.LastName), user.Id, title ?? "-", chatId);
                 var stats = _stats.GetOrAdd(chatId, new Stats(title));
                 Interlocked.Increment(ref stats.StoppedCaptcha);
                 _captchaNeededUsers.TryRemove(key, out _);
