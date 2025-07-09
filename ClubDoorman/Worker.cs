@@ -39,6 +39,7 @@ internal sealed class Worker(
 
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
+    private readonly ConcurrentDictionary<long, DateTime> _warnedUsers = new();
     private readonly TelegramBotClient _bot = new(Config.BotApi);
     private readonly ConcurrentDictionary<long, Stats> _stats = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
@@ -51,6 +52,22 @@ internal sealed class Worker(
     private readonly GlobalStatsManager _globalStatsManager = new();
     private User _me = default!;
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
+    
+    // Группы, где не показывать рекламу VPN (из .env NO_VPN_AD_GROUPS)
+    private static readonly HashSet<long> NoVpnAdGroups = 
+        (Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS") ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(id => long.TryParse(id.Trim(), out var val) ? val : (long?)null)
+        .Where(id => id.HasValue)
+        .Select(id => id.Value)
+        .ToHashSet();
+
+    static Worker()
+    {
+        var envVar = Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS");
+        Console.WriteLine($"[DEBUG] NO_VPN_AD_GROUPS env var: '{envVar}'");
+        Console.WriteLine($"[DEBUG] Loaded {NoVpnAdGroups.Count} groups without VPN ads: [{string.Join(", ", NoVpnAdGroups)}]");
+    }
 
     private async Task CaptchaLoop(CancellationToken token)
     {
@@ -256,11 +273,13 @@ $"""
 
 ━━━━━━━━━━━━━━━
 
-<b>💎 Премиум-версия:</b>
+<b>💎 Дополнительные планы:</b>
 
-Всего <b>$12/год</b> за отдельную копию бота с персональным ML-датасетом под вашу группу. Без рекламы, с доступом к управлению и доработке функций под ваши потребности.
+💚 <b>Без рекламы</b> — всего <b>$5 навсегда</b> за отключение рекламы в одной группе
 
-🌐 <a href="https://momai.dev/antispambot">Подробнее о премиуме</a>
+💎 <b>Премиум</b> — <b>$12/год</b> за отдельную копию бота с персональным ML-датасетом под ваши группы (до 100)
+
+🌐 <a href="https://momai.dev/antispambot">Подробнее о всех планах</a>
 
 ━━━━━━━━━━━━━━━
 
@@ -528,6 +547,9 @@ $"""
             );
             await _userManager.Approve(user.Id);
             _goodUserMessages.TryRemove(user.Id, out _);
+            // --- Новая логика: сбрасываем предупреждение для юзера ---
+            _warnedUsers.TryRemove(user.Id, out _);
+            // --- Конец новой логики ---
         }
     }
 
@@ -658,8 +680,10 @@ $"""
             var mention = $"<a href=\"tg://user?id={cb.From.Id}\">{displayName}</a>";
             string greetMsg;
             
-            // Реклама VPN для всех приветственных сообщений
-            var vpnAd = "\n\n\n🌐 <b>Твой VPN</b> — @vpn_momai_dev_bot \n <i>Два дня бесплатно</i>";
+            // Реклама VPN для всех приветственных сообщений (если группа не в исключениях)
+            var isNoAdGroup = NoVpnAdGroups.Contains(chat.Id);
+            Console.WriteLine($"[DEBUG] Chat {chat.Id} ({chat.Title}) - No VPN ad: {isNoAdGroup}");
+            var vpnAd = isNoAdGroup ? "" : "\n\n\n🌐 <b>Твой VPN</b> — @vpn_momai_dev_bot \n <i>Два дня бесплатно</i>";
             
             if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
             {
@@ -799,8 +823,10 @@ $"""
             ? $"С возвращением, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
 
-        // Добавляем рекламу VPN к welcomeMessage (HTML-совместимо)
-        var vpnAdHtml = "\n\n Твой VPN — @vpn_momai_dev_bot\n<i>2 дня бесплатно</i>";
+        // Добавляем рекламу VPN к welcomeMessage (HTML-совместимо, если группа не в исключениях)
+        var isNoAdGroup = NoVpnAdGroups.Contains(chatId);
+        Console.WriteLine($"[DEBUG] Chat {chatId} - No VPN ad in captcha: {isNoAdGroup}");
+        var vpnAdHtml = isNoAdGroup ? "" : "\n\n Твой VPN — @vpn_momai_dev_bot\n<i>2 дня бесплатно</i>";
         var welcomeMessageHtml = (_userManager.Approved(user.Id)
             ? $"С возвращением, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?")
@@ -1217,7 +1243,41 @@ $"""
             _logger.LogWarning(e, "Unable to delete");
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
-
+        // --- Новая логика: объясняющее сообщение для новичка ---
+        bool isBlacklisted = false;
+        if (user != null && !_userManager.Approved(user.Id))
+        {
+            try {
+                isBlacklisted = await _userManager.InBanlist(user.Id);
+            } catch {}
+        }
+        if (user != null && !_userManager.Approved(user.Id) && !isBlacklisted && !_warnedUsers.ContainsKey(user.Id))
+        {
+            var displayName = !string.IsNullOrEmpty(user.FirstName)
+                ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
+                : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
+            var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
+            var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи, картинки, рекламу  \n• работает ML-анализ\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
+            var sentWarn = await _bot.SendMessage(message.Chat.Id, warnMsg, parseMode: ParseMode.Html);
+            _warnedUsers.TryAdd(user.Id, DateTime.UtcNow);
+            DeleteMessageLater(sentWarn, TimeSpan.FromSeconds(40));
+            _logger.LogInformation("Показано объясняющее сообщение новичку: {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
+        }
+        else if (user != null && !_userManager.Approved(user.Id) && isBlacklisted)
+        {
+            var displayName = !string.IsNullOrEmpty(user.FirstName)
+                ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
+                : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
+            _logger.LogInformation("Объясняющее сообщение НЕ показано (пользователь в блэклисте): {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
+        }
+        else if (user != null && !_userManager.Approved(user.Id))
+        {
+            var displayName = !string.IsNullOrEmpty(user.FirstName)
+                ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
+                : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
+            _logger.LogInformation("Объясняющее сообщение НЕ показано (уже было) новичку: {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
+        }
+        // --- Конец новой логики ---
         var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
         MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
         var postLink = LinkToMessage(message.Chat, message.MessageId);
