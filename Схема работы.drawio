@@ -16,8 +16,8 @@
         <mxCell id="5TwPSuOHMsfOp6R3DQwi-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=24;fontStyle=1;strokeWidth=2;curved=1;" edge="1" parent="1" source="5TwPSuOHMsfOp6R3DQwi-7" target="5TwPSuOHMsfOp6R3DQwi-8">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="5TwPSuOHMsfOp6R3DQwi-7" value="👋 ДОБРО ПОЖАЛОВАТЬ!&#xa;Напиши 3 простых сообщения&#xa;без ссылок и картинок" style="whiteSpace=wrap;strokeWidth=2;fontSize=24;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="457" y="130" width="267" height="180" as="geometry" />
+        <mxCell id="5TwPSuOHMsfOp6R3DQwi-7" value="Ожидание первых трех сообщений, без ссылок, картинок эмодзи и рекламы." style="whiteSpace=wrap;strokeWidth=2;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="490" y="170" width="267" height="140" as="geometry" />
         </mxCell>
         <mxCell id="5TwPSuOHMsfOp6R3DQwi-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;curved=1;strokeWidth=2;" edge="1" parent="1" source="5TwPSuOHMsfOp6R3DQwi-8" target="5TwPSuOHMsfOp6R3DQwi-55">
           <mxGeometry relative="1" as="geometry" />
