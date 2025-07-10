@@ -50,6 +50,7 @@ internal sealed class Worker(
     private readonly UserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
     private readonly GlobalStatsManager _globalStatsManager = new();
+    private AiChecks _aiChecks = null!;
     private User _me = default!;
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
     
@@ -139,6 +140,10 @@ internal sealed class Worker(
         }
 
         _me = await _bot.GetMe(cancellationToken: stoppingToken);
+        
+        // Инициализируем AI проверки после создания бота
+        _aiChecks = new AiChecks(_bot, _logger);
+        
         _ = Task.Run(async () => {
             try {
                 await _globalStatsManager.UpdateAllMembersAsync(_bot);
@@ -401,7 +406,12 @@ $"""
         if (_userManager.Approved(user.Id))
             return;
 
-        _logger.LogDebug("First-time message, chat {Chat}, message {Message}", chat.Title, text);
+        // Определяем, является ли это сообщением из обсуждения канала
+        var isChannelDiscussion = await IsChannelDiscussion(chat, message);
+        var userType = isChannelDiscussion ? "из обсуждения канала" : "новый участник";
+        
+        _logger.LogInformation("==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================\n{UserType}: {User} (id={UserId}, username={Username}) в '{ChatTitle}' (id={ChatId})\nСообщение: {Text}\n================================================================", 
+            userType, Utils.FullName(user), user.Id, user.Username ?? "-", chat.Title ?? "-", chat.Id, text?.Substring(0, Math.Min(text.Length, 100)) ?? "[медиа]");
 
         // Автоматически добавляем чат в конфиг, если его там нет
         ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
@@ -537,6 +547,72 @@ $"""
 
 
         _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
+
+        // ========== AI ПРОВЕРКА ПРОФИЛЕЙ ==========
+        // Для пользователей из обсуждений каналов и обычных групп где включены AI проверки
+        if (Config.OpenRouterApi != null && Config.IsAiEnabledForChat(chat.Id))
+        {
+            try 
+            {
+                var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
+                _logger.LogDebug("AI проверка профиля пользователя {UserId}: {Probability}", user.Id, attention.Probability);
+                
+                if (attention.Probability >= Consts.LlmLowProbability)
+                {
+                    var keyboard = new List<InlineKeyboardButton>
+                    {
+                        new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
+                        new(Consts.OkButton) { CallbackData = $"aiOk_{user.Id}" }
+                    };
+
+                    ReplyParameters? replyParams = null;
+                    if (photo.Length != 0)
+                    {
+                        using var ms = new MemoryStream(photo);
+                        var photoMsg = await _bot.SendPhoto(
+                            Config.AdminChatId,
+                            new InputFileStream(ms),
+                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
+                            cancellationToken: stoppingToken
+                        );
+                        replyParams = photoMsg;
+                    }
+
+                    var isHighRisk = attention.Probability >= Consts.LlmHighProbability;
+                    var action = isHighRisk ? "Даём ридонли на 10 минут" : "Требует ручной проверки";
+                    var at = user.Username == null ? "" : $" @{user.Username} ";
+                    
+                    await _bot.SendMessage(
+                        Config.AdminChatId,
+                        $"🤖 AI: Вероятность спам-профиля {attention.Probability * 100:F1}%. {action}{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{LinkToMessage(chat, message.MessageId)}",
+                        replyMarkup: new InlineKeyboardMarkup(keyboard),
+                        replyParameters: replyParams,
+                        cancellationToken: stoppingToken
+                    );
+
+                    // При высокой вероятности спама - автоматическая модерация
+                    if (isHighRisk)
+                    {
+                        await _bot.DeleteMessage(chat, message.MessageId, cancellationToken: stoppingToken);
+                        await _bot.RestrictChatMember(
+                            chat.Id,
+                            user.Id,
+                            new ChatPermissions(false),
+                            untilDate: DateTime.UtcNow.AddMinutes(10),
+                            cancellationToken: stoppingToken
+                        );
+                        
+                        _logger.LogInformation("AI автомодерация: пользователь {UserId} получил ридонли на 10 минут (вероятность спама {Probability})", user.Id, attention.Probability);
+                        return; // Прерываем обработку
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Ошибка при AI проверке профиля пользователя {UserId}", user.Id);
+            }
+        }
+        // ========== КОНЕЦ AI ПРОВЕРКИ ==========
 
         // Now we need a mechanism for users who have been writing non-spam for some time
         var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
@@ -1086,6 +1162,16 @@ $"""
             }
             catch { }
         }
+        else if (split.Count > 1 && split[0] == "aiOk" && long.TryParse(split[1], out var aiOkUserId))
+        {
+            // Админ отметил профиль как безопасный - добавляем в кэш как проверенный
+            _aiChecks.MarkUserOkay(aiOkUserId);
+            await _bot.SendMessage(
+                new ChatId(Config.AdminChatId),
+                $"✅ {AdminDisplayName(cb.From)} отметил профиль как безопасный - AI проверки отключены для этого пользователя",
+                replyParameters: cb.Message?.MessageId
+            );
+        }
         var msg = cb.Message;
         if (msg != null)
             await _bot.EditMessageReplyMarkup(msg.Chat.Id, msg.MessageId);
@@ -1456,6 +1542,41 @@ $"""
     }
 
     private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
+
+    /// <summary>
+    /// Определяет, является ли сообщение из обсуждения канала
+    /// </summary>
+    private async Task<bool> IsChannelDiscussion(Chat chat, Message message)
+    {
+        try
+        {
+            // Если это не супергруппа, то это точно не обсуждение
+            if (chat.Type != ChatType.Supergroup)
+                return false;
+
+            // Проверяем, есть ли у группы связанный канал
+            var chatFull = await _bot.GetChat(chat.Id);
+            var hasLinkedChannel = chatFull.LinkedChatId != null;
+            
+            // Обсуждение канала если:
+            // 1. Есть связанный канал И сообщение автоматически переслано
+            // 2. ИЛИ просто есть связанный канал (пользователи пишут в обсуждении)
+            var isDiscussion = hasLinkedChannel && (message.IsAutomaticForward || true);
+            
+            if (isDiscussion)
+            {
+                _logger.LogDebug("Обнаружено обсуждение канала: chat={ChatId}, linkedChannel={LinkedId}, autoForward={AutoForward}", 
+                    chat.Id, chatFull.LinkedChatId, message.IsAutomaticForward);
+            }
+            
+            return isDiscussion;
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось определить тип чата {ChatId}", chat.Id);
+            return false;
+        }
+    }
 
     private async Task BanNoCaptchaUsers()
     {
