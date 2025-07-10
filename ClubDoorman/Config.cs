@@ -23,6 +23,36 @@ namespace ClubDoorman
             .Select(x => long.Parse(x.Trim()))
             .ToHashSet();
 
+        // AI проверки профилей
+        public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
+        public static bool ButtonAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BUTTON_AUTOBAN_DISABLE");
+        public static bool HighConfidenceAutoBan { get; } = !GetEnvironmentBool("DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE");
+        
+        // Чаты для которых включены AI проверки профилей (если не указано - для всех)
+        public static HashSet<long> AiEnabledChats { get; } = GetAiEnabledChats();
+
+        private static HashSet<long> GetAiEnabledChats()
+        {
+            var chatsStr = Environment.GetEnvironmentVariable("DOORMAN_AI_ENABLED_CHATS");
+            if (string.IsNullOrEmpty(chatsStr))
+                return new HashSet<long>(); // Пустой = для всех чатов
+            
+            return chatsStr
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
+                .ToHashSet();
+        }
+
+        // Проверяет, включены ли AI проверки для данного чата
+        public static bool IsAiEnabledForChat(long chatId)
+        {
+            // Если список пуст - AI включен для всех чатов
+            // Если список не пуст - AI включен только для указанных чатов
+            return AiEnabledChats.Count == 0 || AiEnabledChats.Contains(chatId);
+        }
+
         private static bool GetEnvironmentBool(string envName)
         {
             var env = Environment.GetEnvironmentVariable(envName);
