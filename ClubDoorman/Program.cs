@@ -23,9 +23,21 @@ public class Program
             {
                 services.AddHostedService<Worker>();
                 services.AddSingleton<SpamHamClassifier>();
-                services.AddSingleton<ApprovedUsersStorage>();
-                services.AddSingleton<UserManager>();
                 services.AddSingleton<BadMessageManager>();
+                
+                // Условная регистрация системы одобрения
+                if (Config.UseNewApprovalSystem)
+                {
+                    services.AddSingleton<ApprovedUsersStorageV2>();
+                    services.AddSingleton<UserManagerV2>();
+                    services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManagerV2>());
+                }
+                else
+                {
+                    services.AddSingleton<ApprovedUsersStorage>();
+                    services.AddSingleton<UserManager>();
+                    services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
+                }
             })
             .Build();
 
