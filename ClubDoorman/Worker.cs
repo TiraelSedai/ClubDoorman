@@ -464,8 +464,8 @@ $"""
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            // Не репортим медиа (включая пересланные) в announcement-группах
-            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+            // Не репортим медиа в announcement-группах, если фильтрация отключена или фильтрация отключена глобально
+            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
                 return;
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
@@ -476,8 +476,6 @@ $"""
             return;
         }
         var chatType = ChatSettingsManager.GetChatType(chat.Id);
-        if (chatType == "announcement")
-            return;
         var isAnnouncement = chatType == "announcement";
         if (!isAnnouncement && SimpleFilters.TooManyEmojis(text))
         {
@@ -485,16 +483,17 @@ $"""
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        if (!isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        // Проверяем медиа только если фильтрация не отключена для этого чата
+        if (!Config.IsMediaFilteringDisabledForChat(chat.Id) && !isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
         {
             const string reason = "В первых трёх сообщениях нельзя отправлять картинки, стикеры или документы";
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        if (isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        if (isAnnouncement && !Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
         {
-            // В announcement-группах не репортим медиа
-            return;
+            // В announcement-группах проверяем медиа, если фильтрация не отключена
+            // Но текст (подпись) все равно проверяем на стоп-слова ниже
         }
 
         var normalized = TextProcessor.NormalizeText(text);
@@ -793,11 +792,12 @@ $"""
             
             if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, ваше объявление может быть удалено.{vpnAd}";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, сообщения со стоп-словами и спамом будут удалены.{vpnAd}";
             }
             else
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи, изображения и реклама запрещены — они могут удаляться автоматически.\nПишите только <b>текст</b>.{vpnAd}";
+                var mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? "" : ", изображения";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически.\nИзбегайте <b>стоп-слова</b> и спам.{vpnAd}";
             }
             var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
             DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
@@ -1375,7 +1375,8 @@ $"""
                 ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
                 : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
             var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
-            var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи, картинки, рекламу  \n• работает ML-анализ\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
+            var mediaWarning = Config.IsMediaFilteringDisabledForChat(message.Chat.Id) ? "" : ", картинки";
+            var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи{mediaWarning}, рекламу и <b>стоп-слова</b>\n• работает ML-анализ\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
             var sentWarn = await _bot.SendMessage(message.Chat.Id, warnMsg, parseMode: ParseMode.Html);
             _warnedUsers.TryAdd(user.Id, DateTime.UtcNow);
             DeleteMessageLater(sentWarn, TimeSpan.FromSeconds(40));
