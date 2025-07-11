@@ -53,6 +53,22 @@ namespace ClubDoorman
             return AiEnabledChats.Count == 0 || AiEnabledChats.Contains(chatId);
         }
 
+        // ==== НАСТРОЙКИ АВТООДОБРЕНИЯ ====
+        
+        /// <summary>
+        /// Режим автоодобрения пользователей:
+        /// - true: глобальный режим (3 сообщения в любых группах → одобрение во всех группах)
+        /// - false: групповой режим (3 сообщения в каждой группе → одобрение только в этой группе)
+        /// </summary>
+        public static bool GlobalApprovalMode { get; } = !GetEnvironmentBool("DOORMAN_GROUP_APPROVAL_MODE");
+
+        /// <summary>
+        /// Использовать новую систему одобрения (ApprovedUsersStorageV2)
+        /// - true: использовать новую систему с поддержкой глобальных и групповых одобрений
+        /// - false: использовать старую систему (ApprovedUsersStorage)
+        /// </summary>
+        public static bool UseNewApprovalSystem { get; } = GetEnvironmentBool("DOORMAN_USE_NEW_APPROVAL_SYSTEM");
+
         private static bool GetEnvironmentBool(string envName)
         {
             var env = Environment.GetEnvironmentVariable(envName);
