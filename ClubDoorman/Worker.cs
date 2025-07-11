@@ -464,8 +464,9 @@ $"""
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            // Не репортим медиа в announcement-группах, если фильтрация отключена или фильтрация отключена глобально
-            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+            // Не репортим только картинки и видео в announcement-группах, если фильтрация отключена
+            // Стикеры и документы всегда репортим
+            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Video != null) && message.Sticker == null && message.Document == null)
                 return;
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
@@ -483,16 +484,35 @@ $"""
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        // Проверяем медиа только если фильтрация не отключена для этого чата
-        if (!Config.IsMediaFilteringDisabledForChat(chat.Id) && !isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        // Проверяем медиа с разделением на картинки/видео (можно отключить) и стикеры/документы (всегда блокируем)
+        var hasPhotoOrVideo = message.Photo != null || message.Video != null;
+        var hasStickerOrDocument = message.Sticker != null || message.Document != null;
+        
+        // Стикеры и документы всегда блокируем в неутвержденных сообщениях
+        if (!isAnnouncement && hasStickerOrDocument)
         {
-            const string reason = "В первых трёх сообщениях нельзя отправлять картинки, стикеры или документы";
+            const string reason = "В первых трёх сообщениях нельзя отправлять стикеры или документы";
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        if (isAnnouncement && !Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        
+        // Картинки и видео блокируем только если фильтрация не отключена
+        if (!Config.IsMediaFilteringDisabledForChat(chat.Id) && !isAnnouncement && hasPhotoOrVideo)
         {
-            // В announcement-группах проверяем медиа, если фильтрация не отключена
+            const string reason = "В первых трёх сообщениях нельзя отправлять картинки или видео";
+            await DeleteAndReportMessage(message, reason, stoppingToken);
+            return;
+        }
+        
+        // В announcement-группах проверяем медиа аналогично
+        if (isAnnouncement && hasStickerOrDocument)
+        {
+            // Стикеры и документы всегда блокируем в announcement-группах
+            // Но текст (подпись) все равно проверяем на стоп-слова ниже
+        }
+        else if (isAnnouncement && !Config.IsMediaFilteringDisabledForChat(chat.Id) && hasPhotoOrVideo)
+        {
+            // Картинки и видео блокируем только если фильтрация не отключена
             // Но текст (подпись) все равно проверяем на стоп-слова ниже
         }
 
@@ -796,7 +816,7 @@ $"""
             }
             else
             {
-                var mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? "" : ", изображения";
+                var mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры и документы" : ", изображения, стикеры и документы";
                 greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически.\nИзбегайте <b>стоп-слова</b> и спам.{vpnAd}";
             }
             var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
@@ -1375,7 +1395,7 @@ $"""
                 ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
                 : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
             var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
-            var mediaWarning = Config.IsMediaFilteringDisabledForChat(message.Chat.Id) ? "" : ", картинки";
+            var mediaWarning = Config.IsMediaFilteringDisabledForChat(message.Chat.Id) ? ", стикеры и документы" : ", картинки, стикеры и документы";
             var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи{mediaWarning}, рекламу и <b>стоп-слова</b>\n• работает ML-анализ\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
             var sentWarn = await _bot.SendMessage(message.Chat.Id, warnMsg, parseMode: ParseMode.Html);
             _warnedUsers.TryAdd(user.Id, DateTime.UtcNow);
