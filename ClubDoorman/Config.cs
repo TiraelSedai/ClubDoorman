@@ -69,6 +69,47 @@ namespace ClubDoorman
         /// </summary>
         public static bool UseNewApprovalSystem { get; } = GetEnvironmentBool("DOORMAN_USE_NEW_APPROVAL_SYSTEM");
 
+        // ==== НАСТРОЙКИ ФИЛЬТРАЦИИ МЕДИА ====
+
+        /// <summary>
+        /// Отключить фильтрацию картинок/видео/документов глобально
+        /// - true: фильтрация медиа отключена во всех группах
+        /// - false: фильтрация медиа работает (по умолчанию)
+        /// </summary>
+        public static bool DisableMediaFiltering { get; } = GetEnvironmentBool("DOORMAN_DISABLE_MEDIA_FILTERING");
+
+        /// <summary>
+        /// Группы где фильтрация медиа отключена (независимо от глобальной настройки)
+        /// </summary>
+        public static HashSet<long> MediaFilteringDisabledChats { get; } = GetMediaFilteringDisabledChats();
+
+        private static HashSet<long> GetMediaFilteringDisabledChats()
+        {
+            var chatsStr = Environment.GetEnvironmentVariable("DOORMAN_MEDIA_FILTERING_DISABLED_CHATS");
+            if (string.IsNullOrEmpty(chatsStr))
+                return new HashSet<long>();
+            
+            return chatsStr
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
+                .ToHashSet();
+        }
+
+        /// <summary>
+        /// Проверяет, отключена ли фильтрация медиа для данного чата
+        /// </summary>
+        public static bool IsMediaFilteringDisabledForChat(long chatId)
+        {
+            // Если глобально отключено - фильтрация отключена везде
+            if (DisableMediaFiltering)
+                return true;
+
+            // Если чат в списке исключений - фильтрация отключена
+            return MediaFilteringDisabledChats.Contains(chatId);
+        }
+
         private static bool GetEnvironmentBool(string envName)
         {
             var env = Environment.GetEnvironmentVariable(envName);
