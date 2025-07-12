@@ -1,13 +1,27 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Http.Json;
 
 namespace ClubDoorman;
 
-internal sealed class UserManager : IUserManager
+internal sealed class UserManagerV2 : IUserManager
 {
-    private readonly ILogger<UserManager> _logger;
-    private readonly ApprovedUsersStorage _approvedUsersStorage;
+    private readonly ILogger<UserManagerV2> _logger;
+    private readonly ApprovedUsersStorageV2 _approvedUsersStorage;
+    private readonly ConcurrentDictionary<long, byte> _banlist = [];
+    private readonly SemaphoreSlim _semaphore = new(1);
+    private readonly HttpClient _clubHttpClient = new();
+    private readonly HttpClient _httpClient = new();
+
+    public UserManagerV2(ILogger<UserManagerV2> logger, ApprovedUsersStorageV2 approvedUsersStorage)
+    {
+        _logger = logger;
+        _approvedUsersStorage = approvedUsersStorage;
+        if (Config.ClubServiceToken == null)
+            _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
+        else
+            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+    }
 
     public async Task RefreshBanlist()
     {
@@ -17,7 +31,7 @@ internal sealed class UserManager : IUserManager
             try
             {
                 var httpClient = new HttpClient();
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)); // Таймаут 15 сек
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json", cts.Token);
                 
                 if (banlist != null && banlist.Length > 0)
@@ -50,41 +64,94 @@ internal sealed class UserManager : IUserManager
         }
     }
 
-    public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage)
+    /// <summary>
+    /// Проверяет, одобрен ли пользователь
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="groupId">ID группы (для проверки группового одобрения)</param>
+    /// <returns>true, если пользователь одобрен</returns>
+    public bool Approved(long userId, long? groupId = null)
     {
-        _logger = logger;
-        _approvedUsersStorage = approvedUsersStorage;
-        if (Config.ClubServiceToken == null)
-            _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
-        else
-            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+        return _approvedUsersStorage.IsApproved(userId, groupId);
     }
 
-    private const string Path = "data/approved-users.txt";
-    private readonly ConcurrentDictionary<long, byte> _banlist = [];
-    private readonly SemaphoreSlim _semaphore = new(1);
-    private readonly HashSet<long> _approved = File.ReadAllLines(Path).Select(long.Parse).ToHashSet();
-    private readonly HttpClient _clubHttpClient = new();
-    private readonly HttpClient _httpClient = new();
-
-    public bool Approved(long userId, long? groupId = null) => _approvedUsersStorage.IsApproved(userId);
-
+    /// <summary>
+    /// Одобряет пользователя в зависимости от настроек
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="groupId">ID группы (для группового одобрения)</param>
     public async ValueTask Approve(long userId, long? groupId = null)
     {
-        _approvedUsersStorage.ApproveUser(userId);
+        if (Config.GlobalApprovalMode)
+        {
+            // Глобальный режим: одобряем глобально
+            _approvedUsersStorage.ApproveUserGlobally(userId);
+        }
+        else
+        {
+            // Групповой режим: одобряем в конкретной группе
+            if (groupId.HasValue)
+            {
+                _approvedUsersStorage.ApproveUserInGroup(userId, groupId.Value);
+            }
+            else
+            {
+                // Если группа не указана, одобряем глобально как fallback
+                _approvedUsersStorage.ApproveUserGlobally(userId);
+            }
+        }
     }
 
+    /// <summary>
+    /// Удаляет одобрение пользователя
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="groupId">ID группы (для удаления группового одобрения)</param>
+    /// <param name="removeAll">Удалить все одобрения пользователя</param>
+    /// <returns>true, если одобрение было удалено</returns>
     public bool RemoveApproval(long userId, long? groupId = null, bool removeAll = false)
     {
         try
         {
-            return _approvedUsersStorage.RemoveApproval(userId);
+            if (removeAll)
+            {
+                return _approvedUsersStorage.RemoveAllApprovals(userId);
+            }
+            
+            if (groupId.HasValue)
+            {
+                // Удаляем одобрение в конкретной группе
+                return _approvedUsersStorage.RemoveGroupApproval(userId, groupId.Value);
+            }
+            else
+            {
+                // Удаляем глобальное одобрение
+                return _approvedUsersStorage.RemoveGlobalApproval(userId);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Не удалось удалить пользователя {UserId} из списка одобренных", userId);
+            _logger.LogError(ex, "Не удалось удалить одобрение пользователя {UserId}", userId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Получает информацию об одобрении пользователя
+    /// </summary>
+    public (bool isGlobal, Dictionary<long, GroupApprovalInfo> groupApprovals) GetApprovalInfo(long userId)
+    {
+        var isGlobal = _approvedUsersStorage.IsGloballyApproved(userId);
+        var groupApprovals = _approvedUsersStorage.GetUserGroupApprovals(userId);
+        return (isGlobal, groupApprovals);
+    }
+
+    /// <summary>
+    /// Получает статистику одобрений
+    /// </summary>
+    public (int globalCount, int groupCount, int totalGroupApprovals) GetApprovalStats()
+    {
+        return _approvedUsersStorage.GetApprovalStats();
     }
 
     public async ValueTask<bool> InBanlist(long userId)
@@ -118,12 +185,11 @@ internal sealed class UserManager : IUserManager
         {
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(5));
-            // cannot use _clubHttpClient.GetFromJsonAsync here because the response is not 200 OK at the time of writing for when user is not found
             var get = await _clubHttpClient.GetAsync(url, cts.Token);
             var response = await get.Content.ReadFromJsonAsync<ClubByTgIdResponse>(cancellationToken: cts.Token);
             var fullName = response?.user?.full_name;
             if (!string.IsNullOrEmpty(fullName))
-                await Approve(userId);
+                await Approve(userId); // Одобряем глобально, так как это клубный пользователь
             return fullName;
         }
         catch (Exception e)
@@ -175,4 +241,4 @@ internal sealed class UserManager : IUserManager
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning restore IDE1006 // Naming Styles
-}
+} 
