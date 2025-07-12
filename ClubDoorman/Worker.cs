@@ -464,9 +464,9 @@ $"""
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            // Не репортим только картинки и видео в announcement-группах, если фильтрация отключена
+            // Не репортим картинки и видео если фильтрация отключена (для любых групп)
             // Стикеры и документы всегда репортим
-            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Video != null) && message.Sticker == null && message.Document == null)
+            if (Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Video != null) && message.Sticker == null && message.Document == null)
                 return;
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
