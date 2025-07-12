@@ -14,7 +14,7 @@ namespace ClubDoorman;
 internal sealed class Worker(
     ILogger<Worker> logger,
     SpamHamClassifier classifier,
-    UserManager userManager,
+    IUserManager userManager,
     BadMessageManager badMessageManager
 ) : BackgroundService
 {
@@ -38,7 +38,10 @@ internal sealed class Worker(
     }
 
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
+    // Для старой системы - глобальный счетчик хороших сообщений
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
+    // Для новой системы - счетчик хороших сообщений по группам
+    private readonly ConcurrentDictionary<string, int> _groupGoodUserMessages = new();
     private readonly ConcurrentDictionary<long, DateTime> _warnedUsers = new();
     private readonly TelegramBotClient _bot = new(Config.BotApi);
     private readonly ConcurrentDictionary<long, Stats> _stats = new();
@@ -47,7 +50,7 @@ internal sealed class Worker(
     private readonly PeriodicTimer _membersCountUpdateTimer = new(TimeSpan.FromHours(8));
     private readonly ILogger<Worker> _logger = logger;
     private readonly SpamHamClassifier _classifier = classifier;
-    private readonly UserManager _userManager = userManager;
+    private readonly IUserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
     private readonly GlobalStatsManager _globalStatsManager = new();
     private AiChecks _aiChecks = null!;
@@ -403,7 +406,7 @@ $"""
             return;
         }
 
-        if (_userManager.Approved(user.Id))
+        if (IsUserApproved(user.Id, message.Chat.Id))
             return;
 
         // Определяем, является ли это сообщением из обсуждения канала
@@ -461,8 +464,9 @@ $"""
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            // Не репортим медиа (включая пересланные) в announcement-группах
-            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement" && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+            // Не репортим картинки и видео если фильтрация отключена (для любых групп)
+            // Стикеры и документы всегда репортим
+            if (Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Video != null) && message.Sticker == null && message.Document == null)
                 return;
             await DontDeleteButReportMessage(message, user, stoppingToken);
             return;
@@ -473,8 +477,6 @@ $"""
             return;
         }
         var chatType = ChatSettingsManager.GetChatType(chat.Id);
-        if (chatType == "announcement")
-            return;
         var isAnnouncement = chatType == "announcement";
         if (!isAnnouncement && SimpleFilters.TooManyEmojis(text))
         {
@@ -482,16 +484,36 @@ $"""
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        if (!isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        // Проверяем медиа с разделением на картинки/видео (можно отключить) и стикеры/документы (всегда блокируем)
+        var hasPhotoOrVideo = message.Photo != null || message.Video != null;
+        var hasStickerOrDocument = message.Sticker != null || message.Document != null;
+        
+        // Стикеры и документы всегда блокируем в неутвержденных сообщениях
+        if (!isAnnouncement && hasStickerOrDocument)
         {
-            const string reason = "В первых трёх сообщениях нельзя отправлять картинки, стикеры или документы";
+            const string reason = "В первых трёх сообщениях нельзя отправлять стикеры или документы";
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
-        if (isAnnouncement && (message.Photo != null || message.Sticker != null || message.Document != null || message.Video != null))
+        
+        // Картинки и видео блокируем только если фильтрация не отключена
+        if (!Config.IsMediaFilteringDisabledForChat(chat.Id) && !isAnnouncement && hasPhotoOrVideo)
         {
-            // В announcement-группах не репортим медиа
+            const string reason = "В первых трёх сообщениях нельзя отправлять картинки или видео";
+            await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
+        }
+        
+        // В announcement-группах проверяем медиа аналогично
+        if (isAnnouncement && hasStickerOrDocument)
+        {
+            // Стикеры и документы всегда блокируем в announcement-группах
+            // Но текст (подпись) все равно проверяем на стоп-слова ниже
+        }
+        else if (isAnnouncement && !Config.IsMediaFilteringDisabledForChat(chat.Id) && hasPhotoOrVideo)
+        {
+            // Картинки и видео блокируем только если фильтрация не отключена
+            // Но текст (подпись) все равно проверяем на стоп-слова ниже
         }
 
         var normalized = TextProcessor.NormalizeText(text);
@@ -615,19 +637,44 @@ $"""
         // ========== КОНЕЦ AI ПРОВЕРКИ ==========
 
         // Now we need a mechanism for users who have been writing non-spam for some time
-        var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
-        if (goodInteractions >= 3)
+        if (Config.UseNewApprovalSystem && !Config.GlobalApprovalMode)
         {
-            _logger.LogInformation(
-                "User {FullName} behaved well for the last {Count} messages, approving",
-                FullName(user.FirstName, user.LastName),
-                goodInteractions
-            );
-            await _userManager.Approve(user.Id);
-            _goodUserMessages.TryRemove(user.Id, out _);
-            // --- Новая логика: сбрасываем предупреждение для юзера ---
-            _warnedUsers.TryRemove(user.Id, out _);
-            // --- Конец новой логики ---
+            // Новая система, групповой режим
+            var groupUserKey = $"{message.Chat.Id}_{user.Id}";
+            var goodInteractions = _groupGoodUserMessages.AddOrUpdate(groupUserKey, 1, (_, oldValue) => oldValue + 1);
+            if (goodInteractions >= 3)
+            {
+                _logger.LogInformation(
+                    "User {FullName} behaved well for the last {Count} messages in group {GroupTitle}, approving in this group",
+                    FullName(user.FirstName, user.LastName),
+                    goodInteractions,
+                    message.Chat.Title ?? message.Chat.Id.ToString()
+                );
+                await _userManager.Approve(user.Id, message.Chat.Id);
+                _groupGoodUserMessages.TryRemove(groupUserKey, out _);
+                // --- Новая логика: сбрасываем предупреждение для юзера ---
+                _warnedUsers.TryRemove(user.Id, out _);
+                // --- Конец новой логики ---
+            }
+        }
+        else
+        {
+            // Старая система или новая система в глобальном режиме
+            var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
+            if (goodInteractions >= 3)
+            {
+                _logger.LogInformation(
+                    "User {FullName} behaved well for the last {Count} messages, approving {Mode}",
+                    FullName(user.FirstName, user.LastName),
+                    goodInteractions,
+                    Config.GlobalApprovalMode ? "globally" : "in old system"
+                );
+                await _userManager.Approve(user.Id, Config.GlobalApprovalMode ? null : message.Chat.Id);
+                _goodUserMessages.TryRemove(user.Id, out _);
+                // --- Новая логика: сбрасываем предупреждение для юзера ---
+                _warnedUsers.TryRemove(user.Id, out _);
+                // --- Конец новой логики ---
+            }
         }
     }
 
@@ -649,7 +696,7 @@ $"""
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
         _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
-        if (_userManager.RemoveApproval(user.Id))
+        if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
         {
             await _bot.SendMessage(
                 Config.AdminChatId,
@@ -669,7 +716,7 @@ $"""
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
             await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
             _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
-            if (_userManager.RemoveApproval(user.Id))
+            if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
             {
                 await _bot.SendMessage(
                     Config.AdminChatId,
@@ -765,11 +812,12 @@ $"""
             
             if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, ваше объявление может быть удалено.{vpnAd}";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, сообщения со стоп-словами и спамом будут удалены.{vpnAd}";
             }
             else
             {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи, изображения и реклама запрещены — они могут удаляться автоматически.\nПишите только <b>текст</b>.{vpnAd}";
+                var mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры и документы" : ", изображения, стикеры и документы";
+                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически.\nИзбегайте <b>стоп-слова</b> и спам.{vpnAd}";
             }
             var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
             DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
@@ -897,7 +945,8 @@ $"""
         if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
             fullNameForDisplay = "новый участник чата";
 
-        var welcomeMessage = _userManager.Approved(user.Id)
+        var isApproved = IsUserApproved(user.Id, chatId);
+        var welcomeMessage = isApproved
             ? $"С возвращением, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
 
@@ -905,7 +954,7 @@ $"""
         var isNoAdGroup = NoVpnAdGroups.Contains(chatId);
         Console.WriteLine($"[DEBUG] Chat {chatId} - No VPN ad in captcha: {isNoAdGroup}");
         var vpnAdHtml = isNoAdGroup ? "" : "\n\n Твой VPN — @vpn_momai_dev_bot\n<i>2 дня бесплатно</i>";
-        var welcomeMessageHtml = (_userManager.Approved(user.Id)
+        var welcomeMessageHtml = (isApproved
             ? $"С возвращением, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?")
             + vpnAdHtml;
@@ -1073,7 +1122,7 @@ $"""
             }
             
             // Удаляем из списка одобренных
-            if (_userManager.RemoveApproval(user.Id))
+            if (_userManager.RemoveApproval(user.Id, chat.Id, removeAll: true))
             {
                 await _bot.SendMessage(
                     Config.AdminChatId,
@@ -1113,6 +1162,7 @@ $"""
         var split = cbData.Split('_').ToList();
         if (split.Count > 1 && split[0] == "approve" && long.TryParse(split[1], out var approveUserId))
         {
+            // Админ одобряет пользователя - всегда глобально
             await _userManager.Approve(approveUserId);
             await _bot.SendMessage(
                 new ChatId(Config.AdminChatId),
@@ -1130,7 +1180,7 @@ $"""
             try
             {
                 await _bot.BanChatMember(new ChatId(chatId), userId);
-                if (_userManager.RemoveApproval(userId))
+                if (_userManager.RemoveApproval(userId, chatId, removeAll: true))
                 {
                     await _bot.SendMessage(
                         Config.AdminChatId,
@@ -1219,7 +1269,7 @@ $"""
                     : $" Его/её последним сообщением было:\n```\n{lastMessage}\n```";
                 
                 // Удаляем из списка доверенных
-                if (_userManager.RemoveApproval(user.Id))
+                if (_userManager.RemoveApproval(user.Id, chatMember.Chat.Id, removeAll: true))
                 {
                     await _bot.SendMessage(
                         Config.AdminChatId,
@@ -1333,32 +1383,33 @@ $"""
         }
         // --- Новая логика: объясняющее сообщение для новичка ---
         bool isBlacklisted = false;
-        if (user != null && !_userManager.Approved(user.Id))
+        if (user != null && !IsUserApproved(user.Id, message.Chat.Id))
         {
             try {
                 isBlacklisted = await _userManager.InBanlist(user.Id);
             } catch {}
         }
-        if (user != null && !_userManager.Approved(user.Id) && !isBlacklisted && !_warnedUsers.ContainsKey(user.Id))
+        if (user != null && !IsUserApproved(user.Id, message.Chat.Id) && !isBlacklisted && !_warnedUsers.ContainsKey(user.Id))
         {
             var displayName = !string.IsNullOrEmpty(user.FirstName)
                 ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
                 : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
             var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
-            var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи, картинки, рекламу  \n• работает ML-анализ\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
+            var mediaWarning = Config.IsMediaFilteringDisabledForChat(message.Chat.Id) ? ", стикеры и документы" : ", картинки, стикеры и документы";
+            var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи{mediaWarning}, рекламу и <b>стоп-слова</b>\n• работает ML-анализ\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
             var sentWarn = await _bot.SendMessage(message.Chat.Id, warnMsg, parseMode: ParseMode.Html);
             _warnedUsers.TryAdd(user.Id, DateTime.UtcNow);
             DeleteMessageLater(sentWarn, TimeSpan.FromSeconds(40));
             _logger.LogInformation("Показано объясняющее сообщение новичку: {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
         }
-        else if (user != null && !_userManager.Approved(user.Id) && isBlacklisted)
+        else if (user != null && !IsUserApproved(user.Id, message.Chat.Id) && isBlacklisted)
         {
             var displayName = !string.IsNullOrEmpty(user.FirstName)
                 ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
                 : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
             _logger.LogInformation("Объясняющее сообщение НЕ показано (пользователь в блэклисте): {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
         }
-        else if (user != null && !_userManager.Approved(user.Id))
+        else if (user != null && !IsUserApproved(user.Id, message.Chat.Id))
         {
             var displayName = !string.IsNullOrEmpty(user.FirstName)
                 ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
@@ -1542,6 +1593,23 @@ $"""
     }
 
     private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
+    
+    /// <summary>
+    /// Проверяет, одобрен ли пользователь с учетом текущей системы одобрения
+    /// </summary>
+    private bool IsUserApproved(long userId, long? chatId = null)
+    {
+        if (Config.UseNewApprovalSystem)
+        {
+            // Новая система: проверяем с учетом режима (глобального или группового)
+            return _userManager.Approved(userId, chatId);
+        }
+        else
+        {
+            // Старая система: проверяем только глобально
+            return _userManager.Approved(userId);
+        }
+    }
 
     /// <summary>
     /// Определяет, является ли сообщение из обсуждения канала
