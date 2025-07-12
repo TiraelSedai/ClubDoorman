@@ -73,6 +73,11 @@ internal sealed class Worker(
         Console.WriteLine($"[DEBUG] DOORMAN_WHITELIST env var: '{whitelistVar}'");
         Console.WriteLine($"[DEBUG] Loaded {Config.WhitelistChats.Count} whitelist groups: [{string.Join(", ", Config.WhitelistChats)}]");
         Console.WriteLine($"[DEBUG] Private /start allowed: {Config.IsPrivateStartAllowed()}");
+        
+        var logChatVar = Environment.GetEnvironmentVariable("DOORMAN_LOG_ADMIN_CHAT");
+        Console.WriteLine($"[DEBUG] DOORMAN_LOG_ADMIN_CHAT env var: '{logChatVar}'");
+        Console.WriteLine($"[DEBUG] Log admin chat ID: {Config.LogAdminChatId}");
+        Console.WriteLine($"[DEBUG] Using separate log chat: {Config.LogAdminChatId != Config.AdminChatId}");
     }
 
     private async Task CaptchaLoop(CancellationToken token)
@@ -443,26 +448,9 @@ $"""
         }
         if (await _userManager.InBanlist(user.Id))
         {
-            if (Config.BlacklistAutoBan)
-            {
-                var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-                Interlocked.Increment(ref stats.BlacklistBanned);
-                await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: true, cancellationToken: stoppingToken);
-                
-                // Удаляем текущее сообщение пользователя
-                await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
-                
-                // Проверяем, является ли сообщение о входе в чат
-                if (message.NewChatMembers != null)
-                {
-                    _logger.LogDebug("Удаляем сообщение о входе в чат пользователя из блэклиста");
-                }
-            }
-            else
-            {
-                const string reason = "Пользователь в блеклисте спамеров";
-                await DeleteAndReportMessage(message, reason, stoppingToken);
-            }
+            // Для пользователей из блэклиста - всегда автобан с логированием в лог-чат
+            const string reason = "Пользователь в блэклисте спамеров";
+            await AutoBanWithLogging(message, reason, stoppingToken);
             return;
         }
 
@@ -675,6 +663,71 @@ $"""
                 cancellationToken: stoppingToken
             );
         }
+    }
+
+    private async Task AutoBanWithLogging(Message message, string reason, CancellationToken stoppingToken)
+    {
+        var user = message.From;
+        
+        // Пересылаем сообщение в лог-чат перед удалением
+        try
+        {
+            var forward = await _bot.ForwardMessage(
+                new ChatId(Config.LogAdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: stoppingToken
+            );
+            
+            await _bot.SendMessage(
+                Config.LogAdminChatId,
+                $"🚫 Автобан из блэклиста: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
+                replyParameters: forward,
+                cancellationToken: stoppingToken
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось переслать сообщение в лог-чат");
+        }
+        
+        // Удаляем сообщение
+        try
+        {
+            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось удалить сообщение пользователя из блэклиста");
+        }
+        
+        // Баним пользователя
+        try
+        {
+            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось забанить пользователя из блэклиста");
+        }
+        
+        // Обновляем статистику
+        var stats = _stats.GetOrAdd(message.Chat.Id, new Stats(message.Chat.Title));
+        Interlocked.Increment(ref stats.BlacklistBanned);
+        _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
+        
+        // Удаляем из списка одобренных
+        if (_userManager.RemoveApproval(user.Id))
+        {
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана по блэклисту",
+                cancellationToken: stoppingToken
+            );
+        }
+        
+        _logger.LogInformation("Автобан по блэклисту: пользователь {User} (id={UserId}) забанен в чате {ChatTitle} (id={ChatId})", 
+            FullName(user.FirstName, user.LastName), user.Id, message.Chat.Title, message.Chat.Id);
     }
 
     private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
