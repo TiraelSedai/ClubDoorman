@@ -23,6 +23,30 @@ namespace ClubDoorman
             .Select(x => long.Parse(x.Trim()))
             .ToHashSet();
 
+        // Whitelist групп - если указан, бот работает только в этих группах
+        public static HashSet<long> WhitelistChats { get; } =
+            (Environment.GetEnvironmentVariable("DOORMAN_WHITELIST") ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value)
+            .ToHashSet();
+
+        // Проверяет, разрешен ли бот в данном чате
+        public static bool IsChatAllowed(long chatId)
+        {
+            // Если whitelist пуст - разрешены все чаты (кроме disabled)
+            // Если whitelist не пуст - разрешены только чаты из whitelist
+            return WhitelistChats.Count == 0 || WhitelistChats.Contains(chatId);
+        }
+
+        // Проверяет, разрешена ли команда /start в личке
+        public static bool IsPrivateStartAllowed()
+        {
+            // Если whitelist не пуст - команда /start в личке отключена
+            return WhitelistChats.Count == 0;
+        }
+
         // AI проверки профилей
         public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
         public static bool ButtonAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BUTTON_AUTOBAN_DISABLE");

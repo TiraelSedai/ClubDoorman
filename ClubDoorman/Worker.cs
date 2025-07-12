@@ -68,6 +68,11 @@ internal sealed class Worker(
         var envVar = Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS");
         Console.WriteLine($"[DEBUG] NO_VPN_AD_GROUPS env var: '{envVar}'");
         Console.WriteLine($"[DEBUG] Loaded {NoVpnAdGroups.Count} groups without VPN ads: [{string.Join(", ", NoVpnAdGroups)}]");
+        
+        var whitelistVar = Environment.GetEnvironmentVariable("DOORMAN_WHITELIST");
+        Console.WriteLine($"[DEBUG] DOORMAN_WHITELIST env var: '{whitelistVar}'");
+        Console.WriteLine($"[DEBUG] Loaded {Config.WhitelistChats.Count} whitelist groups: [{string.Join(", ", Config.WhitelistChats)}]");
+        Console.WriteLine($"[DEBUG] Private /start allowed: {Config.IsPrivateStartAllowed()}");
     }
 
     private async Task CaptchaLoop(CancellationToken token)
@@ -232,6 +237,12 @@ internal sealed class Worker(
         {
             if (message.Chat.Type == ChatType.Private)
             {
+                // Если whitelist активен - не отвечаем в личке
+                if (!Config.IsPrivateStartAllowed())
+                {
+                    _logger.LogDebug("Команда /start в личке отключена - активен whitelist");
+                    return;
+                }
                 var about =
 $"""
 <b>👋 Привет! Я антиспам-бот для Telegram-групп</b>
@@ -305,6 +316,13 @@ $"""
         // Игнорировать полностью отключённые чаты
         if (Config.DisabledChats.Contains(chat.Id))
             return;
+        
+        // Проверка whitelist - если активен, работаем только в разрешённых чатах
+        if (!Config.IsChatAllowed(chat.Id))
+        {
+            _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем", chat.Id, chat.Title);
+            return;
+        }
         
         // Проверяем и удаляем сообщения о том, что бот кого-то исключил
         if (message.LeftChatMember != null && message.From?.Id == _me.Id)
@@ -830,6 +848,16 @@ $"""
 
     private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
     {
+        chat = userJoinMessage?.Chat ?? chat;
+        Debug.Assert(chat != null);
+        
+        // Проверка whitelist - если активен, работаем только в разрешённых чатах
+        if (!Config.IsChatAllowed(chat.Id))
+        {
+            _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем IntroFlow", chat.Id, chat.Title);
+            return;
+        }
+        
         // Проверяем длину имени
         var fullName = $"{user.FirstName} {user.LastName}".Trim();
         
@@ -859,8 +887,6 @@ $"""
             return;
         }
 
-        chat = userJoinMessage?.Chat ?? chat;
-        Debug.Assert(chat != null);
         var chatId = chat.Id;
 
         if (await BanIfBlacklisted(user, chat, userJoinMessage))
@@ -1183,6 +1209,13 @@ $"""
         Debug.Assert(chatMember != null);
         var newChatMember = chatMember.NewChatMember;
         ChatSettingsManager.EnsureChatInConfig(chatMember.Chat.Id, chatMember.Chat.Title);
+        
+        // Проверка whitelist - если активен, работаем только в разрешённых чатах
+        if (!Config.IsChatAllowed(chatMember.Chat.Id))
+        {
+            _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем изменение участника", chatMember.Chat.Id, chatMember.Chat.Title);
+            return;
+        }
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
