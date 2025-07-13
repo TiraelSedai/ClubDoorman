@@ -15,6 +15,9 @@ namespace ClubDoorman
             long.Parse(
                 Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set")
             );
+        
+        // Чат для логирования спама (если не указан - используется AdminChatId)
+        public static long LogAdminChatId { get; } = GetLogAdminChatId();
         public static string? ClubServiceToken { get; } = Environment.GetEnvironmentVariable("DOORMAN_CLUB_SERVICE_TOKEN");
         public static string ClubUrl { get; } = GetClubUrlOrDefault();
         public static HashSet<long> DisabledChats { get; } =
@@ -22,6 +25,30 @@ namespace ClubDoorman
             .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
             .Select(x => long.Parse(x.Trim()))
             .ToHashSet();
+
+        // Whitelist групп - если указан, бот работает только в этих группах
+        public static HashSet<long> WhitelistChats { get; } =
+            (Environment.GetEnvironmentVariable("DOORMAN_WHITELIST") ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value)
+            .ToHashSet();
+
+        // Проверяет, разрешен ли бот в данном чате
+        public static bool IsChatAllowed(long chatId)
+        {
+            // Если whitelist пуст - разрешены все чаты (кроме disabled)
+            // Если whitelist не пуст - разрешены только чаты из whitelist
+            return WhitelistChats.Count == 0 || WhitelistChats.Contains(chatId);
+        }
+
+        // Проверяет, разрешена ли команда /start в личке
+        public static bool IsPrivateStartAllowed()
+        {
+            // Если whitelist не пуст - команда /start в личке отключена
+            return WhitelistChats.Count == 0;
+        }
 
         // AI проверки профилей
         public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
@@ -132,6 +159,18 @@ namespace ClubDoorman
             if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
                 throw new Exception("DOORMAN_CLUB_URL variable is set to invalid URL");
             return url;
+        }
+
+        private static long GetLogAdminChatId()
+        {
+            var logChatVar = Environment.GetEnvironmentVariable("DOORMAN_LOG_ADMIN_CHAT");
+            if (string.IsNullOrEmpty(logChatVar))
+                return AdminChatId; // Если не указан, используем основной админский чат
+            
+            if (long.TryParse(logChatVar, out var logChatId))
+                return logChatId;
+            
+            throw new Exception("DOORMAN_LOG_ADMIN_CHAT variable is set to invalid chat ID");
         }
     }
 
