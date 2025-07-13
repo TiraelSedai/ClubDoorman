@@ -1,4 +1,4 @@
-# GateTroitsBot
+# Spampyre
 
 Это форк [ClubDoorman](https://github.com/TiraelSedai/ClubDoorman) — антиспам-бот для Telegram чатов с улучшенной защитой.
 
