@@ -1,4 +1,4 @@
-﻿namespace ClubDoorman
+﻿namespace ClubDoorman.Infrastructure
 {
     public static class Captcha
     {

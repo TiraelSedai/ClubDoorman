@@ -8,54 +8,39 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Text.Json;
+using ClubDoorman.Infrastructure;
+using ClubDoorman.Services;
+using ClubDoorman.Models;
 
 namespace ClubDoorman;
 
 internal sealed class Worker(
     ILogger<Worker> logger,
+    IUpdateDispatcher updateDispatcher,
+    ICaptchaService captchaService,
+    IStatisticsService statisticsService,
     SpamHamClassifier classifier,
     IUserManager userManager,
-    BadMessageManager badMessageManager
+    BadMessageManager badMessageManager,
+    AiChecks aiChecks
 ) : BackgroundService
 {
-    private sealed record CaptchaInfo(
-        long ChatId,
-        string? ChatTitle,
-        DateTime Timestamp,
-        User User,
-        int CorrectAnswer,
-        CancellationTokenSource Cts,
-        Message? UserJoinedMessage
-    );
+    // Классы CaptchaInfo и Stats перенесены в Models
 
-    private sealed class Stats(string? Title)
-    {
-        public string? ChatTitle = Title;
-        public int StoppedCaptcha;
-        public int BlacklistBanned;
-        public int KnownBadMessage;
-        public int LongNameBanned;
-    }
-
-    private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
-    // Для старой системы - глобальный счетчик хороших сообщений
-    private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
-    // Для новой системы - счетчик хороших сообщений по группам
-    private readonly ConcurrentDictionary<string, int> _groupGoodUserMessages = new();
-    private readonly ConcurrentDictionary<long, DateTime> _warnedUsers = new();
     private readonly TelegramBotClient _bot = new(Config.BotApi);
-    private readonly ConcurrentDictionary<long, Stats> _stats = new();
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
     private readonly PeriodicTimer _banlistRefreshTimer = new(TimeSpan.FromHours(12));
     private readonly PeriodicTimer _membersCountUpdateTimer = new(TimeSpan.FromHours(8));
     private readonly ILogger<Worker> _logger = logger;
+    private readonly IUpdateDispatcher _updateDispatcher = updateDispatcher;
+    private readonly ICaptchaService _captchaService = captchaService;
+    private readonly IStatisticsService _statisticsService = statisticsService;
     private readonly SpamHamClassifier _classifier = classifier;
     private readonly IUserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
+    private readonly AiChecks _aiChecks = aiChecks;
     private readonly GlobalStatsManager _globalStatsManager = new();
-    private AiChecks _aiChecks = null!;
     private User _me = default!;
-    private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
     
             // Группы, где не показывать рекламу (из .env NO_VPN_AD_GROUPS)
         private static readonly HashSet<long> NoVpnAdGroups = 
@@ -81,6 +66,9 @@ internal sealed class Worker(
         Console.WriteLine($"[DEBUG] DOORMAN_LOG_ADMIN_CHAT env var: '{logChatVar}'");
         Console.WriteLine($"[DEBUG] Log admin chat ID: {Config.LogAdminChatId}");
         Console.WriteLine($"[DEBUG] Using separate log chat: {Config.LogAdminChatId != Config.AdminChatId}");
+        
+        var testBlacklistVar = Environment.GetEnvironmentVariable("DOORMAN_TEST_BLACKLIST_IDS");
+        Console.WriteLine($"[DEBUG] DOORMAN_TEST_BLACKLIST_IDS env var: '{testBlacklistVar}'");
     }
 
     private async Task CaptchaLoop(CancellationToken token)
@@ -88,7 +76,7 @@ internal sealed class Worker(
         while (!token.IsCancellationRequested)
         {
             await Task.Delay(TimeSpan.FromSeconds(15), token);
-            _ = BanNoCaptchaUsers();
+            await _captchaService.BanExpiredCaptchaUsersAsync();
         }
     }
 
@@ -139,7 +127,7 @@ internal sealed class Worker(
     {
         ChatSettingsManager.InitConfigFileIfMissing();
         _ = CaptchaLoop(stoppingToken);
-        _ = ReportStatistics(stoppingToken);
+        _ = ReportStatisticsLoop(stoppingToken);
         _ = RefreshBanlistLoop(stoppingToken);
         _ = UpdateMembersCountLoop(stoppingToken);
         _classifier.Touch();
@@ -153,9 +141,6 @@ internal sealed class Worker(
         }
 
         _me = await _bot.GetMe(cancellationToken: stoppingToken);
-        
-        // Инициализируем AI проверки после создания бота
-        _aiChecks = new AiChecks(_bot, _logger);
         
         _ = Task.Run(async () => {
             try {
@@ -207,7 +192,7 @@ internal sealed class Worker(
                     _logger.LogDebug("2+ message from an album, it could not have any text/caption, skip");
                     continue;
                 }
-                await HandleUpdate(update, stoppingToken);
+                await _updateDispatcher.DispatchAsync(update, stoppingToken);
             }
             catch (Exception e)
             {
@@ -217,498 +202,7 @@ internal sealed class Worker(
         return offset;
     }
 
-    private async Task HandleUpdate(Update update, CancellationToken stoppingToken)
-    {
-        var chat = update.EditedMessage?.Chat ?? update.Message?.Chat ?? update.ChatMember?.Chat;
-        if (chat != null)
-            ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
-
-        if (update.CallbackQuery != null)
-        {
-            await HandleCallback(update);
-            return;
-        }
-        if (update.ChatMember != null)
-        {
-            if (update.ChatMember.From.Id == _me.Id)
-                return;
-            await HandleChatMemberUpdated(update);
-            return;
-        }
-
-        var message = update.EditedMessage ?? update.Message;
-        if (message == null)
-            return;
-        
-        // Обработка команды /start
-        if (message.Text?.Trim().ToLower() == "/start")
-        {
-            if (message.Chat.Type == ChatType.Private)
-            {
-                // Если whitelist активен - не отвечаем в личке
-                if (!Config.IsPrivateStartAllowed())
-                {
-                    _logger.LogDebug("Команда /start в личке отключена - активен whitelist");
-                    return;
-                }
-                var about =
-$"""
-<b>👋 Привет! Я современный антиспам-бот для Telegram</b>
-
-Защищаю <b>группы</b> и <b>каналы с обсуждениями</b> от спама, флуда и нежелательных участников.
-
-━━━━━━━━━━━━━━━
-
-<b>🛡️ МНОГОУРОВНЕВАЯ ЗАЩИТА</b>
-
-Во всех чатах работают одинаковые фильтры:
-• Проверка в базах спамеров
-• Фильтрация первых 3 сообщений
-• ML-анализ текста на спам
-• Блокировка стоп-слов и подозрительных ссылок
-
-<b>Отличие только в первичной проверке:</b>
-
-<b>📺 Каналы с обсуждениями:</b>
-AI-анализ профилей (фото + описание) — никаких капч!
-
-<b>👥 Обычные группы:</b>
-Капча для новых участников (60 секунд)
-
-━━━━━━━━━━━━━━━
-
-<b>🔄 Как это работает:</b>
-
-<b>1.</b> Новый участник → проверка в базах спамеров
-<b>2.</b> <b>Капча</b> (группы) или <b>AI-проверка профиля</b> (каналы)
-<b>3.</b> Модерация первых сообщений (ML + фильтры)
-<b>4.</b> После 3 хороших сообщений — полная свобода
-
-<a href="https://telegra.ph/GateTroitsBot-04-19">📖 Подробная документация</a>
-
-━━━━━━━━━━━━━━━
-
-<b>⚡ Быстрое подключение:</b>
-
-1️⃣ Добавьте бота в чат как админа
-2️⃣ Дайте права на удаление сообщений и бан
-3️⃣ Готово! Защита уже работает
-
-━━━━━━━━━━━━━━━
-
-<b>💰 ТАРИФЫ</b>
-
-🆓 <b>Бесплатно:</b> все функции + ограниченный LLM анализ + реклама
-
-🔥 <b>Без рекламы</b> — <b>$5 навсегда</b>
-   Отключение рекламы в одной группе
-
-📺 <b>Канал PRO</b> — <b>$5/год*</b>
-   Расширенный AI-анализ профилей + без рекламы
-
-💎 <b>Премиум</b> — <b>от $12/год</b>
-   Персональная копия бота с ML-датасетом
-   AI для всех каналов + админ-чат
-
-<i>* Для больших каналов (5К+ участников, 50+ новых в день) — индивидуальные тарифы</i>
-
-💳 <b>Заказ:</b> @momai
-
-━━━━━━━━━━━━━━━
-
-<b>💡 Важно знать:</b>
-
-<b>👤 Новичкам:</b>
-   • Первые 3 сообщения — только текст
-   • Без ссылок, медиа, эмодзи
-   
-<b>👑 Админам:</b>
-   • Можно дать права не сразу — бот изучит активных участников
-   • Рекомендуется подождать 3-4 дня для сбора статистики
-
-━━━━━━━━━━━━━━━
-
-<b>🔗 Полезные ссылки:</b>
-
-📖 <a href="https://telegra.ph/GateTroitsBot-04-19">Документация</a>
-💻 <a href="https://github.com/momai/ClubDoorman">Исходный код</a>
-💬 Поддержка: @momai
-
-━━━━━━━━━━━━━━━
-
-<b>📢 О рекламе:</b>
-
-Показываю только качественную рекламу. Никакого шлака, бурмалды и серых схем не будет, обещаю 🤝
-
-<b>🧼 Пусть ваш чат будет чистым и уютным!</b>
-""";
-                await _bot.SendMessage(message.Chat.Id, about, parseMode: ParseMode.Html);
-            }
-            return;
-        }
-        
-        // Игнорировать полностью отключённые чаты
-        if (Config.DisabledChats.Contains(chat.Id))
-            return;
-        
-        // Проверка whitelist - если активен, работаем только в разрешённых чатах
-        if (!Config.IsChatAllowed(chat.Id))
-        {
-            _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем", chat.Id, chat.Title);
-            return;
-        }
-        
-        // Проверяем и удаляем сообщения о том, что бот кого-то исключил
-        if (message.LeftChatMember != null && message.From?.Id == _me.Id)
-        {
-            try 
-            {
-                await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
-                _logger.LogDebug("Удалено сообщение о бане/исключении пользователя");
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Не удалось удалить сообщение о бане/исключении");
-            }
-            return;
-        }
-        
-        if (message.NewChatMembers != null && chat.Id != Config.AdminChatId)
-        {
-            foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
-            {
-                var joinKey = $"joined_{chat.Id}_{newUser.Id}";
-                if (!_joinedUserFlags.ContainsKey(joinKey))
-                {
-                    _logger.LogInformation("==================== НОВЫЙ УЧАСТНИК ====================\nПользователь {User} (id={UserId}, username={Username}) зашел в группу '{ChatTitle}' (id={ChatId})\n========================================================", 
-                        (newUser.FirstName + (string.IsNullOrEmpty(newUser.LastName) ? "" : " " + newUser.LastName)), newUser.Id, newUser.Username ?? "-", chat.Title ?? "-", chat.Id);
-                    _joinedUserFlags.TryAdd(joinKey, 1);
-                    _ = Task.Run(async () => { await Task.Delay(15000); _joinedUserFlags.TryRemove(joinKey, out _); });
-                }
-                await IntroFlow(message, newUser);
-            }
-            return;
-        }
-
-        if (chat.Id == Config.AdminChatId)
-        {
-            await AdminChatMessage(message);
-            return;
-        }
-
-        if (message.SenderChat != null)
-        {
-            if (message.SenderChat.Id == chat.Id)
-                return;
-            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
-                return;
-            // to get linked_chat_id we need ChatFullInfo
-            var chatFull = await _bot.GetChat(chat, stoppingToken);
-            var linked = chatFull.LinkedChatId;
-            if (linked != null && linked == message.SenderChat.Id)
-                return;
-
-            if (Config.ChannelAutoBan)
-            {
-                try
-                {
-                    var fwd = await _bot.ForwardMessage(Config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
-                    await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
-                    await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
-                    await _bot.SendMessage(
-                        Config.AdminChatId,
-                        $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
-                        replyParameters: fwd,
-                        cancellationToken: stoppingToken
-                    );
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Unable to ban");
-                    await _bot.SendMessage(
-                        Config.AdminChatId,
-                        $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
-                        cancellationToken: stoppingToken
-                    );
-                }
-                return;
-            }
-
-            if (ChatSettingsManager.GetChatType(chat.Id) != "announcement")
-                await DontDeleteButReportMessage(message, message.From!, stoppingToken);
-            return;
-        }
-
-        var user = message.From!;
-        var text = message.Text ?? message.Caption;
-
-        if (text != null)
-            MemoryCache.Default.Set(
-                new CacheItem($"{chat.Id}_{user.Id}", text),
-                new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
-            );
-
-        var key = UserToKey(chat.Id, user);
-        if (_captchaNeededUsers.ContainsKey(key))
-        {
-            await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
-            return;
-        }
-
-        if (IsUserApproved(user.Id, message.Chat.Id))
-            return;
-
-        // Определяем, является ли это сообщением из обсуждения канала
-        var isChannelDiscussion = await IsChannelDiscussion(chat, message);
-        var userType = isChannelDiscussion ? "из обсуждения канала" : "новый участник";
-        
-        _logger.LogInformation("==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================\n{UserType}: {User} (id={UserId}, username={Username}) в '{ChatTitle}' (id={ChatId})\nСообщение: {Text}\n================================================================", 
-            userType, Utils.FullName(user), user.Id, user.Username ?? "-", chat.Title ?? "-", chat.Id, text?.Substring(0, Math.Min(text.Length, 100)) ?? "[медиа]");
-
-        // Автоматически добавляем чат в конфиг, если его там нет
-        ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
-
-        // At this point we are believing we see first-timers, and we need to check for spam
-        var name = await _userManager.GetClubUsername(user.Id);
-        if (!string.IsNullOrEmpty(name))
-        {
-            _logger.LogDebug("User is {Name} from club", name);
-            return;
-        }
-        if (await _userManager.InBanlist(user.Id))
-        {
-            // Для пользователей из блэклиста - всегда автобан с логированием в лог-чат
-            const string reason = "Пользователь в блэклисте спамеров";
-            await AutoBanWithLogging(message, reason, stoppingToken);
-            return;
-        }
-
-        if (message.ReplyMarkup != null)
-        {
-            await AutoBan(message, "Сообщение с кнопками", stoppingToken);
-            return;
-        }
-        if (message.Story != null)
-        {
-            await DeleteAndReportMessage(message, "Сторис", stoppingToken);
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            _logger.LogDebug("Empty text/caption");
-            // Не репортим картинки и видео если фильтрация отключена (для любых групп)
-            // Стикеры и документы всегда репортим
-            if (Config.IsMediaFilteringDisabledForChat(chat.Id) && (message.Photo != null || message.Video != null) && message.Sticker == null && message.Document == null)
-                return;
-            await DontDeleteButReportMessage(message, user, stoppingToken);
-            return;
-        }
-        if (_badMessageManager.KnownBadMessage(text))
-        {
-            await HandleBadMessage(message, user, stoppingToken);
-            return;
-        }
-        var chatType = ChatSettingsManager.GetChatType(chat.Id);
-        var isAnnouncement = chatType == "announcement";
-        if (!isAnnouncement && SimpleFilters.TooManyEmojis(text))
-        {
-            const string reason = "В этом сообщении многовато эмоджи";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
-            return;
-        }
-        // Проверяем медиа с разделением на картинки/видео (можно отключить) и стикеры/документы (всегда блокируем)
-        var hasPhotoOrVideo = message.Photo != null || message.Video != null;
-        var hasStickerOrDocument = message.Sticker != null || message.Document != null;
-        
-        // Стикеры и документы всегда блокируем в неутвержденных сообщениях
-        if (!isAnnouncement && hasStickerOrDocument)
-        {
-            const string reason = "В первых трёх сообщениях нельзя отправлять стикеры или документы";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
-            return;
-        }
-        
-        // Картинки и видео блокируем только если фильтрация не отключена
-        if (!Config.IsMediaFilteringDisabledForChat(chat.Id) && !isAnnouncement && hasPhotoOrVideo)
-        {
-            const string reason = "В первых трёх сообщениях нельзя отправлять картинки или видео";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
-            return;
-        }
-        
-        // В announcement-группах проверяем медиа аналогично
-        if (isAnnouncement && hasStickerOrDocument)
-        {
-            // Стикеры и документы всегда блокируем в announcement-группах
-            // Но текст (подпись) все равно проверяем на стоп-слова ниже
-        }
-        else if (isAnnouncement && !Config.IsMediaFilteringDisabledForChat(chat.Id) && hasPhotoOrVideo)
-        {
-            // Картинки и видео блокируем только если фильтрация не отключена
-            // Но текст (подпись) все равно проверяем на стоп-слова ниже
-        }
-
-        var normalized = TextProcessor.NormalizeText(text);
-
-        var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-        if (lookalike.Count > 2)
-        {
-            var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
-            var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
-            if (!Config.LookAlikeAutoBan)
-            {
-                await DeleteAndReportMessage(message, reason, stoppingToken);
-                return;
-            }
-
-            await AutoBan(message, reason, stoppingToken);
-            return;
-        }
-
-        if (SimpleFilters.HasStopWords(normalized))
-        {
-            const string reason = "В этом сообщении есть стоп-слова";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
-            return;
-        }
-        var (spam, score) = await _classifier.IsSpam(normalized);
-        if (spam)
-        {
-            var reason = $"ML решил что это спам, скор {score}";
-            await DeleteAndReportMessage(message, reason, stoppingToken);
-            return;
-        }
-        // else - ham
-        if (score > -0.6 && Config.LowConfidenceHamForward)
-        {
-            var forward = await _bot.ForwardMessage(Config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            var postLink = LinkToMessage(chat, message.MessageId);
-            var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
-            // Сохраняем сообщение для обработки callback'а (удаление и бан)
-            MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"Классифаер думает, что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея — добавить сообщение в датасет.{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}{postLink}",
-                replyParameters: forward,
-                replyMarkup: new InlineKeyboardMarkup(new[]
-                {
-                    new InlineKeyboardButton("удалить и забанить") { CallbackData = callbackDataBan },
-                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
-                }),
-                cancellationToken: stoppingToken
-            );
-        }
-
-
-        _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
-
-        // ========== AI ПРОВЕРКА ПРОФИЛЕЙ ==========
-        // Для пользователей из обсуждений каналов и обычных групп где включены AI проверки
-        if (Config.OpenRouterApi != null && Config.IsAiEnabledForChat(chat.Id))
-        {
-            try 
-            {
-                var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
-                _logger.LogDebug("AI проверка профиля пользователя {UserId}: {Probability}", user.Id, attention.Probability);
-                
-                if (attention.Probability >= Consts.LlmLowProbability)
-                {
-                    var keyboard = new List<InlineKeyboardButton>
-                    {
-                        new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
-                        new(Consts.OkButton) { CallbackData = $"aiOk_{user.Id}" }
-                    };
-
-                    ReplyParameters? replyParams = null;
-                    if (photo.Length != 0)
-                    {
-                        using var ms = new MemoryStream(photo);
-                        var photoMsg = await _bot.SendPhoto(
-                            Config.AdminChatId,
-                            new InputFileStream(ms),
-                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
-                            cancellationToken: stoppingToken
-                        );
-                        replyParams = photoMsg;
-                    }
-
-                    var isHighRisk = attention.Probability >= Consts.LlmHighProbability;
-                    var action = isHighRisk ? "Даём ридонли на 10 минут" : "Требует ручной проверки";
-                    var at = user.Username == null ? "" : $" @{user.Username} ";
-                    
-                    await _bot.SendMessage(
-                        Config.AdminChatId,
-                        $"🤖 AI: Вероятность спам-профиля {attention.Probability * 100:F1}%. {action}{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{LinkToMessage(chat, message.MessageId)}",
-                        replyMarkup: new InlineKeyboardMarkup(keyboard),
-                        replyParameters: replyParams,
-                        cancellationToken: stoppingToken
-                    );
-
-                    // При высокой вероятности спама - автоматическая модерация
-                    if (isHighRisk)
-                    {
-                        await _bot.DeleteMessage(chat, message.MessageId, cancellationToken: stoppingToken);
-                        await _bot.RestrictChatMember(
-                            chat.Id,
-                            user.Id,
-                            new ChatPermissions(false),
-                            untilDate: DateTime.UtcNow.AddMinutes(10),
-                            cancellationToken: stoppingToken
-                        );
-                        
-                        _logger.LogInformation("AI автомодерация: пользователь {UserId} получил ридонли на 10 минут (вероятность спама {Probability})", user.Id, attention.Probability);
-                        return; // Прерываем обработку
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Ошибка при AI проверке профиля пользователя {UserId}", user.Id);
-            }
-        }
-        // ========== КОНЕЦ AI ПРОВЕРКИ ==========
-
-        // Now we need a mechanism for users who have been writing non-spam for some time
-        if (Config.UseNewApprovalSystem && !Config.GlobalApprovalMode)
-        {
-            // Новая система, групповой режим
-            var groupUserKey = $"{message.Chat.Id}_{user.Id}";
-            var goodInteractions = _groupGoodUserMessages.AddOrUpdate(groupUserKey, 1, (_, oldValue) => oldValue + 1);
-            if (goodInteractions >= 3)
-            {
-                _logger.LogInformation(
-                    "User {FullName} behaved well for the last {Count} messages in group {GroupTitle}, approving in this group",
-                    FullName(user.FirstName, user.LastName),
-                    goodInteractions,
-                    message.Chat.Title ?? message.Chat.Id.ToString()
-                );
-                await _userManager.Approve(user.Id, message.Chat.Id);
-                _groupGoodUserMessages.TryRemove(groupUserKey, out _);
-                // --- Новая логика: сбрасываем предупреждение для юзера ---
-                _warnedUsers.TryRemove(user.Id, out _);
-                // --- Конец новой логики ---
-            }
-        }
-        else
-        {
-            // Старая система или новая система в глобальном режиме
-            var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
-            if (goodInteractions >= 3)
-            {
-                _logger.LogInformation(
-                    "User {FullName} behaved well for the last {Count} messages, approving {Mode}",
-                    FullName(user.FirstName, user.LastName),
-                    goodInteractions,
-                    Config.GlobalApprovalMode ? "globally" : "in old system"
-                );
-                await _userManager.Approve(user.Id, Config.GlobalApprovalMode ? null : message.Chat.Id);
-                _goodUserMessages.TryRemove(user.Id, out _);
-                // --- Новая логика: сбрасываем предупреждение для юзера ---
-                _warnedUsers.TryRemove(user.Id, out _);
-                // --- Конец новой логики ---
-            }
-        }
-    }
+    // Метод HandleUpdate удален - логика перенесена в MessageHandler и CallbackQueryHandler через UpdateDispatcher
 
     private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
     {
@@ -785,8 +279,7 @@ AI-анализ профилей (фото + описание) — никаки�
         }
         
         // Обновляем статистику
-        var stats = _stats.GetOrAdd(message.Chat.Id, new Stats(message.Chat.Title));
-        Interlocked.Increment(ref stats.BlacklistBanned);
+        _statisticsService.IncrementBlacklistBan(message.Chat.Id);
         _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
         
         // Удаляем из списка одобренных
@@ -808,8 +301,7 @@ AI-анализ профилей (фото + описание) — никаки�
         try
         {
             var chat = message.Chat;
-            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.KnownBadMessage);
+            _statisticsService.IncrementKnownBadMessage(chat.Id);
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
             await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
             _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
@@ -828,266 +320,18 @@ AI-анализ профилей (фото + описание) — никаки�
         }
     }
 
-    private async Task HandleCallback(Update update)
-    {
-        var cb = update.CallbackQuery;
-        Debug.Assert(cb != null);
-        var cbData = cb.Data;
-        if (cbData == null)
-            return;
-        var message = cb.Message;
-        if (message == null || message.Chat.Id == Config.AdminChatId)
-            await HandleAdminCallback(cbData, cb);
-        else
-            await HandleCaptchaCallback(update);
-    }
+    // Метод HandleCallback удален - логика перенесена в CallbackQueryHandler
 
-    private async Task HandleCaptchaCallback(Update update)
-    {
-        var cb = update.CallbackQuery;
-        Debug.Assert(cb != null);
-        var cbData = cb.Data;
-        if (cbData == null)
-            return;
-        var message = cb.Message;
-        Debug.Assert(message != null);
+    // Метод HandleCaptchaCallback удален - логика перенесена в CallbackQueryHandler 
+    // (начало метода удалено, продолжение удаляется ниже)
 
-        //$"cap_{user.Id}_{x}"
-        var split = cbData.Split('_');
-        if (split.Length < 3)
-            return;
-        if (split[0] != "cap")
-            return;
-        if (!long.TryParse(split[1], out var userId))
-            return;
-        if (!int.TryParse(split[2], out var chosen))
-            return;
-        // Prevent other people from ruining the flow
-        if (cb.From.Id != userId)
-        {
-            await _bot.AnswerCallbackQuery(cb.Id);
-            return;
-        }
-
-        var chat = message.Chat;
-        var key = UserToKey(chat.Id, cb.From);
-        var ok = _captchaNeededUsers.TryRemove(key, out var info);
-        await _bot.DeleteMessage(chat, message.MessageId);
-        if (!ok)
-        {
-            _logger.LogWarning("{Key} was not found in the dictionary _captchaNeededUsers", key);
-            return;
-        }
-        Debug.Assert(info != null);
-        await info.Cts.CancelAsync();
-        if (info.CorrectAnswer != chosen)
-        {
-            // Логируем неуспешное прохождение капчи
-            _logger.LogInformation("==================== КАПЧА НЕ ПРОЙДЕНА ====================\nПользователь {User} (id={UserId}) не прошёл капчу в группе '{ChatTitle}' (id={ChatId})\n===========================================================", info.User.FirstName + (string.IsNullOrEmpty(info.User.LastName) ? "" : " " + info.User.LastName), info.User.Id, info.ChatTitle ?? "-", info.ChatId);
-            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.StoppedCaptcha);
-            await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
-            if (info.UserJoinedMessage != null)
-                await _bot.DeleteMessage(chat, info.UserJoinedMessage.MessageId);
-            UnbanUserLater(chat, userId);
-        }
-        else
-        {
-            // Логируем успешное прохождение капчи
-            _logger.LogInformation("==================== КАПЧА ПРОЙДЕНА ====================\nПользователь {User} (id={UserId}) успешно прошёл капчу в группе '{ChatTitle}' (id={ChatId}) — показываем приветствие\n========================================================", cb.From.FirstName + (string.IsNullOrEmpty(cb.From.LastName) ? "" : " " + cb.From.LastName), cb.From.Id, chat.Title ?? "-", chat.Id);
-            // Приветственное сообщение: разное для обычных и announcement чатов
-            var displayName = !string.IsNullOrEmpty(cb.From.FirstName)
-                ? System.Net.WebUtility.HtmlEncode(FullName(cb.From.FirstName, cb.From.LastName))
-                : (!string.IsNullOrEmpty(cb.From.Username) ? "@" + cb.From.Username : "гость");
-            var mention = $"<a href=\"tg://user?id={cb.From.Id}\">{displayName}</a>";
-            string greetMsg;
-            
-            // Заглушка для рекламы (если группа не в исключениях)
-            var isNoAdGroup = NoVpnAdGroups.Contains(chat.Id);
-            Console.WriteLine($"[DEBUG] Chat {chat.Id} ({chat.Title}) - No ad placeholder: {isNoAdGroup}");
-            var vpnAd = isNoAdGroup ? "" : "\n\n\n📍 <b>Место для рекламы</b> \n <i>...</i>";
-            
-            if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
-            {
-                greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, сообщения со стоп-словами и спамом будут удалены. Не просите писать в ЛС!{vpnAd}";
-            }
-            else
-            {
-                var mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры, документы" : ", изображения, стикеры, документы";
-                greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически. Не просите писать в ЛС!{vpnAd}";
-            }
-            var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html);
-            DeleteMessageLater(sent, TimeSpan.FromSeconds(20));
-        }
-    }
+    // Оставшаяся часть метода HandleCaptchaCallback удалена
 
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
 
-    private async Task BanUserForLongName(
-        Message? userJoinMessage,
-        User user,
-        string fullName,
-        TimeSpan? banDuration,
-        string banType,
-        string nameDescription,
-        Chat? chat = default)
-    {
-        try
-        {
-            chat = userJoinMessage?.Chat ?? chat;
-            Debug.Assert(chat != null);
-            
-            // Баним пользователя (если banDuration null - бан навсегда)
-            await _bot.BanChatMember(
-                chat.Id, 
-                user.Id,
-                banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null,
-                revokeMessages: true  // Удаляем все сообщения пользователя
-            );
-            
-            // Удаляем из списка одобренных только при перманентном бане
-            if (!banDuration.HasValue)
-                _userManager.RemoveApproval(user.Id);
-            
-            // Удаляем сообщение о входе
-            if (userJoinMessage != null)
-            {
-                await _bot.DeleteMessage(userJoinMessage.Chat.Id, (int)userJoinMessage.MessageId);
-            }
+    // УДАЛЕН: BanUserForLongName - логика перенесена в IntroFlowService
 
-            // Логируем для статистики
-            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.LongNameBanned);
-
-            // Уведомляем админов
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"{banType} в чате *{chat.Title}* за {nameDescription} длинное имя пользователя ({fullName.Length} символов):\n`{Markdown.Escape(fullName)}`",
-                parseMode: ParseMode.Markdown
-            );
-            _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Unable to ban user with long username");
-        }
-    }
-
-    private async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
-    {
-        chat = userJoinMessage?.Chat ?? chat;
-        Debug.Assert(chat != null);
-        
-        // Проверка whitelist - если активен, работаем только в разрешённых чатах
-        if (!Config.IsChatAllowed(chat.Id))
-        {
-            _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем IntroFlow", chat.Id, chat.Title);
-            return;
-        }
-        
-        // Проверяем длину имени
-        var fullName = $"{user.FirstName} {user.LastName}".Trim();
-        
-        // Проверяем длину имени для обоих случаев
-        if (fullName.Length > 40)
-        {
-            var isPermanent = fullName.Length > 75;
-            await BanUserForLongName(
-                userJoinMessage,
-                user,
-                fullName,
-                isPermanent ? null : TimeSpan.FromMinutes(10),
-                isPermanent ? "🚫 Перманентный бан" : "Автобан на 10 минут",
-                isPermanent ? "экстремально" : "подозрительно",
-                chat
-            );
-            return;
-        }
-
-        _logger.LogDebug("Intro flow {@User}", user);
-        
-        // Проверяем, является ли пользователь участником клуба
-        var clubUser = await _userManager.GetClubUsername(user.Id);
-        if (clubUser != null)
-        {
-            _logger.LogDebug("User is {Name} from club", clubUser);
-            return;
-        }
-
-        var chatId = chat.Id;
-
-        if (await BanIfBlacklisted(user, chat, userJoinMessage))
-            return;
-
-        var key = UserToKey(chatId, user);
-        if (_captchaNeededUsers.ContainsKey(key))
-        {
-            _logger.LogDebug("This user is already awaiting captcha challenge");
-            return;
-        }
-
-        const int challengeLength = 8;
-        var correctAnswerIndex = Random.Shared.Next(challengeLength);
-        var challenge = new List<int>(challengeLength);
-        while (challenge.Count < challengeLength)
-        {
-            var rand = Random.Shared.Next(Captcha.CaptchaList.Count);
-            if (!challenge.Contains(rand))
-                challenge.Add(rand);
-        }
-        var correctAnswer = challenge[correctAnswerIndex];
-        var keyboard = challenge
-            .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"cap_{user.Id}_{x}" })
-            .ToList();
-
-        ReplyParameters? replyParams = null;
-        if (userJoinMessage != null)
-            replyParams = userJoinMessage;
-
-        var fullNameForDisplay = FullName(user.FirstName, user.LastName);
-        var fullNameLower = fullNameForDisplay.ToLowerInvariant();
-        var username = user.Username?.ToLower();
-        if (_namesBlacklist.Any(fullNameLower.Contains) || username?.Contains("porn") == true || username?.Contains("p0rn") == true)
-            fullNameForDisplay = "новый участник чата";
-
-        var isApproved = IsUserApproved(user.Id, chatId);
-        var welcomeMessage = isApproved
-            ? $"С возвращением, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
-            : $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
-
-        // Добавляем заглушку для рекламы к welcomeMessage (HTML-совместимо, если группа не в исключениях)
-        var isNoAdGroup = NoVpnAdGroups.Contains(chatId);
-        Console.WriteLine($"[DEBUG] Chat {chatId} - No ad placeholder in captcha: {isNoAdGroup}");
-        var vpnAdHtml = isNoAdGroup ? "" : "\n\n 📍 Место для рекламы\n<i>...</i>";
-        var welcomeMessageHtml = (isApproved
-            ? $"С возвращением, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
-            : $"Привет, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?")
-            + vpnAdHtml;
-
-        var del = await _bot.SendMessage(
-            chatId,
-            welcomeMessageHtml,
-            parseMode: ParseMode.Html,
-            replyParameters: replyParams,
-            replyMarkup: new InlineKeyboardMarkup(keyboard)
-        );
-
-        var cts = new CancellationTokenSource();
-        DeleteMessageLater(del, TimeSpan.FromMinutes(1.2), cts.Token);
-        if (userJoinMessage != null)
-        {
-            DeleteMessageLater(userJoinMessage, TimeSpan.FromMinutes(1.2), cts.Token);
-            _captchaNeededUsers.TryAdd(
-                key,
-                new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, userJoinMessage)
-            );
-        }
-        else
-        {
-            _captchaNeededUsers.TryAdd(key, new CaptchaInfo(chatId, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, null));
-        }
-        _globalStatsManager.IncCaptcha(chatId, chat.Title ?? "");
-    }
+        // УДАЛЕН: IntroFlow - логика перенесена в IntroFlowService
 
     private static string GetChatLink(Chat chat)
     {
@@ -1141,55 +385,19 @@ AI-анализ профилей (фото + описание) — никаки�
         }
     }
 
-    private async Task ReportStatistics(CancellationToken ct)
+    private async Task ReportStatisticsLoop(CancellationToken ct)
     {
         while (await _timer.WaitForNextTickAsync(ct))
         {
             if (DateTimeOffset.UtcNow.Hour != 12)
                 continue;
 
-            var report = _stats.ToArray();
-            _stats.Clear();
-            var sb = new StringBuilder();
-            sb.AppendLine("📊 *Статистика за последние 24 часа:*");
-            
-            foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
-            {
-                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.LongNameBanned;
-                if (sum == 0) continue;
-                
-                // Попробуем получить объект чата, если он есть в кэше
-                Chat? chat = null;
-                try
-                {
-                    chat = await _bot.GetChat(chatId);
-                }
-                catch { /* fallback на старый вариант */ }
-
-                sb.AppendLine();
-                if (chat != null)
-                    sb.AppendLine($"{GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
-                else
-                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
-                sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
-                if (stats.BlacklistBanned > 0)
-                    sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
-                if (stats.StoppedCaptcha > 0)
-                    sb.AppendLine($"▫️ Не прошли капчу: *{stats.StoppedCaptcha}*");
-                if (stats.KnownBadMessage > 0)
-                    sb.AppendLine($"▫️ Известные спам-сообщения: *{stats.KnownBadMessage}*");
-                if (stats.LongNameBanned > 0)
-                    sb.AppendLine($"▫️ За длинные имена: *{stats.LongNameBanned}*");
-            }
-
-            if (sb.Length <= 35) // Если нет данных, кроме заголовка
-            {
-                sb.AppendLine("\nНичего интересного не произошло 🎉");
-            }
-
             try
             {
-                await _bot.SendMessage(Config.AdminChatId, sb.ToString(), parseMode: ParseMode.Markdown, cancellationToken: ct);
+                var report = await _statisticsService.GenerateReportAsync();
+                _statisticsService.ClearStats();
+                
+                await _bot.SendMessage(Config.AdminChatId, report, parseMode: ParseMode.Markdown, cancellationToken: ct);
             }
             catch (Exception e)
             {
@@ -1198,66 +406,7 @@ AI-анализ профилей (фото + описание) — никаки�
         }
     }
 
-    private async Task<bool> BanIfBlacklisted(User user, Chat chat, Message? userJoinMessage = null)
-    {
-        if (!await _userManager.InBanlist(user.Id))
-            return false;
-
-        try
-        {
-            var stats = _stats.GetOrAdd(chat.Id, new Stats(chat.Title));
-            Interlocked.Increment(ref stats.BlacklistBanned);
-            
-            // Баним пользователя на 4 часа с параметром revokeMessages: true чтобы удалить все сообщения
-            var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
-            await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true);
-            
-            // Явно удаляем сообщение о входе в чат, если оно есть
-            if (userJoinMessage != null)
-            {
-                try
-                {
-                    await _bot.DeleteMessage(chat.Id, userJoinMessage.MessageId);
-                    _logger.LogDebug("Удалено сообщение о входе пользователя из блэклиста");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Не удалось удалить сообщение о входе пользователя из блэклиста");
-                }
-            }
-            
-            // Удаляем из списка одобренных
-            if (_userManager.RemoveApproval(user.Id, chat.Id, removeAll: true))
-            {
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"⚠️ Пользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) удален из списка одобренных после бана по блеклисту",
-                    parseMode: ParseMode.Markdown
-                );
-            }
-            
-            // Отключено
-            // await _bot.SendMessage(
-            //     Config.AdminChatId,
-            //     $"🚫 *Автобан на 4 часа* в чате *{chat.Title}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) находится в блэклисте",
-            //     parseMode: ParseMode.Markdown
-            // );
-            _logger.LogInformation("Пользователь {User} (id={UserId}) из блэклиста забанен на 4 часа в чате {ChatTitle} (id={ChatId})", FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id);
-            _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
-            return true;
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Unable to ban");
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ Не могу забанить юзера из блеклиста в чате *{chat.Title}*. Не хватает могущества? Сходите забаньте руками.",
-                parseMode: ParseMode.Markdown
-            );
-        }
-
-        return false;
-    }
+    // УДАЛЕН: BanIfBlacklisted - логика перенесена в IntroFlowService
 
     private static string FullName(string firstName, string? lastName) =>
         string.IsNullOrEmpty(lastName) ? firstName : $"{firstName} {lastName}";
@@ -1317,237 +466,17 @@ AI-анализ профилей (фото + описание) — никаки�
             }
             catch { }
         }
-        else if (split.Count > 1 && split[0] == "aiOk" && long.TryParse(split[1], out var aiOkUserId))
-        {
-            // Админ отметил профиль как безопасный - добавляем в кэш как проверенный
-            _aiChecks.MarkUserOkay(aiOkUserId);
-            await _bot.SendMessage(
-                new ChatId(Config.AdminChatId),
-                $"✅ {AdminDisplayName(cb.From)} отметил профиль как безопасный - AI проверки отключены для этого пользователя",
-                replyParameters: cb.Message?.MessageId
-            );
-        }
+
         var msg = cb.Message;
         if (msg != null)
             await _bot.EditMessageReplyMarkup(msg.Chat.Id, msg.MessageId);
     }
 
-    private async Task HandleChatMemberUpdated(Update update)
-    {
-        var chatMember = update.ChatMember;
-        Debug.Assert(chatMember != null);
-        var newChatMember = chatMember.NewChatMember;
-        ChatSettingsManager.EnsureChatInConfig(chatMember.Chat.Id, chatMember.Chat.Title);
-        
-        // Проверка whitelist - если активен, работаем только в разрешённых чатах
-        if (!Config.IsChatAllowed(chatMember.Chat.Id))
-        {
-            _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем изменение участника", chatMember.Chat.Id, chatMember.Chat.Title);
-            return;
-        }
-        switch (newChatMember.Status)
-        {
-            case ChatMemberStatus.Member:
-            {
-                _logger.LogDebug("New chat member new {@New} old {@Old}", newChatMember, chatMember.OldChatMember);
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                {
-                    var u = newChatMember.User;
-                    var joinKey = $"joined_{chatMember.Chat.Id}_{u.Id}";
-                    await Task.Delay(200); // Дать шанс NewChatMembers выставить флаг
-                    if (!_joinedUserFlags.ContainsKey(joinKey))
-                    {
-                        _logger.LogInformation("==================== НОВЫЙ УЧАСТНИК ====================\nПользователь {User} (id={UserId}, username={Username}) зашел в группу '{ChatTitle}' (id={ChatId})\n========================================================", 
-                            (u.FirstName + (string.IsNullOrEmpty(u.LastName) ? "" : " " + u.LastName)), u.Id, u.Username ?? "-", chatMember.Chat.Title ?? "-", chatMember.Chat.Id);
-                        _joinedUserFlags.TryAdd(joinKey, 1);
-                        _ = Task.Run(async () => { await Task.Delay(15000); _joinedUserFlags.TryRemove(joinKey, out _); });
-                    }
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(2));
-                        await IntroFlow(null, newChatMember.User, chatMember.Chat);
-                    });
-                }
+    // УДАЛЕН: HandleChatMemberUpdated - логика перенесена в ChatMemberHandler
 
-                break;
-            }
-            case ChatMemberStatus.Kicked
-            or ChatMemberStatus.Restricted:
-                var user = newChatMember.User;
-                var key = $"{chatMember.Chat.Id}_{user.Id}";
-                var lastMessage = MemoryCache.Default.Get(key) as string;
-                var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
-                    ? ""
-                    : $" Его/её последним сообщением было:\n```\n{lastMessage}\n```";
-                
-                // Удаляем из списка доверенных
-                if (_userManager.RemoveApproval(user.Id, chatMember.Chat.Id, removeAll: true))
-                {
-                    await _bot.SendMessage(
-                        Config.AdminChatId,
-                        $"⚠️ Пользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) удален из списка одобренных после получения ограничений в чате *{chatMember.Chat.Title}*",
-                        parseMode: ParseMode.Markdown
-                    );
-                }
-                
-                await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
-                    $"🔔 В чате *{chatMember.Chat.Title}* пользователю [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}",
-                    parseMode: ParseMode.Markdown
-                );
-                break;
-        }
-    }
+    // УДАЛЕН: DontDeleteButReportMessage - логика перенесена в MessageHandler
 
-    private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken stoppingToken)
-    {
-        // Проверяем, является ли сообщение сообщением о выходе пользователя
-        if (message.LeftChatMember != null)
-        {
-            _logger.LogDebug("Пропускаем форвард сообщения о выходе пользователя");
-            return;
-        }
-        
-        try
-        {
-            var forward = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: stoppingToken
-            );
-            var callbackData = $"ban_{message.Chat.Id}_{user.Id}";
-            MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-            await _bot.SendMessage(
-                new ChatId(Config.AdminChatId),
-                $"⚠️ *Подозрительное сообщение* - например, медиа без подписи от 'нового' пользователя или сообщение от канала. Сообщение *НЕ удалено*.\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) в чате *{message.Chat.Title}*",
-                parseMode: ParseMode.Markdown,
-                replyParameters: forward.MessageId,
-                replyMarkup: new InlineKeyboardMarkup(new[]
-                {
-                    new InlineKeyboardButton("🤖 бан") { CallbackData = callbackData },
-                    new InlineKeyboardButton("👍 ok") { CallbackData = "noop" },
-                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
-                }),
-                cancellationToken: stoppingToken
-            );
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Ошибка при пересылке сообщения");
-            // Если не удалось переслать, просто отправляем уведомление
-            await _bot.SendMessage(
-                new ChatId(Config.AdminChatId),
-                $"⚠️ Не удалось переслать подозрительное сообщение из чата *{message.Chat.Title}* от пользователя [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id})",
-                parseMode: ParseMode.Markdown
-            );
-        }
-    }
-
-    private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken stoppingToken)
-    {
-        var user = message.From;
-        
-        // Проверяем, является ли сообщение сообщением о выходе пользователя
-        if (message.LeftChatMember != null)
-        {
-            _logger.LogDebug("Пропускаем форвард сообщения о выходе пользователя");
-            
-            try
-            {
-                await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-                _logger.LogDebug("Сообщение о выходе пользователя удалено");
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Не удалось удалить сообщение о выходе пользователя");
-            }
-            return;
-        }
-        
-        Message? forward = null;
-        var deletionMessagePart = $"{reason}";
-        
-        try 
-        {
-            // Пытаемся переслать сообщение
-            forward = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: stoppingToken
-            );
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Не удалось переслать сообщение");
-        }
-        
-        try
-        {
-            await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            deletionMessagePart += ", сообщение удалено.";
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Unable to delete");
-            deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
-        }
-        // --- Новая логика: объясняющее сообщение для новичка ---
-        bool isBlacklisted = false;
-        if (user != null && !IsUserApproved(user.Id, message.Chat.Id))
-        {
-            try {
-                isBlacklisted = await _userManager.InBanlist(user.Id);
-            } catch {}
-        }
-        if (user != null && !IsUserApproved(user.Id, message.Chat.Id) && !isBlacklisted && !_warnedUsers.ContainsKey(user.Id))
-        {
-            var displayName = !string.IsNullOrEmpty(user.FirstName)
-                ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
-                : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
-            var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
-            var mediaWarning = Config.IsMediaFilteringDisabledForChat(message.Chat.Id) ? ", стикеры и документы" : ", картинки, стикеры и документы";
-            var warnMsg = $"👋 {mention}, вы пока <b>новичок</b> в этом чате.\n\n<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n• нельзя эмодзи{mediaWarning}, рекламу и <b>стоп-слова</b>\n• работает ML-анализ\n• Не просите писать в ЛС!\n\nПосле 3 обычных сообщений фильтры <b>отключатся</b>, и вы сможете писать свободно!";
-            var sentWarn = await _bot.SendMessage(message.Chat.Id, warnMsg, parseMode: ParseMode.Html);
-            _warnedUsers.TryAdd(user.Id, DateTime.UtcNow);
-            DeleteMessageLater(sentWarn, TimeSpan.FromSeconds(40));
-            _logger.LogInformation("Показано объясняющее сообщение новичку: {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
-        }
-        else if (user != null && !IsUserApproved(user.Id, message.Chat.Id) && isBlacklisted)
-        {
-            var displayName = !string.IsNullOrEmpty(user.FirstName)
-                ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
-                : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
-            _logger.LogInformation("Объясняющее сообщение НЕ показано (пользователь в блэклисте): {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
-        }
-        else if (user != null && !IsUserApproved(user.Id, message.Chat.Id))
-        {
-            var displayName = !string.IsNullOrEmpty(user.FirstName)
-                ? System.Net.WebUtility.HtmlEncode(FullName(user.FirstName, user.LastName))
-                : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
-            _logger.LogInformation("Объясняющее сообщение НЕ показано (уже было) новичку: {User} (id={UserId}) в чате {ChatTitle} (id={ChatId})", displayName, user.Id, message.Chat.Title, message.Chat.Id);
-        }
-        // --- Конец новой логики ---
-        var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
-        MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-        var postLink = LinkToMessage(message.Chat, message.MessageId);
-        var row = new List<InlineKeyboardButton>
-        {
-                new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
-                new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
-                new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
-        };
-
-        await _bot.SendMessage(
-            new ChatId(Config.AdminChatId),
-            $"⚠️ *{deletionMessagePart}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) в чате *{message.Chat.Title}*\n{postLink}",
-            parseMode: ParseMode.Markdown,
-            replyParameters: forward,
-            replyMarkup: new InlineKeyboardMarkup(row),
-            cancellationToken: stoppingToken
-        );
-    }
+    // УДАЛЕН: DeleteAndReportMessage - логика перенесена в MessageHandler
 
     private static string LinkToMessage(Chat chat, long messageId) =>
         chat.Type == ChatType.Supergroup ? LinkToSuperGroupMessage(chat, messageId)
@@ -1572,6 +501,10 @@ AI-анализ профилей (фото + описание) — никаки�
                 return;
             }
             var text = replyToMessage.Text ?? replyToMessage.Caption;
+            _logger.LogDebug("Админская команда {Command}: извлечен текст='{Text}' (длина={Length})", 
+                message.Text, string.IsNullOrWhiteSpace(text) ? "[ПУСТОЙ]" : text.Length > 100 ? text.Substring(0, 100) + "..." : text, 
+                text?.Length ?? 0);
+                
             if (!string.IsNullOrWhiteSpace(text))
             {
                 switch (message.Text)
@@ -1595,6 +528,7 @@ AI-анализ профилей (фото + описание) — никаки�
                         break;
                     }
                     case "/spam":
+                        _logger.LogInformation("🔥 Обрабатываем команду /spam для текста: '{Text}'", text);
                         await _classifier.AddSpam(text);
                         await _badMessageManager.MarkAsBad(text);
                         await _bot.SendMessage(
@@ -1602,22 +536,34 @@ AI-анализ профилей (фото + описание) — никаки�
                             "✅ Сообщение добавлено как пример спама в датасет, а также в список авто-бана",
                             replyParameters: replyToMessage
                         );
+                        _logger.LogInformation("✅ Команда /spam успешно выполнена");
                         break;
                     case "/ham":
+                        _logger.LogInformation("✅ Обрабатываем команду /ham для текста: '{Text}'", text);
                         await _classifier.AddHam(text);
                         await _bot.SendMessage(
                             message.Chat.Id,
                             "✅ Сообщение добавлено как пример НЕ-спама в датасет",
                             replyParameters: replyToMessage
                         );
+                        _logger.LogInformation("✅ Команда /ham успешно выполнена");
                         break;
                 }
+            }
+            else
+            {
+                _logger.LogWarning("❌ Команда {Command} не выполнена: текст сообщения пустой или отсутствует", message.Text);
+                await _bot.SendMessage(
+                    message.Chat.Id,
+                    "⚠️ Не могу выполнить команду: сообщение не содержит текста",
+                    replyParameters: replyToMessage
+                );
             }
         }
         // Команда статистики по группам
         else if (message.Text?.Trim().ToLower() == "/stat" || message.Text?.Trim().ToLower() == "/stats")
         {
-            var report = _stats.ToArray();
+            var report = _statisticsService.GetAllStats();
             var sb = new StringBuilder();
             sb.AppendLine("📊 *Статистика по группам:*\n");
             foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
@@ -1758,55 +704,7 @@ AI-анализ профилей (фото + описание) — никаки�
         }
     }
 
-    private async Task BanNoCaptchaUsers()
-    {
-        if (_captchaNeededUsers.IsEmpty)
-            return;
-        var now = DateTime.UtcNow;
-        var users = _captchaNeededUsers.ToArray();
-        foreach (var (key, (chatId, title, timestamp, user, _, _, _)) in users)
-        {
-            var minutes = (now - timestamp).TotalMinutes;
-            if (minutes > 1)
-            {
-                // Логируем неуспешное прохождение капчи по таймауту
-                _logger.LogInformation("==================== КАПЧА НЕ ПРОЙДЕНА (таймаут) ====================\nПользователь {User} (id={UserId}) не прошёл капчу (таймаут) в группе '{ChatTitle}' (id={ChatId})\n====================================================================", user.FirstName + (string.IsNullOrEmpty(user.LastName) ? "" : " " + user.LastName), user.Id, title ?? "-", chatId);
-                var stats = _stats.GetOrAdd(chatId, new Stats(title));
-                Interlocked.Increment(ref stats.StoppedCaptcha);
-                _captchaNeededUsers.TryRemove(key, out _);
-                await _bot.BanChatMember(chatId, user.Id, now + TimeSpan.FromMinutes(20), revokeMessages: false);
-                UnbanUserLater(chatId, user.Id);
-            }
-        }
-    }
-
-    private class CaptchaAttempts
-    {
-        public int Attempts { get; set; }
-    }
-
-    private void UnbanUserLater(ChatId chatId, long userId)
-    {
-        var key = $"captcha_{userId}";
-        var cache = MemoryCache.Default.AddOrGetExisting(
-            new CacheItem(key, new CaptchaAttempts()),
-            new CacheItemPolicy { SlidingExpiration = TimeSpan.FromHours(4) }
-        );
-        var attempts = (CaptchaAttempts)cache.Value;
-        attempts.Attempts++;
-        Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Exp(attempts.Attempts)));
-                await _bot.UnbanChatMember(chatId, userId);
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, nameof(UnbanUserLater));
-            }
-        });
-    }
+    // Методы BanNoCaptchaUsers, CaptchaAttempts и UnbanUserLater удалены - логика перенесена в CaptchaService
 
     private void DeleteMessageLater(Message message, TimeSpan after = default, CancellationToken cancellationToken = default)
     {

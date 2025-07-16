@@ -1,4 +1,4 @@
-﻿namespace ClubDoorman;
+﻿namespace ClubDoorman.Services;
 
 public static class SimpleFilters
 {

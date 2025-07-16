@@ -1,6 +1,6 @@
 ﻿using System.Text.Encodings.Web;
 
-namespace ClubDoorman
+namespace ClubDoorman.Infrastructure
 {
     internal static class Config
     {

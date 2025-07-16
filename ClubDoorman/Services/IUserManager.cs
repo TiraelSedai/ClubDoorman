@@ -1,4 +1,4 @@
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
 /// <summary>
 /// Интерфейс для управления пользователями и их одобрениями

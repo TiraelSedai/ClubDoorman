@@ -1,17 +1,17 @@
 using System.Text;
 using tryAGI.OpenAI;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Infrastructure;
 
 internal static class OpenAiExtensions
 {
-    public static ChatCompletionRequestSystemMessage AsSystemMessage(this string text) =>
+    public static ChatCompletionRequestSystemMessage ToSystemMessage(this string text) =>
         new() { Content = text };
 
-    public static ChatCompletionRequestUserMessage AsUserMessage(this string text) =>
+    public static ChatCompletionRequestUserMessage ToUserMessage(this string text) =>
         new() { Content = text };
 
-    public static ChatCompletionRequestUserMessage AsUserMessage(this byte[] imageBytes, string mimeType = "image/jpeg", 
+    public static ChatCompletionRequestUserMessage ToUserMessage(this byte[] imageBytes, string mimeType = "image/jpeg", 
         ChatCompletionRequestMessageContentPartImageImageUrlDetail detail = ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low) =>
         new()
         {

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
 public class ApprovedUsersStorage
 {

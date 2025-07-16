@@ -1,4 +1,4 @@
-﻿namespace ClubDoorman;
+﻿namespace ClubDoorman.Services;
 
 using System.Globalization;
 using System.Text;

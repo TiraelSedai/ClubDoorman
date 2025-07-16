@@ -1,4 +1,4 @@
-namespace ClubDoorman;
+namespace ClubDoorman.Infrastructure;
 
 internal class Consts
 {

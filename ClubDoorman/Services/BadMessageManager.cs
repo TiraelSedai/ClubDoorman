@@ -1,9 +1,10 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using ClubDoorman.Infrastructure;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
-internal sealed class BadMessageManager
+public sealed class BadMessageManager
 {
     private const string Path = "data/bad-messages.txt";
     private readonly SemaphoreSlim _fileLock = new(1);
