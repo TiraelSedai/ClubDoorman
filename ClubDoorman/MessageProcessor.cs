@@ -515,8 +515,7 @@ internal class MessageProcessor
                 }
                 break;
             }
-            case ChatMemberStatus.Kicked
-            or ChatMemberStatus.Restricted:
+            case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
                 var user = newChatMember.User;

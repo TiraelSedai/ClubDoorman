@@ -112,7 +112,11 @@ internal class AiChecks
         return new SpamPhotoBio(probability, pic, Utils.FullName(user));
     }
 
-    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user, Func<string, Task>? ifChanged = default)
+    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(
+        Telegram.Bot.Types.User user,
+        Func<string, Task>? ifChanged = default,
+        bool checkJustErotic = false
+    )
     {
         if (_api == null)
             return ValueTask.FromResult(new SpamPhotoBio(new SpamProbability(), [], ""));
@@ -135,9 +139,10 @@ internal class AiChecks
                 try
                 {
                     var userChat = await _bot.GetChat(user.Id, cancellationToken: ct);
-                    _ = CheckLater(userChat, ifChanged);
+                    if (ifChanged != default)
+                        _ = CheckLater(userChat, ifChanged);
 
-                    if (userChat.Bio == null && userChat.LinkedChatId == null)
+                    if (checkJustErotic || (userChat.Bio == null && userChat.LinkedChatId == null))
                     {
                         _logger.LogDebug("GetAttentionBaitProbability {User}: no bio, no channel", Utils.FullName(user));
                         if (userChat.Photo != null)
@@ -305,7 +310,7 @@ internal class AiChecks
         );
     }
 
-    private async Task CheckLater(ChatFullInfo userChat, Func<string, Task>? ifChanged = default)
+    private async Task CheckLater(ChatFullInfo userChat, Func<string, Task> ifChanged)
     {
         try
         {
@@ -320,27 +325,27 @@ internal class AiChecks
                 var chat = await _bot.GetChat(userChat.Id);
                 if (chat.Photo?.BigFileUniqueId != userChat.Photo?.BigFileUniqueId)
                 {
-                    _ = ifChanged?.Invoke("пользователь сменил фото");
+                    _ = ifChanged.Invoke("пользователь сменил фото");
                     return;
                 }
                 if (chat.Bio != userChat.Bio)
                 {
-                    _ = ifChanged?.Invoke("пользователь сменил био");
+                    _ = ifChanged.Invoke("пользователь сменил био");
                     return;
                 }
                 if (chat.LinkedChatId != userChat.LinkedChatId)
                 {
-                    _ = ifChanged?.Invoke("у пользователя сменился привязанный канал");
+                    _ = ifChanged.Invoke("у пользователя сменился привязанный канал");
                     return;
                 }
                 if (chat.FirstName != userChat.FirstName)
                 {
-                    _ = ifChanged?.Invoke("пользователь сменил имя");
+                    _ = ifChanged.Invoke("пользователь сменил имя");
                     return;
                 }
                 if (chat.LastName != userChat.LastName)
                 {
-                    _ = ifChanged?.Invoke("пользователь сменил фамилию");
+                    _ = ifChanged.Invoke("пользователь сменил фамилию");
                     return;
                 }
             }

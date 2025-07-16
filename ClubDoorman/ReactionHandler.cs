@@ -68,7 +68,7 @@ internal class ReactionHandler
         {
             _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", cache.ReactionCount, Utils.FullName(user), chat.Title);
             var admChat = _config.GetAdminChat(chat.Id);
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user, null, true);
             _logger.LogDebug("Reaction bait spam probability {Prob}", attention.Probability);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
