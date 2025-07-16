@@ -52,6 +52,7 @@ public class Program
                 
                 // Обработчики команд
                 services.AddSingleton<ICommandHandler, StartCommandHandler>();
+                services.AddSingleton<StartCommandHandler>();
                 
                 // Условная регистрация системы одобрения
                 if (Config.UseNewApprovalSystem)
