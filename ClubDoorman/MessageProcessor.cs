@@ -137,14 +137,14 @@ internal class MessageProcessor
                         }
                         Message? fwd = null;
                         if (_config.NonFreeChat(chat.Id))
-                            fwd = await _bot.ForwardMessage(admChat, chat, message.MessageId, cancellationToken: stoppingToken);
+                            fwd = await _bot.ForwardMessage(_config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
                         await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                         await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
                         var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
                         stats.Channels++;
                         if (_config.NonFreeChat(chat.Id))
                             await _bot.SendMessage(
-                                admChat,
+                                _config.AdminChatId,
                                 $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
                                 replyParameters: fwd!,
                                 cancellationToken: stoppingToken
