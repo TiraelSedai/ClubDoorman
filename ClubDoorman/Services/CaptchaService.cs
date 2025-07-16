@@ -211,7 +211,6 @@ public class CaptchaService : ICaptchaService
 
     private static bool IsNoAdGroup(long chatId)
     {
-        // Упрощенная проверка - можно заменить на проверку Config.NoVpnAdGroups
-        return false; // Пока что рекламу показываем везде
+        return Config.NoVpnAdGroups.Contains(chatId);
     }
 } 

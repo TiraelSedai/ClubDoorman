@@ -403,7 +403,6 @@ public class CallbackQueryHandler : IUpdateHandler
 
     private static bool IsNoAdGroup(long chatId)
     {
-        // Упрощенная проверка - можно заменить на проверку Config
-        return false; // Пока что рекламу показываем везде
+        return Config.NoVpnAdGroups.Contains(chatId);
     }
 } 
