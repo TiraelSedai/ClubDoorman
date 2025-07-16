@@ -377,12 +377,6 @@ public class MessageHandler : IUpdateHandler
             return;
         }
 
-        // Логируем ВСЕ сообщения от неодобренных пользователей для анализа
-        var messageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
-        var truncatedText = messageText.Length > 200 ? messageText.Substring(0, 200) + "..." : messageText;
-        _logger.LogInformation("📝 ПЕРВОЕ СООБЩЕНИЕ: {User} (id={UserId}, username={Username}) в '{ChatTitle}' (id={ChatId}): {MessageText}", 
-            FullName(user.FirstName, user.LastName), user.Id, user.Username ?? "нет", chat.Title ?? "неизвестно", chat.Id, truncatedText);
-
         // ПРИОРИТЕТНАЯ проверка блэклиста lols.bot (выполняется даже для одобренных)
         _logger.LogDebug("🔍 Проверяем пользователя {UserId} по блэклисту lols.bot", user.Id);
         if (await _userManager.InBanlist(user.Id))
@@ -394,7 +388,16 @@ public class MessageHandler : IUpdateHandler
 
         // Проверяем, одобрен ли пользователь
         if (_moderationService.IsUserApproved(user.Id, chat.Id))
+        {
+            _logger.LogDebug("✅ Пользователь {UserId} уже одобрен в чате {ChatId}, пропускаем модерацию", user.Id, chat.Id);
             return;
+        }
+
+        // Логируем сообщения от неодобренных пользователей для анализа
+        var messageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
+        var truncatedText = messageText.Length > 200 ? messageText.Substring(0, 200) + "..." : messageText;
+        _logger.LogInformation("📝 ПЕРВОЕ СООБЩЕНИЕ: {User} (id={UserId}, username={Username}) в '{ChatTitle}' (id={ChatId}): {MessageText}", 
+            FullName(user.FirstName, user.LastName), user.Id, user.Username ?? "нет", chat.Title ?? "неизвестно", chat.Id, truncatedText);
 
         // Определяем тип пользователя
         var isChannelDiscussion = await IsChannelDiscussion(chat, message);
