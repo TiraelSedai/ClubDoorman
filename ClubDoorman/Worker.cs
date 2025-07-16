@@ -57,8 +57,8 @@ internal sealed class Worker(
     private User _me = default!;
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
     
-    // Группы, где не показывать рекламу VPN (из .env NO_VPN_AD_GROUPS)
-    private static readonly HashSet<long> NoVpnAdGroups = 
+            // Группы, где не показывать рекламу (из .env NO_VPN_AD_GROUPS)
+        private static readonly HashSet<long> NoVpnAdGroups = 
         (Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS") ?? "")
         .Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(id => long.TryParse(id.Trim(), out var val) ? val : (long?)null)
@@ -70,7 +70,7 @@ internal sealed class Worker(
     {
         var envVar = Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS");
         Console.WriteLine($"[DEBUG] NO_VPN_AD_GROUPS env var: '{envVar}'");
-        Console.WriteLine($"[DEBUG] Loaded {NoVpnAdGroups.Count} groups without VPN ads: [{string.Join(", ", NoVpnAdGroups)}]");
+        Console.WriteLine($"[DEBUG] Loaded {NoVpnAdGroups.Count} groups without ads: [{string.Join(", ", NoVpnAdGroups)}]");
         
         var whitelistVar = Environment.GetEnvironmentVariable("DOORMAN_WHITELIST");
         Console.WriteLine($"[DEBUG] DOORMAN_WHITELIST env var: '{whitelistVar}'");
@@ -338,7 +338,7 @@ AI-анализ профилей (фото + описание) — никаки�
 
 <b>📢 О рекламе:</b>
 
-Показываю только свои проекты — VPN и всякое полезное. Никакого шлака, бурмалды и серых схем не будет, обещаю 🤝
+Показываю только качественную рекламу. Никакого шлака, бурмалды и серых схем не будет, обещаю 🤝
 
 <b>🧼 Пусть ваш чат будет чистым и уютным!</b>
 """;
@@ -902,10 +902,10 @@ AI-анализ профилей (фото + описание) — никаки�
             var mention = $"<a href=\"tg://user?id={cb.From.Id}\">{displayName}</a>";
             string greetMsg;
             
-            // Реклама VPN для всех приветственных сообщений (если группа не в исключениях)
+            // Заглушка для рекламы (если группа не в исключениях)
             var isNoAdGroup = NoVpnAdGroups.Contains(chat.Id);
-            Console.WriteLine($"[DEBUG] Chat {chat.Id} ({chat.Title}) - No VPN ad: {isNoAdGroup}");
-            var vpnAd = isNoAdGroup ? "" : "\n\n\n🌐 <b>Твой VPN</b> — @vpn_momai_dev_bot \n <i>Два дня бесплатно</i>";
+            Console.WriteLine($"[DEBUG] Chat {chat.Id} ({chat.Title}) - No ad placeholder: {isNoAdGroup}");
+            var vpnAd = isNoAdGroup ? "" : "\n\n\n📍 <b>Место для рекламы</b> \n <i>...</i>";
             
             if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
             {
@@ -1055,10 +1055,10 @@ AI-анализ профилей (фото + описание) — никаки�
             ? $"С возвращением, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, [{Markdown.Escape(fullNameForDisplay)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
 
-        // Добавляем рекламу VPN к welcomeMessage (HTML-совместимо, если группа не в исключениях)
+        // Добавляем заглушку для рекламы к welcomeMessage (HTML-совместимо, если группа не в исключениях)
         var isNoAdGroup = NoVpnAdGroups.Contains(chatId);
-        Console.WriteLine($"[DEBUG] Chat {chatId} - No VPN ad in captcha: {isNoAdGroup}");
-        var vpnAdHtml = isNoAdGroup ? "" : "\n\n Твой VPN — @vpn_momai_dev_bot\n<i>2 дня бесплатно</i>";
+        Console.WriteLine($"[DEBUG] Chat {chatId} - No ad placeholder in captcha: {isNoAdGroup}");
+        var vpnAdHtml = isNoAdGroup ? "" : "\n\n 📍 Место для рекламы\n<i>...</i>";
         var welcomeMessageHtml = (isApproved
             ? $"С возвращением, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Для подтверждения личности: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?"
             : $"Привет, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?")
