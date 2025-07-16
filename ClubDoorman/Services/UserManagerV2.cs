@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Http.Json;
+using ClubDoorman.Infrastructure;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
 internal sealed class UserManagerV2 : IUserManager
 {
@@ -12,11 +13,18 @@ internal sealed class UserManagerV2 : IUserManager
     private readonly SemaphoreSlim _semaphore = new(1);
     private readonly HttpClient _clubHttpClient = new();
     private readonly HttpClient _httpClient = new();
+    
+    // Тестовый блэклист из переменной окружения DOORMAN_TEST_BLACKLIST_IDS
+    private static readonly HashSet<long> _testBlacklist = LoadTestBlacklist();
 
     public UserManagerV2(ILogger<UserManagerV2> logger, ApprovedUsersStorageV2 approvedUsersStorage)
     {
         _logger = logger;
         _approvedUsersStorage = approvedUsersStorage;
+        
+        // Логируем состояние тестового блэклиста при создании UserManagerV2
+        Console.WriteLine($"[DEBUG] UserManagerV2 создан: тестовый блэклист содержит {_testBlacklist.Count} ID(s): [{string.Join(", ", _testBlacklist)}]");
+        
         if (Config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
         else
@@ -156,6 +164,17 @@ internal sealed class UserManagerV2 : IUserManager
 
     public async ValueTask<bool> InBanlist(long userId)
     {
+        Console.WriteLine($"[DEBUG] UserManagerV2.InBanlist: проверяем пользователя {userId} (тестовых ID: {_testBlacklist.Count})");
+        _logger.LogDebug("InBanlist: проверяем пользователя {UserId} (тестовых ID: {TestCount})", userId, _testBlacklist.Count);
+        
+        // Сначала проверяем тестовый блэклист
+        if (_testBlacklist.Contains(userId))
+        {
+            Console.WriteLine($"[DEBUG] 🎯 НАЙДЕН в тестовом блэклисте: {userId}");
+            _logger.LogWarning("🎯 Пользователь {UserId} найден в ТЕСТОВОМ блэклисте", userId);
+            return true;
+        }
+        
         if (_banlist.ContainsKey(userId))
             return true;
         try
@@ -239,6 +258,39 @@ internal sealed class UserManagerV2 : IUserManager
         public string slug { get; set; }
         public int upvotes { get; set; }
     }
+
+    /// <summary>
+    /// Загружает тестовый блэклист из переменной окружения DOORMAN_TEST_BLACKLIST_IDS
+    /// Формат: "123456,789012,345678" (ID через запятую)
+    /// </summary>
+    private static HashSet<long> LoadTestBlacklist()
+    {
+        var testIds = Environment.GetEnvironmentVariable("DOORMAN_TEST_BLACKLIST_IDS");
+        if (string.IsNullOrWhiteSpace(testIds))
+        {
+            Console.WriteLine("[DEBUG] DOORMAN_TEST_BLACKLIST_IDS не задана - тестовый блэклист пустой");
+            return [];
+        }
+
+        var result = new HashSet<long>();
+        var ids = testIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var idStr in ids)
+        {
+            if (long.TryParse(idStr.Trim(), out var id))
+            {
+                result.Add(id);
+            }
+            else
+            {
+                Console.WriteLine($"[WARNING] Некорректный ID в DOORMAN_TEST_BLACKLIST_IDS: '{idStr}'");
+            }
+        }
+        
+        Console.WriteLine($"[DEBUG] Загружен тестовый блэклист: {result.Count} ID(s) [{string.Join(", ", result)}]");
+        return result;
+    }
+
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning restore IDE1006 // Naming Styles
 } 

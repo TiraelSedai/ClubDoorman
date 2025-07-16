@@ -7,13 +7,14 @@ using Polly.Retry;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using tryAGI.OpenAI;
+using ClubDoorman.Infrastructure;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
-internal class AiChecks
+public class AiChecks
 {
     private readonly TelegramBotClient _bot;
-    private readonly ILogger _logger;
+    private readonly ILogger<AiChecks> _logger;
     private readonly OpenAiClient? _api;
     private readonly JsonSerializerOptions _jsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
     
@@ -24,7 +25,7 @@ internal class AiChecks
     
     const string Model = "google/gemini-2.5-flash";
     
-    public AiChecks(TelegramBotClient bot, ILogger logger)
+    public AiChecks(TelegramBotClient bot, ILogger<AiChecks> logger)
     {
         _bot = bot;
         _logger = logger;
@@ -103,7 +104,7 @@ internal class AiChecks
                 await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms);
                 photoBytes = ms.ToArray();
                 pic = photoBytes;
-                photoMessage = photoBytes.AsUserMessage(mimeType: "image/jpg");
+                photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
                 sb.Append($"\nФото: прикреплено");
             }
 
@@ -123,8 +124,8 @@ internal class AiChecks
 
             var messages = new List<ChatCompletionRequestMessage>
             {
-                "Ты — модератор Telegram-группы. Твоя задача — по данным профиля определить, направлен ли аккаунт на само-продвижение или привлечение к сторонним платным/эротическим ресурсам".AsSystemMessage(),
-                prompt.AsUserMessage(),
+                "Ты — модератор Telegram-группы. Твоя задача — по данным профиля определить, направлен ли аккаунт на само-продвижение или привлечение к сторонним платным/эротическим ресурсам".ToSystemMessage(),
+                prompt.ToUserMessage(),
             };
             
             if (photoMessage != null)
@@ -143,7 +144,7 @@ internal class AiChecks
                     if (linkedChat.Description != null)
                         info.Append($"\nОписание: {linkedChat.Description}");
                     
-                    messages.Add(info.ToString().AsUserMessage());
+                    messages.Add(info.ToString().ToUserMessage());
                 }
                 catch (Exception e)
                 {
@@ -197,12 +198,12 @@ internal class AiChecks
             var photoBytes = ms.ToArray();
             pic = photoBytes;
             
-            var photoMessage = photoBytes.AsUserMessage(mimeType: "image/jpg");
+            var photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
             var prompt = "Проанализируй, выглядит ли эта аватарка пользователя сексуализированно или развратно. Отвечай вероятностью от 0 до 1.";
             
             var messages = new List<ChatCompletionRequestMessage> 
             { 
-                prompt.AsUserMessage(), 
+                prompt.ToUserMessage(), 
                 photoMessage 
             };
             
@@ -260,8 +261,8 @@ internal class AiChecks
 
             var messages = new List<ChatCompletionRequestMessage>
             {
-                "Ты — антиспам модератор. Анализируй сообщения на предмет спама.".AsSystemMessage(),
-                prompt.AsUserMessage()
+                "Ты — антиспам модератор. Анализируй сообщения на предмет спама.".ToSystemMessage(),
+                prompt.ToUserMessage()
             };
 
             var response = await _retry.ExecuteAsync(
@@ -298,10 +299,10 @@ internal class AiChecks
 }
 
 // Модели данных для AI ответов
-internal class SpamProbability
+public class SpamProbability
 {
     public double Probability { get; set; }
     public string Reason { get; set; } = "";
 }
 
-internal sealed record SpamPhotoBio(SpamProbability SpamProbability, byte[] Photo, string NameBio); 
+public sealed record SpamPhotoBio(SpamProbability SpamProbability, byte[] Photo, string NameBio); 

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
 // Структура для хранения информации об одобренном пользователе в группе
 public record GroupApprovalInfo(DateTime ApprovedAt);

@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text;
 using Telegram.Bot;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Services;
 
 public class GlobalStatsManager
 {

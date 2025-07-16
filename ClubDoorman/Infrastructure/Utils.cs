@@ -1,7 +1,7 @@
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace ClubDoorman;
+namespace ClubDoorman.Infrastructure;
 
 internal static class Utils
 {
