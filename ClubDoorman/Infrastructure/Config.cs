@@ -35,6 +35,15 @@ namespace ClubDoorman.Infrastructure
             .Select(x => x.Value)
             .ToHashSet();
 
+        // Группы, где не показывать рекламу
+        public static HashSet<long> NoVpnAdGroups { get; } =
+            (Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS") ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value)
+            .ToHashSet();
+
         // Проверяет, разрешен ли бот в данном чате
         public static bool IsChatAllowed(long chatId)
         {
