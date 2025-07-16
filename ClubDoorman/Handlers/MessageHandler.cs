@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 using System.Runtime.Caching;
+using ClubDoorman.Handlers.Commands;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models;
 using ClubDoorman.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -26,6 +28,7 @@ public class MessageHandler : IUpdateHandler
     private readonly GlobalStatsManager _globalStatsManager;
     private readonly IStatisticsService _statisticsService;
     private readonly ILogger<MessageHandler> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -40,6 +43,7 @@ public class MessageHandler : IUpdateHandler
         AiChecks aiChecks,
         GlobalStatsManager globalStatsManager,
         IStatisticsService statisticsService,
+        IServiceProvider serviceProvider,
         ILogger<MessageHandler> logger)
     {
         _bot = bot;
@@ -51,6 +55,7 @@ public class MessageHandler : IUpdateHandler
         _aiChecks = aiChecks;
         _globalStatsManager = globalStatsManager;
         _statisticsService = statisticsService;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -129,17 +134,12 @@ public class MessageHandler : IUpdateHandler
         var commandText = message.Text!.Split(' ')[0].ToLower();
         var command = commandText.StartsWith("/") ? commandText.Substring(1) : commandText;
 
-        // Обработка команды /start - пока только здесь
-        if (command == "start" && message.Chat.Type == ChatType.Private)
+        // Обработка команды /start
+        if (command == "start")
         {
-            if (!Config.IsPrivateStartAllowed())
-            {
-                _logger.LogDebug("Команда /start в личке отключена - активен whitelist");
-                return;
-            }
-
-            // Здесь можно вызвать StartCommandHandler, но пока упрощаем
-            _logger.LogInformation("Получена команда /start от пользователя {UserId}", message.From?.Id);
+            // Получаем StartCommandHandler из DI и делегируем обработку
+            var startHandler = _serviceProvider.GetRequiredService<StartCommandHandler>();
+            await startHandler.HandleAsync(message, cancellationToken);
             return;
         }
 
