@@ -289,6 +289,118 @@ public class AiChecks
 
         return new SpamProbability();
     }
+    
+    /// <summary>
+    /// Специальный анализ сообщений от подозрительных пользователей с расширенным контекстом
+    /// </summary>
+    public async ValueTask<SpamProbability> GetSuspiciousUserSpamProbability(
+        Message message, 
+        Telegram.Bot.Types.User user, 
+        List<string> firstMessages, 
+        double mimicryScore)
+    {
+        if (_api == null)
+            return new SpamProbability();
+
+        try
+        {
+            var text = message.Text ?? message.Caption ?? "";
+            if (string.IsNullOrWhiteSpace(text))
+                return new SpamProbability();
+
+            var userName = Utils.FullName(user);
+            var username = user.Username != null ? $"@{user.Username}" : "нет";
+            var firstMessagesText = string.Join("', '", firstMessages.Take(5));
+            
+            // Получаем расширенную информацию о пользователе как в основном методе
+            var userChat = await _bot.GetChat(user.Id);
+            var bioInfo = !string.IsNullOrEmpty(userChat.Bio) ? $"\n• Биография: {userChat.Bio}" : "";
+            var photoInfo = userChat.Photo != null ? "\n• Есть фото профиля" : "\n• Нет фото профиля";
+
+            var prompt = $"""
+                АНАЛИЗ ПОДОЗРИТЕЛЬНОГО ПОЛЬЗОВАТЕЛЯ НА СПАМ
+                
+                КРИТИЧЕСКИЙ КОНТЕКСТ:
+                • Пользователь уже помечен как ПОДОЗРИТЕЛЬНЫЙ
+                • Его первые сообщения показали признаки мимикрии (скор: {mimicryScore:F2})
+                • Это реальный анализ с последствиями (удаление/бан)
+                
+                ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
+                • Имя: {userName}
+                • Username: {username}{bioInfo}{photoInfo}
+                • Первые сообщения: ['{firstMessagesText}']
+                • Скор мимикрии: {mimicryScore:F2} (выше 0.7 = подозрительно)
+                
+                ТЕКУЩЕЕ СООБЩЕНИЕ: "{text}"
+                
+                ОСОБОЕ ВНИМАНИЕ К:
+                • Предложения займов/денег (особенно после шаблонных приветствий)
+                • Финансовые услуги от новых пользователей
+                • Переход от невинных сообщений к коммерческим предложениям
+                • Типичные схемы мошенников: "Могу дать в долг", "Помогу с деньгами"
+                • Несоответствие между первыми сообщениями и текущим
+                • Подозрительные фото профиля (слишком привлекательные, эротические)
+                • Биография с упоминанием финансов, заработка, услуг
+                
+                УЧИТЫВАЙ, ЧТО:
+                - Высокий скор мимикрии + финансовые предложения = очень вероятный спам
+                - Обычные пользователи не предлагают займы незнакомцам
+                - Шаблонные приветствия + деньги = классическая схема
+                
+                Оцени вероятность спама от 0 до 1, учитывая ВСЕ факторы.
+                """;
+
+            var messages = new List<ChatCompletionRequestMessage>
+            {
+                "Ты — специализированный антиспам эксперт для анализа подозрительных пользователей. Твоя задача — выявлять мошенников-хамелеонов, которые маскируются под обычных пользователей.".ToSystemMessage(),
+                prompt.ToUserMessage()
+            };
+
+            // Добавляем фото профиля если есть (как в основном методе)
+            if (userChat.Photo != null)
+            {
+                try
+                {
+                    using var ms = new MemoryStream();
+                    await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms);
+                    var photoBytes = ms.ToArray();
+                    var photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
+                    messages.Add(photoMessage);
+                    _logger.LogDebug("🔍 Добавлено фото профиля для анализа подозрительного пользователя {User}", userName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug("Не удалось загрузить фото профиля для {User}: {Error}", userName, ex.Message);
+                }
+            }
+
+            var response = await _retry.ExecuteAsync(
+                async token => await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                    messages: messages,
+                    model: Model,
+                    strict: true,
+                    jsonSerializerOptions: _jsonOptions,
+                    cancellationToken: token
+                )
+            );
+
+            if (response.Value1 != null)
+            {
+                _logger.LogDebug("🔍 Специальный AI анализ подозрительного пользователя: {Probability} - {Reason}", 
+                    response.Value1.Probability, response.Value1.Reason);
+                return response.Value1;
+            }
+
+            return new SpamProbability();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при специальном AI анализе подозрительного пользователя");
+            return new SpamProbability();
+        }
+    }
+
+
 
     private void CacheResult(long userId, SpamPhotoBio result)
     {

@@ -30,13 +30,16 @@ public class Program
                 services.AddHostedService<Worker>();
                 
                 // Telegram Bot Client
-                services.AddSingleton(provider => new TelegramBotClient(Config.BotApi));
+                services.AddSingleton<TelegramBotClient>(provider => new TelegramBotClient(Config.BotApi));
+                services.AddSingleton<ITelegramBotClient>(provider => provider.GetRequiredService<TelegramBotClient>());
                 
                 // Классификаторы и менеджеры
                 services.AddSingleton<SpamHamClassifier>();
+                services.AddSingleton<MimicryClassifier>();
                 services.AddSingleton<BadMessageManager>();
                 services.AddSingleton<AiChecks>();
                 services.AddSingleton<GlobalStatsManager>();
+                services.AddSingleton<SuspiciousUsersStorage>();
                 
                 // Новые сервисы
                 services.AddSingleton<IUpdateDispatcher, UpdateDispatcher>();
@@ -53,6 +56,8 @@ public class Program
                 // Обработчики команд
                 services.AddSingleton<ICommandHandler, StartCommandHandler>();
                 services.AddSingleton<StartCommandHandler>();
+                services.AddSingleton<ICommandHandler, SuspiciousCommandHandler>();
+                services.AddSingleton<SuspiciousCommandHandler>();
                 
                 // Условная регистрация системы одобрения
                 if (Config.UseNewApprovalSystem)

@@ -23,14 +23,21 @@ public class UpdateDispatcher : IUpdateDispatcher
     {
         try
         {
-            var handler = _updateHandlers.FirstOrDefault(h => h.CanHandle(update));
-            if (handler == null)
+            _logger.LogDebug("🚀 Dispatcher получил update: Message={Msg}, Callback={CB}, ChatMember={CM}", 
+                update.Message != null, update.CallbackQuery != null, update.ChatMember != null);
+                
+            foreach (var handler in _updateHandlers)
             {
-                _logger.LogDebug("Не найден обработчик для обновления типа {UpdateType}", update.Type);
-                return;
+                if (handler.CanHandle(update))
+                {
+                    _logger.LogDebug("✅ Handler {Type} принял update", handler.GetType().Name);
+                    await handler.HandleAsync(update, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogDebug("❌ Handler {Type} отклонил update", handler.GetType().Name);
+                }
             }
-
-            await handler.HandleAsync(update, cancellationToken);
         }
         catch (Exception ex)
         {
