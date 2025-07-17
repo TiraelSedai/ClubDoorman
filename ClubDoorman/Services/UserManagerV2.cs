@@ -50,9 +50,9 @@ internal sealed class UserManagerV2 : IUserManager
                     foreach (var key in _banlist.Keys.ToArray())
                         _banlist.TryRemove(key, out _);
                     
-                    // Заполняем его новыми значениями
+                    // Заполняем его новыми значениями: 1 = banned
                     foreach (var id in banlist)
-                        _banlist.TryAdd(id, 0);
+                        _banlist.TryAdd(id, 1);
                     
                     _logger.LogInformation("Обновлен банлист из lols.bot: было {OldCount}, стало {NewCount} записей", oldCount, _banlist.Count);
                 }
@@ -162,12 +162,18 @@ internal sealed class UserManagerV2 : IUserManager
         return _approvedUsersStorage.GetApprovalStats();
     }
 
+    /// <summary>
+    /// Проверяет, находится ли пользователь в банлисте спамеров.
+    /// Использует только кэшированный статический банлист из lols.bot без дополнительных HTTP запросов.
+    /// </summary>
+    /// <param name="userId">ID пользователя для проверки</param>
+    /// <returns>true если пользователь в банлисте, false если нет</returns>
     public async ValueTask<bool> InBanlist(long userId)
     {
         Console.WriteLine($"[DEBUG] UserManagerV2.InBanlist: проверяем пользователя {userId} (тестовых ID: {_testBlacklist.Count})");
         _logger.LogDebug("InBanlist: проверяем пользователя {UserId} (тестовых ID: {TestCount})", userId, _testBlacklist.Count);
         
-        // Сначала проверяем тестовый блэклист
+        // 1. Сначала проверяем тестовый блэклист
         if (_testBlacklist.Contains(userId))
         {
             Console.WriteLine($"[DEBUG] 🎯 НАЙДЕН в тестовом блэклисте: {userId}");
@@ -175,24 +181,18 @@ internal sealed class UserManagerV2 : IUserManager
             return true;
         }
         
-        if (_banlist.ContainsKey(userId))
-            return true;
-        try
+        // 2. Проверяем кэшированный результат из статического банлиста
+        if (_banlist.TryGetValue(userId, out var cachedResult))
         {
-            using var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(5));
-            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}", cts.Token);
-            if (!result!.banned)
-                return false;
-
-            _banlist.TryAdd(userId, 0);
-            return true;
+            var isBanned = cachedResult == 1;
+            _logger.LogDebug("✅ Пользователь {UserId} найден в кэше: {Status}", userId, isBanned ? "ЗАБЛОКИРОВАН" : "НЕ заблокирован");
+            return isBanned; // 1 = banned, 0 = not banned
         }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "LolsBotApi exception");
-            return false;
-        }
+        
+        // 3. Если пользователя нет в статическом банлисте - считаем НЕ заблокированным и кэшируем
+        _banlist.TryAdd(userId, 0); // 0 = not banned
+        _logger.LogDebug("✅ Пользователь {UserId} НЕ в банлисте lols.bot, кэшируем как незаблокированного", userId);
+        return false;
     }
 
     public async ValueTask<string?> GetClubUsername(long userId)
