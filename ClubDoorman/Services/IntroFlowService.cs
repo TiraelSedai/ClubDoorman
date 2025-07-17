@@ -20,6 +20,7 @@ public class IntroFlowService
     private readonly AiChecks _aiChecks;
     private readonly IStatisticsService _statisticsService;
     private readonly GlobalStatsManager _globalStatsManager;
+    private readonly IModerationService _moderationService;
 
     public IntroFlowService(
         TelegramBotClient bot,
@@ -28,7 +29,8 @@ public class IntroFlowService
         IUserManager userManager,
         AiChecks aiChecks,
         IStatisticsService statisticsService,
-        GlobalStatsManager globalStatsManager)
+        GlobalStatsManager globalStatsManager,
+        IModerationService moderationService)
     {
         _bot = bot;
         _logger = logger;
@@ -37,6 +39,7 @@ public class IntroFlowService
         _aiChecks = aiChecks;
         _statisticsService = statisticsService;
         _globalStatsManager = globalStatsManager;
+        _moderationService = moderationService;
     }
 
     public async Task ProcessNewUserAsync(Message? userJoinMessage, User user, Chat? chat = default)
@@ -121,9 +124,12 @@ public class IntroFlowService
                 revokeMessages: true  // Удаляем все сообщения пользователя
             );
             
-            // Удаляем из списка одобренных только при перманентном бане
+            // Полная очистка из всех списков при перманентном бане
             if (!banDuration.HasValue)
-                _userManager.RemoveApproval(user.Id);
+            {
+                _moderationService.CleanupUserFromAllLists(user.Id, chat.Id);
+                _logger.LogInformation("🧹 Пользователь {UserId} очищен из всех списков после бана в IntroFlow", user.Id);
+            }
             
             // Удаляем сообщение о входе
             if (userJoinMessage != null)

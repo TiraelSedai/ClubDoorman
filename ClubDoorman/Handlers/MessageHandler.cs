@@ -143,6 +143,15 @@ public class MessageHandler : IUpdateHandler
             return;
         }
 
+        // Обработка команды /suspicious
+        if (command == "suspicious")
+        {
+            // Получаем SuspiciousCommandHandler из DI и делегируем обработку
+            var suspiciousHandler = _serviceProvider.GetRequiredService<SuspiciousCommandHandler>();
+            await suspiciousHandler.HandleAsync(message, cancellationToken);
+            return;
+        }
+
         // Админские команды (/spam, /ham, /check) - только в админ-чатах
         var isAdminChat = message.Chat.Id == Config.AdminChatId || message.Chat.Id == Config.LogAdminChatId;
         if (isAdminChat && message.ReplyToMessage != null && (command == "spam" || command == "ham" || command == "check"))
@@ -437,7 +446,16 @@ public class MessageHandler : IUpdateHandler
         {
             case ModerationAction.Allow:
                 _logger.LogDebug("Сообщение разрешено: {Reason}", moderationResult.Reason);
-                await _moderationService.IncrementGoodMessageCountAsync(user, chat);
+                var allowedMessageText = message.Text ?? message.Caption ?? "";
+                
+                // Проверяем AI детект для подозрительных пользователей
+                var aiDetectBlocked = await _moderationService.CheckAiDetectAndNotifyAdminsAsync(user, chat, message);
+                
+                // Засчитываем хорошее сообщение только если пользователь не был заблокирован AI детектом
+                if (!aiDetectBlocked)
+                {
+                    await _moderationService.IncrementGoodMessageCountAsync(user, chat, allowedMessageText);
+                }
                 break;
             
             case ModerationAction.Ban:
@@ -596,14 +614,14 @@ public class MessageHandler : IUpdateHandler
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
         
-        if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
-        {
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана",
-                cancellationToken: cancellationToken
-            );
-        }
+        // Полностью очищаем пользователя из всех списков
+        _moderationService.CleanupUserFromAllLists(user.Id, message.Chat.Id);
+        
+        await _bot.SendMessage(
+            Config.AdminChatId,
+            $"🧹 Пользователь {FullName(user.FirstName, user.LastName)} очищен из всех списков после автобана",
+            cancellationToken: cancellationToken
+        );
     }
 
     private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken cancellationToken)
