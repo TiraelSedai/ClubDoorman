@@ -1,3 +1,5 @@
+using ClubDoorman.Services;
+
 namespace ClubDoorman.Test;
 
 public class Tests
