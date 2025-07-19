@@ -1,54 +1,30 @@
 #!/bin/bash
 
-# Скрипт для запуска тестов с таймаутом и эффективным дебагом
-# Использование: ./run_tests_with_timeout.sh [фильтр] [таймаут_в_секундах]
+# Скрипт для запуска тестов с новой системой таймаутов
+# Теперь таймауты настраиваются в test-timeouts.json
 
-FILTER=${1:-"ModerationServiceTests"}
-TIMEOUT=${2:-5}
+set -e
 
-echo "🔍 Эффективный дебаг тестов"
-echo "Фильтр: $FILTER"
-echo "Таймаут: ${TIMEOUT}с"
-echo "================================"
+echo "🔧 Setting up test environment..."
 
-# Прерываем все процессы dotnet test
-echo "🛑 Прерываем старые процессы..."
-pkill -f "dotnet test" 2>/dev/null || true
-sleep 1
-
-# Запускаем тесты с таймаутом и подробной трассировкой
-echo "🚀 Запускаем тесты..."
-export DOORMAN_BOT_API="test_api_key_for_integration_tests"
+# Экспортируем переменные окружения для тестов
+export DOORMAN_BOT_API="https://api.telegram.org"
 export DOORMAN_ADMIN_CHAT="123456789"
 export DOORMAN_BOT_TOKEN="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-timeout ${TIMEOUT}s dotnet test --filter "$FILTER" --verbosity normal --logger "console;verbosity=detailed" 2>&1
+export DOORMAN_OPENROUTER_API="test-api-key-for-tests-only"
 
-EXIT_CODE=$?
+echo "   DOORMAN_BOT_API: $DOORMAN_BOT_API"
+echo "   DOORMAN_ADMIN_CHAT: $DOORMAN_ADMIN_CHAT"
+echo "   DOORMAN_BOT_TOKEN: $DOORMAN_BOT_TOKEN"
+echo "   DOORMAN_OPENROUTER_API: $DOORMAN_OPENROUTER_API"
 
-echo ""
-echo "================================"
-echo "📊 Результат выполнения:"
-
-if [ $EXIT_CODE -eq 124 ]; then
-    echo "❌ ТЕСТЫ ПРЕВЫСИЛИ ТАЙМАУТ ${TIMEOUT}с"
-    echo "🔍 Возможные причины зависания:"
-    echo "   - SpamHamClassifier.Train() - обучение ML модели"
-    echo "   - BadMessageManager.MarkAsBad() - операции с файлами"
-    echo "   - SemaphoreHelper.AwaitAsync() - блокировки"
-    echo "   - File.ReadAllLines() - чтение больших файлов"
-    echo ""
-    echo "💡 Рекомендации:"
-    echo "   - Увеличьте таймаут: ./run_tests_with_timeout.sh $FILTER 30"
-    echo "   - Запустите отдельные тесты для изоляции проблемы"
-    echo "   - Проверьте наличие файлов data/spam-ham.txt, data/exclude-tokens.txt"
-elif [ $EXIT_CODE -eq 0 ]; then
-    echo "✅ Все тесты прошли успешно"
+# Проверяем, передан ли фильтр тестов
+if [ $# -eq 0 ]; then
+    echo "🚀 Running all tests with configurable timeouts..."
+    dotnet test --verbosity normal --logger "console;verbosity=detailed"
 else
-    echo "❌ Тесты завершились с ошибкой (код: $EXIT_CODE)"
+    echo "🚀 Running tests with filter: $1"
+    dotnet test --filter "$1" --verbosity normal --logger "console;verbosity=detailed"
 fi
 
-echo ""
-echo "🔍 Для детального анализа запустите:"
-echo "   dotnet test --filter \"$FILTER\" --verbosity normal --logger \"console;verbosity=detailed\""
-
-exit $EXIT_CODE 
+echo "✅ Tests completed!" 
