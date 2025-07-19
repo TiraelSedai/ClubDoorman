@@ -56,6 +56,9 @@ public class ModerationService : IModerationService
 
     public async Task<ModerationResult> CheckMessageAsync(Message message)
     {
+        if (message == null)
+            throw new ArgumentNullException(nameof(message));
+
         var user = message.From!;
         var text = message.Text ?? message.Caption;
         var chat = message.Chat;
@@ -117,6 +120,9 @@ public class ModerationService : IModerationService
 
     public async Task<ModerationResult> CheckUserNameAsync(User user)
     {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user));
+
         var fullName = Utils.FullName(user);
         
         // Проверяем длину имени

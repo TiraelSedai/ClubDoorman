@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "Integration Tests": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOORMAN_BOT_API": "https://api.telegram.org",
+        "DOORMAN_ADMIN_CHAT": "123456789",
+        "DOORMAN_BOT_TOKEN": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+        "DOORMAN_OPENROUTER_API": "test-api-key-for-tests-only"
+      }
+    },
+    "Unit Tests": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOORMAN_BOT_API": "https://api.telegram.org",
+        "DOORMAN_ADMIN_CHAT": "123456789",
+        "DOORMAN_BOT_TOKEN": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+        "DOORMAN_OPENROUTER_API": "test-api-key-for-tests-only",
+        "DOORMAN_AI_ENABLED_CHATS": "",
+        "DOORMAN_DISABLE_MEDIA_FILTERING": "false"
+      }
+    }
+  }
+} 
