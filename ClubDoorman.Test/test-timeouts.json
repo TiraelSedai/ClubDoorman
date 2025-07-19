@@ -1,0 +1,35 @@
+{
+  "defaultTimeoutSeconds": 5,
+  "testTimeouts": {
+    "ModerationServiceTests": {
+      "defaultTimeoutSeconds": 10,
+      "specificTests": {
+        "CheckMessage_WithSpamMessage_ReturnsBan": 15,
+        "CheckMessage_WithHamMessage_ReturnsAllow": 15,
+        "IncrementGoodMessageCount_WithValidUser_ApprovesUserAfterThreeMessages": 20
+      }
+    },
+    "ModerationServiceSimpleTests": {
+      "defaultTimeoutSeconds": 8,
+      "specificTests": {
+        "CheckMessage_WithBannedUser_ReturnsBan": 10
+      }
+    },
+    "CriticalFunctionalityTests": {
+      "defaultTimeoutSeconds": 12,
+      "specificTests": {
+        "SpamHamClassifier_WithSpamText_ReturnsSpam": 15,
+        "SpamHamClassifier_WithHamText_ReturnsHam": 15
+      }
+    },
+    "SimpleFiltersTests": {
+      "defaultTimeoutSeconds": 3
+    },
+    "SimpleFiltersNullTests": {
+      "defaultTimeoutSeconds": 3
+    },
+    "TextProcessorNullTests": {
+      "defaultTimeoutSeconds": 3
+    }
+  }
+} 

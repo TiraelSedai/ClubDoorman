@@ -12,7 +12,7 @@ using System.Diagnostics;
 namespace ClubDoorman.Test;
 
 [TestFixture]
-public class ModerationServiceSimpleTests
+public class ModerationServiceSimpleTests : TestBase
 {
     private ModerationService _moderationService;
     private SpamHamClassifier _classifier;
@@ -24,9 +24,9 @@ public class ModerationServiceSimpleTests
     private SuspiciousUsersStorage _mockSuspiciousUsersStorage;
     private Mock<ITelegramBotClient> _mockBotClient;
 
-    [SetUp]
-    public void Setup()
+    public override void SetUp()
     {
+        base.SetUp();
         Console.WriteLine("Setting up test...");
         var classifierLogger = new Mock<ILogger<SpamHamClassifier>>();
         _classifier = new SpamHamClassifier(classifierLogger.Object);
@@ -138,24 +138,27 @@ public class ModerationServiceSimpleTests
     }
 
     [Test]
-    [CancelAfter(5000)] // 5 секунд таймаут
     public async Task CheckMessage_WithBannedUser_ReturnsBan()
     {
         Console.WriteLine("Starting CheckMessage_WithBannedUser_ReturnsBan");
-        // Arrange
-        var user = new User { Id = 123, FirstName = "Test" };
-        var chat = new Chat { Id = 456, Type = ChatType.Group };
-        var message = new Message { From = user, Chat = chat, Text = "Hello" };
+        
+        await ExecuteWithTimeout(async (cancellationToken) =>
+        {
+            // Arrange
+            var user = new User { Id = 123, FirstName = "Test" };
+            var chat = new Chat { Id = 456, Type = ChatType.Group };
+            var message = new Message { From = user, Chat = chat, Text = "Hello" };
 
-        _mockUserManager.Setup(x => x.InBanlist(user.Id))
-            .ReturnsAsync(true);
+            _mockUserManager.Setup(x => x.InBanlist(user.Id))
+                .ReturnsAsync(true);
 
-        // Act
-        var result = await _moderationService.CheckMessageAsync(message);
+            // Act
+            var result = await _moderationService.CheckMessageAsync(message);
 
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-        Assert.That(result.Reason, Is.EqualTo("Пользователь в блэклисте спамеров"));
-        Console.WriteLine("Completed CheckMessage_WithBannedUser_ReturnsBan");
+            // Assert
+            Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
+            Assert.That(result.Reason, Is.EqualTo("Пользователь в блэклисте спамеров"));
+            Console.WriteLine("Completed CheckMessage_WithBannedUser_ReturnsBan");
+        });
     }
 } 
