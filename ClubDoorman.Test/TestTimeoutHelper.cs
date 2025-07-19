@@ -98,6 +98,14 @@ public static class TestTimeoutHelper
     {
         var testName = TestContext.CurrentContext.Test.Name;
         var className = TestContext.CurrentContext.Test.ClassName?.Split('.').Last() ?? "Unknown";
-        return CreateTimeoutToken(className, testName);
+        
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] TestTimeoutHelper: Creating timeout token for {className}.{testName}");
+        
+        var timeoutSeconds = GetTimeoutForTest(className, testName);
+        var timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] TestTimeoutHelper: Using timeout of {timeoutSeconds} seconds for {className}.{testName}");
+        
+        return new CancellationTokenSource(timeout);
     }
 } 

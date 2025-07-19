@@ -33,6 +33,21 @@ public class MessageHandler : IUpdateHandler
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
 
+    /// <summary>
+    /// Создает экземпляр обработчика сообщений.
+    /// </summary>
+    /// <param name="bot">Клиент Telegram бота</param>
+    /// <param name="moderationService">Сервис модерации</param>
+    /// <param name="captchaService">Сервис капчи</param>
+    /// <param name="userManager">Менеджер пользователей</param>
+    /// <param name="classifier">Классификатор спама</param>
+    /// <param name="badMessageManager">Менеджер плохих сообщений</param>
+    /// <param name="aiChecks">AI проверки</param>
+    /// <param name="globalStatsManager">Менеджер глобальной статистики</param>
+    /// <param name="statisticsService">Сервис статистики</param>
+    /// <param name="serviceProvider">Провайдер сервисов</param>
+    /// <param name="logger">Логгер</param>
+    /// <exception cref="ArgumentNullException">Если любой из параметров равен null</exception>
     public MessageHandler(
         TelegramBotClient bot,
         IModerationService moderationService,
@@ -46,26 +61,39 @@ public class MessageHandler : IUpdateHandler
         IServiceProvider serviceProvider,
         ILogger<MessageHandler> logger)
     {
-        _bot = bot;
-        _moderationService = moderationService;
-        _captchaService = captchaService;
-        _userManager = userManager;
-        _classifier = classifier;
-        _badMessageManager = badMessageManager;
-        _aiChecks = aiChecks;
-        _globalStatsManager = globalStatsManager;
-        _statisticsService = statisticsService;
-        _serviceProvider = serviceProvider;
-        _logger = logger;
+        _bot = bot ?? throw new ArgumentNullException(nameof(bot));
+        _moderationService = moderationService ?? throw new ArgumentNullException(nameof(moderationService));
+        _captchaService = captchaService ?? throw new ArgumentNullException(nameof(captchaService));
+        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+        _classifier = classifier ?? throw new ArgumentNullException(nameof(classifier));
+        _badMessageManager = badMessageManager ?? throw new ArgumentNullException(nameof(badMessageManager));
+        _aiChecks = aiChecks ?? throw new ArgumentNullException(nameof(aiChecks));
+        _globalStatsManager = globalStatsManager ?? throw new ArgumentNullException(nameof(globalStatsManager));
+        _statisticsService = statisticsService ?? throw new ArgumentNullException(nameof(statisticsService));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Проверяет, может ли обработчик обработать данное обновление.
+    /// </summary>
+    /// <param name="update">Обновление для проверки</param>
+    /// <returns>true, если обновление содержит сообщение</returns>
     public bool CanHandle(Update update)
     {
-        return update.Message != null || update.EditedMessage != null;
+        return update?.Message != null || update?.EditedMessage != null;
     }
 
+    /// <summary>
+    /// Обрабатывает обновление, содержащее сообщение.
+    /// </summary>
+    /// <param name="update">Обновление для обработки</param>
+    /// <param name="cancellationToken">Токен отмены операции</param>
+    /// <exception cref="ArgumentNullException">Если update равен null</exception>
     public async Task HandleAsync(Update update, CancellationToken cancellationToken = default)
     {
+        if (update == null) throw new ArgumentNullException(nameof(update));
+
         var message = update.EditedMessage ?? update.Message!;
         var chat = message.Chat;
 

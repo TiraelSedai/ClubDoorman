@@ -8,6 +8,8 @@ public static partial class TextProcessor
 {
     public static string NormalizeText(string input)
     {
+        if (input == null) throw new ArgumentNullException(nameof(input));
+        
         var result = input.ReplaceLineEndings(" ");
         result = result.ToLowerInvariant();
         result = StripEmojisAndPunctuation(result);

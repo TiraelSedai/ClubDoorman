@@ -54,12 +54,22 @@ public class ModerationService : IModerationService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Проверяет сообщение на соответствие правилам модерации
+    /// </summary>
+    /// <param name="message">Сообщение для проверки</param>
+    /// <returns>Результат модерации с рекомендуемым действием и причиной</returns>
+    /// <exception cref="ModerationException">Выбрасывается при ошибках во время модерации</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если message равен null</exception>
     public async Task<ModerationResult> CheckMessageAsync(Message message)
     {
         if (message == null)
-            throw new ArgumentNullException(nameof(message));
+            throw new ArgumentNullException(nameof(message), "Сообщение не может быть null");
 
-        var user = message.From!;
+        if (message.From == null)
+            throw new ModerationException("Сообщение должно содержать информацию о пользователе");
+
+        var user = message.From;
         var text = message.Text ?? message.Caption;
         var chat = message.Chat;
 
@@ -118,10 +128,20 @@ public class ModerationService : IModerationService
         return await CheckTextContentAsync(text, message);
     }
 
+    /// <summary>
+    /// Проверяет имя пользователя на соответствие правилам
+    /// </summary>
+    /// <param name="user">Пользователь для проверки</param>
+    /// <returns>Результат проверки имени пользователя</returns>
+    /// <exception cref="ModerationException">Выбрасывается при ошибках во время проверки</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если user равен null</exception>
     public async Task<ModerationResult> CheckUserNameAsync(User user)
     {
         if (user == null)
-            throw new ArgumentNullException(nameof(user));
+            throw new ArgumentNullException(nameof(user), "Пользователь не может быть null");
+
+        if (string.IsNullOrWhiteSpace(user.FirstName))
+            throw new ModerationException("Имя пользователя не может быть пустым");
 
         var fullName = Utils.FullName(user);
         
@@ -157,8 +177,25 @@ public class ModerationService : IModerationService
         }
     }
 
+    /// <summary>
+    /// Увеличивает счетчик хороших сообщений пользователя и обрабатывает логику одобрения
+    /// </summary>
+    /// <param name="user">Пользователь, отправивший сообщение</param>
+    /// <param name="chat">Чат, в котором было отправлено сообщение</param>
+    /// <param name="messageText">Текст сообщения</param>
+    /// <exception cref="ModerationException">Выбрасывается при ошибках во время обработки</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если user или chat равен null</exception>
     public async Task IncrementGoodMessageCountAsync(User user, Chat chat, string messageText)
     {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user), "Пользователь не может быть null");
+
+        if (chat == null)
+            throw new ArgumentNullException(nameof(chat), "Чат не может быть null");
+
+        if (string.IsNullOrWhiteSpace(messageText))
+            throw new ArgumentException("Текст сообщения не может быть пустым", nameof(messageText));
+
         // Проверяем, является ли пользователь подозрительным
         if (_suspiciousUsersStorage.IsSuspicious(user.Id, chat.Id))
         {
@@ -609,7 +646,7 @@ public class ModerationService : IModerationService
         }
 
         // 9. ML классификация спама
-        var (spam, score) = await _classifier.IsSpam(normalized);
+        var (spam, score) = await _classifier.IsSpam(normalized).WaitAsync(TimeSpan.FromSeconds(15));
         _logger.LogDebug("ML анализ: текст='{Text}', спам={Spam}, скор={Score}", normalized, spam, score);
         
         if (spam)
@@ -720,8 +757,9 @@ public class ModerationService : IModerationService
             _suspiciousUsersStorage.SetAiDetectEnabled(user.Id, chat.Id, false);
 
             // Запускаем СПЕЦИАЛЬНЫЙ AI анализ для подозрительных пользователей
-            var aiResult = await _aiChecks.GetSuspiciousUserSpamProbability(message, user, firstMessages, mimicryScore);
-            var (isSpamByMl, mlScore) = await _classifier.IsSpam(messageText);
+            var aiResult = await _aiChecks.GetSuspiciousUserSpamProbability(message, user, firstMessages, mimicryScore)
+                .AsTask().WaitAsync(TimeSpan.FromSeconds(30));
+            var (isSpamByMl, mlScore) = await _classifier.IsSpam(messageText).WaitAsync(TimeSpan.FromSeconds(15));
             var spamProbability = aiResult.Probability; // получаем double из SpamProbability
             
             var aiReason = aiResult.Reason ?? "Нет объяснения";
