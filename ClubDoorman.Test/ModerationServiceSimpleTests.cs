@@ -61,80 +61,95 @@ public class ModerationServiceSimpleTests : TestBase
     }
 
     [Test]
-    [CancelAfter(5000)] // 5 секунд таймаут
     public void CheckUserName_WithNullUser_ThrowsArgumentNullException()
     {
         Console.WriteLine("Starting CheckUserName_WithNullUser_ThrowsArgumentNullException");
-        // Act & Assert
-        var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => 
-            await _moderationService.CheckUserNameAsync(null!));
         
-        Assert.That(exception.ParamName, Is.EqualTo("user"));
-        Console.WriteLine("Completed CheckUserName_WithNullUser_ThrowsArgumentNullException");
+        ExecuteWithTimeout((cancellationToken) =>
+        {
+            // Act & Assert
+            var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => 
+                await _moderationService.CheckUserNameAsync(null!));
+            
+            Assert.That(exception.ParamName, Is.EqualTo("user"));
+            Console.WriteLine("Completed CheckUserName_WithNullUser_ThrowsArgumentNullException");
+        });
     }
 
     [Test]
-    [CancelAfter(5000)] // 5 секунд таймаут
     public async Task CheckUserName_WithNormalName_ReturnsAllow()
     {
         Console.WriteLine("Starting CheckUserName_WithNormalName_ReturnsAllow");
-        // Arrange
-        var user = new User { FirstName = "John", LastName = "Doe" };
+        
+        await ExecuteWithTimeout(async (cancellationToken) =>
+        {
+            // Arrange
+            var user = new User { FirstName = "John", LastName = "Doe" };
 
-        // Act
-        var result = await _moderationService.CheckUserNameAsync(user);
+            // Act
+            var result = await _moderationService.CheckUserNameAsync(user);
 
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Is.EqualTo("Имя пользователя корректно"));
-        Console.WriteLine("Completed CheckUserName_WithNormalName_ReturnsAllow");
+            // Assert
+            Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
+            Assert.That(result.Reason, Is.EqualTo("Имя пользователя корректно"));
+            Console.WriteLine("Completed CheckUserName_WithNormalName_ReturnsAllow");
+        });
     }
 
     [Test]
-    [CancelAfter(5000)] // 5 секунд таймаут
     public async Task CheckUserName_WithLongName_ReturnsReport()
     {
         Console.WriteLine("Starting CheckUserName_WithLongName_ReturnsReport");
-        // Arrange
-        var user = new User { FirstName = new string('A', 50), LastName = "Doe" };
+        
+        await ExecuteWithTimeout(async (cancellationToken) =>
+        {
+            // Arrange
+            var user = new User { FirstName = new string('A', 50), LastName = "Doe" };
 
-        // Act
-        var result = await _moderationService.CheckUserNameAsync(user);
+            // Act
+            var result = await _moderationService.CheckUserNameAsync(user);
 
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Report));
-        Assert.That(result.Reason, Does.Contain("Подозрительно длинное имя"));
-        Console.WriteLine("Completed CheckUserName_WithLongName_ReturnsReport");
+            // Assert
+            Assert.That(result.Action, Is.EqualTo(ModerationAction.Report));
+            Assert.That(result.Reason, Does.Contain("Подозрительно длинное имя"));
+            Console.WriteLine("Completed CheckUserName_WithLongName_ReturnsReport");
+        });
     }
 
     [Test]
-    [CancelAfter(5000)] // 5 секунд таймаут
     public async Task CheckUserName_WithExtremelyLongName_ReturnsBan()
     {
         Console.WriteLine("Starting CheckUserName_WithExtremelyLongName_ReturnsBan");
-        // Arrange
-        var user = new User { FirstName = new string('A', 100), LastName = "Doe" };
+        
+        await ExecuteWithTimeout(async (cancellationToken) =>
+        {
+            // Arrange
+            var user = new User { FirstName = new string('A', 100), LastName = "Doe" };
 
-        // Act
-        var result = await _moderationService.CheckUserNameAsync(user);
+            // Act
+            var result = await _moderationService.CheckUserNameAsync(user);
 
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-        Assert.That(result.Reason, Does.Contain("Экстремально длинное имя"));
-        Console.WriteLine("Completed CheckUserName_WithExtremelyLongName_ReturnsBan");
+            // Assert
+            Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
+            Assert.That(result.Reason, Does.Contain("Экстремально длинное имя"));
+            Console.WriteLine("Completed CheckUserName_WithExtremelyLongName_ReturnsBan");
+        });
     }
 
     [Test]
-    [CancelAfter(5000)] // 5 секунд таймаут
     public void CheckMessage_WithNullMessage_ThrowsArgumentNullException()
     {
         Console.WriteLine("Starting CheckMessage_WithNullMessage_ThrowsArgumentNullException");
-        // Act & Assert
-        var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => 
-            await _moderationService.CheckMessageAsync(null!));
         
-        Assert.That(exception.ParamName, Is.EqualTo("message"));
-        Console.WriteLine("Completed CheckMessage_WithNullMessage_ThrowsArgumentNullException");
+        ExecuteWithTimeout((cancellationToken) =>
+        {
+            // Act & Assert
+            var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => 
+                await _moderationService.CheckMessageAsync(null!));
+            
+            Assert.That(exception.ParamName, Is.EqualTo("message"));
+            Console.WriteLine("Completed CheckMessage_WithNullMessage_ThrowsArgumentNullException");
+        });
     }
 
     [Test]

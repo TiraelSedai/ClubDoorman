@@ -1,6 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Globalization;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using ClubDoorman.Infrastructure;
 
 namespace ClubDoorman.Services;
@@ -95,8 +97,20 @@ internal sealed class UserManager : IUserManager
         }
     }
 
+    /// <summary>
+    /// Проверяет, находится ли пользователь в банлисте
+    /// </summary>
+    /// <param name="userId">ID пользователя для проверки</param>
+    /// <returns>true, если пользователь находится в банлисте</returns>
+    /// <exception cref="UserManagementException">Выбрасывается при критических ошибках проверки</exception>
     public async ValueTask<bool> InBanlist(long userId)
     {
+        if (userId <= 0)
+        {
+            _logger.LogWarning("Попытка проверить некорректный ID пользователя: {UserId}", userId);
+            return false;
+        }
+
         Console.WriteLine($"[DEBUG] InBanlist: проверяем пользователя {userId} (тестовых ID: {_testBlacklist.Count})");
         _logger.LogDebug("InBanlist: проверяем пользователя {UserId} (тестовых ID: {TestCount})", userId, _testBlacklist.Count);
         
@@ -108,22 +122,55 @@ internal sealed class UserManager : IUserManager
             return true;
         }
         
+        // Проверяем локальный кэш
         if (_banlist.ContainsKey(userId))
-            return true;
-        try
         {
-            using var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(5));
-            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>($"https://api.lols.bot/account?id={userId}", cts.Token);
-            if (!result!.banned)
-                return false;
-
-            _banlist.TryAdd(userId, 0);
+            _logger.LogDebug("Пользователь {UserId} найден в локальном кэше банлиста", userId);
             return true;
         }
-        catch (Exception e)
+
+        // Проверяем через API
+        try
         {
-            _logger.LogWarning(e, "LolsBotApi exception");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>(
+                $"https://api.lols.bot/account?id={userId}", 
+                cts.Token
+            );
+            
+            if (result == null)
+            {
+                _logger.LogWarning("Получен null ответ от LolsBot API для пользователя {UserId}", userId);
+                return false;
+            }
+
+            if (result.banned)
+            {
+                _logger.LogInformation("Пользователь {UserId} найден в банлисте LolsBot", userId);
+                _banlist.TryAdd(userId, 0);
+                return true;
+            }
+
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Таймаут при проверке пользователя {UserId} в LolsBot API", userId);
+            return false;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Ошибка сети при проверке пользователя {UserId} в LolsBot API", userId);
+            return false;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Ошибка парсинга JSON при проверке пользователя {UserId} в LolsBot API", userId);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Неожиданная ошибка при проверке пользователя {UserId} в LolsBot API", userId);
             return false;
         }
     }

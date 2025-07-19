@@ -4,31 +4,56 @@ using ClubDoorman.Infrastructure;
 
 namespace ClubDoorman.Services;
 
+/// <summary>
+/// Менеджер для хранения и проверки известных плохих сообщений (спам/оскорбления и т.д.).
+/// Хранит хэши сообщений, поддерживает потокобезопасность и асинхронную запись.
+/// </summary>
 public sealed class BadMessageManager
 {
     private const string Path = "data/bad-messages.txt";
     private readonly SemaphoreSlim _fileLock = new(1);
 
-    // with our data size, we would never need O(1), in fact if this ever bloats I'd rather limit this to ~2048 last messages
-    // space savings are very moderate, base64 string takes up ~128 bytes while byte[] takes only 64, but then again it's
-    // never more than a few kilobytes anyway, so this is pure 'for the sake of it' optimization
+    // Сортированное множество хэшей плохих сообщений
     private readonly SortedSet<byte[]> _bad = new(new ByteArrayComparer());
 
+    /// <summary>
+    /// Загружает известные плохие сообщения из файла при инициализации.
+    /// </summary>
     public BadMessageManager()
     {
         lock (_bad)
         {
-            foreach (var item in File.ReadAllLines(Path))
-                _bad.Add(Convert.FromBase64String(item));
+            try
+            {
+                if (File.Exists(Path))
+                {
+                    foreach (var item in File.ReadAllLines(Path))
+                        _bad.Add(Convert.FromBase64String(item));
+                }
+            }
+            catch (Exception ex)
+            {
+                // Не ломаем логику, просто логируем ошибку
+                Console.WriteLine($"[BadMessageManager] Ошибка при загрузке файла: {ex.Message}");
+            }
         }
     }
 
+    /// <summary>
+    /// Проверяет, является ли сообщение известным плохим (по хэшу).
+    /// </summary>
+    /// <param name="message">Текст сообщения</param>
+    /// <returns>true, если сообщение известно как плохое</returns>
     public bool KnownBadMessage(string message)
     {
         lock (_bad)
             return _bad.Contains(ComputeHash(message));
     }
 
+    /// <summary>
+    /// Добавляет сообщение в список плохих (если оно не пустое и не было добавлено ранее).
+    /// </summary>
+    /// <param name="message">Текст сообщения</param>
     public async ValueTask MarkAsBad(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -39,13 +64,29 @@ public sealed class BadMessageManager
             added = _bad.Add(hash);
         if (!added)
             return;
-        using var token = await SemaphoreHelper.AwaitAsync(_fileLock);
-        await File.AppendAllLinesAsync(Path, [Convert.ToBase64String(hash)]);
+        try
+        {
+            using var token = await SemaphoreHelper.AwaitAsync(_fileLock);
+            await File.AppendAllLinesAsync(Path, [Convert.ToBase64String(hash)]);
+        }
+        catch (Exception ex)
+        {
+            // Не ломаем логику, просто логируем ошибку
+            Console.WriteLine($"[BadMessageManager] Ошибка при записи файла: {ex.Message}");
+        }
     }
 
+    /// <summary>
+    /// Вычисляет SHA512-хэш сообщения.
+    /// </summary>
+    /// <param name="message">Текст сообщения</param>
+    /// <returns>Байтовый массив хэша</returns>
     private static byte[] ComputeHash(string message) => SHA512.HashData(Encoding.UTF8.GetBytes(message));
 }
 
+/// <summary>
+/// Компаратор для сравнения байтовых массивов (хэшей сообщений).
+/// </summary>
 internal sealed class ByteArrayComparer : IComparer<byte[]>
 {
     public int Compare(byte[]? x, byte[]? y)
