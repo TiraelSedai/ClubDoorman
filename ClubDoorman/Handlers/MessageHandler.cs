@@ -143,6 +143,15 @@ public class MessageHandler : IUpdateHandler
             return;
         }
 
+        // Обработка команды /suspicious
+        if (command == "suspicious")
+        {
+            // Получаем SuspiciousCommandHandler из DI и делегируем обработку
+            var suspiciousHandler = _serviceProvider.GetRequiredService<SuspiciousCommandHandler>();
+            await suspiciousHandler.HandleAsync(message, cancellationToken);
+            return;
+        }
+
         // Админские команды (/spam, /ham, /check) - только в админ-чатах
         var isAdminChat = message.Chat.Id == Config.AdminChatId || message.Chat.Id == Config.LogAdminChatId;
         if (isAdminChat && message.ReplyToMessage != null && (command == "spam" || command == "ham" || command == "check"))
@@ -437,7 +446,16 @@ public class MessageHandler : IUpdateHandler
         {
             case ModerationAction.Allow:
                 _logger.LogDebug("Сообщение разрешено: {Reason}", moderationResult.Reason);
-                await _moderationService.IncrementGoodMessageCountAsync(user, chat);
+                var allowedMessageText = message.Text ?? message.Caption ?? "";
+                
+                // Проверяем AI детект для подозрительных пользователей
+                var aiDetectBlocked = await _moderationService.CheckAiDetectAndNotifyAdminsAsync(user, chat, message);
+                
+                // Засчитываем хорошее сообщение только если пользователь не был заблокирован AI детектом
+                if (!aiDetectBlocked)
+                {
+                    await _moderationService.IncrementGoodMessageCountAsync(user, chat, allowedMessageText);
+                }
                 break;
             
             case ModerationAction.Ban:
@@ -596,14 +614,14 @@ public class MessageHandler : IUpdateHandler
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
         
-        if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
-        {
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана",
-                cancellationToken: cancellationToken
-            );
-        }
+        // Полностью очищаем пользователя из всех списков
+        _moderationService.CleanupUserFromAllLists(user.Id, message.Chat.Id);
+        
+        await _bot.SendMessage(
+            Config.AdminChatId,
+            $"🧹 Пользователь {FullName(user.FirstName, user.LastName)} очищен из всех списков после автобана",
+            cancellationToken: cancellationToken
+        );
     }
 
     private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken cancellationToken)
@@ -864,15 +882,15 @@ public class MessageHandler : IUpdateHandler
         
         try
         {
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user);
-            _logger.LogInformation("🤖 AI анализ профиля: пользователь {UserId}, вероятность={Probability}, фото={PhotoFlag}, био={BioFlag}", 
-                user.Id, attention.Probability, photo, bio);
+            var result = await _aiChecks.GetAttentionBaitProbability(user);
+            _logger.LogInformation("🤖 AI анализ профиля: пользователь {UserId}, вероятность={Probability}, причина={Reason}", 
+                user.Id, result.SpamProbability.Probability, result.SpamProbability.Reason);
 
             // Если высокая вероятность спама в профиле - даем ридонли
-            if (attention.Probability > 0.7) // Порог можно настроить
+            if (result.SpamProbability.Probability > 0.7) // Порог можно настроить
             {
                 _logger.LogWarning("🚫 AI определил подозрительный профиль: пользователь {UserId}, вероятность={Probability}", 
-                    user.Id, attention.Probability);
+                    user.Id, result.SpamProbability.Probability);
 
                 // Удаляем сообщение пользователя
                 try
@@ -918,7 +936,7 @@ public class MessageHandler : IUpdateHandler
                 }
 
                 // Отправляем красивое уведомление в админ-чат
-                await SendAiProfileAlert(message, user, chat, attention.Probability, photo, bio, cancellationToken);
+                await SendAiProfileAlert(message, user, chat, result.SpamProbability, result.Photo, result.NameBio, cancellationToken);
 
                 _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
                 return true; // Возвращаем true - пользователь получил ограничения
@@ -926,7 +944,7 @@ public class MessageHandler : IUpdateHandler
             else
             {
                 _logger.LogDebug("✅ AI анализ: профиль пользователя {UserId} выглядит безопасно (вероятность={Probability})", 
-                    user.Id, attention.Probability);
+                    user.Id, result.SpamProbability.Probability);
             }
         }
         catch (Exception ex)
@@ -941,7 +959,7 @@ public class MessageHandler : IUpdateHandler
     /// <summary>
     /// Отправляет красивое уведомление в админ-чат о подозрительном профиле
     /// </summary>
-    private async Task SendAiProfileAlert(Message message, User user, Chat chat, double probability, byte[] photoBytes, string bio, CancellationToken cancellationToken)
+    private async Task SendAiProfileAlert(Message message, User user, Chat chat, SpamProbability spamInfo, byte[] photoBytes, string nameBio, CancellationToken cancellationToken)
     {
         try
         {
@@ -952,31 +970,12 @@ public class MessageHandler : IUpdateHandler
             var userProfileLink = user.Username != null ? $"@{user.Username}" : displayName;
             var messageText = message.Text ?? message.Caption ?? "[медиа]";
             
-            // Формируем описание анализа
-            var hasPhoto = photoBytes.Length > 0;
-            var hasBio = !string.IsNullOrWhiteSpace(bio);
-            
-            var photoDescription = hasPhoto ? "фото бабочки (часто используется для маскировки)" : "подозрительное фото";
-            var bioDescription = hasBio ? "описание содержит призыв перейти на канал со ссылкой на него" : "подозрительное описание";
-            
-            var analysisText = "Профиль имеет все признаки для привлечения внимания: ";
-            if (hasPhoto && hasBio)
+            // Ограничиваем длину Reason от AI (как в оригинальном боте)
+            var reasonText = spamInfo.Reason;
+            if (reasonText.Length > 500) // Разумное ограничение
             {
-                analysisText += $"{photoDescription}, {bioDescription}";
+                reasonText = reasonText.Substring(0, 497) + "...";
             }
-            else if (hasPhoto)
-            {
-                analysisText += photoDescription;
-            }
-            else if (hasBio) 
-            {
-                analysisText += bioDescription;
-            }
-            else
-            {
-                analysisText += "подозрительные элементы профиля";
-            }
-            analysisText += ". Велика вероятность наличия 'продажного' контента на канале.";
 
             // Формируем ссылку на чат
             var chatLink = chat.Username != null 
@@ -986,7 +985,8 @@ public class MessageHandler : IUpdateHandler
                     : chat.Title);
 
             // Создаем кнопки для админ-чата (добавляем chat.Id для снятия ограничений)
-            var callbackDataBan = $"ban_{chat.Id}_{user.Id}";
+            // Используем banprofile_ вместо ban_ чтобы не добавлять сообщение в автобан (проблема в профиле, а не в сообщении)
+            var callbackDataBan = $"banprofile_{chat.Id}_{user.Id}";
             var callbackDataOk = $"aiOk_{chat.Id}_{user.Id}";
             
             MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
@@ -997,35 +997,43 @@ public class MessageHandler : IUpdateHandler
                 new InlineKeyboardButton("✅✅✅ ok") { CallbackData = callbackDataOk }
             });
 
-            var alertMessage = $"🤖 AI: Вероятность спам-профиля {probability * 100:F1}%. Требует ручной проверки\n\n" +
-                              $"{analysisText}\n" +
-                              $"Юзер {displayName} {userProfileLink} из чата {chat.Title} {chatLink}\n\n" +
-                              $"Сообщение:\n{messageText}";
-
-            // Если есть фото профиля - отправляем как фото с подписью
+            // Оригинальный стиль: отправляем два сообщения как в исходном боте
+            ReplyParameters? replyParams = null;
+            
+            // 1. Если есть фото - отправляем его отдельно с краткой подписью
             if (photoBytes.Length > 0)
             {
+                var photoCaption = $"{nameBio}\nСообщение:\n{messageText}";
+                // Обрезаем caption если слишком длинный
+                if (photoCaption.Length > 1024)
+                {
+                    photoCaption = photoCaption.Substring(0, 1021) + "...";
+                }
+                
                 await using var stream = new MemoryStream(photoBytes);
                 var inputFile = InputFile.FromStream(stream, "profile.jpg");
                 
-                await _bot.SendPhoto(
+                var photoMsg = await _bot.SendPhoto(
                     Config.AdminChatId,
                     inputFile,
-                    caption: alertMessage,
-                    replyMarkup: buttons,
+                    caption: photoCaption,
                     cancellationToken: cancellationToken
                 );
+                replyParams = photoMsg;
             }
-            else
-            {
-                // Если фото нет - отправляем обычное текстовое сообщение
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    alertMessage,
-                    replyMarkup: buttons,
-                    cancellationToken: cancellationToken
-                );
-            }
+            
+            // 2. Основное сообщение с анализом (стиль оригинального бота)
+            var action = "Даём ридонли на 10 минут";
+            var at = user.Username == null ? "" : $" @{user.Username} ";
+            var mainMessage = $"🤖 AI: Вероятность что это профиль бейт спаммер {spamInfo.Probability * 100:F1}%. {action}\n{reasonText}\nЮзер {displayName}{at} из чата {chat.Title}";
+            
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                mainMessage,
+                replyMarkup: buttons,
+                replyParameters: replyParams,
+                cancellationToken: cancellationToken
+            );
         }
         catch (Exception ex)
         {

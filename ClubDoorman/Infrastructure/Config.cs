@@ -105,6 +105,26 @@ namespace ClubDoorman.Infrastructure
         /// </summary>
         public static bool UseNewApprovalSystem { get; } = GetEnvironmentBool("DOORMAN_USE_NEW_APPROVAL_SYSTEM");
 
+        // ==== НАСТРОЙКИ СИСТЕМЫ ПОДОЗРИТЕЛЬНЫХ ПОЛЬЗОВАТЕЛЕЙ ====
+
+        /// <summary>
+        /// Включить систему детекции подозрительных пользователей
+        /// - true: анализировать первые 3 сообщения на предмет мимикрии
+        /// - false: использовать только основную систему одобрения
+        /// </summary>
+        public static bool SuspiciousDetectionEnabled { get; } = GetEnvironmentBool("DOORMAN_SUSPICIOUS_DETECTION_ENABLE");
+
+        /// <summary>
+        /// Порог для определения подозрительности (0.0 - 1.0)
+        /// Если ML анализ превышает этот порог, пользователь помечается как подозрительный
+        /// </summary>
+        public static double MimicryThreshold { get; } = GetEnvironmentDouble("DOORMAN_MIMICRY_THRESHOLD", 0.7);
+
+        /// <summary>
+        /// Количество сообщений для перехода из подозрительных в одобренные
+        /// </summary>
+        public static int SuspiciousToApprovedMessageCount { get; } = GetEnvironmentInt("DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT", 3);
+
         // ==== НАСТРОЙКИ ФИЛЬТРАЦИИ МЕДИА ====
 
         /// <summary>
@@ -156,6 +176,26 @@ namespace ClubDoorman.Infrastructure
             if (bool.TryParse(env, out var b) && b)
                 return true;
             return false;
+        }
+
+        private static int GetEnvironmentInt(string envName, int defaultValue)
+        {
+            var env = Environment.GetEnvironmentVariable(envName);
+            if (env == null)
+                return defaultValue;
+            if (int.TryParse(env, out var result))
+                return result;
+            return defaultValue;
+        }
+
+        private static double GetEnvironmentDouble(string envName, double defaultValue)
+        {
+            var env = Environment.GetEnvironmentVariable(envName);
+            if (env == null)
+                return defaultValue;
+            if (double.TryParse(env, out var num))
+                return num;
+            return defaultValue;
         }
 
         private static string GetClubUrlOrDefault()
