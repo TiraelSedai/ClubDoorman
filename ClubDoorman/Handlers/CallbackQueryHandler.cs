@@ -244,6 +244,10 @@ public class CallbackQueryHandler : IUpdateHandler
             {
                 await HandleBanUser(callbackQuery, chatId, userId, cancellationToken);
             }
+            else if (split.Count > 2 && split[0] == "banprofile" && long.TryParse(split[1], out var profileChatId) && long.TryParse(split[2], out var profileUserId))
+            {
+                await HandleBanUserByProfile(callbackQuery, profileChatId, profileUserId, cancellationToken);
+            }
             else if (split.Count > 2 && split[0] == "suspicious")
             {
                 _logger.LogDebug("🔍 Обрабатываем suspicious callback: {Data}", cbData);
@@ -314,17 +318,22 @@ public class CallbackQueryHandler : IUpdateHandler
             // Полная очистка из всех списков
             _moderationService.CleanupUserFromAllLists(userId, chatId);
             
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"🧹 Пользователь очищен из всех списков после ручного бана администратором {GetAdminDisplayName(callbackQuery.From)}",
-                replyParameters: callbackQuery.Message?.MessageId,
-                cancellationToken: cancellationToken
-            );
-
             var adminName = GetAdminDisplayName(callbackQuery.From);
+            
+            // Пересылаем оригинальное сообщение
+            if (callbackQuery.Message?.ReplyToMessage != null)
+            {
+                await _bot.ForwardMessage(
+                    chatId: Config.AdminChatId,
+                    fromChatId: callbackQuery.Message.Chat.Id,
+                    messageId: callbackQuery.Message.ReplyToMessage.MessageId,
+                    cancellationToken: cancellationToken
+                );
+            }
+            
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"🚫 {adminName} забанил, сообщение добавлено в список авто-бана",
+                $"🚫 {adminName} забанил пользователя\n🧹 Пользователь очищен из всех списков\n📝 Сообщение добавлено в список авто-бана",
                 replyParameters: callbackQuery.Message?.MessageId,
                 cancellationToken: cancellationToken
             );
@@ -332,6 +341,68 @@ public class CallbackQueryHandler : IUpdateHandler
         catch (Exception e)
         {
             _logger.LogWarning(e, "Не удалось забанить пользователя через админский callback");
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                "⚠️ Не могу забанить. Не хватает могущества? Сходите забаньте руками",
+                replyParameters: callbackQuery.Message?.MessageId,
+                cancellationToken: cancellationToken
+            );
+        }
+
+        // Удаляем оригинальное сообщение пользователя
+        try
+        {
+            if (userMessage != null)
+                await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Не удалось удалить оригинальное сообщение пользователя");
+        }
+
+        // Убираем кнопки
+        await _bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, cancellationToken: cancellationToken);
+    }
+
+    private async Task HandleBanUserByProfile(CallbackQuery callbackQuery, long chatId, long userId, CancellationToken cancellationToken)
+    {
+        var callbackDataBan = $"banprofile_{chatId}_{userId}";
+        var userMessage = MemoryCache.Default.Remove(callbackDataBan) as Message;
+        
+        // При бане по профилю НЕ добавляем сообщение в автобан - проблема в профиле, а не в сообщении
+        _logger.LogInformation("🚫👤 Бан по профилю - сообщение НЕ добавляется в автобан для пользователя {UserId}", userId);
+
+        try
+        {
+            // Банируем пользователя и полностью очищаем из всех списков
+            await _bot.BanChatMember(new ChatId(chatId), userId, cancellationToken: cancellationToken);
+            
+            // Полная очистка из всех списков
+            _moderationService.CleanupUserFromAllLists(userId, chatId);
+            
+            var adminName = GetAdminDisplayName(callbackQuery.From);
+            
+            // Пересылаем оригинальное сообщение
+            if (callbackQuery.Message?.ReplyToMessage != null)
+            {
+                await _bot.ForwardMessage(
+                    chatId: Config.AdminChatId,
+                    fromChatId: callbackQuery.Message.Chat.Id,
+                    messageId: callbackQuery.Message.ReplyToMessage.MessageId,
+                    cancellationToken: cancellationToken
+                );
+            }
+            
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"🚫 {adminName} забанил пользователя за спам-профиль\n🧹 Пользователь очищен из всех списков\n⚠️ Сообщение НЕ добавлено в автобан (проблема в профиле)",
+                replyParameters: callbackQuery.Message?.MessageId,
+                cancellationToken: cancellationToken
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось забанить пользователя через админский callback (бан по профилю)");
             await _bot.SendMessage(
                 Config.AdminChatId,
                 "⚠️ Не могу забанить. Не хватает могущества? Сходите забаньте руками",

@@ -411,66 +411,7 @@ internal sealed class Worker(
     private static string FullName(string firstName, string? lastName) =>
         string.IsNullOrEmpty(lastName) ? firstName : $"{firstName} {lastName}";
 
-    private async Task HandleAdminCallback(string cbData, CallbackQuery cb)
-    {
-        var split = cbData.Split('_').ToList();
-        if (split.Count > 1 && split[0] == "approve" && long.TryParse(split[1], out var approveUserId))
-        {
-            // Админ одобряет пользователя - всегда глобально
-            await _userManager.Approve(approveUserId);
-            await _bot.SendMessage(
-                new ChatId(Config.AdminChatId),
-                $"✅ [{Markdown.Escape(FullName(cb.From.FirstName, cb.From.LastName))}](tg://user?id={cb.From.Id}) добавил пользователя в список доверенных",
-                parseMode: ParseMode.Markdown,
-                replyParameters: cb.Message?.MessageId
-            );
-        }
-        else if (split.Count > 2 && split[0] == "ban" && long.TryParse(split[1], out var chatId) && long.TryParse(split[2], out var userId))
-        {
-            var userMessage = MemoryCache.Default.Remove(cbData) as Message;
-            var text = userMessage?.Caption ?? userMessage?.Text;
-            if (!string.IsNullOrWhiteSpace(text))
-                await _badMessageManager.MarkAsBad(text);
-            try
-            {
-                await _bot.BanChatMember(new ChatId(chatId), userId);
-                if (_userManager.RemoveApproval(userId, chatId, removeAll: true))
-                {
-                    await _bot.SendMessage(
-                        Config.AdminChatId,
-                        $"⚠️ Пользователь удален из списка одобренных после ручного бана администратором [{Markdown.Escape(FullName(cb.From.FirstName, cb.From.LastName))}](tg://user?id={cb.From.Id})",
-                        parseMode: ParseMode.Markdown,
-                        replyParameters: cb.Message?.MessageId
-                    );
-                }
-                await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
-                    $"🚫 {AdminDisplayName(cb.From)} забанил, сообщение добавлено в список авто-бана",
-                    parseMode: ParseMode.Markdown,
-                    replyParameters: cb.Message?.MessageId
-                );
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Unable to ban");
-                await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
-                    $"⚠️ Не могу забанить. Не хватает могущества? Сходите забаньте руками",
-                    replyParameters: cb.Message?.MessageId
-                );
-            }
-            try
-            {
-                if (userMessage != null)
-                    await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
-            }
-            catch { }
-        }
 
-        var msg = cb.Message;
-        if (msg != null)
-            await _bot.EditMessageReplyMarkup(msg.Chat.Id, msg.MessageId);
-    }
 
     // УДАЛЕН: HandleChatMemberUpdated - логика перенесена в ChatMemberHandler
 
