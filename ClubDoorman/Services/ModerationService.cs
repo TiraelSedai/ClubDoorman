@@ -747,7 +747,7 @@ public class ModerationService : IModerationService
                 });
 
                 await _botClient.SendMessage(
-                    chatId: Config.LogAdminChatId,
+                    chatId: Config.AdminChatId,
                     text: deleteNotification,
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                     replyMarkup: keyboard,
@@ -784,14 +784,14 @@ public class ModerationService : IModerationService
 
                 // Пересылаем оригинальное сообщение
                 await _botClient.ForwardMessage(
-                    chatId: Config.LogAdminChatId,
+                    chatId: Config.AdminChatId,
                     fromChatId: chat.Id,
                     messageId: message.MessageId,
                     cancellationToken: default
                 );
 
                 await _botClient.SendMessage(
-                    chatId: Config.LogAdminChatId,
+                    chatId: Config.AdminChatId,
                     text: uncertainNotification,
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                     replyMarkup: keyboard,
