@@ -1,5 +1,6 @@
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
+using ClubDoorman.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -184,34 +185,15 @@ public class ErrorHandlingTests : TestBase
 
     private static ModerationService CreateModerationService()
     {
-        // Создаем моки для зависимостей
-        var logger = new Mock<ILogger<ModerationService>>().Object;
-        var userManager = new Mock<IUserManager>().Object;
-        var botClient = new Mock<ITelegramBotClient>().Object;
-
-        // Создаем реальные экземпляры для классов без конструкторов по умолчанию
-        var classifier = new SpamHamClassifier(new Mock<ILogger<SpamHamClassifier>>().Object);
-        var mimicryClassifier = new MimicryClassifier(new Mock<ILogger<MimicryClassifier>>().Object);
-        var badMessageManager = new BadMessageManager();
-        var aiChecks = new AiChecks(new TelegramBotClient("test-token"), new Mock<ILogger<AiChecks>>().Object);
-        var suspiciousUsersStorage = new SuspiciousUsersStorage(new Mock<ILogger<SuspiciousUsersStorage>>().Object);
-
-        return new ModerationService(
-            classifier,
-            mimicryClassifier,
-            badMessageManager,
-            userManager,
-            aiChecks,
-            suspiciousUsersStorage,
-            botClient,
-            logger
-        );
+        // Используем TestFactory для создания сервиса с моками
+        var factory = new ModerationServiceTestFactory();
+        return factory.CreateModerationService();
     }
 
     private static AiChecks CreateAiChecks()
     {
-        var bot = new TelegramBotClient("test-token");
-        var logger = new Mock<ILogger<AiChecks>>().Object;
-        return new AiChecks(bot, logger);
+        // Используем TestFactory для создания AiChecks с моками
+        var factory = new AiChecksTestFactory();
+        return factory.CreateAiChecks();
     }
 } 
