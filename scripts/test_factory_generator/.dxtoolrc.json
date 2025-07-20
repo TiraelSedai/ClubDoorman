@@ -1,0 +1,35 @@
+# .dxtoolrc.json
+{
+  "project": {
+    "name": "ClubDoorman",
+    "test_framework": "NUnit",
+    "mocking_framework": "Moq",
+    "base_namespace": "ClubDoorman"
+  },
+  "generators": {
+    "test_factory": true,
+    "test_data": true,
+    "mock_scenarios": true,
+    "test_methods": false,
+    "asserts": false,
+    "scenarios": false,
+    "documentation": false
+  },
+  "library_integrations": {
+    "autofixture": true,
+    "bogus": true,
+    "automocker": false,
+    "source_generators": false
+  },
+  "templates": {
+    "engine": "scriban",
+    "custom_templates": true,
+    "template_cache": true
+  },
+  "safety": {
+    "dry_run": false,
+    "backup_existing": true,
+    "git_safe": true,
+    "diff_preview": true
+  }
+}
