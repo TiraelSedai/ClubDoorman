@@ -24,9 +24,9 @@ public class ModerationServiceSimpleTests : TestBase
     private SuspiciousUsersStorage _mockSuspiciousUsersStorage;
     private Mock<ITelegramBotClient> _mockBotClient;
 
-    public override void SetUp()
+    [SetUp]
+    public void SetUp()
     {
-        base.SetUp();
         Console.WriteLine("Setting up test...");
         var classifierLogger = new Mock<ILogger<SpamHamClassifier>>();
         _classifier = new SpamHamClassifier(classifierLogger.Object);

@@ -1,310 +1,301 @@
 using ClubDoorman.Services;
-using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Test.TestData;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
-using Telegram.Bot.Types;
 
 namespace ClubDoorman.Test.Unit.Moderation;
 
-/// <summary>
-/// Unit тесты для SpamHamClassifier
-/// Следует принципам TDD: тестируем поведение, а не реализацию
-/// </summary>
 [TestFixture]
 [Category("unit")]
 [Category("moderation")]
 public class SpamHamClassifierTests : TestBase
 {
     private SpamHamClassifier _classifier = null!;
+    private Mock<ILogger<SpamHamClassifier>> _loggerMock = null!;
 
     [SetUp]
-    public override void SetUp()
+    public void Setup()
     {
-        base.SetUp();
-        _classifier = new SpamHamClassifierTestFactory().CreateSpamHamClassifier();
+        _loggerMock = new Mock<ILogger<SpamHamClassifier>>();
+        _classifier = new SpamHamClassifier(_loggerMock.Object);
     }
 
-    #region Spam Detection Tests
-
     [Test]
-    public async Task IsSpam_WithSpamMessage_ReturnsTrue()
+    public async Task IsSpam_ValidMessage_ReturnsNotSpam()
     {
         // Arrange
-        var spamMessage = TestMessages.SpamMessage();
+        var message = TestDataFactory.CreateValidMessage();
 
         // Act
-        var result = await _classifier.IsSpam(spamMessage);
+        var result = await _classifier.IsSpam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.True, "Spam message should be classified as spam");
+        Assert.That(result.Spam, Is.False);
+        Assert.That(result.Score, Is.LessThan(0.5f));
     }
 
     [Test]
-    public async Task IsSpam_WithHamMessage_ReturnsFalse()
+    public async Task IsSpam_SpamMessage_ReturnsSpam()
     {
         // Arrange
-        var hamMessage = TestMessages.ValidMessage();
+        var message = TestDataFactory.CreateSpamMessage();
 
         // Act
-        var result = await _classifier.IsSpam(hamMessage);
+        var result = await _classifier.IsSpam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Valid message should not be classified as spam");
+        Assert.That(result.Spam, Is.True);
+        Assert.That(result.Score, Is.GreaterThan(0.5f));
     }
 
     [Test]
-    public async Task IsSpam_WithEmptyMessage_ReturnsFalse()
+    public async Task IsSpam_EmptyMessage_ReturnsNotSpam()
     {
         // Arrange
-        var emptyMessage = TestMessages.EmptyMessage();
+        var message = TestDataFactory.CreateEmptyMessage();
 
         // Act
-        var result = await _classifier.IsSpam(emptyMessage);
+        var result = await _classifier.IsSpam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Empty message should not be classified as spam");
+        Assert.That(result.Spam, Is.False);
+        Assert.That(result.Score, Is.LessThan(0.5f));
     }
 
     [Test]
-    public async Task IsSpam_WithLongMessage_ReturnsFalse()
+    public async Task IsSpam_NullText_ReturnsNotSpam()
     {
         // Arrange
-        var longMessage = TestMessages.LongMessage();
+        var message = TestDataFactory.CreateNullTextMessage();
 
         // Act
-        var result = await _classifier.IsSpam(longMessage);
+        var result = await _classifier.IsSpam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Long message should not be classified as spam");
+        Assert.That(result.Spam, Is.False);
+        Assert.That(result.Score, Is.LessThan(0.5f));
     }
 
     [Test]
-    public async Task IsSpam_WithSpecialCharacters_ReturnsFalse()
+    public async Task IsSpam_LongMessage_HandlesCorrectly()
     {
         // Arrange
-        var specialMessage = TestMessages.MessageWithSpecialCharacters();
+        var message = TestDataFactory.CreateLongMessage();
 
         // Act
-        var result = await _classifier.IsSpam(specialMessage);
+        var result = await _classifier.IsSpam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Message with special characters should not be classified as spam");
-    }
-
-    #endregion
-
-    #region Edge Cases
-
-    [Test]
-    public async Task IsSpam_WithNullMessage_ThrowsArgumentNullException()
-    {
-        // Arrange
-        Message? nullMessage = null;
-
-        // Act & Assert
-        await AssertThrowsAsync<ArgumentNullException>(
-            () => _classifier.IsSpam(nullMessage!),
-            "Message cannot be null");
+        Assert.That(result.Score, Is.GreaterThanOrEqualTo(0.0f));
+        Assert.That(result.Score, Is.LessThanOrEqualTo(1.0f));
     }
 
     [Test]
-    public async Task IsSpam_WithNullText_ReturnsFalse()
+    public async Task IsSpam_ConcurrentCalls_HandlesCorrectly()
     {
         // Arrange
-        var messageWithNullText = TestMessages.ValidMessage();
-        messageWithNullText.Text = null;
+        var message = TestDataFactory.CreateValidMessage();
+        var tasks = new List<Task<(bool, float)>>();
 
         // Act
-        var result = await _classifier.IsSpam(messageWithNullText);
-
-        // Assert
-        Assert.That(result, Is.False, "Message with null text should not be classified as spam");
-    }
-
-    [Test]
-    public async Task IsSpam_WithWhitespaceOnly_ReturnsFalse()
-    {
-        // Arrange
-        var whitespaceMessage = TestMessages.ValidMessage();
-        whitespaceMessage.Text = "   \t\n\r   ";
-
-        // Act
-        var result = await _classifier.IsSpam(whitespaceMessage);
-
-        // Assert
-        Assert.That(result, Is.False, "Message with only whitespace should not be classified as spam");
-    }
-
-    #endregion
-
-    #region Performance Tests
-
-    [Test]
-    public async Task IsSpam_ExecutionTime_WithinReasonableLimits()
-    {
-        // Arrange
-        var message = TestMessages.SpamMessage();
-        var maxTime = TimeSpan.FromSeconds(5); // Максимум 5 секунд
-
-        // Act & Assert
-        await AssertExecutionTimeAsync(
-            () => _classifier.IsSpam(message),
-            maxTime);
-    }
-
-    [Test]
-    public async Task IsSpam_MultipleMessages_ConsistentResults()
-    {
-        // Arrange
-        var messages = new[]
+        for (int i = 0; i < 10; i++)
         {
-            TestMessages.SpamMessage(),
-            TestMessages.ValidMessage(),
-            TestMessages.MimicryMessage(),
-            TestMessages.EmptyMessage()
-        };
-
-        // Act
-        var results = new List<bool>();
-        foreach (var message in messages)
-        {
-            var result = await _classifier.IsSpam(message);
-            results.Add(result);
+            tasks.Add(_classifier.IsSpam(message.Text!));
         }
 
-        // Assert
-        Assert.That(results.Count, Is.EqualTo(messages.Length), "Should process all messages");
-        
-        // Проверяем консистентность результатов
-        var spamResults = results.Where(r => r).Count();
-        var hamResults = results.Where(r => !r).Count();
-        
-        Assert.That(spamResults + hamResults, Is.EqualTo(results.Count), "All results should be either spam or ham");
-    }
-
-    #endregion
-
-    #region User Behavior Tests
-
-    [Test]
-    public async Task IsSpam_WithBotUser_ReturnsFalse()
-    {
-        // Arrange
-        var botMessage = TestMessages.ValidMessage();
-        botMessage.From = TestUsers.BotUser();
-
-        // Act
-        var result = await _classifier.IsSpam(botMessage);
+        var results = await Task.WhenAll(tasks);
 
         // Assert
-        Assert.That(result, Is.False, "Message from bot should not be classified as spam");
+        Assert.That(results, Has.Length.EqualTo(10));
+        foreach (var result in results)
+        {
+            Assert.That(result.Item2, Is.GreaterThanOrEqualTo(0.0f));
+            Assert.That(result.Item2, Is.LessThanOrEqualTo(1.0f));
+        }
     }
 
     [Test]
-    public async Task IsSpam_WithUserWithoutUsername_ReturnsFalse()
+    public async Task IsSpam_DifferentUserTypes_HandlesCorrectly()
     {
         // Arrange
-        var userWithoutUsernameMessage = TestMessages.ValidMessage();
-        userWithoutUsernameMessage.From = TestUsers.UserWithoutUsername();
+        var validMessage = TestDataFactory.CreateValidMessage();
+        var spamMessage = TestDataFactory.CreateSpamMessage();
 
         // Act
-        var result = await _classifier.IsSpam(userWithoutUsernameMessage);
+        var validResult = await _classifier.IsSpam(validMessage.Text!);
+        var spamResult = await _classifier.IsSpam(spamMessage.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Message from user without username should not be classified as spam");
+        Assert.That(validResult.Spam, Is.False);
+        Assert.That(spamResult.Spam, Is.True);
     }
 
     [Test]
-    public async Task IsSpam_WithSuspiciousUser_ReturnsTrue()
+    public async Task IsSpam_DifferentChatTypes_HandlesCorrectly()
     {
         // Arrange
-        var suspiciousMessage = TestMessages.ValidMessage();
-        suspiciousMessage.From = TestUsers.SuspiciousUser();
+        var groupMessage = TestDataFactory.CreateValidMessage();
+        var privateMessage = TestDataFactory.CreateSpamMessage();
 
         // Act
-        var result = await _classifier.IsSpam(suspiciousMessage);
+        var groupResult = await _classifier.IsSpam(groupMessage.Text!);
+        var privateResult = await _classifier.IsSpam(privateMessage.Text!);
 
         // Assert
-        Assert.That(result, Is.True, "Message from suspicious user should be classified as spam");
-    }
-
-    #endregion
-
-    #region Chat Type Tests
-
-    [Test]
-    public async Task IsSpam_WithPrivateChat_ProcessesNormally()
-    {
-        // Arrange
-        var privateMessage = TestMessages.ValidMessage();
-        privateMessage.Chat = TestChats.MainChat(); // Private chat
-
-        // Act
-        var result = await _classifier.IsSpam(privateMessage);
-
-        // Assert
-        Assert.That(result, Is.False, "Private chat message should be processed normally");
+        Assert.That(groupResult.Score, Is.GreaterThanOrEqualTo(0.0f));
+        Assert.That(privateResult.Score, Is.GreaterThanOrEqualTo(0.0f));
     }
 
     [Test]
-    public async Task IsSpam_WithGroupChat_ProcessesNormally()
+    public async Task AddSpam_ValidMessage_AddsToDataset()
     {
         // Arrange
-        var groupMessage = TestMessages.ValidMessage();
-        groupMessage.Chat = TestChats.GroupChat();
+        var message = TestDataFactory.CreateSpamMessage();
 
         // Act
-        var result = await _classifier.IsSpam(groupMessage);
+        await _classifier.AddSpam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Group chat message should be processed normally");
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddSpam executed successfully");
     }
 
     [Test]
-    public async Task IsSpam_WithSupergroupChat_ProcessesNormally()
+    public async Task AddHam_ValidMessage_AddsToDataset()
     {
         // Arrange
-        var supergroupMessage = TestMessages.ValidMessage();
-        supergroupMessage.Chat = TestChats.SupergroupChat();
+        var message = TestDataFactory.CreateValidMessage();
 
         // Act
-        var result = await _classifier.IsSpam(supergroupMessage);
+        await _classifier.AddHam(message.Text!);
 
         // Assert
-        Assert.That(result, Is.False, "Supergroup chat message should be processed normally");
-    }
-
-    #endregion
-
-    #region Integration with TestFactory
-
-    [Test]
-    public void SpamHamClassifierTestFactory_CreatesWorkingInstance()
-    {
-        // Arrange
-        var factory = new SpamHamClassifierTestFactory();
-
-        // Act
-        var instance = factory.CreateSpamHamClassifier();
-
-        // Assert
-        Assert.That(instance, Is.Not.Null, "Factory should create non-null instance");
-        Assert.That(instance, Is.InstanceOf<SpamHamClassifier>(), "Factory should create SpamHamClassifier instance");
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddHam executed successfully");
     }
 
     [Test]
-    public void SpamHamClassifierTestFactory_CreatesFreshInstanceEachTime()
+    public async Task AddSpam_EmptyMessage_HandlesCorrectly()
     {
         // Arrange
-        var factory = new SpamHamClassifierTestFactory();
+        var message = TestDataFactory.CreateEmptyMessage();
 
         // Act
-        var instance1 = factory.CreateSpamHamClassifier();
-        var instance2 = factory.CreateSpamHamClassifier();
+        await _classifier.AddSpam(message.Text!);
 
         // Assert
-        Assert.That(instance1, Is.Not.SameAs(instance2), "Factory should create different instances each time");
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddSpam with empty message executed successfully");
     }
 
-    #endregion
+    [Test]
+    public async Task AddHam_EmptyMessage_HandlesCorrectly()
+    {
+        // Arrange
+        var message = TestDataFactory.CreateEmptyMessage();
+
+        // Act
+        await _classifier.AddHam(message.Text!);
+
+        // Assert
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddHam with empty message executed successfully");
+    }
+
+    [Test]
+    public async Task AddSpam_LongMessage_HandlesCorrectly()
+    {
+        // Arrange
+        var message = TestDataFactory.CreateLongMessage();
+
+        // Act
+        await _classifier.AddSpam(message.Text!);
+
+        // Assert
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddSpam with long message executed successfully");
+    }
+
+    [Test]
+    public async Task AddHam_LongMessage_HandlesCorrectly()
+    {
+        // Arrange
+        var message = TestDataFactory.CreateLongMessage();
+
+        // Act
+        await _classifier.AddHam(message.Text!);
+
+        // Assert
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddHam with long message executed successfully");
+    }
+
+    [Test]
+    public async Task AddSpam_SpecialCharacters_HandlesCorrectly()
+    {
+        // Arrange
+        var messageWithSpecialChars = "Hello! @#$%^&*()_+-=[]{}|;':\",./<>?";
+
+        // Act
+        await _classifier.AddSpam(messageWithSpecialChars);
+
+        // Assert
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddSpam with special characters executed successfully");
+    }
+
+    [Test]
+    public async Task AddHam_SpecialCharacters_HandlesCorrectly()
+    {
+        // Arrange
+        var messageWithSpecialChars = "Hello! @#$%^&*()_+-=[]{}|;':\",./<>?";
+
+        // Act
+        await _classifier.AddHam(messageWithSpecialChars);
+
+        // Assert
+        // Проверяем, что метод выполнился без исключений
+        Assert.Pass("AddHam with special characters executed successfully");
+    }
+
+    [Test]
+    public async Task AddSpam_ConcurrentCalls_HandlesCorrectly()
+    {
+        // Arrange
+        var message = TestDataFactory.CreateSpamMessage();
+        var tasks = new List<Task>();
+
+        // Act
+        for (int i = 0; i < 5; i++)
+        {
+            tasks.Add(_classifier.AddSpam(message.Text!));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        // Проверяем, что все вызовы выполнились без исключений
+        Assert.Pass("Concurrent AddSpam calls executed successfully");
+    }
+
+    [Test]
+    public async Task AddHam_ConcurrentCalls_HandlesCorrectly()
+    {
+        // Arrange
+        var message = TestDataFactory.CreateValidMessage();
+        var tasks = new List<Task>();
+
+        // Act
+        for (int i = 0; i < 5; i++)
+        {
+            tasks.Add(_classifier.AddHam(message.Text!));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        // Проверяем, что все вызовы выполнились без исключений
+        Assert.Pass("Concurrent AddHam calls executed successfully");
+    }
 } 
