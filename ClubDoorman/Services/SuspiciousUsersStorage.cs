@@ -73,11 +73,14 @@ public class SuspiciousUsersStorage
                 Directory.CreateDirectory(directory);
             }
 
+            // CRITICAL PERFORMANCE ISSUE - FIX REQUIRED
+            // JsonSerializerOptions is recreated on every serialization call, causing unnecessary allocations
+            // This can impact performance when saving suspicious users frequently
+            // TODO: Cache JsonSerializerOptions as static readonly field to improve performance
             var json = JsonSerializer.Serialize(_suspiciousUsers, new JsonSerializerOptions 
             { 
                 WriteIndented = true 
             });
-            
             File.WriteAllText(_filePath, json);
             _logger.LogDebug("Список подозрительных пользователей сохранен в файл");
         }
@@ -95,6 +98,7 @@ public class SuspiciousUsersStorage
     /// <returns>true, если пользователь подозрительный</returns>
     public bool IsSuspicious(long userId, long chatId)
     {
+        // PERFORMANCE OPTIMIZATION - Consider ReaderWriterLockSlim for better read performance
         lock (_lock)
         {
             return _suspiciousUsers.TryGetValue(chatId, out var chatUsers) &&
