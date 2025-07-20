@@ -1,153 +1,135 @@
+using ClubDoorman.Models;
+using ClubDoorman.Test.TestData;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using NUnit.Framework;
+using Telegram.Bot.Types;
 
 namespace ClubDoorman.Test;
 
 /// <summary>
-/// Базовый класс для тестов с автоматическим управлением таймаутами.
-/// Предоставляет инфраструктуру для выполнения тестов с настраиваемыми таймаутами
-/// и автоматическим управлением ресурсами.
+/// Базовый класс для всех тестов
+/// Предоставляет общие утилиты и настройки
 /// </summary>
-/// <remarks>
-/// Этот класс автоматически создает и освобождает CancellationTokenSource для каждого теста,
-/// обеспечивая корректное завершение тестов при превышении времени выполнения.
-/// </remarks>
 public abstract class TestBase
 {
-    /// <summary>
-    /// Получает токен отмены с настроенным таймаутом для текущего теста.
-    /// </summary>
-    /// <value>
-    /// CancellationTokenSource с таймаутом, настроенным для текущего теста,
-    /// или null если токен не был инициализирован.
-    /// </value>
-    protected CancellationTokenSource? TimeoutToken { get; private set; }
-
-    /// <summary>
-    /// Инициализирует тестовое окружение и создает токен таймаута.
-    /// </summary>
-    /// <remarks>
-    /// Этот метод вызывается автоматически перед каждым тестом.
-    /// Создает CancellationTokenSource с таймаутом, настроенным для текущего теста
-    /// в соответствии с конфигурацией в test-timeouts.json.
-    /// </remarks>
-    [SetUp]
-    public virtual void SetUp()
+    protected Mock<ILogger<T>> CreateLoggerMock<T>() where T : class
     {
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] TestBase.SetUp: Creating timeout token for {TestContext.CurrentContext.Test.Name}");
-        
-        // Создаем токен таймаута для каждого теста
-        TimeoutToken = TestTimeoutHelper.CreateTimeoutToken();
-        
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] TestBase.SetUp: Timeout token created with {TimeoutToken.Token.CanBeCanceled} cancellation support");
+        return new Mock<ILogger<T>>();
+    }
+
+    protected ILogger<T> CreateNullLogger<T>() where T : class
+    {
+        return NullLogger<T>.Instance;
     }
 
     /// <summary>
-    /// Освобождает ресурсы тестового окружения.
+    /// Создает мок для любого интерфейса
     /// </summary>
-    /// <remarks>
-    /// Этот метод вызывается автоматически после каждого теста.
-    /// Освобождает CancellationTokenSource и связанные ресурсы.
-    /// </remarks>
-    [TearDown]
-    public virtual void TearDown()
+    protected Mock<T> CreateMock<T>() where T : class
     {
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] TestBase.TearDown: Disposing timeout token for {TestContext.CurrentContext.Test.Name}");
-        
-        // Освобождаем ресурсы
-        TimeoutToken?.Dispose();
-        TimeoutToken = null;
-        
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] TestBase.TearDown: Timeout token disposed");
+        return new Mock<T>();
     }
 
     /// <summary>
-    /// Выполняет асинхронную операцию с таймаутом
+    /// Проверяет, что исключение было выброшено
     /// </summary>
-    protected async Task<T> ExecuteWithTimeout<T>(Func<CancellationToken, Task<T>> operation)
+    protected static async Task AssertThrowsAsync<T>(AsyncTestDelegate action, string? message = null) where T : Exception
     {
-        var testName = TestContext.CurrentContext.Test.Name;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout<T>: Starting async operation for {testName}");
-        
-        if (TimeoutToken == null)
-            throw new InvalidOperationException("TimeoutToken not initialized");
-
-        try
+        var exception = Assert.ThrowsAsync<T>(action);
+        if (!string.IsNullOrEmpty(message))
         {
-            var result = await operation(TimeoutToken.Token);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout<T>: Completed async operation for {testName}");
-            return result;
-        }
-        catch (OperationCanceledException) when (TimeoutToken.Token.IsCancellationRequested)
-        {
-            var className = TestContext.CurrentContext.Test.ClassName?.Split('.').Last() ?? "Unknown";
-            var timeout = TestTimeoutHelper.GetTimeoutForTest(className, testName);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout<T>: TIMEOUT for {testName} after {timeout} seconds");
-            throw new TimeoutException($"Test '{testName}' timed out after {timeout} seconds");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout<T>: Exception in {testName}: {ex.GetType().Name}: {ex.Message}");
-            throw;
+            Assert.That(exception.Message, Does.Contain(message));
         }
     }
 
     /// <summary>
-    /// Выполняет асинхронную операцию с таймаутом (без возвращаемого значения)
+    /// Проверяет, что исключение было выброшено (синхронная версия)
     /// </summary>
-    protected async Task ExecuteWithTimeout(Func<CancellationToken, Task> operation)
+    protected static void AssertThrows<T>(TestDelegate action, string? message = null) where T : Exception
     {
-        var testName = TestContext.CurrentContext.Test.Name;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: Starting async operation for {testName}");
-        
-        if (TimeoutToken == null)
-            throw new InvalidOperationException("TimeoutToken not initialized");
-
-        try
+        var exception = Assert.Throws<T>(action);
+        if (!string.IsNullOrEmpty(message))
         {
-            await operation(TimeoutToken.Token);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: Completed async operation for {testName}");
-        }
-        catch (OperationCanceledException) when (TimeoutToken.Token.IsCancellationRequested)
-        {
-            var className = TestContext.CurrentContext.Test.ClassName?.Split('.').Last() ?? "Unknown";
-            var timeout = TestTimeoutHelper.GetTimeoutForTest(className, testName);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: TIMEOUT for {testName} after {timeout} seconds");
-            throw new TimeoutException($"Test '{testName}' timed out after {timeout} seconds");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: Exception in {testName}: {ex.GetType().Name}: {ex.Message}");
-            throw;
+            Assert.That(exception.Message, Does.Contain(message));
         }
     }
 
     /// <summary>
-    /// Выполняет синхронную операцию с таймаутом
+    /// Проверяет, что исключение было выброшено (синхронная версия с Action)
     /// </summary>
-    protected void ExecuteWithTimeout(Action<CancellationToken> operation)
+    protected static void AssertThrows<T>(Action action, string? message = null) where T : Exception
     {
-        var testName = TestContext.CurrentContext.Test.Name;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: Starting sync operation for {testName}");
-        
-        if (TimeoutToken == null)
-            throw new InvalidOperationException("TimeoutToken not initialized");
+        var exception = Assert.Throws<T>(() => action());
+        if (!string.IsNullOrEmpty(message))
+        {
+            Assert.That(exception.Message, Does.Contain(message));
+        }
+    }
 
-        try
+    /// <summary>
+    /// Доступ к фабрике тестовых данных
+    /// </summary>
+    protected static class TestData
+    {
+        public static class Messages
         {
-            operation(TimeoutToken.Token);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: Completed sync operation for {testName}");
+            public static Message Valid() => TestDataFactory.CreateValidMessage();
+            public static Message Spam() => TestDataFactory.CreateSpamMessage();
+            public static Message Empty() => TestDataFactory.CreateEmptyMessage();
+            public static Message NullText() => TestDataFactory.CreateNullTextMessage();
+            public static Message Long() => TestDataFactory.CreateLongMessage();
         }
-        catch (OperationCanceledException) when (TimeoutToken.Token.IsCancellationRequested)
+
+        public static class Users
         {
-            var className = TestContext.CurrentContext.Test.ClassName?.Split('.').Last() ?? "Unknown";
-            var timeout = TestTimeoutHelper.GetTimeoutForTest(className, testName);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: TIMEOUT for {testName} after {timeout} seconds");
-            throw new TimeoutException($"Test '{testName}' timed out after {timeout} seconds");
+            public static User Valid() => TestDataFactory.CreateValidUser();
+            public static User Bot() => TestDataFactory.CreateBotUser();
+            public static User Anonymous() => TestDataFactory.CreateAnonymousUser();
         }
-        catch (Exception ex)
+
+        public static class Chats
         {
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExecuteWithTimeout: Exception in {testName}: {ex.GetType().Name}: {ex.Message}");
-            throw;
+            public static Chat Group() => TestDataFactory.CreateGroupChat();
+            public static Chat Supergroup() => TestDataFactory.CreateSupergroupChat();
+            public static Chat Private() => TestDataFactory.CreatePrivateChat();
+        }
+
+        public static class CallbackQueries
+        {
+            public static CallbackQuery Valid() => TestDataFactory.CreateValidCallbackQuery();
+            public static CallbackQuery Invalid() => TestDataFactory.CreateInvalidCallbackQuery();
+        }
+
+        public static class ChatMembers
+        {
+            public static ChatMemberUpdated Joined() => TestDataFactory.CreateMemberJoined();
+            public static ChatMemberUpdated Left() => TestDataFactory.CreateMemberLeft();
+            public static ChatMemberUpdated Banned() => TestDataFactory.CreateMemberBanned();
+            public static ChatMemberUpdated Restricted() => TestDataFactory.CreateMemberRestricted();
+            public static ChatMemberUpdated Promoted() => TestDataFactory.CreateMemberPromoted();
+            public static ChatMemberUpdated Demoted() => TestDataFactory.CreateMemberDemoted();
+        }
+
+        public static class Updates
+        {
+            public static Update Message() => TestDataFactory.CreateMessageUpdate();
+            public static Update CallbackQuery() => TestDataFactory.CreateCallbackQueryUpdate();
+            public static Update ChatMember() => TestDataFactory.CreateChatMemberUpdate();
+        }
+
+        public static class ModerationResults
+        {
+            public static ModerationResult Allow() => TestDataFactory.CreateAllowResult();
+            public static ModerationResult Delete() => TestDataFactory.CreateDeleteResult();
+            public static ModerationResult Ban() => TestDataFactory.CreateBanResult();
+        }
+
+        public static class CaptchaInfo
+        {
+            public static Models.CaptchaInfo Valid() => TestDataFactory.CreateValidCaptchaInfo();
+            public static Models.CaptchaInfo Expired() => TestDataFactory.CreateExpiredCaptchaInfo();
         }
     }
 } 

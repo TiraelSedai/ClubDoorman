@@ -14,7 +14,7 @@ namespace ClubDoorman.Services;
 public class CaptchaService : ICaptchaService
 {
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<CaptchaService> _logger;
 
     // Черный список имен для отображения
@@ -25,7 +25,7 @@ public class CaptchaService : ICaptchaService
     /// </summary>
     /// <param name="bot">Клиент Telegram бота</param>
     /// <param name="logger">Логгер для записи событий</param>
-    public CaptchaService(TelegramBotClient bot, ILogger<CaptchaService> logger)
+    public CaptchaService(ITelegramBotClientWrapper bot, ILogger<CaptchaService> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -89,7 +89,7 @@ public class CaptchaService : ICaptchaService
         Message captchaMessage;
         try
         {
-            captchaMessage = await _bot.SendMessage(
+            captchaMessage = await _bot.SendMessageAsync(
                 chat.Id,
                 welcomeMessage,
                 parseMode: ParseMode.Html,
@@ -125,13 +125,13 @@ public class CaptchaService : ICaptchaService
                     try
                     {
                         // Баним пользователя на 20 минут
-                        await _bot.BanChatMember(expiredCaptcha.ChatId, expiredCaptcha.User.Id, 
-                            DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
+                        await _bot.BanChatMemberAsync(expiredCaptcha.ChatId, expiredCaptcha.User.Id, 
+                            untilDate: DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
                         
                         // Удаляем сообщения
-                        await _bot.DeleteMessage(chat.Id, captchaMessage.MessageId);
+                        await _bot.DeleteMessageAsync(chat.Id, captchaMessage.MessageId);
                         if (userJoinMessage != null)
-                            await _bot.DeleteMessage(chat.Id, userJoinMessage.MessageId);
+                            await _bot.DeleteMessageAsync(chat.Id, userJoinMessage.MessageId);
                     }
                     catch (Exception ex)
                     {
@@ -144,7 +144,7 @@ public class CaptchaService : ICaptchaService
                         try
                         {
                             await Task.Delay(TimeSpan.FromMinutes(20));
-                            await _bot.UnbanChatMember(expiredCaptcha.ChatId, expiredCaptcha.User.Id);
+                            await _bot.UnbanChatMemberAsync(expiredCaptcha.ChatId, expiredCaptcha.User.Id);
                         }
                         catch (Exception ex)
                         {
@@ -255,11 +255,11 @@ public class CaptchaService : ICaptchaService
                 
                 try
                 {
-                    await _bot.BanChatMember(captchaInfo.ChatId, captchaInfo.User.Id, 
-                        now + TimeSpan.FromMinutes(20), revokeMessages: false);
+                    await _bot.BanChatMemberAsync(captchaInfo.ChatId, captchaInfo.User.Id, 
+                        untilDate: now + TimeSpan.FromMinutes(20), revokeMessages: false);
                     
                     if (captchaInfo.UserJoinedMessage != null)
-                        await _bot.DeleteMessage(captchaInfo.ChatId, captchaInfo.UserJoinedMessage.MessageId);
+                        await _bot.DeleteMessageAsync(captchaInfo.ChatId, captchaInfo.UserJoinedMessage.MessageId);
 
                     // Разбан через некоторое время
                     _ = Task.Run(async () =>
@@ -267,7 +267,7 @@ public class CaptchaService : ICaptchaService
                         try
                         {
                             await Task.Delay(TimeSpan.FromMinutes(20));
-                            await _bot.UnbanChatMember(captchaInfo.ChatId, captchaInfo.User.Id);
+                            await _bot.UnbanChatMemberAsync(captchaInfo.ChatId, captchaInfo.User.Id);
                         }
                         catch (Exception ex)
                         {

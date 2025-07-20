@@ -7,7 +7,7 @@ namespace ClubDoorman.Services;
 /// Сервис для управления списком подозрительных пользователей
 /// Хранит данные в формате: chatId -> userId -> SuspiciousUserInfo
 /// </summary>
-public class SuspiciousUsersStorage
+public class SuspiciousUsersStorage : ISuspiciousUsersStorage
 {
     private readonly string _filePath;
     private readonly ILogger<SuspiciousUsersStorage> _logger;
