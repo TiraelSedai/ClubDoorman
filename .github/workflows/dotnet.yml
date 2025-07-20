@@ -2,7 +2,7 @@ name: Build, Release and Push Docker Image
 
 on:
   push:
-    branches: [ next ]
+    branches: [ next-dev ]
 
 jobs:
   build-and-release:
