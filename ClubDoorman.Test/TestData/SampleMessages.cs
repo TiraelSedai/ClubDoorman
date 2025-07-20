@@ -1,3 +1,6 @@
+using Telegram.Bot.Types;
+using ClubDoorman.Test.Mocks;
+
 namespace ClubDoorman.Test.TestData;
 
 /// <summary>
@@ -5,6 +8,12 @@ namespace ClubDoorman.Test.TestData;
 /// </summary>
 public static class SampleMessages
 {
+    // Основные тестовые сообщения для TDD
+    public static Message ValidMessage => MockTelegram.CreateTestMessage(Valid.SimpleText);
+    public static Message SpamMessage => MockTelegram.CreateTestMessage(Spam.SimpleSpam);
+    public static Message MimicryMessage => MockTelegram.CreateTestMessage(Suspicious.WithLookalikeSymbols);
+    public static Message BadMessage => MockTelegram.CreateTestMessage("Bad content");
+
     // Нормальные сообщения
     public static class Valid
     {
@@ -40,7 +49,7 @@ public static class SampleMessages
         public const string Empty = "";
         public const string Whitespace = "   \t\n\r   ";
         public const string SingleChar = "a";
-        public const string VeryLong = new string('a', 10000);
+        public static string VeryLong => new string('a', 10000);
         public const string Null = null!;
         public const string WithUnicode = "Привет 🌍 世界 🚀";
         public const string WithSpecialChars = "!@#$%^&*()_+-=[]{}|;':\",./<>?";

@@ -24,6 +24,7 @@
         <PackageReference Include="Moq" Version="4.20.70" />
         <PackageReference Include="SpecFlow" Version="3.9.74" />
         <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
+        <PackageReference Include="Telegram.Bot" Version="22.4.4" />
     </ItemGroup>
 
     <ItemGroup>

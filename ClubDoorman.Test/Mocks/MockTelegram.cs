@@ -1,7 +1,7 @@
-using Moq;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Moq;
 
 namespace ClubDoorman.Test.Mocks;
 
@@ -11,15 +11,21 @@ namespace ClubDoorman.Test.Mocks;
 public static class MockTelegram
 {
     /// <summary>
-    /// Создает мок ITelegramBotClient с базовой настройкой
+    /// Создает мок ITelegramBotClient
     /// </summary>
     public static Mock<ITelegramBotClient> CreateMockBotClient()
     {
         var mock = new Mock<ITelegramBotClient>();
         
-        // Базовые настройки для успешных операций
-        mock.Setup(x => x.GetMeAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = 123456789, Username = "test_bot", FirstName = "Test Bot" });
+        // Настройка базовых методов
+        mock.Setup(x => x.GetMe(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User 
+            { 
+                Id = 123456789, 
+                IsBot = true, 
+                FirstName = "TestBot",
+                Username = "test_bot"
+            });
             
         return mock;
     }
@@ -27,75 +33,59 @@ public static class MockTelegram
     /// <summary>
     /// Создает тестовое сообщение
     /// </summary>
-    public static Message CreateTestMessage(
-        string text = "Test message",
-        long chatId = 123456789,
-        long userId = 987654321,
-        string username = "test_user",
-        string firstName = "Test",
-        string lastName = "User")
+    public static Message CreateTestMessage(string text = "Test message")
     {
-        return new Message
+        var user = CreateTestUser();
+        var chat = CreateTestChat();
+        
+        // Создаем сообщение с базовыми свойствами
+        var message = new Message
         {
-            MessageId = 1,
             Date = DateTime.UtcNow,
-            Chat = new Chat { Id = chatId, Type = ChatType.Private },
-            From = new User 
-            { 
-                Id = userId, 
-                Username = username, 
-                FirstName = firstName, 
-                LastName = lastName 
-            },
-            Text = text,
-            Type = MessageType.Text
+            Chat = chat,
+            From = user,
+            Text = text
         };
-    }
-
-    /// <summary>
-    /// Создает тестовое обновление с сообщением
-    /// </summary>
-    public static Update CreateTestUpdate(Message? message = null)
-    {
-        return new Update
-        {
-            Id = 1,
-            Message = message ?? CreateTestMessage(),
-            Type = UpdateType.Message
-        };
+        
+        return message;
     }
 
     /// <summary>
     /// Создает тестового пользователя
     /// </summary>
-    public static User CreateTestUser(
-        long userId = 987654321,
-        string username = "test_user",
-        string firstName = "Test",
-        string lastName = "User")
+    public static User CreateTestUser(string? username = "test_user", string? firstName = "Test", string? lastName = "User")
     {
         return new User
         {
-            Id = userId,
-            Username = username,
-            FirstName = firstName,
-            LastName = lastName
+            Id = 12345,
+            IsBot = false,
+            FirstName = firstName ?? "Test",
+            LastName = lastName,
+            Username = username
         };
     }
 
     /// <summary>
     /// Создает тестовый чат
     /// </summary>
-    public static Chat CreateTestChat(
-        long chatId = 123456789,
-        ChatType chatType = ChatType.Private,
-        string title = "Test Chat")
+    public static Chat CreateTestChat(string? title = "Test Chat", ChatType type = ChatType.Group)
     {
         return new Chat
         {
-            Id = chatId,
-            Type = chatType,
+            Id = -1001234567890,
+            Type = type,
             Title = title
+        };
+    }
+
+    /// <summary>
+    /// Создает тестовый Update
+    /// </summary>
+    public static Update CreateTestUpdate(Message? message = null)
+    {
+        return new Update
+        {
+            Message = message ?? CreateTestMessage()
         };
     }
 } 
