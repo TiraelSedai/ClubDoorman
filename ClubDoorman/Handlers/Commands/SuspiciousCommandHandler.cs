@@ -11,14 +11,14 @@ namespace ClubDoorman.Handlers.Commands;
 /// </summary>
 public class SuspiciousCommandHandler : ICommandHandler
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly IModerationService _moderationService;
     private readonly ILogger<SuspiciousCommandHandler> _logger;
 
     public string CommandName => "suspicious";
 
     public SuspiciousCommandHandler(
-        TelegramBotClient bot, 
+        ITelegramBotClientWrapper bot, 
         IModerationService moderationService,
         ILogger<SuspiciousCommandHandler> logger)
     {

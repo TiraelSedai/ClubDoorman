@@ -12,11 +12,11 @@ namespace ClubDoorman.Services;
 public class StatisticsService : IStatisticsService
 {
     private readonly ConcurrentDictionary<long, ChatStats> _stats = new();
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<StatisticsService> _logger;
     private readonly IChatLinkFormatter _chatLinkFormatter;
 
-    public StatisticsService(TelegramBotClient bot, ILogger<StatisticsService> logger, IChatLinkFormatter chatLinkFormatter)
+    public StatisticsService(ITelegramBotClientWrapper bot, ILogger<StatisticsService> logger, IChatLinkFormatter chatLinkFormatter)
     {
         _bot = bot;
         _logger = logger;

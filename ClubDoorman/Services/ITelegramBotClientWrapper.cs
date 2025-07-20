@@ -148,4 +148,24 @@ public interface ITelegramBotClientWrapper
     /// Получает информацию о файле и скачивает его
     /// </summary>
     Task GetInfoAndDownloadFile(string fileId, Stream destination, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Отвечает на callback query
+    /// </summary>
+    Task AnswerCallbackQuery(string callbackQueryId, string? text = null, bool? showAlert = null, string? url = null, int? cacheTime = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Редактирует reply markup сообщения
+    /// </summary>
+    Task EditMessageReplyMarkup(ChatId chatId, int messageId, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Редактирует текст сообщения
+    /// </summary>
+    Task<Message> EditMessageText(ChatId chatId, int messageId, string text, ParseMode? parseMode = null, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Разбанивает пользователя в чате
+    /// </summary>
+    Task UnbanChatMember(ChatId chatId, long userId, bool? onlyIfBanned = null, CancellationToken cancellationToken = default);
 } 

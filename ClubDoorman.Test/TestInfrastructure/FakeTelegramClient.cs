@@ -282,6 +282,52 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         return Task.CompletedTask;
     }
 
+    public Task AnswerCallbackQuery(string callbackQueryId, string? text = null, bool? showAlert = null, string? url = null, int? cacheTime = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.CompletedTask;
+    }
+
+    public Task EditMessageReplyMarkup(ChatId chatId, int messageId, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.CompletedTask;
+    }
+
+    public Task<Message> EditMessageText(ChatId chatId, int messageId, string text, ParseMode? parseMode = null, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        var message = new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group },
+            From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" },
+            Text = text
+        };
+
+        return Task.FromResult(message);
+    }
+
+    public Task UnbanChatMember(ChatId chatId, long userId, bool? onlyIfBanned = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        UnbannedUsers.Add(new UnbannedUser(
+            chatId.Identifier ?? 0,
+            userId,
+            onlyIfBanned ?? false
+        ));
+
+        return Task.CompletedTask;
+    }
+
     // Методы для тестирования
     public void Reset()
     {

@@ -25,7 +25,7 @@ public class CallbackQueryHandlerTestFactory
     public CallbackQueryHandler CreateCallbackQueryHandler()
     {
         return new CallbackQueryHandler(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
             new BadMessageManager(),

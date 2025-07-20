@@ -258,4 +258,36 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
     {
         await _bot.GetInfoAndDownloadFile(fileId, destination, cancellationToken);
     }
+
+    /// <summary>
+    /// Отвечает на callback query
+    /// </summary>
+    public async Task AnswerCallbackQuery(string callbackQueryId, string? text = null, bool? showAlert = null, string? url = null, int? cacheTime = null, CancellationToken cancellationToken = default)
+    {
+        await _bot.AnswerCallbackQuery(callbackQueryId, text, showAlert ?? false, url, cacheTime, cancellationToken);
+    }
+
+    /// <summary>
+    /// Редактирует reply markup сообщения
+    /// </summary>
+    public async Task EditMessageReplyMarkup(ChatId chatId, int messageId, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        await _bot.EditMessageReplyMarkup(chatId, messageId, replyMarkup as InlineKeyboardMarkup, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Редактирует текст сообщения
+    /// </summary>
+    public async Task<Message> EditMessageText(ChatId chatId, int messageId, string text, ParseMode? parseMode = null, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        return await _bot.EditMessageText(chatId, messageId, text, parseMode: parseMode ?? ParseMode.Html, replyMarkup: replyMarkup as InlineKeyboardMarkup, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Разбанивает пользователя в чате
+    /// </summary>
+    public async Task UnbanChatMember(ChatId chatId, long userId, bool? onlyIfBanned = null, CancellationToken cancellationToken = default)
+    {
+        await _bot.UnbanChatMember(chatId, userId, onlyIfBanned ?? false, cancellationToken);
+    }
 } 
