@@ -8,3 +8,22 @@
 ClubDoorman/ClubDoorman.csproj.user
 /tmp/
 /plans/
+
+# Test artifacts
+ClubDoorman.Test/TestResults/
+ClubDoorman.Test/StrykerOutput/
+ClubDoorman.Test/coverage/
+ClubDoorman.Test/TestData/temp/
+ClubDoorman.Test/Performance/results/
+ClubDoorman.Test/Mutation/results/
+
+# Test logs
+*.test.log
+test-results.xml
+coverage.xml
+mutation-report.html
+
+# Temporary test files
+*.tmp
+*.temp
+test-*.json
