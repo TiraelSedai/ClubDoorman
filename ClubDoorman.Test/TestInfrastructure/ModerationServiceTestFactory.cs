@@ -23,6 +23,7 @@ public class ModerationServiceTestFactory
     public Mock<ISuspiciousUsersStorage> SuspiciousUsersStorageMock { get; } = new();
     public Mock<ITelegramBotClient> BotClientMock { get; } = new();
     public Mock<ILogger<ModerationService>> LoggerMock { get; } = new();
+    public FakeTelegramClient FakeTelegramClient { get; } = new();
 
     public ModerationService CreateModerationService()
     {

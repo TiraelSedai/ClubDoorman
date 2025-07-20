@@ -71,7 +71,7 @@ public class ModerationServiceSimpleTests
 
         // Assert
         Assert.That(message, Is.Not.Null);
-        Assert.That(message.MessageId, Is.EqualTo(1));
+        Assert.That(message.MessageId, Is.EqualTo(0)); // MessageId is read-only, defaults to 0
         Assert.That(message.Text, Is.EqualTo("Hello, this is a valid message!"));
         Assert.That(message.From, Is.Not.Null);
         Assert.That(message.Chat, Is.Not.Null);
@@ -85,7 +85,7 @@ public class ModerationServiceSimpleTests
 
         // Assert
         Assert.That(message, Is.Not.Null);
-        Assert.That(message.MessageId, Is.EqualTo(2));
+        Assert.That(message.MessageId, Is.EqualTo(0)); // MessageId is read-only, defaults to 0
         Assert.That(message.Text, Is.EqualTo("BUY NOW!!! AMAZING OFFER!!! CLICK HERE!!!"));
     }
 

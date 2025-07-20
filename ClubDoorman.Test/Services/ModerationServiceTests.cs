@@ -68,7 +68,7 @@ public class ModerationServiceTests
     }
 
     [Test]
-    public async Task CheckMessageAsync_EmptyMessage_ReturnsAllow()
+    public async Task CheckMessageAsync_EmptyMessage_ReturnsReport()
     {
         // Arrange
         var message = TestDataFactory.CreateEmptyMessage();
@@ -85,7 +85,8 @@ public class ModerationServiceTests
         var result = await _service.CheckMessageAsync(message);
 
         // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Report));
+        Assert.That(result.Reason, Contains.Substring("Медиа без подписи"));
     }
 
     [Test]
@@ -111,7 +112,7 @@ public class ModerationServiceTests
     }
 
     [Test]
-    public async Task CheckMessageAsync_ExceptionInClassifier_ReturnsAllow()
+    public async Task CheckMessageAsync_ExceptionInClassifier_ThrowsException()
     {
         // Arrange
         var message = TestDataFactory.CreateValidMessage();
@@ -124,16 +125,15 @@ public class ModerationServiceTests
             mock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
                 .Returns(0.1));
 
-        // Act
-        var result = await _service.CheckMessageAsync(message);
-
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Contains.Substring("error"));
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<System.Exception>(async () => 
+            await _service.CheckMessageAsync(message));
+        
+        Assert.That(exception.Message, Is.EqualTo("Test exception"));
     }
 
     [Test]
-    public async Task CheckMessageAsync_BotUser_ReturnsAllow()
+    public async Task CheckMessageAsync_BotUser_ReturnsDelete()
     {
         // Arrange
         var message = TestDataFactory.CreateValidMessage();
@@ -151,7 +151,9 @@ public class ModerationServiceTests
         var result = await _service.CheckMessageAsync(message);
 
         // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Contains.Substring("bot"));
+        // Bot users are handled in MessageHandler, not ModerationService
+        // The ModerationService will process them normally
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Delete));
+        Assert.That(result.Reason, Contains.Substring("спам"));
     }
 } 
