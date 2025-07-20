@@ -14,7 +14,8 @@ internal static class Utils
     public static string FullName(User user)
     {
         if (user == null) throw new ArgumentNullException(nameof(user));
-        return string.IsNullOrEmpty(user.LastName) ? user.FirstName : $"{user.FirstName} {user.LastName}";
+        var firstName = user.FirstName ?? "Unknown";
+        return string.IsNullOrEmpty(user.LastName) ? firstName : $"{firstName} {user.LastName}";
     }
     
     /// <summary>
