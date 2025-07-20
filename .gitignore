@@ -6,3 +6,5 @@
 /.idea/**
 /ClubDoorman.sln.DotSettings.user
 ClubDoorman/ClubDoorman.csproj.user
+/tmp/
+/plans/
