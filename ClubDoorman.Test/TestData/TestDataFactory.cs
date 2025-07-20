@@ -1,15 +1,19 @@
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using ClubDoorman.Models;
+using System;
+using System.Threading;
+using System.Collections.Generic;
 
 namespace ClubDoorman.Test.TestData;
 
 /// <summary>
 /// Фабрика для создания тестовых данных
+/// Автоматически сгенерировано
 /// </summary>
 public static class TestDataFactory
 {
-    #region Messages
+    #region Telegram Types
 
     public static Message CreateValidMessage()
     {
@@ -47,34 +51,6 @@ public static class TestDataFactory
         };
     }
 
-    public static Message CreateNullTextMessage()
-    {
-        return new Message
-        {
-            MessageId = 4,
-            Date = DateTime.UtcNow,
-            Text = null,
-            From = CreateValidUser(),
-            Chat = CreateGroupChat()
-        };
-    }
-
-    public static Message CreateLongMessage()
-    {
-        return new Message
-        {
-            MessageId = 5,
-            Date = DateTime.UtcNow,
-            Text = new string('A', 1000),
-            From = CreateValidUser(),
-            Chat = CreateGroupChat()
-        };
-    }
-
-    #endregion
-
-    #region Users
-
     public static User CreateValidUser()
     {
         return new User
@@ -98,20 +74,6 @@ public static class TestDataFactory
         };
     }
 
-    public static User CreateAnonymousUser()
-    {
-        return new User
-        {
-            Id = 111222333,
-            IsBot = false,
-            FirstName = "Anonymous"
-        };
-    }
-
-    #endregion
-
-    #region Chats
-
     public static Chat CreateGroupChat()
     {
         return new Chat
@@ -134,22 +96,6 @@ public static class TestDataFactory
         };
     }
 
-    public static Chat CreatePrivateChat()
-    {
-        return new Chat
-        {
-            Id = 123456789,
-            Type = ChatType.Private,
-            FirstName = "Test",
-            LastName = "User",
-            Username = "testuser"
-        };
-    }
-
-    #endregion
-
-    #region Callback Queries
-
     public static CallbackQuery CreateValidCallbackQuery()
     {
         return new CallbackQuery
@@ -160,20 +106,6 @@ public static class TestDataFactory
             Data = "test_data"
         };
     }
-
-    public static CallbackQuery CreateInvalidCallbackQuery()
-    {
-        return new CallbackQuery
-        {
-            Id = "invalid_callback_id",
-            From = CreateValidUser(),
-            Data = "invalid_data"
-        };
-    }
-
-    #endregion
-
-    #region Chat Members
 
     public static ChatMemberUpdated CreateMemberJoined()
     {
@@ -186,70 +118,6 @@ public static class TestDataFactory
             NewChatMember = new ChatMemberMember()
         };
     }
-
-    public static ChatMemberUpdated CreateMemberLeft()
-    {
-        return new ChatMemberUpdated
-        {
-            Chat = CreateGroupChat(),
-            From = CreateValidUser(),
-            Date = DateTime.UtcNow,
-            OldChatMember = new ChatMemberMember(),
-            NewChatMember = new ChatMemberLeft()
-        };
-    }
-
-    public static ChatMemberUpdated CreateMemberBanned()
-    {
-        return new ChatMemberUpdated
-        {
-            Chat = CreateGroupChat(),
-            From = CreateValidUser(),
-            Date = DateTime.UtcNow,
-            OldChatMember = new ChatMemberMember(),
-            NewChatMember = new ChatMemberBanned()
-        };
-    }
-
-    public static ChatMemberUpdated CreateMemberRestricted()
-    {
-        return new ChatMemberUpdated
-        {
-            Chat = CreateGroupChat(),
-            From = CreateValidUser(),
-            Date = DateTime.UtcNow,
-            OldChatMember = new ChatMemberMember(),
-            NewChatMember = new ChatMemberRestricted()
-        };
-    }
-
-    public static ChatMemberUpdated CreateMemberPromoted()
-    {
-        return new ChatMemberUpdated
-        {
-            Chat = CreateGroupChat(),
-            From = CreateValidUser(),
-            Date = DateTime.UtcNow,
-            OldChatMember = new ChatMemberMember(),
-            NewChatMember = new ChatMemberAdministrator()
-        };
-    }
-
-    public static ChatMemberUpdated CreateMemberDemoted()
-    {
-        return new ChatMemberUpdated
-        {
-            Chat = CreateGroupChat(),
-            From = CreateValidUser(),
-            Date = DateTime.UtcNow,
-            OldChatMember = new ChatMemberAdministrator(),
-            NewChatMember = new ChatMemberMember()
-        };
-    }
-
-    #endregion
-
-    #region Updates
 
     public static Update CreateMessageUpdate()
     {
@@ -277,67 +145,72 @@ public static class TestDataFactory
 
     #endregion
 
-    #region Moderation Results
+    #region Domain Models
 
-    public static ModerationResult CreateAllowResult()
+    public static SuspiciousUserInfo CreateValidSuspiciousUserInfo()
     {
-        return new ModerationResult
-        {
-            Action = ModerationAction.Allow,
-            Reason = "Message passed all checks",
-            Confidence = 0.95f
-        };
+        return new SuspiciousUserInfo(
+            DateTime.UtcNow,
+            new List<string> { "First message", "Second message", "Third message" }
+        );
+    }
+    public static ModerationResult CreateValidModerationResult()
+    {
+        return new ModerationResult(
+            ModerationAction.Allow,
+            "Test reason"
+        );
     }
 
-    public static ModerationResult CreateDeleteResult()
+    public static ModerationResult CreateEmptyModerationResult()
     {
-        return new ModerationResult
-        {
-            Action = ModerationAction.Delete,
-            Reason = "Spam detected",
-            Confidence = 0.85f
-        };
+        return new ModerationResult(
+            ModerationAction.Allow,
+            ""
+        );
     }
 
-    public static ModerationResult CreateBanResult()
+    public static ModerationResult CreateLongModerationResult()
     {
-        return new ModerationResult
-        {
-            Action = ModerationAction.Ban,
-            Reason = "Repeated violations",
-            Confidence = 0.90f
-        };
+        return new ModerationResult(
+            ModerationAction.Allow,
+            new string('A', 1000)
+        );
+    }
+    public static ModerationAction CreateAllowModerationAction()
+    {
+        return ModerationAction.Allow;
     }
 
-    #endregion
+    public static ModerationAction CreateDeleteModerationAction()
+    {
+        return ModerationAction.Delete;
+    }
 
-    #region Captcha Info
+    public static ModerationAction CreateBanModerationAction()
+    {
+        return ModerationAction.Ban;
+    }
 
+    public static ModerationAction CreateReportModerationAction()
+    {
+        return ModerationAction.Report;
+    }
+
+    public static ModerationAction CreateRequireManualReviewModerationAction()
+    {
+        return ModerationAction.RequireManualReview;
+    }
     public static CaptchaInfo CreateValidCaptchaInfo()
     {
         return new CaptchaInfo(
-            chatId: 123456789,
-            chatTitle: "Test Group",
-            timestamp: DateTime.UtcNow,
-            user: CreateValidUser(),
-            correctAnswer: 1,
-            cts: new CancellationTokenSource(),
-            userJoinedMessage: CreateValidMessage()
+            123456789,
+            "Chattitle Title",
+            DateTime.UtcNow,
+            TestDataFactory.CreateValidUser(),
+            1,
+            new CancellationTokenSource()
         );
     }
-
-    public static CaptchaInfo CreateExpiredCaptchaInfo()
-    {
-        return new CaptchaInfo(
-            chatId: 123456789,
-            chatTitle: "Test Group",
-            timestamp: DateTime.UtcNow.AddMinutes(-10),
-            user: CreateValidUser(),
-            correctAnswer: 2,
-            cts: new CancellationTokenSource(),
-            userJoinedMessage: null
-        );
-    }
-
     #endregion
-} 
+}
