@@ -27,3 +27,9 @@ mutation-report.html
 *.tmp
 *.temp
 test-*.jsonscripts/test_factory_generator/__pycache__/
+
+# Security - never commit real tokens
+test_bot.sh
+*.env
+secrets.*
+tokens.*
