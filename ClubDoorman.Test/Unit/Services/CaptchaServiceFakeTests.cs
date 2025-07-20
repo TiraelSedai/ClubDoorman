@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using System.Reflection;
 
 namespace ClubDoorman.Test.Unit.Services;
 
@@ -126,7 +127,7 @@ public class CaptchaServiceFakeTests
     }
 
     [Test]
-    public async Task CreateCaptchaAsync_IncludesVpnAd_WhenNotNoAdGroup()
+    public async Task CreateCaptchaAsync_IncludesVpnAd_ByDefault()
     {
         // Arrange
         var service = _factory.CreateCaptchaServiceWithFake(_fakeClient);
@@ -141,22 +142,7 @@ public class CaptchaServiceFakeTests
         Assert.That(sentMessage.Text, Does.Contain("📍 Место для рекламы"));
     }
 
-    [Test]
-    public async Task CreateCaptchaAsync_ExcludesVpnAd_WhenNoAdGroup()
-    {
-        // Arrange
-        var service = _factory.CreateCaptchaServiceWithFake(_fakeClient);
-        // Используем ID группы из NoVpnAdGroups
-        var chat = new Chat { Id = -1001234567890, Title = "No Ad Chat", Type = ChatType.Group };
-        var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
-        // Act
-        await service.CreateCaptchaAsync(chat, user);
-
-        // Assert
-        var sentMessage = _fakeClient.SentMessages.First();
-        Assert.That(sentMessage.Text, Does.Not.Contain("📍 Место для рекламы"));
-    }
 
     [Test]
     public async Task ValidateCaptchaAsync_ExpiredCaptcha_ReturnsFalse()

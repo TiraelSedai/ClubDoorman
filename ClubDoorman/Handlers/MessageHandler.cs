@@ -119,6 +119,7 @@ public class MessageHandler : IUpdateHandler
         // Автоматически добавляем чат в конфиг
         ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
 
+
         // Обработка команд
         if (message.Text?.StartsWith("/") == true)
         {
@@ -290,7 +291,7 @@ public class MessageHandler : IUpdateHandler
             return;
         }
 
-        foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
+        foreach (var newUser in message.NewChatMembers.Where(x => x != null && !x.IsBot))
         {
             var joinKey = $"joined_{message.Chat.Id}_{newUser.Id}";
             if (!_joinedUserFlags.ContainsKey(joinKey))
@@ -313,9 +314,27 @@ public class MessageHandler : IUpdateHandler
 
     private async Task ProcessNewUserAsync(Message userJoinMessage, User user, CancellationToken cancellationToken)
     {
+        if (user == null)
+        {
+            _logger.LogWarning("ProcessNewUserAsync вызван с null пользователем");
+            return;
+        }
+
+        if (userJoinMessage?.Chat == null)
+        {
+            _logger.LogWarning("ProcessNewUserAsync вызван с null сообщением или чатом");
+            return;
+        }
+
         var chat = userJoinMessage.Chat;
 
         // Проверка имени пользователя
+        if (_moderationService == null)
+        {
+            _logger.LogError("_moderationService равен null в ProcessNewUserAsync");
+            return;
+        }
+
         var nameResult = await _moderationService.CheckUserNameAsync(user);
         if (nameResult.Action == ModerationAction.Ban)
         {

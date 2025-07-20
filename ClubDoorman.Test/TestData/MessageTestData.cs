@@ -80,7 +80,7 @@ public static class MessageTestData
         {
             Date = DateTime.UtcNow,
             Chat = TestChat(),
-            From = TestUser(), // Service messages can have From
+            From = TestUser(), // Service messages can have From for new members
             Text = null,
             NewChatMembers = new[] { TestUser() }
         };

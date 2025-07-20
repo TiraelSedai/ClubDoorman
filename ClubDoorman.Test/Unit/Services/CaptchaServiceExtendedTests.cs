@@ -49,7 +49,7 @@ public class CaptchaServiceExtendedTests
         Assert.That(result.ChatId, Is.EqualTo(chat.Id));
         Assert.That(result.User.Id, Is.EqualTo(user.Id));
         Assert.That(result.CorrectAnswer, Is.GreaterThanOrEqualTo(0));
-        Assert.That(result.CorrectAnswer, Is.LessThan(8));
+        Assert.That(result.CorrectAnswer, Is.LessThan(30)); // Captcha.CaptchaList.Count = 30
         Assert.That(result.Timestamp, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(5)));
         Assert.That(result.UserJoinedMessage, Is.EqualTo(joinMessage));
     }
