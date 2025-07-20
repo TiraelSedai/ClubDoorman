@@ -22,9 +22,9 @@ public class MessageHandler : IUpdateHandler
     private readonly IModerationService _moderationService;
     private readonly ICaptchaService _captchaService;
     private readonly IUserManager _userManager;
-    private readonly SpamHamClassifier _classifier;
-    private readonly BadMessageManager _badMessageManager;
-    private readonly AiChecks _aiChecks;
+    private readonly ISpamHamClassifier _classifier;
+    private readonly IBadMessageManager _badMessageManager;
+    private readonly IAiChecks _aiChecks;
     private readonly GlobalStatsManager _globalStatsManager;
     private readonly IStatisticsService _statisticsService;
     private readonly ILogger<MessageHandler> _logger;
@@ -53,9 +53,9 @@ public class MessageHandler : IUpdateHandler
         IModerationService moderationService,
         ICaptchaService captchaService,
         IUserManager userManager,
-        SpamHamClassifier classifier,
-        BadMessageManager badMessageManager,
-        AiChecks aiChecks,
+        ISpamHamClassifier classifier,
+        IBadMessageManager badMessageManager,
+        IAiChecks aiChecks,
         GlobalStatsManager globalStatsManager,
         IStatisticsService statisticsService,
         IServiceProvider serviceProvider,
