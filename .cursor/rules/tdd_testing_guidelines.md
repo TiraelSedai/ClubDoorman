@@ -48,6 +48,50 @@ public void TestSomething()
 }
 ```
 
+### TestFactory Development Workflow
+**Step-by-step approach for safe TestFactory implementation:**
+
+#### Step 1: Create TestFactory
+- Encapsulate service creation with all dependencies
+- Configure mocks with basic setups
+- Include logger configuration (NullLogger for tests)
+
+#### Step 2: Test the TestFactory itself
+```csharp
+[Test]
+public void Create_ReturnsWorkingService()
+{
+    var factory = new ModerationTestFactory();
+    var service = factory.Create();
+    
+    Assert.NotNull(service);
+    // Verify service can be instantiated without exceptions
+}
+
+[Test]
+public void Create_ConfiguresAllDependencies()
+{
+    var factory = new ModerationTestFactory();
+    var service = factory.Create();
+    
+    // Use reflection or expose internals to verify dependency injection
+    // This protects against factory configuration errors
+}
+```
+
+#### Step 3: Write unit tests using the factory
+- One test per public method: happy path + failure + edge cases
+- Use `var service = factory.Create();` consistently
+- Keep tests homogeneous, readable, and concise
+
+#### Step 4: Add DSL/configuration as project grows
+```csharp
+var service = factory
+    .WithTelegramFailing()
+    .WithMLTimeout()
+    .Create();
+```
+
 ### Test Isolation Requirements
 - One test failure should not cascade to others
 - Fresh mocks for each test
@@ -100,6 +144,41 @@ public async Task ReturnsFallback_When_MLTimeout()
     Assert.Contains("timeout", result.Reason);
 }
 ```
+
+## Mutation Testing
+
+### Purpose and Benefits
+- Verify that tests actually protect against code defects
+- Mutator introduces micro-bugs (e.g., `==` → `!=`) and checks if tests detect them
+- Provides more honest assessment than line coverage alone
+
+### Stryker.NET Implementation
+```bash
+# Install mutation testing tool
+dotnet tool install -g dotnet-stryker
+
+# Run mutation testing
+cd ClubDoorman.Tests
+dotnet stryker
+```
+
+### Expected Output and Metrics
+```
+- Killed mutants: 82% (good - tests caught the mutations)
+- Survived mutants: 18% (tests missed these mutations)
+- Timeout mutants: 0%
+- Coverage: 91%
+```
+
+### Quality Targets
+- **Excellent**: >90% killed mutants
+- **Good**: 80-90% killed mutants  
+- **Needs improvement**: <80% killed mutants
+
+### Integration with CI/CD
+- Can be integrated into continuous integration pipelines
+- Use as quality gate for test effectiveness
+- Monitor mutation score trends over time
 
 ## Cursor IDE 2025 Optimizations
 
@@ -170,6 +249,7 @@ public static class TestMessages
 - Test execution time remains fast
 - Test maintenance overhead is minimal
 - Tests provide clear failure messages
+- **Mutation testing score >80% killed mutants**
 
 ### Quality Warning Signs
 - Tests break from internal refactoring
@@ -177,6 +257,7 @@ public static class TestMessages
 - Tests are brittle and hard to maintain
 - Tests do not clearly indicate what they verify
 - Tests have complex setup requirements
+- **Low mutation testing score indicates weak test protection**
 
 ## Implementation Status Tracking
 
@@ -187,6 +268,7 @@ public static class TestMessages
 - Working: [tested and functional components]
 - Issues: [known problems and limitations]
 - Coverage: [X% tests passing]
+- Mutation Score: [X% killed mutants]
 - Next steps: [required improvements]
 ```
 

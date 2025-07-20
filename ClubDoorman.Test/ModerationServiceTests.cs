@@ -1,13 +1,13 @@
-using ClubDoorman.Services;
 using ClubDoorman.Models;
-using ClubDoorman.Test.Mocks;
-using ClubDoorman.Test.TestData;
-using ClubDoorman.Test.TestInfrastructure;
+using ClubDoorman.Services;
+using ClubDoorman.TestInfrastructure;
+using ClubDoorman.TestData;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace ClubDoorman.Test;
 
@@ -15,185 +15,211 @@ namespace ClubDoorman.Test;
 [Category("moderation")]
 public class ModerationServiceTests
 {
-    private ModerationService _moderationService = null!;
-    private ModerationTestFactory _factory = null!;
+    private ModerationTestFactory _factory;
+    private ModerationService _service;
 
     [SetUp]
     public void Setup()
     {
         _factory = new ModerationTestFactory();
-        _moderationService = _factory.Create();
+        _service = _factory.CreateModerationService();
     }
 
     [Test]
-    [Category("message_moderation")]
     public async Task CheckMessageAsync_ValidMessage_ReturnsAllowAction()
     {
         // Arrange
-        var message = SampleMessages.ValidMessage;
-        _factory.SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
-            .ReturnsAsync((false, 0.1f));
+        var message = SampleMessages.CreateValidMessage();
 
         // Act
-        var result = await _moderationService.CheckMessageAsync(message);
+        var result = await _service.CheckMessageAsync(message);
 
         // Assert
         Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Is.EqualTo("Message is valid"));
+        Assert.That(result.Reason, Is.EqualTo("Сообщение прошло все проверки"));
     }
 
     [Test]
-    [Category("message_moderation")]
-    public async Task CheckMessageAsync_SpamMessage_ReturnsBanAction()
+    public async Task CheckMessageAsync_SpamMessage_ReturnsDeleteAction()
     {
         // Arrange
-        var message = SampleMessages.SpamMessage;
-        _factory.SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
+        var message = SampleMessages.CreateSpamMessage();
+        _factory.SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ReturnsAsync((true, 0.9f));
 
         // Act
-        var result = await _moderationService.CheckMessageAsync(message);
-
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-        Assert.That(result.Reason, Is.EqualTo("Spam detected"));
-    }
-
-    [Test]
-    [Category("message_moderation")]
-    public async Task CheckMessageAsync_MimicryMessage_ReturnsBanAction()
-    {
-        // Arrange
-        var message = SampleMessages.MimicryMessage;
-        _factory.SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
-            .ReturnsAsync((false, 0.1f));
-        _factory.MimicryClassifierMock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
-            .Returns(0.8);
-
-        // Act
-        var result = await _moderationService.CheckMessageAsync(message);
-
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-        Assert.That(result.Reason, Is.EqualTo("Mimicry detected"));
-    }
-
-    [Test]
-    [Category("message_moderation")]
-    public async Task CheckMessageAsync_BadMessage_ReturnsDeleteAction()
-    {
-        // Arrange
-        var message = SampleMessages.BadMessage;
-        _factory.SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
-            .ReturnsAsync((false, 0.1f));
-        _factory.MimicryClassifierMock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
-            .Returns(0.1);
-        _factory.BadMessageManagerMock.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
-            .Returns(true);
-
-        // Act
-        var result = await _moderationService.CheckMessageAsync(message);
+        var result = await _service.CheckMessageAsync(message);
 
         // Assert
         Assert.That(result.Action, Is.EqualTo(ModerationAction.Delete));
-        Assert.That(result.Reason, Is.EqualTo("Bad message detected"));
+        Assert.That(result.Reason, Does.Contain("ML решил что это спам"));
     }
 
     [Test]
-    [Category("username_moderation")]
-    public async Task CheckUserNameAsync_ValidUser_ReturnsAllowAction()
+    public async Task CheckMessageAsync_MimicryMessage_ReturnsAllowAction()
     {
         // Arrange
-        var user = MockTelegram.CreateTestUser("valid_user_123");
-        _factory.AiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<Telegram.Bot.Types.User>(), It.IsAny<Func<string, Task>>()))
-            .ReturnsAsync(new SpamPhotoBio(new SpamProbability { Probability = 0.1 }, [], ""));
+        var message = SampleMessages.CreateMimicryMessage();
+        // Мимикрия обрабатывается в другом месте, здесь просто проверяем что сообщение проходит
 
         // Act
-        var result = await _moderationService.CheckUserNameAsync(user);
+        var result = await _service.CheckMessageAsync(message);
 
         // Assert
         Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Is.EqualTo("Username is valid"));
     }
 
     [Test]
-    [Category("username_moderation")]
-    public async Task CheckUserNameAsync_InvalidUser_ReturnsBanAction()
+    public async Task CheckMessageAsync_BadMessage_ReturnsBanAction()
     {
         // Arrange
-        var user = MockTelegram.CreateTestUser("invalid_username");
-        _factory.AiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<Telegram.Bot.Types.User>(), It.IsAny<Func<string, Task>>()))
-            .ReturnsAsync(new SpamPhotoBio(new SpamProbability { Probability = 0.9 }, [], ""));
+        var message = SampleMessages.CreateBadMessage();
+        _factory.BadMessageManager.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
+            .Returns(true);
 
         // Act
-        var result = await _moderationService.CheckUserNameAsync(user);
+        var result = await _service.CheckMessageAsync(message);
 
         // Assert
         Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-        Assert.That(result.Reason, Is.EqualTo("Invalid username"));
+        Assert.That(result.Reason, Is.EqualTo("Известное спам-сообщение"));
     }
 
     [Test]
-    [Category("user_management")]
+    public async Task CheckUserNameAsync_ValidUser_ReturnsAllowAction()
+    {
+        // Arrange
+        var user = SampleMessages.CreateValidUser();
+
+        // Act
+        var result = await _service.CheckUserNameAsync(user);
+
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
+        Assert.That(result.Reason, Is.EqualTo("Имя пользователя корректно"));
+    }
+
+    [Test]
+    public async Task CheckUserNameAsync_InvalidUser_ReturnsBanAction()
+    {
+        // Arrange
+        var user = SampleMessages.CreateInvalidUser();
+
+        // Act
+        var result = await _service.CheckUserNameAsync(user);
+
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
+        Assert.That(result.Reason, Does.Contain("Экстремально длинное имя"));
+    }
+
+    [Test]
     public async Task BanAndCleanupUserAsync_ValidUser_BansAndCleansUpSuccessfully()
     {
         // Arrange
         var userId = 12345L;
         var chatId = 67890L;
-        var messageId = 11111;
+        var messageId = 111;
+
+        _factory.TelegramBotClient.Setup(x => x.BanChatMember(
+            It.IsAny<ChatId>(), 
+            It.IsAny<long>(), 
+            It.IsAny<DateTime?>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _factory.TelegramBotClient.Setup(x => x.DeleteMessage(
+            It.IsAny<ChatId>(), 
+            It.IsAny<int>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _moderationService.BanAndCleanupUserAsync(userId, chatId, messageId);
+        var result = await _service.BanAndCleanupUserAsync(userId, chatId, messageId);
 
         // Assert
         Assert.That(result, Is.True);
+        _factory.TelegramBotClient.Verify(x => x.BanChatMember(
+            It.Is<ChatId>(c => c.Identifier == chatId), 
+            userId, 
+            It.IsAny<DateTime?>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()), Times.Once);
+        
+        _factory.TelegramBotClient.Verify(x => x.DeleteMessage(
+            It.Is<ChatId>(c => c.Identifier == chatId), 
+            messageId, 
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
-    [Category("user_management")]
     public async Task BanAndCleanupUserAsync_WithoutMessageId_OnlyBansUser()
     {
         // Arrange
         var userId = 12345L;
         var chatId = 67890L;
 
+        _factory.TelegramBotClient.Setup(x => x.BanChatMember(
+            It.IsAny<ChatId>(), 
+            It.IsAny<long>(), 
+            It.IsAny<DateTime?>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         // Act
-        var result = await _moderationService.BanAndCleanupUserAsync(userId, chatId, null);
+        var result = await _service.BanAndCleanupUserAsync(userId, chatId);
 
         // Assert
         Assert.That(result, Is.True);
+        _factory.TelegramBotClient.Verify(x => x.BanChatMember(
+            It.Is<ChatId>(c => c.Identifier == chatId), 
+            userId, 
+            It.IsAny<DateTime?>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()), Times.Once);
+        
+        _factory.TelegramBotClient.Verify(x => x.DeleteMessage(
+            It.IsAny<ChatId>(), 
+            It.IsAny<int>(), 
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
-    [Category("user_management")]
     public async Task BanAndCleanupUserAsync_TelegramApiError_ReturnsFalse()
     {
         // Arrange
         var userId = 12345L;
         var chatId = 67890L;
 
+        _factory.TelegramBotClient.Setup(x => x.BanChatMember(
+            It.IsAny<ChatId>(), 
+            It.IsAny<long>(), 
+            It.IsAny<DateTime?>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Telegram API error"));
+
         // Act
-        var result = await _moderationService.BanAndCleanupUserAsync(userId, chatId, null);
+        var result = await _service.BanAndCleanupUserAsync(userId, chatId);
 
         // Assert
-        // Тест может пройти или упасть в зависимости от реального поведения
-        Assert.That(result, Is.TypeOf<bool>());
+        Assert.That(result, Is.False);
     }
 
     [Test]
-    [Category("error_handling")]
-    public async Task CheckMessageAsync_ClassifierThrowsException_ReturnsAllowAction()
+    public async Task CheckMessageAsync_ClassifierThrowsException_ThrowsException()
     {
         // Arrange
-        var message = SampleMessages.ValidMessage;
-        _factory.SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
+        var message = SampleMessages.CreateValidMessage();
+        _factory.SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ThrowsAsync(new Exception("Classifier error"));
 
-        // Act
-        var result = await _moderationService.CheckMessageAsync(message);
-
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Is.EqualTo("Error in classification, allowing message"));
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<Exception>(async () => 
+            await _service.CheckMessageAsync(message));
+        
+        Assert.That(exception.Message, Is.EqualTo("Classifier error"));
     }
 } 

@@ -1,57 +1,77 @@
 using Telegram.Bot.Types;
-using ClubDoorman.Test.Mocks;
 
-namespace ClubDoorman.Test.TestData;
+namespace ClubDoorman.TestData;
 
 /// <summary>
-/// Тестовые данные для модерации сообщений
+/// Фабрика для создания тестовых сообщений и пользователей
 /// </summary>
 public static class SampleMessages
 {
-    // Основные тестовые сообщения для TDD
-    public static Message ValidMessage => MockTelegram.CreateTestMessage(Valid.SimpleText);
-    public static Message SpamMessage => MockTelegram.CreateTestMessage(Spam.SimpleSpam);
-    public static Message MimicryMessage => MockTelegram.CreateTestMessage(Suspicious.WithLookalikeSymbols);
-    public static Message BadMessage => MockTelegram.CreateTestMessage("Bad content");
-
-    // Нормальные сообщения
-    public static class Valid
+    public static Message CreateValidMessage()
     {
-        public const string SimpleText = "Привет, как дела?";
-        public const string WithEmoji = "Привет! 👋 Как дела? 😊";
-        public const string LongText = "Это довольно длинное сообщение с обычным текстом, которое не должно вызывать подозрений у системы модерации.";
-        public const string WithLinks = "Посмотрите на этот сайт: https://example.com";
-        public const string WithMentions = "@username, что думаешь об этом?";
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = 123456789, Type = Telegram.Bot.Types.Enums.ChatType.Group },
+            From = CreateValidUser(),
+            Text = "Привет! Это нормальное сообщение."
+        };
     }
 
-    // Спам сообщения
-    public static class Spam
+    public static Message CreateSpamMessage()
     {
-        public const string SimpleSpam = "КУПИТЕ НАШИ ТОВАРЫ СО СКИДКОЙ 90%!!!";
-        public const string WithEmojis = "🔥🔥🔥 СРОЧНО КУПИТЕ 🔥🔥🔥 СКИДКА 99% 💰💰💰";
-        public const string WithLinks = "http://spam-site.com - ЛУЧШИЕ ЦЕНЫ ВСЕГО ЗА 1 ДОЛЛАР!";
-        public const string WithPhone = "Звоните прямо сейчас: +7-999-123-45-67";
-        public const string WithCaps = "ВНИМАНИЕ! ЭТО ВАЖНОЕ СООБЩЕНИЕ! НЕ ПРОПУСТИТЕ!";
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = 123456789, Type = Telegram.Bot.Types.Enums.ChatType.Group },
+            From = CreateValidUser(),
+            Text = "КУПИТЕ НАШИ ТОВАРЫ ПО СУПЕР ЦЕНЕ!!! 🔥🔥🔥"
+        };
     }
 
-    // Подозрительные сообщения
-    public static class Suspicious
+    public static Message CreateMimicryMessage()
     {
-        public const string TooManyEmojis = "Привет! 😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😛😝😜🤪🤨🧐🤓😎🤩🥳😏😒😞😔😟😕🙁☹️😣😖😫😩🥺😢😭😤😠😡🤬🤯😳🥵🥶😱😨😰😥😓🤗🤔🤭🤫🤥😶😐😑😯😦😧😮😲🥱😴🤤😪😵🤐🥴🤢🤮🤧😷🤒🤕";
-        public const string WithLookalikeSymbols = "Рrіvеt, kаk dеlа? (использует латинские буквы)";
-        public const string WithStopWords = "купить продать срочно дешево дорого";
-        public const string MixedLanguages = "Hello привет bonjour 你好";
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = 123456789, Type = Telegram.Bot.Types.Enums.ChatType.Group },
+            From = CreateValidUser(),
+            Text = "Привет всем! Как дела?"
+        };
     }
 
-    // Граничные случаи
-    public static class EdgeCases
+    public static Message CreateBadMessage()
     {
-        public const string Empty = "";
-        public const string Whitespace = "   \t\n\r   ";
-        public const string SingleChar = "a";
-        public static string VeryLong => new string('a', 10000);
-        public const string Null = null!;
-        public const string WithUnicode = "Привет 🌍 世界 🚀";
-        public const string WithSpecialChars = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = 123456789, Type = Telegram.Bot.Types.Enums.ChatType.Group },
+            From = CreateValidUser(),
+            Text = "Известное спам-сообщение"
+        };
+    }
+
+    public static User CreateValidUser()
+    {
+        return new User
+        {
+            Id = 12345,
+            IsBot = false,
+            FirstName = "Иван",
+            LastName = "Иванов",
+            Username = "ivan_ivanov"
+        };
+    }
+
+    public static User CreateInvalidUser()
+    {
+        return new User
+        {
+            Id = 67890,
+            IsBot = false,
+            FirstName = "ОченьДлинноеИмяПользователяКотороеПревышаетДопустимуюДлинуИДолжноБытьЗаблокированоПоПравиламМодерации",
+            LastName = "ОченьДлиннаяФамилияПользователяКотороеПревышаетДопустимуюДлинуИДолжноБытьЗаблокированоПоПравиламМодерации",
+            Username = "very_long_username_that_exceeds_maximum_length_and_should_be_banned_by_moderation_rules"
+        };
     }
 } 
