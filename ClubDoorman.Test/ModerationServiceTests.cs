@@ -7,6 +7,7 @@ using Moq;
 using NUnit.Framework;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Requests;
 using System.Threading;
 
 namespace ClubDoorman.Test;
@@ -121,35 +122,28 @@ public class ModerationServiceTests
         var chatId = 67890L;
         var messageId = 111;
 
-        _factory.BotClientMock.Setup(x => x.BanChatMember(
-            It.IsAny<ChatId>(), 
-            It.IsAny<long>(), 
-            It.IsAny<DateTime?>(), 
-            It.IsAny<bool>(), 
+        // Используем базовые методы Telegram API вместо extension methods
+        _factory.BotClientMock.Setup(x => x.SendRequest(
+            It.IsAny<BanChatMemberRequest>(), 
             It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.FromResult(true));
 
-        _factory.BotClientMock.Setup(x => x.DeleteMessage(
-            It.IsAny<ChatId>(), 
-            It.IsAny<int>(), 
+        _factory.BotClientMock.Setup(x => x.SendRequest(
+            It.IsAny<DeleteMessageRequest>(), 
             It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.FromResult(true));
 
         // Act
         var result = await _service.BanAndCleanupUserAsync(userId, chatId, messageId);
 
         // Assert
         Assert.That(result, Is.True);
-        _factory.BotClientMock.Verify(x => x.BanChatMember(
-            It.Is<ChatId>(c => c.Identifier == chatId), 
-            userId, 
-            It.IsAny<DateTime?>(), 
-            It.IsAny<bool>(), 
+        _factory.BotClientMock.Verify(x => x.SendRequest(
+            It.IsAny<BanChatMemberRequest>(), 
             It.IsAny<CancellationToken>()), Times.Once);
         
-        _factory.BotClientMock.Verify(x => x.DeleteMessage(
-            It.Is<ChatId>(c => c.Identifier == chatId), 
-            messageId, 
+        _factory.BotClientMock.Verify(x => x.SendRequest(
+            It.IsAny<DeleteMessageRequest>(), 
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -160,29 +154,22 @@ public class ModerationServiceTests
         var userId = 12345L;
         var chatId = 67890L;
 
-        _factory.BotClientMock.Setup(x => x.BanChatMember(
-            It.IsAny<ChatId>(), 
-            It.IsAny<long>(), 
-            It.IsAny<DateTime?>(), 
-            It.IsAny<bool>(), 
+        _factory.BotClientMock.Setup(x => x.SendRequest(
+            It.IsAny<BanChatMemberRequest>(), 
             It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.FromResult(true));
 
         // Act
         var result = await _service.BanAndCleanupUserAsync(userId, chatId);
 
         // Assert
         Assert.That(result, Is.True);
-        _factory.BotClientMock.Verify(x => x.BanChatMember(
-            It.Is<ChatId>(c => c.Identifier == chatId), 
-            userId, 
-            It.IsAny<DateTime?>(), 
-            It.IsAny<bool>(), 
+        _factory.BotClientMock.Verify(x => x.SendRequest(
+            It.IsAny<BanChatMemberRequest>(), 
             It.IsAny<CancellationToken>()), Times.Once);
         
-        _factory.BotClientMock.Verify(x => x.DeleteMessage(
-            It.IsAny<ChatId>(), 
-            It.IsAny<int>(), 
+        _factory.BotClientMock.Verify(x => x.SendRequest(
+            It.IsAny<DeleteMessageRequest>(), 
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -193,11 +180,8 @@ public class ModerationServiceTests
         var userId = 12345L;
         var chatId = 67890L;
 
-        _factory.BotClientMock.Setup(x => x.BanChatMember(
-            It.IsAny<ChatId>(), 
-            It.IsAny<long>(), 
-            It.IsAny<DateTime?>(), 
-            It.IsAny<bool>(), 
+        _factory.BotClientMock.Setup(x => x.SendRequest(
+            It.IsAny<BanChatMemberRequest>(), 
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Telegram API error"));
 

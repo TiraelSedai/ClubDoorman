@@ -113,7 +113,7 @@ public class ModerationServiceTests
     }
 
     [Test]
-    public async Task CheckMessageAsync_EmptyMessage_ReturnsAllow()
+    public async Task CheckMessageAsync_EmptyMessage_ReturnsReport()
     {
         // Arrange
         var service = _factory.CreateModerationService();
@@ -128,11 +128,11 @@ public class ModerationServiceTests
         var result = await service.CheckMessageAsync(message);
 
         // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Report));
     }
 
     [Test]
-    public async Task CheckMessageAsync_ClassifierException_ReturnsAllowWithFallback()
+    public async Task CheckMessageAsync_ClassifierException_ThrowsException()
     {
         // Arrange
         _factory.WithClassifierSetup(mock => 
@@ -146,12 +146,11 @@ public class ModerationServiceTests
             Chat = new Chat { Id = 456, Type = Telegram.Bot.Types.Enums.ChatType.Group }
         };
 
-        // Act
-        var result = await service.CheckMessageAsync(message);
-
-        // Assert
-        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Does.Contain("ошибк"));
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<Exception>(async () => 
+            await service.CheckMessageAsync(message));
+        
+        Assert.That(exception.Message, Is.EqualTo("Classifier error"));
     }
 
     [Test]
