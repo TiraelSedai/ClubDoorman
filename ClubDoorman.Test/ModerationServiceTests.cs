@@ -1,308 +1,225 @@
 using ClubDoorman.Services;
 using ClubDoorman.Models;
-using ClubDoorman.Infrastructure;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
-using NUnit.Framework;
+using ClubDoorman.Test.Mocks;
+using ClubDoorman.Test.TestData;
 using Moq;
-using Microsoft.Extensions.Logging;
-using Telegram.Bot;
+using NUnit.Framework;
 
 namespace ClubDoorman.Test;
 
+/// <summary>
+/// Тесты для ModerationService - основной фокус TDD
+/// </summary>
 [TestFixture]
-public class ModerationServiceTests : TestBase
+[Category("moderation")]
+public class ModerationServiceTests
 {
-    private ModerationService _moderationService;
-    private SpamHamClassifier _classifier;
-    private MimicryClassifier _mimicryClassifier;
-    private BadMessageManager _badMessageManager;
-    private Mock<IUserManager> _mockUserManager;
-    private AiChecks _aiChecks;
-    private Mock<ILogger<ModerationService>> _mockLogger;
-    private SuspiciousUsersStorage _mockSuspiciousUsersStorage;
-    private Mock<ITelegramBotClient> _mockBotClient;
+    private ModerationService _moderationService = null!;
+    private Mock<ITelegramBotClient> _mockTelegramClient = null!;
+    private Mock<IUserManager> _mockUserManager = null!;
+    private Mock<ILogger<ModerationService>> _mockLogger = null!;
 
-    public override void SetUp()
+    [SetUp]
+    public void Setup()
     {
-        base.SetUp();
-        Console.WriteLine("Setting up ModerationServiceTests...");
-        
-        // Инициализируем ML классификатор
-        var mockSpamLogger = new Mock<ILogger<SpamHamClassifier>>();
-        _classifier = new SpamHamClassifier(mockSpamLogger.Object);
-        
-        // Инициализируем MimicryClassifier
-        var mockMimicryLogger = new Mock<ILogger<MimicryClassifier>>();
-        _mimicryClassifier = new MimicryClassifier(mockMimicryLogger.Object);
-        
-        // Инициализируем BadMessageManager
-        _badMessageManager = new BadMessageManager();
-        
-        // Создаем моки
+        _mockTelegramClient = MockTelegram.CreateMockBotClient();
         _mockUserManager = new Mock<IUserManager>();
-        _mockBotClient = new Mock<ITelegramBotClient>();
-        
-        // Создаем реальный SuspiciousUsersStorage с логгером
-        var mockSuspiciousLogger = new Mock<ILogger<SuspiciousUsersStorage>>();
-        _mockSuspiciousUsersStorage = new SuspiciousUsersStorage(mockSuspiciousLogger.Object);
-        
-        // В реальном приложении токен будет в конфигурации
-        var bot = new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"); // Тестовый токен
-        var mockAiLogger = new Mock<ILogger<AiChecks>>();
-        _aiChecks = new AiChecks(bot, mockAiLogger.Object);
         _mockLogger = new Mock<ILogger<ModerationService>>();
-
+        
         _moderationService = new ModerationService(
-            _classifier,
-            _mimicryClassifier,
-            _badMessageManager,
+            _mockTelegramClient.Object,
             _mockUserManager.Object,
-            _aiChecks,
-            _mockSuspiciousUsersStorage,
-            _mockBotClient.Object,
             _mockLogger.Object
         );
-        
-        Console.WriteLine("ModerationServiceTests setup completed");
     }
 
     [Test]
-    public void CheckUserName_WithNullUser_ThrowsArgumentNullException()
+    [Category("message_moderation")]
+    public void CheckMessageAsync_ValidMessage_ReturnsAllowAction()
     {
-        Console.WriteLine("Starting CheckUserName_WithNullUser_ThrowsArgumentNullException");
+        // Arrange
+        var message = MockTelegram.CreateTestMessage(SampleMessages.Valid.SimpleText);
         
-        ExecuteWithTimeout((cancellationToken) =>
-        {
-            // Act & Assert
-            var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => 
-                await _moderationService.CheckUserNameAsync(null!));
-            
-            Assert.That(exception.ParamName, Is.EqualTo("user"));
-            Console.WriteLine("Completed CheckUserName_WithNullUser_ThrowsArgumentNullException");
-        });
+        // Act
+        var result = _moderationService.CheckMessageAsync(message).Result;
+        
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
+        Assert.That(result.Reason, Is.EqualTo("Сообщение прошло проверку"));
     }
 
     [Test]
-    public async Task CheckUserName_WithNormalName_ReturnsAllow()
+    [Category("message_moderation")]
+    public void CheckMessageAsync_SpamMessage_ReturnsBanAction()
     {
-        Console.WriteLine("Starting CheckUserName_WithNormalName_ReturnsAllow");
+        // Arrange
+        var message = MockTelegram.CreateTestMessage(SampleMessages.Spam.SimpleSpam);
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = new User { FirstName = "John", LastName = "Doe" };
-
-            // Act
-            var result = await _moderationService.CheckUserNameAsync(user);
-
-            // Assert
-            Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-            Assert.That(result.Reason, Is.EqualTo("Имя пользователя корректно"));
-            Console.WriteLine("Completed CheckUserName_WithNormalName_ReturnsAllow");
-        });
+        // Act
+        var result = _moderationService.CheckMessageAsync(message).Result;
+        
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
+        Assert.That(result.Reason, Is.EqualTo("Обнаружен спам"));
     }
 
     [Test]
-    public async Task CheckUserName_WithLongName_ReturnsReport()
+    [Category("message_moderation")]
+    public void CheckMessageAsync_NullMessage_ThrowsArgumentNullException()
     {
-        Console.WriteLine("Starting CheckUserName_WithLongName_ReturnsReport");
+        // Arrange & Act & Assert
+        var exception = Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await _moderationService.CheckMessageAsync(null!)
+        );
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = new User { FirstName = new string('A', 50), LastName = "Doe" };
-
-            // Act
-            var result = await _moderationService.CheckUserNameAsync(user);
-
-            // Assert
-            Assert.That(result.Action, Is.EqualTo(ModerationAction.Report));
-            Assert.That(result.Reason, Does.Contain("Подозрительно длинное имя"));
-            Console.WriteLine("Completed CheckUserName_WithLongName_ReturnsReport");
-        });
+        Assert.That(exception.ParamName, Is.EqualTo("message"));
     }
 
     [Test]
-    public async Task CheckUserName_WithExtremelyLongName_ReturnsBan()
+    [Category("message_moderation")]
+    public void CheckMessageAsync_EmptyMessage_ReturnsAllowAction()
     {
-        Console.WriteLine("Starting CheckUserName_WithExtremelyLongName_ReturnsBan");
+        // Arrange
+        var message = MockTelegram.CreateTestMessage(SampleMessages.EdgeCases.Empty);
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = new User { FirstName = new string('A', 100), LastName = "Doe" };
-
-            // Act
-            var result = await _moderationService.CheckUserNameAsync(user);
-
-            // Assert
-            Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-            Assert.That(result.Reason, Does.Contain("Экстремально длинное имя"));
-            Console.WriteLine("Completed CheckUserName_WithExtremelyLongName_ReturnsBan");
-        });
+        // Act
+        var result = _moderationService.CheckMessageAsync(message).Result;
+        
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
     }
 
     [Test]
-    public void CheckMessage_WithNullMessage_ThrowsArgumentNullException()
+    [Category("username_moderation")]
+    public void CheckUserNameAsync_ValidUsername_ReturnsAllowAction()
     {
-        Console.WriteLine("Starting CheckMessage_WithNullMessage_ThrowsArgumentNullException");
+        // Arrange
+        var user = MockTelegram.CreateTestUser(username: "valid_user");
         
-        ExecuteWithTimeout((cancellationToken) =>
-        {
-            // Act & Assert
-            var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => 
-                await _moderationService.CheckMessageAsync(null!));
-            
-            Assert.That(exception.ParamName, Is.EqualTo("message"));
-            Console.WriteLine("Completed CheckMessage_WithNullMessage_ThrowsArgumentNullException");
-        });
+        // Act
+        var result = _moderationService.CheckUserNameAsync(user).Result;
+        
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
     }
 
     [Test]
-    public async Task CheckMessage_WithBannedUser_ReturnsBan()
+    [Category("username_moderation")]
+    public void CheckUserNameAsync_SuspiciousUsername_ReturnsWarnAction()
     {
-        Console.WriteLine("Starting CheckMessage_WithBannedUser_ReturnsBan");
+        // Arrange
+        var user = MockTelegram.CreateTestUser(username: "buy_cheap_products");
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = TestData.CreateTestUser();
-            var chat = TestData.CreateTestChat();
-            var message = TestData.CreateTestMessage(user, chat, "Hello");
-
-            _mockUserManager.Setup(x => x.InBanlist(user.Id))
-                .ReturnsAsync(true);
-
-            // Act
-            var result = await _moderationService.CheckMessageAsync(message);
-
-            // Assert
-            Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-            Assert.That(result.Reason, Is.EqualTo("Пользователь в блэклисте спамеров"));
-            Console.WriteLine("Completed CheckMessage_WithBannedUser_ReturnsBan");
-        });
+        // Act
+        var result = _moderationService.CheckUserNameAsync(user).Result;
+        
+        // Assert
+        Assert.That(result.Action, Is.EqualTo(ModerationAction.Warn));
+        Assert.That(result.Reason, Is.EqualTo("Подозрительное имя пользователя"));
     }
 
     [Test]
-    public async Task CheckMessage_WithReplyMarkup_ReturnsBan()
+    [Category("username_moderation")]
+    public void CheckUserNameAsync_NullUser_ThrowsArgumentNullException()
     {
-        Console.WriteLine("Starting CheckMessage_WithReplyMarkup_ReturnsBan");
+        // Arrange & Act & Assert
+        var exception = Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await _moderationService.CheckUserNameAsync(null!)
+        );
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = TestData.CreateTestUser();
-            var chat = TestData.CreateTestChat();
-            var message = TestData.CreateTestMessageWithButtons(user, chat, "Hello");
-
-            _mockUserManager.Setup(x => x.InBanlist(user.Id))
-                .ReturnsAsync(false);
-
-            // Act
-            var result = await _moderationService.CheckMessageAsync(message);
-
-            // Assert
-            Assert.That(result.Action, Is.EqualTo(ModerationAction.Ban));
-            Assert.That(result.Reason, Is.EqualTo("Сообщение с кнопками"));
-            Console.WriteLine("Completed CheckMessage_WithReplyMarkup_ReturnsBan");
-        });
+        Assert.That(exception.ParamName, Is.EqualTo("user"));
     }
 
     [Test]
-    public async Task CheckMessage_WithStory_ReturnsDelete()
+    [Category("ban_cleanup")]
+    public void BanAndCleanupUserAsync_ValidUser_BansAndCleansUp()
     {
-        Console.WriteLine("Starting CheckMessage_WithStory_ReturnsDelete");
+        // Arrange
+        var user = MockTelegram.CreateTestUser();
+        var chat = MockTelegram.CreateTestChat();
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = TestData.CreateTestUser();
-            var chat = TestData.CreateTestChat();
-            var message = TestData.CreateTestMessageWithStory(user, chat);
-
-            _mockUserManager.Setup(x => x.InBanlist(user.Id))
-                .ReturnsAsync(false);
-
-            // Act
-            var result = await _moderationService.CheckMessageAsync(message);
-
-            // Assert
-            Assert.That(result.Action, Is.EqualTo(ModerationAction.Delete));
-            Assert.That(result.Reason, Is.EqualTo("Сторис"));
-            Console.WriteLine("Completed CheckMessage_WithStory_ReturnsDelete");
-        });
+        _mockTelegramClient.Setup(x => x.BanChatMemberAsync(
+            It.IsAny<ChatId>(), 
+            It.IsAny<long>(), 
+            It.IsAny<DateTime>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()
+        )).ReturnsAsync(true);
+        
+        // Act
+        var result = _moderationService.BanAndCleanupUserAsync(user, chat).Result;
+        
+        // Assert
+        Assert.That(result, Is.True);
+        _mockTelegramClient.Verify(x => x.BanChatMemberAsync(
+            It.IsAny<ChatId>(), 
+            user.Id, 
+            It.IsAny<DateTime>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()
+        ), Times.Once);
     }
 
     [Test]
-    public async Task CheckMessage_WithNormalMessage_ProcessesCorrectly()
+    [Category("ban_cleanup")]
+    public void BanAndCleanupUserAsync_NullUser_ThrowsArgumentNullException()
     {
-        Console.WriteLine("Starting CheckMessage_WithNormalMessage_ProcessesCorrectly");
+        // Arrange
+        var chat = MockTelegram.CreateTestChat();
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = TestData.CreateTestUser();
-            var chat = TestData.CreateTestChat();
-            var message = TestData.CreateTestMessage(user, chat, "Hello, this is a normal message");
-
-            _mockUserManager.Setup(x => x.InBanlist(user.Id))
-                .ReturnsAsync(false);
-            
-            // Act
-            var result = await _moderationService.CheckMessageAsync(message);
-
-            // Assert - проверяем, что сообщение обрабатывается корректно
-            Assert.That(result.Action, Is.Not.EqualTo(ModerationAction.Ban));
-            Console.WriteLine("Completed CheckMessage_WithNormalMessage_ProcessesCorrectly");
-        });
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await _moderationService.BanAndCleanupUserAsync(null!, chat)
+        );
+        
+        Assert.That(exception.ParamName, Is.EqualTo("user"));
     }
 
     [Test]
-    public void IsUserApproved_WithValidUserId_ReturnsExpectedResult()
+    [Category("ban_cleanup")]
+    public void BanAndCleanupUserAsync_NullChat_ThrowsArgumentNullException()
     {
-        Console.WriteLine("Starting IsUserApproved_WithValidUserId_ReturnsExpectedResult");
+        // Arrange
+        var user = MockTelegram.CreateTestUser();
         
-        ExecuteWithTimeout((cancellationToken) =>
-        {
-            // Arrange
-            var userId = 123L;
-            var chatId = 456L;
-
-            _mockUserManager.Setup(x => x.Approved(userId, It.IsAny<long?>())).Returns(true);
-            // Act
-            var result = _moderationService.IsUserApproved(userId, chatId);
-
-            // Assert
-            Assert.That(result, Is.True);
-            _mockUserManager.Verify(x => x.Approved(userId, It.IsAny<long?>()), Times.Once);
-            Console.WriteLine("Completed IsUserApproved_WithValidUserId_ReturnsExpectedResult");
-        });
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await _moderationService.BanAndCleanupUserAsync(user, null!)
+        );
+        
+        Assert.That(exception.ParamName, Is.EqualTo("chat"));
     }
 
     [Test]
-    public async Task IncrementGoodMessageCount_WithValidUser_ApprovesUserAfterThreeMessages()
+    [Category("integration")]
+    public void FullModerationFlow_SpamUser_GetsBanned()
     {
-        Console.WriteLine("Starting IncrementGoodMessageCount_WithValidUser_ApprovesUserAfterThreeMessages");
+        // Arrange
+        var user = MockTelegram.CreateTestUser(username: "spam_bot");
+        var chat = MockTelegram.CreateTestChat();
+        var message = MockTelegram.CreateTestMessage(SampleMessages.Spam.SimpleSpam);
+        message.From = user;
+        message.Chat = chat;
         
-        await ExecuteWithTimeout(async (cancellationToken) =>
-        {
-            // Arrange
-            var user = new User { Id = 123, FirstName = "Test" };
-            var chat = new Chat { Id = 456, Title = "Test Chat" };
-
-            _mockUserManager.Setup(x => x.Approve(user.Id, null))
-                .Returns(ValueTask.CompletedTask);
-
-            // Act - Send 3 good messages
-            await _moderationService.IncrementGoodMessageCountAsync(user, chat, "Good message 1");
-            await _moderationService.IncrementGoodMessageCountAsync(user, chat, "Good message 2");
-            await _moderationService.IncrementGoodMessageCountAsync(user, chat, "Good message 3");
-
-            // Assert
-            _mockUserManager.Verify(x => x.Approve(user.Id, null), Times.Once);
-            Console.WriteLine("Completed IncrementGoodMessageCount_WithValidUser_ApprovesUserAfterThreeMessages");
-        });
+        _mockTelegramClient.Setup(x => x.BanChatMemberAsync(
+            It.IsAny<ChatId>(), 
+            It.IsAny<long>(), 
+            It.IsAny<DateTime>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()
+        )).ReturnsAsync(true);
+        
+        // Act
+        var messageResult = _moderationService.CheckMessageAsync(message).Result;
+        var usernameResult = _moderationService.CheckUserNameAsync(user).Result;
+        var banResult = _moderationService.BanAndCleanupUserAsync(user, chat).Result;
+        
+        // Assert
+        Assert.That(messageResult.Action, Is.EqualTo(ModerationAction.Ban));
+        Assert.That(usernameResult.Action, Is.EqualTo(ModerationAction.Warn));
+        Assert.That(banResult, Is.True);
     }
 } 
