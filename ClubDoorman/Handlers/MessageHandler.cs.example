@@ -1,0 +1,55 @@
+using ClubDoorman.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Telegram.Bot;
+using ClubDoorman.TestInfrastructure;
+
+namespace ClubDoorman.Handlers;
+
+#if TESTING
+[TestRequiresConcreteMock("AiChecks", "SpamHamClassifier", "BadMessageManager", "GlobalStatsManager")]
+[TestRequiresCustomInitialization("Complex constructor with multiple concrete dependencies")]
+[TestRequiresSpecialHandling("High complexity", "Multiple concrete classes", "Requires FakeTelegramClient")]
+#endif
+public sealed class MessageHandler : IUpdateHandler
+{
+    private readonly ITelegramBotClientWrapper _bot;
+    private readonly IModerationService _moderationService;
+    private readonly ICaptchaService _captchaService;
+    private readonly IUserManager _userManager;
+    private readonly SpamHamClassifier _classifier;
+    private readonly BadMessageManager _badMessageManager;
+    private readonly AiChecks _aiChecks;
+    private readonly GlobalStatsManager _globalStatsManager;
+    private readonly IStatisticsService _statisticsService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<MessageHandler> _logger;
+
+    public MessageHandler(
+        ITelegramBotClientWrapper bot,
+        IModerationService moderationService,
+        ICaptchaService captchaService,
+        IUserManager userManager,
+        SpamHamClassifier classifier,
+        BadMessageManager badMessageManager,
+        AiChecks aiChecks,
+        GlobalStatsManager globalStatsManager,
+        IStatisticsService statisticsService,
+        IServiceProvider serviceProvider,
+        ILogger<MessageHandler> logger)
+    {
+        _bot = bot;
+        _moderationService = moderationService;
+        _captchaService = captchaService;
+        _userManager = userManager;
+        _classifier = classifier;
+        _badMessageManager = badMessageManager;
+        _aiChecks = aiChecks;
+        _globalStatsManager = globalStatsManager;
+        _statisticsService = statisticsService;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    // ... остальная логика класса
+} 
