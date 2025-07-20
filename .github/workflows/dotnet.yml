@@ -1,11 +1,11 @@
-name: Build, Release and Push Docker Image
+name: Build and deploy Spampyre DEVELOPMENT
 
 on:
   push:
     branches: [ next-dev ]
 
 jobs:
-  build-and-release:
+  build-and-deploy-test:
     runs-on: ubuntu-latest
 
     steps:
