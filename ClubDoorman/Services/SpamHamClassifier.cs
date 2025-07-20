@@ -74,6 +74,7 @@ public class SpamHamClassifier
         
         if (_engine == null)
         {
+            // PERFORMANCE OPTIMIZATION - Consider using LoggerMessage delegate for better performance
             _logger.LogWarning("ML движок не инициализирован! Жду инициализации с таймаутом...");
             
             // Ждем инициализации с таймаутом 10 секунд
@@ -88,6 +89,7 @@ public class SpamHamClassifier
             if (_engine == null)
             {
                 _logger.LogError("ML движок не инициализирован за {Timeout}ms! Возвращаем fallback результат", timeout.TotalMilliseconds);
+                // BUSINESS LOGIC - Fallback assumes 'not spam' for safety, consider configurable behavior
                 return (false, 0.0f); // Fallback: считаем не спамом
             }
             

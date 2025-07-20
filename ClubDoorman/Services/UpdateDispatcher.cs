@@ -40,6 +40,7 @@ public class UpdateDispatcher : IUpdateDispatcher
             _logger.LogDebug("🚀 Dispatcher получил update: Message={Msg}, Callback={CB}, ChatMember={CM}", 
                 update.Message != null, update.CallbackQuery != null, update.ChatMember != null);
                 
+            // ARCHITECTURE - Consider if parallel processing or early termination is needed
             foreach (var handler in _updateHandlers)
             {
                 if (handler.CanHandle(update))

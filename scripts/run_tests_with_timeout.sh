@@ -7,7 +7,11 @@ set -e
 
 echo "🔧 Setting up test environment..."
 
-# Экспортируем переменные окружения для тестов
+# CRITICAL SECURITY ISSUE - FIX REQUIRED
+# Test credentials are hardcoded in the script, which is a security vulnerability
+# Even for test environments, credentials should not be in source code
+# TODO: Use environment variables or secure configuration file for test credentials
+# Impact: Potential credential exposure if script is shared or committed
 export DOORMAN_BOT_API="https://api.telegram.org"
 export DOORMAN_ADMIN_CHAT="123456789"
 export DOORMAN_BOT_TOKEN="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"

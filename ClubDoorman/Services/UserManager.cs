@@ -105,6 +105,7 @@ internal sealed class UserManager : IUserManager
     /// <exception cref="UserManagementException">Выбрасывается при критических ошибках проверки</exception>
     public async ValueTask<bool> InBanlist(long userId)
     {
+        // CODE QUALITY - Consider extracting userId validation to avoid duplication
         if (userId <= 0)
         {
             _logger.LogWarning("Попытка проверить некорректный ID пользователя: {UserId}", userId);
