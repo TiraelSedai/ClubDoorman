@@ -26,4 +26,4 @@ mutation-report.html
 # Temporary test files
 *.tmp
 *.temp
-test-*.json
+test-*.jsonscripts/test_factory_generator/__pycache__/
