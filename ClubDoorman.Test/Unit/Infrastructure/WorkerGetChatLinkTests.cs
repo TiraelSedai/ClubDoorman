@@ -1,4 +1,3 @@
-using System.Reflection;
 using NUnit.Framework;
 using Telegram.Bot.Types;
 using ClubDoorman.Services;
@@ -14,8 +13,6 @@ namespace ClubDoorman.Test.Unit.Infrastructure;
 [Category("infrastructure")]
 public class WorkerGetChatLinkTests
 {
-    private MethodInfo _getChatLinkMethod;
-    private MethodInfo _getChatLinkWithIdMethod;
     private IChatLinkFormatter _chatLinkFormatter;
 
     [OneTimeSetUp]
