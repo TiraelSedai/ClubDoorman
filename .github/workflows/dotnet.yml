@@ -3,6 +3,8 @@ name: Build and deploy Spampyre DEVELOPMENT
 on:
   push:
     branches: [ next-dev ]
+  pull_request:
+    branches: [ next-dev ]
 
 jobs:
   build-and-deploy-test:
@@ -46,12 +48,14 @@ jobs:
     # Удалён шаг Create Release, чтобы не создавать релиз на GitHub
 
     - name: Build Docker image
+      if: github.event_name == 'push'
       run: |
         docker build -t ghcr.io/${{ env.repo_name }}:latest \
                      -t ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }} \
                      ./ClubDoorman
 
     - name: Log in to GitHub Container Registry
+      if: github.event_name == 'push'
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
@@ -59,19 +63,23 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Push Docker image to GitHub Container Registry
+      if: github.event_name == 'push'
       run: |
         docker push ghcr.io/${{ env.repo_name }}:latest
         docker push ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
 
     - name: Tag Docker image as dev
+      if: github.event_name == 'push'
       run: |
         docker tag ghcr.io/${{ env.repo_name }}:latest ghcr.io/${{ env.repo_name }}:dev
 
     - name: Push Docker image with dev tag
+      if: github.event_name == 'push'
       run: |
         docker push ghcr.io/${{ env.repo_name }}:dev
 
     - name: SSH and Update Container
+      if: github.event_name == 'push'
       run: |
         mkdir -p ~/.ssh/
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -88,6 +96,7 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
     - name: Get Docker logs from server
+      if: github.event_name == 'push'
       id: get_logs
       run: |
         mkdir -p ~/.ssh/
@@ -101,12 +110,14 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
     - name: Upload logs as artifact
+      if: github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: spampyre-logs
         path: spampyre_logs.txt
 
     - name: Add logs to summary
+      if: github.event_name == 'push'
       run: |
         echo '### Последние логи контейнера spampyre' >> $GITHUB_STEP_SUMMARY
         echo '<details><summary>Показать логи</summary>' >> $GITHUB_STEP_SUMMARY
