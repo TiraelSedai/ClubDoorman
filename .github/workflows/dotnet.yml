@@ -79,7 +79,7 @@ jobs:
         ssh-keyscan -t rsa $SERVER_IP >> ~/.ssh/known_hosts
         ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
           docker pull ghcr.io/${{ env.repo_name }}:dev &&
-          docker-compose -f /path/to/your/docker-compose.yml up -d
+          docker-compose -f /root/Spampyre/docker-compose.yml up -d
         "
       env:
         SSH_USER: ${{ secrets.SSH_USER }}
