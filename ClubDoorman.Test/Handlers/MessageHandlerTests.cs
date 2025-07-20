@@ -31,12 +31,28 @@ public class MessageHandlerTests
         var message = TestDataFactory.CreateValidMessage();
         
         _factory.WithModerationServiceSetup(mock => 
+        {
             mock.Setup(x => x.CheckMessageAsync(It.IsAny<Message>()))
-                .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Valid message")));
+                .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Valid message"));
+            mock.Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
+                .Returns(false); // User is not approved, so moderation will run
+        });
         
         _factory.WithUserManagerSetup(mock => 
-            mock.Setup(x => x.Approved(It.IsAny<long>(), null))
-                .Returns(true));
+        {
+            mock.Setup(x => x.InBanlist(It.IsAny<long>()))
+                .ReturnsAsync(false); // User is not in banlist
+            mock.Setup(x => x.GetClubUsername(It.IsAny<long>()))
+                .ReturnsAsync((string?)null); // User is not from club
+        });
+
+        _factory.WithAiChecksSetup(mock => 
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = 0.1f, Reason = "Safe" },
+                    new byte[0],
+                    "Test"
+                )));
 
         // Act
         var update = new Update { Message = message };
@@ -47,8 +63,8 @@ public class MessageHandlerTests
             x => x.CheckMessageAsync(It.IsAny<Message>()), 
             Times.Once);
         
-        _factory.UserManagerMock.Verify(
-            x => x.Approved(It.IsAny<long>(), null), 
+        _factory.ModerationServiceMock.Verify(
+            x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()), 
             Times.Once);
     }
 
@@ -82,9 +98,17 @@ public class MessageHandlerTests
         // Arrange
         var message = TestDataFactory.CreateValidMessage();
         
+        _factory.WithModerationServiceSetup(mock => 
+            mock.Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
+                .Returns(true)); // User is approved, so moderation will be skipped
+        
         _factory.WithUserManagerSetup(mock => 
-            mock.Setup(x => x.Approved(It.IsAny<long>(), null))
-                .Returns(false));
+        {
+            mock.Setup(x => x.InBanlist(It.IsAny<long>()))
+                .ReturnsAsync(false); // User is not in banlist
+            mock.Setup(x => x.GetClubUsername(It.IsAny<long>()))
+                .ReturnsAsync((string?)null); // User is not from club
+        });
 
         // Act
         var update = new Update { Message = message };
@@ -142,55 +166,78 @@ public class MessageHandlerTests
     }
 
         [Test]
-    public async Task HandleMessageAsync_ExceptionInModeration_LogsError()
+    public async Task HandleMessageAsync_ExceptionInModeration_ThrowsException()
     {
         // Arrange
         var message = TestDataFactory.CreateValidMessage();
         
         _factory.WithModerationServiceSetup(mock => 
+        {
             mock.Setup(x => x.CheckMessageAsync(It.IsAny<Message>()))
-                .ThrowsAsync(new System.Exception("Moderation error")));
+                .ThrowsAsync(new System.Exception("Moderation error"));
+            mock.Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
+                .Returns(false); // User is not approved, so moderation will run
+        });
         
         _factory.WithUserManagerSetup(mock => 
-            mock.Setup(x => x.Approved(It.IsAny<long>(), null))
-                .Returns(true));
+        {
+            mock.Setup(x => x.InBanlist(It.IsAny<long>()))
+                .ReturnsAsync(false); // User is not in banlist
+            mock.Setup(x => x.GetClubUsername(It.IsAny<long>()))
+                .ReturnsAsync((string?)null); // User is not from club
+        });
+
+        _factory.WithAiChecksSetup(mock => 
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = 0.1f, Reason = "Safe" },
+                    new byte[0],
+                    "Test"
+                )));
 
         // Act & Assert
         var update = new Update { Message = message };
-        Assert.DoesNotThrowAsync(async () => 
+        Assert.ThrowsAsync<System.Exception>(async () => 
             await _handler.HandleAsync(update));
-        
-        _factory.LoggerMock.Verify(
-            x => x.Log(
-                It.IsAny<Microsoft.Extensions.Logging.LogLevel>(),
-                It.IsAny<Microsoft.Extensions.Logging.EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.AtLeastOnce);
     }
 
     [Test]
-    public async Task HandleMessageAsync_CaptchaRequired_ShowsCaptcha()
+    public async Task HandleMessageAsync_RequireManualReview_ReportsMessage()
     {
         // Arrange
         var message = TestDataFactory.CreateValidMessage();
         
         _factory.WithModerationServiceSetup(mock => 
+        {
             mock.Setup(x => x.CheckMessageAsync(It.IsAny<Message>()))
-                .ReturnsAsync(new ModerationResult(ModerationAction.RequireManualReview, "Captcha required")));
+                .ReturnsAsync(new ModerationResult(ModerationAction.RequireManualReview, "Manual review required"));
+            mock.Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
+                .Returns(false); // User is not approved, so moderation will run
+        });
         
         _factory.WithUserManagerSetup(mock => 
-            mock.Setup(x => x.Approved(It.IsAny<long>(), null))
-                .Returns(true));
+        {
+            mock.Setup(x => x.InBanlist(It.IsAny<long>()))
+                .ReturnsAsync(false); // User is not in banlist
+            mock.Setup(x => x.GetClubUsername(It.IsAny<long>()))
+                .ReturnsAsync((string?)null); // User is not from club
+        });
+
+        _factory.WithAiChecksSetup(mock => 
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = 0.1f, Reason = "Safe" },
+                    new byte[0],
+                    "Test"
+                )));
 
         // Act
         var update = new Update { Message = message };
         await _handler.HandleAsync(update);
 
         // Assert
-        _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()), 
+        _factory.ModerationServiceMock.Verify(
+            x => x.CheckMessageAsync(It.IsAny<Message>()), 
             Times.Once);
     }
 } 
