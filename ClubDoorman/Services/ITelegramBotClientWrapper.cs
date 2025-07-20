@@ -79,6 +79,11 @@ public interface ITelegramBotClientWrapper
     Task<Chat> GetChat(ChatId chatId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Получает полную информацию о чате
+    /// </summary>
+    Task<ChatFullInfo> GetChatFullInfo(ChatId chatId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Пересылает сообщение
     /// </summary>
     Task<Message> ForwardMessage(
@@ -122,5 +127,20 @@ public interface ITelegramBotClientWrapper
         ParseMode? parseMode = null,
         ReplyParameters? replyParameters = null,
         ReplyMarkup? replyMarkup = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Получает количество участников чата
+    /// </summary>
+    Task<int> GetChatMemberCount(ChatId chatId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Получает обновления
+    /// </summary>
+    Task<Update[]> GetUpdates(
+        int? offset = null,
+        int? limit = null,
+        int? timeout = null,
+        IEnumerable<UpdateType>? allowedUpdates = null,
         CancellationToken cancellationToken = default);
 } 

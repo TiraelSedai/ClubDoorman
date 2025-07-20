@@ -230,7 +230,45 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         return Task.FromResult(message);
     }
 
+    public Task<ChatFullInfo> GetChatFullInfo(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
 
+        var chatFullInfo = new ChatFullInfo
+        {
+            Id = chatId.Identifier ?? 0,
+            Type = ChatType.Group,
+            Title = "Test Chat",
+            Username = "testchat",
+            Description = "Test chat description",
+            InviteLink = "https://t.me/testchat",
+            LinkedChatId = null
+        };
+
+        return Task.FromResult(chatFullInfo);
+    }
+
+    public Task<int> GetChatMemberCount(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.FromResult(Random.Shared.Next(10, 1000));
+    }
+
+    public Task<Update[]> GetUpdates(
+        int? offset = null,
+        int? limit = null,
+        int? timeout = null,
+        IEnumerable<UpdateType>? allowedUpdates = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.FromResult(Array.Empty<Update>());
+    }
 
     // Методы для тестирования
     public void Reset()

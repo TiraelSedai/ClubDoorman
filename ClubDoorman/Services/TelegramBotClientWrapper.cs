@@ -138,6 +138,30 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
     }
 
     /// <summary>
+    /// Получает полную информацию о чате
+    /// </summary>
+    public async Task<ChatFullInfo> GetChatFullInfo(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        // В новой версии API используем GetChat для получения базовой информации
+        // LinkedChatId доступен только через специальные методы, но для наших целей достаточно
+        var chat = await _bot.GetChat(chatId, cancellationToken);
+        return new ChatFullInfo
+        {
+            Id = chat.Id,
+            Type = chat.Type,
+            Title = chat.Title,
+            Username = chat.Username,
+            FirstName = chat.FirstName,
+            LastName = chat.LastName,
+            Bio = chat.Bio,
+            Description = chat.Description,
+            InviteLink = chat.InviteLink,
+            // LinkedChatId не доступен через базовый GetChat, но это не критично для нашей логики
+            LinkedChatId = null
+        };
+    }
+
+    /// <summary>
     /// Пересылает сообщение
     /// </summary>
     public async Task<Message> ForwardMessage(
@@ -204,5 +228,26 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
             replyParameters: replyParameters,
             replyMarkup: replyMarkup,
             cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Получает количество участников чата
+    /// </summary>
+    public async Task<int> GetChatMemberCount(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        return await _bot.GetChatMemberCount(chatId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Получает обновления
+    /// </summary>
+    public async Task<Update[]> GetUpdates(
+        int? offset = null,
+        int? limit = null,
+        int? timeout = null,
+        IEnumerable<UpdateType>? allowedUpdates = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await _bot.GetUpdates(offset, limit, timeout, allowedUpdates, cancellationToken);
     }
 } 

@@ -19,7 +19,7 @@ public class GlobalStatsManager
     }
 
     // Гарантирует, что чат есть в статистике, и обновляет title
-    public async Task EnsureChatAsync(long chatId, string chatTitle, ITelegramBotClient bot)
+    public async Task EnsureChatAsync(long chatId, string chatTitle, ITelegramBotClientWrapper bot)
     {
         bool isNew = false;
         lock (_lock)
@@ -39,7 +39,7 @@ public class GlobalStatsManager
         {
             try
             {
-                var count = await bot.GetChatMemberCountAsync(chatId);
+                var count = await bot.GetChatMemberCount(chatId);
                 lock (_lock)
                 {
                     _stats.Chats[chatId].Members = count;
@@ -51,14 +51,14 @@ public class GlobalStatsManager
     }
 
     // Обновляет количество участников для всех чатов
-    public async Task UpdateAllMembersAsync(ITelegramBotClient bot)
+    public async Task UpdateAllMembersAsync(ITelegramBotClientWrapper bot)
     {
         var chatIds = _stats.Chats.Keys.ToList();
         foreach (var chatId in chatIds)
         {
             try
             {
-                var count = await bot.GetChatMemberCountAsync(chatId);
+                var count = await bot.GetChatMemberCount(chatId);
                 lock (_lock)
                 {
                     if (_stats.Chats.TryGetValue(chatId, out var chat))
@@ -71,7 +71,7 @@ public class GlobalStatsManager
     }
 
     // Обновляет количество участников только в чатах, где сейчас 0 участников
-    public async Task UpdateZeroMemberChatsAsync(ITelegramBotClient bot)
+    public async Task UpdateZeroMemberChatsAsync(ITelegramBotClientWrapper bot)
     {
         var zeroChats = _stats.Chats.Where(x => x.Value.Members == 0).Select(x => x.Key).ToList();
         foreach (var chatId in zeroChats)
