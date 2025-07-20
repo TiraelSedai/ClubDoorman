@@ -22,17 +22,45 @@ public class MessageHandlerTestFactory
     public Mock<IStatisticsService> StatisticsServiceMock { get; } = new();
     public Mock<IServiceProvider> ServiceProviderMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
+    public Mock<AiChecks> AiChecksMock { get; }
+    public FakeTelegramClient FakeTelegramClient { get; } = new();
+
+    public MessageHandlerTestFactory()
+    {
+        // Создаем мок AiChecks с правильными параметрами конструктора
+        var mockLogger = new Mock<ILogger<AiChecks>>();
+        AiChecksMock = new Mock<AiChecks>(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), mockLogger.Object);
+    }
 
     public MessageHandler CreateMessageHandler()
     {
         return new MessageHandler(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            FakeTelegramClient,
             ModerationServiceMock.Object,
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
             new SpamHamClassifier(new NullLogger<SpamHamClassifier>()),
             new BadMessageManager(),
-            new AiChecks(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), new NullLogger<AiChecks>()),
+            AiChecksMock.Object,
+            new GlobalStatsManager(),
+            StatisticsServiceMock.Object,
+            ServiceProviderMock.Object,
+            LoggerMock.Object
+        );
+    }
+
+    public MessageHandler CreateMessageHandlerWithFake(FakeTelegramClient? fake = null)
+    {
+        var client = fake ?? new FakeTelegramClient();
+
+        return new MessageHandler(
+            client,
+            ModerationServiceMock.Object,
+            CaptchaServiceMock.Object,
+            UserManagerMock.Object,
+            new SpamHamClassifier(new NullLogger<SpamHamClassifier>()),
+            new BadMessageManager(),
+            AiChecksMock.Object,
             new GlobalStatsManager(),
             StatisticsServiceMock.Object,
             ServiceProviderMock.Object,
