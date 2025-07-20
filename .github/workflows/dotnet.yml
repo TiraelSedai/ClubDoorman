@@ -43,42 +43,7 @@ jobs:
         echo "branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_OUTPUT
         echo "author=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: v${{ steps.vars.outputs.version }}
-        name: Release v${{ steps.vars.outputs.version }}
-        body: |
-          ## GateTroitsBot v${{ steps.vars.outputs.version }}
-
-          **Сборка:**
-          - Коммит: ${{ steps.build_info.outputs.commit }}
-
-          **Docker образ:** 
-          ```
-          ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
-          ```
-
-          **Запуск через Docker Compose:**
-          ```yaml
-          version: '3'
-          services:
-            doorman:
-              image: ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
-              restart: always
-              volumes:
-                - ./data:/app/data
-              environment:
-                - DOORMAN_BOT_API=1234567890:AAAA-YOUR-TOKEN-HERE
-                - DOORMAN_ADMIN_CHAT=-1001234567890
-          ```
-
-          **Документация:**
-          🔗 [Инструкция по использованию бота](https://telegra.ph/GateTroitsBot-04-19)
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # Удалён шаг Create Release, чтобы не создавать релиз на GitHub
 
     - name: Build Docker image
       run: |
@@ -97,3 +62,26 @@ jobs:
       run: |
         docker push ghcr.io/${{ env.repo_name }}:latest
         docker push ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
+
+    - name: Tag Docker image as dev
+      run: |
+        docker tag ghcr.io/${{ env.repo_name }}:latest ghcr.io/${{ env.repo_name }}:dev
+
+    - name: Push Docker image with dev tag
+      run: |
+        docker push ghcr.io/${{ env.repo_name }}:dev
+
+    - name: SSH and Update Container
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -t rsa $SERVER_IP >> ~/.ssh/known_hosts
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
+          docker pull ghcr.io/${{ env.repo_name }}:dev &&
+          docker-compose -f /path/to/your/docker-compose.yml up -d
+        "
+      env:
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
