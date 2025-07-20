@@ -2,6 +2,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
+using System.Text;
 using ClubDoorman.Services;
 
 namespace ClubDoorman.TestInfrastructure;
@@ -268,6 +269,17 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
         return Task.FromResult(Array.Empty<Update>());
+    }
+
+    public Task GetInfoAndDownloadFile(string fileId, Stream destination, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        // Записываем тестовые данные в поток
+        var testData = Encoding.UTF8.GetBytes("fake_image_data");
+        destination.Write(testData, 0, testData.Length);
+        return Task.CompletedTask;
     }
 
     // Методы для тестирования

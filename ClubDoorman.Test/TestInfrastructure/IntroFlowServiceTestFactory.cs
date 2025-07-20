@@ -28,7 +28,7 @@ public class IntroFlowServiceTestFactory
             LoggerMock.Object,
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
-            new AiChecks(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), new NullLogger<AiChecks>()),
+            new AiChecks(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<AiChecks>()),
             StatisticsServiceMock.Object,
             new GlobalStatsManager(),
             ModerationServiceMock.Object

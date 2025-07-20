@@ -14,7 +14,7 @@ namespace ClubDoorman.Services;
 
 public class AiChecks : IAiChecks
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<AiChecks> _logger;
     private readonly OpenAiClient? _api;
     private readonly JsonSerializerOptions _jsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
@@ -27,7 +27,7 @@ public class AiChecks : IAiChecks
     
     const string Model = "google/gemini-2.5-flash";
     
-    public AiChecks(TelegramBotClient bot, ILogger<AiChecks> logger)
+    public AiChecks(ITelegramBotClientWrapper bot, ILogger<AiChecks> logger)
     {
         _bot = bot;
         _logger = logger;
@@ -71,7 +71,7 @@ public class AiChecks : IAiChecks
 
         try
         {
-            var userChat = await _bot.GetChat(user.Id);
+            var userChat = await _bot.GetChatFullInfo(user.Id);
             
             // Если у пользователя нет био и нет связанного канала - проверяем только фото
             if (userChat.Bio == null && userChat.LinkedChatId == null)
@@ -142,7 +142,7 @@ public class AiChecks : IAiChecks
             {
                 try
                 {
-                    var linkedChat = await _bot.GetChat(userChat.LinkedChatId.Value);
+                    var linkedChat = await _bot.GetChatFullInfo(userChat.LinkedChatId.Value);
                     var info = new StringBuilder();
                     info.Append($"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
                     if (linkedChat.Username != null)
@@ -352,7 +352,7 @@ public class AiChecks : IAiChecks
             var firstMessagesText = string.Join("', '", firstMessages.Take(5));
             
             // Получаем расширенную информацию о пользователе как в основном методе
-            var userChat = await _bot.GetChat(user.Id);
+            var userChat = await _bot.GetChatFullInfo(user.Id);
             var bioInfo = !string.IsNullOrEmpty(userChat.Bio) ? $"\n• Биография: {userChat.Bio}" : "";
             var photoInfo = userChat.Photo != null ? "\n• Есть фото профиля" : "\n• Нет фото профиля";
 

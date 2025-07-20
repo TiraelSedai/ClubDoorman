@@ -250,4 +250,12 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
     {
         return await _bot.GetUpdates(offset, limit, timeout, allowedUpdates, cancellationToken);
     }
+
+    /// <summary>
+    /// Получает информацию о файле и скачивает его
+    /// </summary>
+    public async Task GetInfoAndDownloadFile(string fileId, Stream destination, CancellationToken cancellationToken = default)
+    {
+        await _bot.GetInfoAndDownloadFile(fileId, destination, cancellationToken);
+    }
 } 

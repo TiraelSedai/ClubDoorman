@@ -143,4 +143,9 @@ public interface ITelegramBotClientWrapper
         int? timeout = null,
         IEnumerable<UpdateType>? allowedUpdates = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Получает информацию о файле и скачивает его
+    /// </summary>
+    Task GetInfoAndDownloadFile(string fileId, Stream destination, CancellationToken cancellationToken = default);
 } 
