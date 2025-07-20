@@ -22,15 +22,8 @@ public class MessageHandlerTestFactory
     public Mock<IStatisticsService> StatisticsServiceMock { get; } = new();
     public Mock<IServiceProvider> ServiceProviderMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
-    public Mock<AiChecks> AiChecksMock { get; }
+    public Mock<IAiChecks> AiChecksMock { get; } = new();
     public FakeTelegramClient FakeTelegramClient { get; } = new();
-
-    public MessageHandlerTestFactory()
-    {
-        // Создаем мок AiChecks с правильными параметрами конструктора
-        var mockLogger = new Mock<ILogger<AiChecks>>();
-        AiChecksMock = new Mock<AiChecks>(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), mockLogger.Object);
-    }
 
     public MessageHandler CreateMessageHandler()
     {
@@ -39,8 +32,8 @@ public class MessageHandlerTestFactory
             ModerationServiceMock.Object,
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
-            new SpamHamClassifier(new NullLogger<SpamHamClassifier>()),
-            new BadMessageManager(),
+            new Mock<ISpamHamClassifier>().Object,
+            new Mock<IBadMessageManager>().Object,
             AiChecksMock.Object,
             new GlobalStatsManager(),
             StatisticsServiceMock.Object,
@@ -58,8 +51,8 @@ public class MessageHandlerTestFactory
             ModerationServiceMock.Object,
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
-            new SpamHamClassifier(new NullLogger<SpamHamClassifier>()),
-            new BadMessageManager(),
+            new Mock<ISpamHamClassifier>().Object,
+            new Mock<IBadMessageManager>().Object,
             AiChecksMock.Object,
             new GlobalStatsManager(),
             StatisticsServiceMock.Object,
@@ -103,6 +96,12 @@ public class MessageHandlerTestFactory
     public MessageHandlerTestFactory WithLoggerSetup(Action<Mock<ILogger<MessageHandler>>> setup)
     {
         setup(LoggerMock);
+        return this;
+    }
+
+    public MessageHandlerTestFactory WithAiChecksSetup(Action<Mock<IAiChecks>> setup)
+    {
+        setup(AiChecksMock);
         return this;
     }
 
