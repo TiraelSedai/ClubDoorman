@@ -1,131 +1,124 @@
+using ClubDoorman.Models;
 using ClubDoorman.Services;
-using ClubDoorman.Test.Mocks;
-using ClubDoorman.Test.TestData;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using System.Threading;
 
-namespace ClubDoorman.Test.TestInfrastructure;
+namespace ClubDoorman.TestInfrastructure;
 
 /// <summary>
-/// TestFactory для создания ModerationService с правильно настроенными моками
+/// Фабрика для создания тестовых экземпляров ModerationService с правильно настроенными моками
 /// </summary>
 public class ModerationTestFactory
 {
-    public Mock<ITelegramBotClient> TelegramMock { get; } = new();
-    public Mock<IUserManager> UserManagerMock { get; } = new();
-    public Mock<ILogger<ModerationService>> LoggerMock { get; } = new();
-    public Mock<ISpamHamClassifier> SpamHamClassifierMock { get; } = new();
-    public Mock<IMimicryClassifier> MimicryClassifierMock { get; } = new();
-    public Mock<IBadMessageManager> BadMessageManagerMock { get; } = new();
-    public Mock<IAiChecks> AiChecksMock { get; } = new();
-    public Mock<ISuspiciousUsersStorage> SuspiciousUsersStorageMock { get; } = new();
+    public Mock<ITelegramBotClient> TelegramBotClient { get; }
+    public Mock<IUserManager> UserManager { get; }
+    public Mock<ILogger<ModerationService>> Logger { get; }
+    public Mock<ISpamHamClassifier> SpamHamClassifier { get; }
+    public Mock<IMimicryClassifier> MimicryClassifier { get; }
+    public Mock<IBadMessageManager> BadMessageManager { get; }
+    public Mock<IAiChecks> AiChecks { get; }
+    public Mock<ISuspiciousUsersStorage> SuspiciousUsersStorage { get; }
+
+    public ModerationTestFactory()
+    {
+        TelegramBotClient = new Mock<ITelegramBotClient>();
+        UserManager = new Mock<IUserManager>();
+        Logger = new Mock<ILogger<ModerationService>>();
+        SpamHamClassifier = new Mock<ISpamHamClassifier>();
+        MimicryClassifier = new Mock<IMimicryClassifier>();
+        BadMessageManager = new Mock<IBadMessageManager>();
+        AiChecks = new Mock<IAiChecks>();
+        SuspiciousUsersStorage = new Mock<ISuspiciousUsersStorage>();
+
+        SetupDefaultMocks();
+    }
+
+    private void SetupDefaultMocks()
+    {
+        // Настройка UserManager
+        UserManager.Setup(x => x.InBanlist(It.IsAny<long>()))
+            .ReturnsAsync(false);
+        UserManager.Setup(x => x.Approved(It.IsAny<long>(), It.IsAny<long?>()))
+            .Returns(true);
+
+        // Настройка SpamHamClassifier - по умолчанию не спам (float, не double!)
+        SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
+            .ReturnsAsync((false, -0.5f));
+
+        // Настройка MimicryClassifier - по умолчанию не мимикрия (используем AnalyzeMessages)
+        MimicryClassifier.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
+            .Returns(0.1);
+
+        // Настройка BadMessageManager - по умолчанию не известное плохое сообщение
+        BadMessageManager.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
+            .Returns(false);
+
+        // Настройка AiChecks (правильные типы параметров)
+        AiChecks.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), It.IsAny<Func<string, Task>>()))
+            .ReturnsAsync(new SpamPhotoBio(new SpamProbability { Probability = 0.1 }, new byte[0], ""));
+
+        // Настройка SuspiciousUsersStorage
+        SuspiciousUsersStorage.Setup(x => x.IsSuspicious(It.IsAny<long>(), It.IsAny<long>()))
+            .Returns(false);
+
+        // TelegramBotClient extension methods (BanChatMember, DeleteMessage) 
+        // не могут быть замоканы через Moq, поэтому оставляем без настройки
+        // Эти методы будут тестироваться в интеграционных тестах
+    }
 
     /// <summary>
-    /// Создает ModerationService с настроенными моками
+    /// Создает экземпляр ModerationService с настроенными моками
     /// </summary>
-    public ModerationService Create()
+    public ModerationService CreateModerationService()
     {
-        // Настройка моков по умолчанию
-        SetupDefaultMocks();
-
         return new ModerationService(
-            SpamHamClassifierMock.Object,
-            MimicryClassifierMock.Object,
-            BadMessageManagerMock.Object,
-            UserManagerMock.Object,
-            AiChecksMock.Object,
-            SuspiciousUsersStorageMock.Object,
-            TelegramMock.Object,
-            LoggerMock.Object
+            SpamHamClassifier.Object,
+            MimicryClassifier.Object,
+            BadMessageManager.Object,
+            UserManager.Object,
+            AiChecks.Object,
+            SuspiciousUsersStorage.Object,
+            TelegramBotClient.Object,
+            Logger.Object
         );
     }
 
     /// <summary>
-    /// Настройка моков по умолчанию
+    /// Настраивает мок для спам-сообщения
     /// </summary>
-    private void SetupDefaultMocks()
+    public void SetupSpamMessage()
     {
-        // SpamHamClassifier - по умолчанию не спам
-        SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
-            .ReturnsAsync((false, 0.1f));
-
-        // MimicryClassifier - по умолчанию не подозрительно
-        MimicryClassifierMock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
-            .Returns(0.1);
-
-        // BadMessageManager - по умолчанию не плохое сообщение
-        BadMessageManagerMock.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
-            .Returns(false);
-
-        // AiChecks - по умолчанию безопасно
-        var safeSpamProbability = new SpamProbability { Probability = 0.1, Reason = "Safe" };
-        var safeSpamPhotoBio = new SpamPhotoBio(safeSpamProbability, Array.Empty<byte>(), "");
-        
-        AiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), It.IsAny<Func<string, Task>>()))
-            .ReturnsAsync(safeSpamPhotoBio);
-
-        AiChecksMock.Setup(x => x.GetSpamProbability(It.IsAny<Message>()))
-            .ReturnsAsync(safeSpamProbability);
-
-        // SuspiciousUsersStorage - по умолчанию не подозрительный
-        SuspiciousUsersStorageMock.Setup(x => x.IsSuspicious(It.IsAny<long>(), It.IsAny<long>()))
-            .Returns(false);
-
-        // UserManager - по умолчанию одобрен
-        UserManagerMock.Setup(x => x.Approved(It.IsAny<long>(), It.IsAny<long?>()))
-            .Returns(true);
-
-        // Telegram API - по умолчанию успешные операции
-        // Убираем проблемные extension methods
-    }
-
-    /// <summary>
-    /// Настройка для спам-сообщения
-    /// </summary>
-    public ModerationTestFactory WithSpamMessage()
-    {
-        SpamHamClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
+        SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ReturnsAsync((true, 0.9f));
-        return this;
     }
 
     /// <summary>
-    /// Настройка для подозрительного пользователя
+    /// Настраивает мок для известного плохого сообщения
     /// </summary>
-    public ModerationTestFactory WithSuspiciousUser()
+    public void SetupBadMessage()
     {
-        AiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<Telegram.Bot.Types.User>(), It.IsAny<Func<string, Task>>()))
-            .ReturnsAsync(new SpamPhotoBio(new SpamProbability { Probability = 0.8 }, [], ""));
-        return this;
-    }
-
-    /// <summary>
-    /// Настройка для плохого сообщения
-    /// </summary>
-    public ModerationTestFactory WithBadMessage()
-    {
-        BadMessageManagerMock.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
+        BadMessageManager.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
             .Returns(true);
-        return this;
     }
 
     /// <summary>
-    /// Настройка для успешного бана
+    /// Настраивает мок для пользователя в блэклисте
     /// </summary>
-    public ModerationTestFactory WithSuccessfulBan()
+    public void SetupBannedUser()
     {
-        // Убираем проблемные extension methods
-        return this;
+        UserManager.Setup(x => x.InBanlist(It.IsAny<long>()))
+            .ReturnsAsync(true);
     }
 
     /// <summary>
-    /// Настройка для ошибки Telegram API
+    /// Настраивает мок для исключения в классификаторе
     /// </summary>
-    public ModerationTestFactory WithTelegramError()
+    public void SetupClassifierException()
     {
-        // Убираем проблемные extension methods
-        return this;
+        SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
+            .ThrowsAsync(new Exception("Classifier error"));
     }
 } 
