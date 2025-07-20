@@ -12,12 +12,12 @@ namespace ClubDoorman.Services;
 /// </summary>
 public class ModerationService : IModerationService
 {
-    private readonly SpamHamClassifier _classifier;
-    private readonly MimicryClassifier _mimicryClassifier;
-    private readonly BadMessageManager _badMessageManager;
+    private readonly ISpamHamClassifier _classifier;
+    private readonly IMimicryClassifier _mimicryClassifier;
+    private readonly IBadMessageManager _badMessageManager;
     private readonly IUserManager _userManager;
-    private readonly AiChecks _aiChecks;
-    private readonly SuspiciousUsersStorage _suspiciousUsersStorage;
+    private readonly IAiChecks _aiChecks;
+    private readonly ISuspiciousUsersStorage _suspiciousUsersStorage;
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<ModerationService> _logger;
 
@@ -35,12 +35,12 @@ public class ModerationService : IModerationService
     private readonly ConcurrentDictionary<string, int> _groupSuspiciousUserMessages = new();
 
     public ModerationService(
-        SpamHamClassifier classifier,
-        MimicryClassifier mimicryClassifier,
-        BadMessageManager badMessageManager,
+        ISpamHamClassifier classifier,
+        IMimicryClassifier mimicryClassifier,
+        IBadMessageManager badMessageManager,
         IUserManager userManager,
-        AiChecks aiChecks,
-        SuspiciousUsersStorage suspiciousUsersStorage,
+        IAiChecks aiChecks,
+        ISuspiciousUsersStorage suspiciousUsersStorage,
         ITelegramBotClient botClient,
         ILogger<ModerationService> logger)
     {
