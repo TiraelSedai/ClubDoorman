@@ -44,7 +44,7 @@ public class ModerationServiceTests
     {
         // Arrange
         var message = SampleMessages.CreateSpamMessage();
-        _factory.SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
+        _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ReturnsAsync((true, 0.9f));
 
         // Act
@@ -74,7 +74,7 @@ public class ModerationServiceTests
     {
         // Arrange
         var message = SampleMessages.CreateBadMessage();
-        _factory.BadMessageManager.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
+        _factory.BadMessageManagerMock.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
             .Returns(true);
 
         // Act
@@ -121,7 +121,7 @@ public class ModerationServiceTests
         var chatId = 67890L;
         var messageId = 111;
 
-        _factory.TelegramBotClient.Setup(x => x.BanChatMember(
+        _factory.BotClientMock.Setup(x => x.BanChatMember(
             It.IsAny<ChatId>(), 
             It.IsAny<long>(), 
             It.IsAny<DateTime?>(), 
@@ -129,7 +129,7 @@ public class ModerationServiceTests
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _factory.TelegramBotClient.Setup(x => x.DeleteMessage(
+        _factory.BotClientMock.Setup(x => x.DeleteMessage(
             It.IsAny<ChatId>(), 
             It.IsAny<int>(), 
             It.IsAny<CancellationToken>()))
@@ -140,14 +140,14 @@ public class ModerationServiceTests
 
         // Assert
         Assert.That(result, Is.True);
-        _factory.TelegramBotClient.Verify(x => x.BanChatMember(
+        _factory.BotClientMock.Verify(x => x.BanChatMember(
             It.Is<ChatId>(c => c.Identifier == chatId), 
             userId, 
             It.IsAny<DateTime?>(), 
             It.IsAny<bool>(), 
             It.IsAny<CancellationToken>()), Times.Once);
         
-        _factory.TelegramBotClient.Verify(x => x.DeleteMessage(
+        _factory.BotClientMock.Verify(x => x.DeleteMessage(
             It.Is<ChatId>(c => c.Identifier == chatId), 
             messageId, 
             It.IsAny<CancellationToken>()), Times.Once);
@@ -160,7 +160,7 @@ public class ModerationServiceTests
         var userId = 12345L;
         var chatId = 67890L;
 
-        _factory.TelegramBotClient.Setup(x => x.BanChatMember(
+        _factory.BotClientMock.Setup(x => x.BanChatMember(
             It.IsAny<ChatId>(), 
             It.IsAny<long>(), 
             It.IsAny<DateTime?>(), 
@@ -173,14 +173,14 @@ public class ModerationServiceTests
 
         // Assert
         Assert.That(result, Is.True);
-        _factory.TelegramBotClient.Verify(x => x.BanChatMember(
+        _factory.BotClientMock.Verify(x => x.BanChatMember(
             It.Is<ChatId>(c => c.Identifier == chatId), 
             userId, 
             It.IsAny<DateTime?>(), 
             It.IsAny<bool>(), 
             It.IsAny<CancellationToken>()), Times.Once);
         
-        _factory.TelegramBotClient.Verify(x => x.DeleteMessage(
+        _factory.BotClientMock.Verify(x => x.DeleteMessage(
             It.IsAny<ChatId>(), 
             It.IsAny<int>(), 
             It.IsAny<CancellationToken>()), Times.Never);
@@ -193,7 +193,7 @@ public class ModerationServiceTests
         var userId = 12345L;
         var chatId = 67890L;
 
-        _factory.TelegramBotClient.Setup(x => x.BanChatMember(
+        _factory.BotClientMock.Setup(x => x.BanChatMember(
             It.IsAny<ChatId>(), 
             It.IsAny<long>(), 
             It.IsAny<DateTime?>(), 
@@ -213,7 +213,7 @@ public class ModerationServiceTests
     {
         // Arrange
         var message = SampleMessages.CreateValidMessage();
-        _factory.SpamHamClassifier.Setup(x => x.IsSpam(It.IsAny<string>()))
+        _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ThrowsAsync(new Exception("Classifier error"));
 
         // Act & Assert

@@ -22,10 +22,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await moderationService.CheckMessageAsync(null!);
-            });
+            await moderationService.CheckMessageAsync(null!);
         });
 
         Assert.That(exception!.Message, Does.Contain("Сообщение не может быть null"));
@@ -40,10 +37,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await moderationService.CheckUserNameAsync(null!);
-            });
+            await moderationService.CheckUserNameAsync(null!);
         });
 
         Assert.That(exception!.Message, Does.Contain("Пользователь не может быть null"));
@@ -59,10 +53,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ModerationException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await moderationService.CheckUserNameAsync(user);
-            });
+            await moderationService.CheckUserNameAsync(user);
         });
 
         Assert.That(exception!.Message, Does.Contain("Имя пользователя не может быть пустым"));
@@ -78,10 +69,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await moderationService.IncrementGoodMessageCountAsync(null!, chat, "test message");
-            });
+            await moderationService.IncrementGoodMessageCountAsync(null!, chat, "test message");
         });
 
         Assert.That(exception!.Message, Does.Contain("Пользователь не может быть null"));
@@ -97,10 +85,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await moderationService.IncrementGoodMessageCountAsync(user, null!, "test message");
-            });
+            await moderationService.IncrementGoodMessageCountAsync(user, null!, "test message");
         });
 
         Assert.That(exception!.Message, Does.Contain("Чат не может быть null"));
@@ -117,10 +102,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await moderationService.IncrementGoodMessageCountAsync(user, chat, "");
-            });
+            await moderationService.IncrementGoodMessageCountAsync(user, chat, "");
         });
 
         Assert.That(exception!.Message, Does.Contain("Текст сообщения не может быть пустым"));
@@ -135,10 +117,7 @@ public class ErrorHandlingTests : TestBase
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
-            await ExecuteWithTimeout(async token =>
-            {
-                await aiChecks.GetSpamProbability(null!);
-            });
+            await aiChecks.GetSpamProbability(null!);
         });
 
         Assert.That(exception!.Message, Does.Contain("Сообщение не может быть null"));
