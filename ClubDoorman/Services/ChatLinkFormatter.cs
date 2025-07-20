@@ -26,7 +26,7 @@ public class ChatLinkFormatter : IChatLinkFormatter
         if (formattedId.StartsWith("-100"))
         {
             // Супергруппа без username
-            formattedId = formattedId.Substring(4);
+            formattedId = formattedId[4..];
             return $"[{escapedTitle}](https://t.me/c/{formattedId})";
         }
         else if (formattedId.StartsWith("-"))
@@ -52,7 +52,7 @@ public class ChatLinkFormatter : IChatLinkFormatter
         var formattedId = chatId.ToString();
         if (formattedId.StartsWith("-100"))
         {
-            formattedId = formattedId.Substring(4);
+            formattedId = formattedId[4..];
             return $"[{escapedTitle}](https://t.me/c/{formattedId})";
         }
         else if (formattedId.StartsWith("-"))
@@ -61,9 +61,9 @@ public class ChatLinkFormatter : IChatLinkFormatter
         }
         else
         {
-            if (chatTitle?.StartsWith("@") == true)
-            {
-                var username = chatTitle.Substring(1);
+                    if (chatTitle?.StartsWith("@") == true)
+        {
+            var username = chatTitle[1..];
                 return $"[{escapedTitle}](https://t.me/{username})";
             }
             return $"*{escapedTitle}*";
