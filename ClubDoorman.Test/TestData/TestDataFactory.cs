@@ -19,7 +19,6 @@ public static class TestDataFactory
     {
         return new Message
         {
-            MessageId = 1,
             Date = DateTime.UtcNow,
             Text = "Hello, this is a valid message!",
             From = CreateValidUser(),
@@ -31,7 +30,6 @@ public static class TestDataFactory
     {
         return new Message
         {
-            MessageId = 2,
             Date = DateTime.UtcNow,
             Text = "BUY NOW!!! AMAZING OFFER!!! CLICK HERE!!!",
             From = CreateValidUser(),
@@ -43,9 +41,30 @@ public static class TestDataFactory
     {
         return new Message
         {
-            MessageId = 3,
             Date = DateTime.UtcNow,
             Text = "",
+            From = CreateValidUser(),
+            Chat = CreateGroupChat()
+        };
+    }
+
+    public static Message CreateNullTextMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = null,
+            From = CreateValidUser(),
+            Chat = CreateGroupChat()
+        };
+    }
+
+    public static Message CreateLongMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = new string('A', 1000),
             From = CreateValidUser(),
             Chat = CreateGroupChat()
         };
@@ -74,6 +93,18 @@ public static class TestDataFactory
         };
     }
 
+    public static User CreateAnonymousUser()
+    {
+        return new User
+        {
+            Id = 111111111,
+            IsBot = false,
+            FirstName = "Anonymous",
+            LastName = null,
+            Username = null
+        };
+    }
+
     public static Chat CreateGroupChat()
     {
         return new Chat
@@ -96,6 +127,17 @@ public static class TestDataFactory
         };
     }
 
+    public static Chat CreatePrivateChat()
+    {
+        return new Chat
+        {
+            Id = 123456789,
+            Type = ChatType.Private,
+            FirstName = "Private",
+            LastName = "Chat"
+        };
+    }
+
     public static CallbackQuery CreateValidCallbackQuery()
     {
         return new CallbackQuery
@@ -107,6 +149,17 @@ public static class TestDataFactory
         };
     }
 
+    public static CallbackQuery CreateInvalidCallbackQuery()
+    {
+        return new CallbackQuery
+        {
+            Id = "invalid_callback_id",
+            From = CreateValidUser(),
+            Message = null,
+            Data = null
+        };
+    }
+
     public static ChatMemberUpdated CreateMemberJoined()
     {
         return new ChatMemberUpdated
@@ -115,6 +168,66 @@ public static class TestDataFactory
             From = CreateValidUser(),
             Date = DateTime.UtcNow,
             OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberMember()
+        };
+    }
+
+    public static ChatMemberUpdated CreateMemberLeft()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberLeft()
+        };
+    }
+
+    public static ChatMemberUpdated CreateMemberBanned()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberBanned()
+        };
+    }
+
+    public static ChatMemberUpdated CreateMemberRestricted()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberRestricted()
+        };
+    }
+
+    public static ChatMemberUpdated CreateMemberPromoted()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberAdministrator()
+        };
+    }
+
+    public static ChatMemberUpdated CreateMemberDemoted()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberAdministrator(),
             NewChatMember = new ChatMemberMember()
         };
     }
@@ -151,7 +264,10 @@ public static class TestDataFactory
     {
         return new SuspiciousUserInfo(
             DateTime.UtcNow,
-            new List<string> { "First message", "Second message", "Third message" }
+            new List<string> { "First message", "Second message", "Third message" },
+            0.5,
+            true,
+            0
         );
     }
     public static ModerationResult CreateValidModerationResult()
@@ -175,6 +291,43 @@ public static class TestDataFactory
         return new ModerationResult(
             ModerationAction.Allow,
             new string('A', 1000)
+        );
+    }
+
+    public static ModerationResult CreateAllowResult()
+    {
+        return new ModerationResult(
+            ModerationAction.Allow,
+            "Message allowed"
+        );
+    }
+
+    public static ModerationResult CreateDeleteResult()
+    {
+        return new ModerationResult(
+            ModerationAction.Delete,
+            "Message deleted"
+        );
+    }
+
+    public static ModerationResult CreateBanResult()
+    {
+        return new ModerationResult(
+            ModerationAction.Ban,
+            "User banned"
+        );
+    }
+
+    public static CaptchaInfo CreateExpiredCaptchaInfo()
+    {
+        return new CaptchaInfo(
+            123456789,
+            "Expired Chat",
+            DateTime.UtcNow.AddHours(-2),
+            TestDataFactory.CreateValidUser(),
+            1,
+            new CancellationTokenSource(),
+            null
         );
     }
     public static ModerationAction CreateAllowModerationAction()
@@ -209,7 +362,8 @@ public static class TestDataFactory
             DateTime.UtcNow,
             TestDataFactory.CreateValidUser(),
             1,
-            new CancellationTokenSource()
+            new CancellationTokenSource(),
+            null
         );
     }
     #endregion

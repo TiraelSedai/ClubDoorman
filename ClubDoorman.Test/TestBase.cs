@@ -1,6 +1,7 @@
 using ClubDoorman.Models;
 using ClubDoorman.Test.TestData;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
 using Telegram.Bot.Types;
@@ -34,21 +35,9 @@ public abstract class TestBase
     /// <summary>
     /// Проверяет, что исключение было выброшено
     /// </summary>
-    protected static async Task AssertThrowsAsync<T>(Func<Task> action, string? message = null) where T : Exception
+    protected static async Task AssertThrowsAsync<T>(AsyncTestDelegate action, string? message = null) where T : Exception
     {
         var exception = Assert.ThrowsAsync<T>(action);
-        if (!string.IsNullOrEmpty(message))
-        {
-            Assert.That(exception.Message, Does.Contain(message));
-        }
-    }
-
-    /// <summary>
-    /// Проверяет, что исключение было выброшено (синхронная версия)
-    /// </summary>
-    protected static void AssertThrows<T>(Action action, string? message = null) where T : Exception
-    {
-        var exception = Assert.Throws<T>(action);
         if (!string.IsNullOrEmpty(message))
         {
             Assert.That(exception.Message, Does.Contain(message));
@@ -68,11 +57,11 @@ public abstract class TestBase
     }
 
     /// <summary>
-    /// Проверяет, что исключение было выброшено (асинхронная версия)
+    /// Проверяет, что исключение было выброшено (синхронная версия с Action)
     /// </summary>
-    protected static async Task AssertThrowsAsync<T>(AsyncTestDelegate action, string? message = null) where T : Exception
+    protected static void AssertThrows<T>(Action action, string? message = null) where T : Exception
     {
-        var exception = Assert.ThrowsAsync<T>(action);
+        var exception = Assert.Throws<T>(() => action());
         if (!string.IsNullOrEmpty(message))
         {
             Assert.That(exception.Message, Does.Contain(message));
