@@ -35,12 +35,12 @@ public class Program
                 services.AddSingleton<ITelegramBotClientWrapper>(provider => new TelegramBotClientWrapper(provider.GetRequiredService<TelegramBotClient>()));
                 
                 // Классификаторы и менеджеры
-                services.AddSingleton<SpamHamClassifier>();
-                services.AddSingleton<MimicryClassifier>();
-                services.AddSingleton<BadMessageManager>();
-                services.AddSingleton<AiChecks>();
+                services.AddSingleton<ISpamHamClassifier, SpamHamClassifier>();
+                services.AddSingleton<IMimicryClassifier, MimicryClassifier>();
+                services.AddSingleton<IBadMessageManager, BadMessageManager>();
+                services.AddSingleton<IAiChecks, AiChecks>();
                 services.AddSingleton<GlobalStatsManager>();
-                services.AddSingleton<SuspiciousUsersStorage>();
+                services.AddSingleton<ISuspiciousUsersStorage, SuspiciousUsersStorage>();
                 
                 // Новые сервисы
                 services.AddSingleton<IUpdateDispatcher, UpdateDispatcher>();
