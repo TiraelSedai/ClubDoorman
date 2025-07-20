@@ -24,7 +24,7 @@ internal class MessagePrediction : MessageData
     public bool PredictedLabel { get; set; }
 }
 
-public class SpamHamClassifier
+public class SpamHamClassifier : ISpamHamClassifier
 {
     public SpamHamClassifier(ILogger<SpamHamClassifier> logger)
     {

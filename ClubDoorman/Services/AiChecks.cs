@@ -12,7 +12,7 @@ using ClubDoorman.Infrastructure;
 
 namespace ClubDoorman.Services;
 
-public class AiChecks
+public class AiChecks : IAiChecks
 {
     private readonly TelegramBotClient _bot;
     private readonly ILogger<AiChecks> _logger;
