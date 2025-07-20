@@ -48,6 +48,7 @@ public class Program
                 services.AddSingleton<ICaptchaService, CaptchaService>();
                 services.AddSingleton<IModerationService, ModerationService>();
                 services.AddSingleton<IntroFlowService>();
+                services.AddSingleton<IChatLinkFormatter, ChatLinkFormatter>();
                 
                 // Обработчики обновлений
                 services.AddSingleton<IUpdateHandler, MessageHandler>();
