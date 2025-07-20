@@ -7,16 +7,21 @@ namespace ClubDoorman.Services;
 /// Сервис для управления списком подозрительных пользователей
 /// Хранит данные в формате: chatId -> userId -> SuspiciousUserInfo
 /// </summary>
-public class SuspiciousUsersStorage
+public class SuspiciousUsersStorage : ISuspiciousUsersStorage
 {
     private readonly string _filePath;
     private readonly ILogger<SuspiciousUsersStorage> _logger;
     private readonly object _lock = new object();
     private Dictionary<long, Dictionary<long, SuspiciousUserInfo>> _suspiciousUsers;
 
+    /// <summary>
+    /// Создает экземпляр хранилища подозрительных пользователей.
+    /// </summary>
+    /// <param name="logger">Логгер для записи событий</param>
+    /// <exception cref="ArgumentNullException">Если logger равен null</exception>
     public SuspiciousUsersStorage(ILogger<SuspiciousUsersStorage> logger)
     {
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _filePath = Path.Combine("data", "suspicious_users.json");
         
         _suspiciousUsers = LoadFromFile();
@@ -25,6 +30,7 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Загрузка данных из файла
     /// </summary>
+    /// <returns>Словарь подозрительных пользователей</returns>
     private Dictionary<long, Dictionary<long, SuspiciousUserInfo>> LoadFromFile()
     {
         try
@@ -67,11 +73,14 @@ public class SuspiciousUsersStorage
                 Directory.CreateDirectory(directory);
             }
 
+            // CRITICAL PERFORMANCE ISSUE - FIX REQUIRED
+            // JsonSerializerOptions is recreated on every serialization call, causing unnecessary allocations
+            // This can impact performance when saving suspicious users frequently
+            // TODO: Cache JsonSerializerOptions as static readonly field to improve performance
             var json = JsonSerializer.Serialize(_suspiciousUsers, new JsonSerializerOptions 
             { 
                 WriteIndented = true 
             });
-            
             File.WriteAllText(_filePath, json);
             _logger.LogDebug("Список подозрительных пользователей сохранен в файл");
         }
@@ -84,8 +93,12 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Проверка, является ли пользователь подозрительным в данном чате
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <returns>true, если пользователь подозрительный</returns>
     public bool IsSuspicious(long userId, long chatId)
     {
+        // PERFORMANCE OPTIMIZATION - Consider ReaderWriterLockSlim for better read performance
         lock (_lock)
         {
             return _suspiciousUsers.TryGetValue(chatId, out var chatUsers) &&
@@ -96,8 +109,15 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Добавление пользователя в список подозрительных
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <param name="info">Информация о подозрительном пользователе</param>
+    /// <returns>true, если пользователь был добавлен впервые</returns>
+    /// <exception cref="ArgumentNullException">Если info равен null</exception>
     public bool AddSuspicious(long userId, long chatId, SuspiciousUserInfo info)
     {
+        if (info == null) throw new ArgumentNullException(nameof(info));
+
         lock (_lock)
         {
             if (!_suspiciousUsers.ContainsKey(chatId))
@@ -123,6 +143,9 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Удаление пользователя из списка подозрительных
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <returns>true, если пользователь был удален</returns>
     public bool RemoveSuspicious(long userId, long chatId)
     {
         lock (_lock)
@@ -154,8 +177,15 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Обновление счетчика сообщений для подозрительного пользователя
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <param name="messageCount">Количество сообщений</param>
+    /// <returns>true, если счетчик был обновлен</returns>
     public bool UpdateMessageCount(long userId, long chatId, int messageCount)
     {
+        if (messageCount < 0)
+            return false;
+
         lock (_lock)
         {
             if (_suspiciousUsers.TryGetValue(chatId, out var chatUsers) &&
@@ -175,6 +205,10 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Включение/выключение AI детекта для пользователя
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <param name="enabled">Включить или выключить AI детект</param>
+    /// <returns>true, если настройка была изменена</returns>
     public bool SetAiDetectEnabled(long userId, long chatId, bool enabled)
     {
         lock (_lock)
@@ -198,6 +232,9 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Получение информации о подозрительном пользователе
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <returns>Информация о пользователе или null, если не найден</returns>
     public SuspiciousUserInfo? GetSuspiciousInfo(long userId, long chatId)
     {
         lock (_lock)
@@ -215,6 +252,7 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Получение списка пользователей с включенным AI детектом
     /// </summary>
+    /// <returns>Список кортежей (UserId, ChatId) пользователей с AI детектом</returns>
     public List<(long UserId, long ChatId)> GetAiDetectUsers()
     {
         lock (_lock)
@@ -230,6 +268,9 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Получает информацию о конкретном подозрительном пользователе
     /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="chatId">ID чата</param>
+    /// <returns>Информация о пользователе или null, если не найден</returns>
     public SuspiciousUserInfo? GetSuspiciousUser(long userId, long chatId)
     {
         lock (_lock)
@@ -246,6 +287,7 @@ public class SuspiciousUsersStorage
     /// <summary>
     /// Получение статистики по подозрительным пользователям
     /// </summary>
+    /// <returns>Кортеж (Общее количество подозрительных, С AI детектом, Количество групп)</returns>
     public (int TotalSuspicious, int WithAiDetect, int GroupsCount) GetStats()
     {
         lock (_lock)

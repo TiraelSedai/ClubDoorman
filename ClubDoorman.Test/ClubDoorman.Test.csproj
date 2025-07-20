@@ -7,6 +7,8 @@
         <InvariantGlobalization>false</InvariantGlobalization>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <RunTestsInParallel>true</RunTestsInParallel>
+        <MaxCpuCount>4</MaxCpuCount>
     </PropertyGroup>
 
     <ItemGroup>
@@ -21,6 +23,10 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+        <PackageReference Include="Moq" Version="4.20.70" />
+        <PackageReference Include="SpecFlow" Version="3.9.74" />
+        <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
+        <PackageReference Include="Telegram.Bot" Version="22.4.4" />
     </ItemGroup>
 
     <ItemGroup>
@@ -31,10 +37,27 @@
       <ProjectReference Include="..\ClubDoorman\ClubDoorman.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="test-timeouts.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <!-- Конфигурация для разделения быстрых и медленных тестов -->
+    <PropertyGroup>
+        <!-- Группы тестов -->
+        <FastTests>TestCategory!=slow</FastTests>
+        <SlowTests>TestCategory=slow</SlowTests>
+        <AllTests>TestCategory!=none</AllTests>
+    </PropertyGroup>
+
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="cp -n &quot;$(SolutionDir)ClubDoorman/data/stop-words.txt&quot; &quot;$(TargetDir)data/stop-words.txt&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+        <Exec Command="mkdir -p &quot;$(TargetDir)data&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+        <Exec Command="cp -n &quot;$(ProjectDir)../ClubDoorman/data/stop-words.txt&quot; &quot;$(TargetDir)data/stop-words.txt&quot;" Condition="'$(OS)' != 'Windows_NT'" />
         <Exec Command="if not exist &quot;$(TargetDir)data&quot; mkdir &quot;$(TargetDir)data&quot;" Condition="'$(OS)' == 'Windows_NT'" />
-        <Exec Command="copy &quot;$(SolutionDir)ClubDoorman\\data\\stop-words.txt&quot; &quot;$(TargetDir)data\\stop-words.txt&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+        <Exec Command="copy &quot;$(ProjectDir)..\\ClubDoorman\\data\\stop-words.txt&quot; &quot;$(TargetDir)data\\stop-words.txt&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+        <Exec Command="cp -n &quot;$(ProjectDir)test-timeouts.json&quot; &quot;$(TargetDir)test-timeouts.json&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+        <Exec Command="copy &quot;$(ProjectDir)test-timeouts.json&quot; &quot;$(TargetDir)test-timeouts.json&quot;" Condition="'$(OS)' == 'Windows_NT'" />
     </Target>
 
 </Project>

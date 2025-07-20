@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Runtime.Caching;
+using System.Net.Http;
 using Polly;
 using Polly.Retry;
 using Telegram.Bot;
@@ -11,7 +12,7 @@ using ClubDoorman.Infrastructure;
 
 namespace ClubDoorman.Services;
 
-public class AiChecks
+public class AiChecks : IAiChecks
 {
     private readonly TelegramBotClient _bot;
     private readonly ILogger<AiChecks> _logger;
@@ -21,6 +22,7 @@ public class AiChecks
     // Retry policy для обработки временных ошибок API
     private readonly ResiliencePipeline _retry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
+        .AddTimeout(TimeSpan.FromSeconds(30)) // Таймаут 30 секунд на HTTP запросы
         .Build();
     
     const string Model = "google/gemini-2.5-flash";
@@ -239,16 +241,29 @@ public class AiChecks
     /// <summary>
     /// Анализирует сообщение на предмет спама с помощью AI
     /// </summary>
+    /// <param name="message">Сообщение для анализа</param>
+    /// <returns>Вероятность того, что сообщение является спамом</returns>
+    /// <exception cref="AiServiceException">Выбрасывается при критических ошибках AI сервиса</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если message равен null</exception>
     public async ValueTask<SpamProbability> GetSpamProbability(Message message)
     {
+        if (message == null)
+            throw new ArgumentNullException(nameof(message), "Сообщение не может быть null");
+
         if (_api == null)
+        {
+            _logger.LogDebug("AI API недоступен, возвращаем пустой результат");
             return new SpamProbability();
+        }
 
         try
         {
             var text = message.Text ?? message.Caption ?? "";
             if (string.IsNullOrWhiteSpace(text))
+            {
+                _logger.LogDebug("Текст сообщения пустой, пропускаем AI анализ");
                 return new SpamProbability();
+            }
 
             var prompt = $"""
                 Проанализируй это сообщение на предмет спама. Отвечай вероятностью от 0 до 1.
@@ -286,13 +301,32 @@ public class AiChecks
                     response.Value1.Probability, response.Value1.Reason);
                 return response.Value1;
             }
+            else
+            {
+                _logger.LogWarning("Получен пустой ответ от AI API для анализа сообщения");
+                return new SpamProbability();
+            }
         }
-        catch (Exception e)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogWarning(e, "Ошибка при AI анализе сообщения");
+            _logger.LogWarning(ex, "Таймаут при AI анализе сообщения");
+            return new SpamProbability();
         }
-
-        return new SpamProbability();
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Ошибка сети при AI анализе сообщения");
+            return new SpamProbability();
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Ошибка парсинга JSON при AI анализе сообщения");
+            return new SpamProbability();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Неожиданная ошибка при AI анализе сообщения");
+            return new SpamProbability();
+        }
     }
     
     /// <summary>

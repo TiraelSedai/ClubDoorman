@@ -18,7 +18,7 @@ namespace ClubDoorman.Handlers;
 /// </summary>
 public class MessageHandler : IUpdateHandler
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly IModerationService _moderationService;
     private readonly ICaptchaService _captchaService;
     private readonly IUserManager _userManager;
@@ -33,8 +33,23 @@ public class MessageHandler : IUpdateHandler
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
 
+    /// <summary>
+    /// Создает экземпляр обработчика сообщений.
+    /// </summary>
+    /// <param name="bot">Клиент Telegram бота</param>
+    /// <param name="moderationService">Сервис модерации</param>
+    /// <param name="captchaService">Сервис капчи</param>
+    /// <param name="userManager">Менеджер пользователей</param>
+    /// <param name="classifier">Классификатор спама</param>
+    /// <param name="badMessageManager">Менеджер плохих сообщений</param>
+    /// <param name="aiChecks">AI проверки</param>
+    /// <param name="globalStatsManager">Менеджер глобальной статистики</param>
+    /// <param name="statisticsService">Сервис статистики</param>
+    /// <param name="serviceProvider">Провайдер сервисов</param>
+    /// <param name="logger">Логгер</param>
+    /// <exception cref="ArgumentNullException">Если любой из параметров равен null</exception>
     public MessageHandler(
-        TelegramBotClient bot,
+        ITelegramBotClientWrapper bot,
         IModerationService moderationService,
         ICaptchaService captchaService,
         IUserManager userManager,
@@ -46,26 +61,41 @@ public class MessageHandler : IUpdateHandler
         IServiceProvider serviceProvider,
         ILogger<MessageHandler> logger)
     {
-        _bot = bot;
-        _moderationService = moderationService;
-        _captchaService = captchaService;
-        _userManager = userManager;
-        _classifier = classifier;
-        _badMessageManager = badMessageManager;
-        _aiChecks = aiChecks;
-        _globalStatsManager = globalStatsManager;
-        _statisticsService = statisticsService;
-        _serviceProvider = serviceProvider;
-        _logger = logger;
+        _bot = bot ?? throw new ArgumentNullException(nameof(bot));
+        _moderationService = moderationService ?? throw new ArgumentNullException(nameof(moderationService));
+        _captchaService = captchaService ?? throw new ArgumentNullException(nameof(captchaService));
+        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+        _classifier = classifier ?? throw new ArgumentNullException(nameof(classifier));
+        _badMessageManager = badMessageManager ?? throw new ArgumentNullException(nameof(badMessageManager));
+        _aiChecks = aiChecks ?? throw new ArgumentNullException(nameof(aiChecks));
+        _globalStatsManager = globalStatsManager ?? throw new ArgumentNullException(nameof(globalStatsManager));
+        _statisticsService = statisticsService ?? throw new ArgumentNullException(nameof(statisticsService));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Проверяет, может ли обработчик обработать данное обновление.
+    /// </summary>
+    /// <param name="update">Обновление для проверки</param>
+    /// <returns>true, если обновление содержит сообщение</returns>
     public bool CanHandle(Update update)
     {
-        return update.Message != null || update.EditedMessage != null;
+        return update?.Message != null || update?.EditedMessage != null;
     }
 
+    /// <summary>
+    /// Обрабатывает обновление, содержащее сообщение.
+    /// </summary>
+    /// <param name="update">Обновление для обработки</param>
+    /// <param name="cancellationToken">Токен отмены операции</param>
+    /// <exception cref="ArgumentNullException">Если update равен null</exception>
     public async Task HandleAsync(Update update, CancellationToken cancellationToken = default)
     {
+        if (update == null) throw new ArgumentNullException(nameof(update));
+        if (update.Message == null && update.EditedMessage == null) 
+            throw new ArgumentNullException(nameof(update.Message));
+
         var message = update.EditedMessage ?? update.Message!;
         var chat = message.Chat;
 
@@ -88,6 +118,7 @@ public class MessageHandler : IUpdateHandler
 
         // Автоматически добавляем чат в конфиг
         ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
+
 
         // Обработка команд
         if (message.Text?.StartsWith("/") == true)
@@ -254,7 +285,13 @@ public class MessageHandler : IUpdateHandler
 
     private async Task HandleNewMembersAsync(Message message, CancellationToken cancellationToken)
     {
-        foreach (var newUser in message.NewChatMembers!.Where(x => !x.IsBot))
+        if (message.NewChatMembers == null)
+        {
+            _logger.LogDebug("Сообщение о новых участниках не содержит данных о пользователях");
+            return;
+        }
+
+        foreach (var newUser in message.NewChatMembers.Where(x => x != null && !x.IsBot))
         {
             var joinKey = $"joined_{message.Chat.Id}_{newUser.Id}";
             if (!_joinedUserFlags.ContainsKey(joinKey))
@@ -277,9 +314,27 @@ public class MessageHandler : IUpdateHandler
 
     private async Task ProcessNewUserAsync(Message userJoinMessage, User user, CancellationToken cancellationToken)
     {
+        if (user == null)
+        {
+            _logger.LogWarning("ProcessNewUserAsync вызван с null пользователем");
+            return;
+        }
+
+        if (userJoinMessage?.Chat == null)
+        {
+            _logger.LogWarning("ProcessNewUserAsync вызван с null сообщением или чатом");
+            return;
+        }
+
         var chat = userJoinMessage.Chat;
 
         // Проверка имени пользователя
+        if (_moderationService == null)
+        {
+            _logger.LogError("_moderationService равен null в ProcessNewUserAsync");
+            return;
+        }
+
         var nameResult = await _moderationService.CheckUserNameAsync(user);
         if (nameResult.Action == ModerationAction.Ban)
         {
@@ -336,8 +391,8 @@ public class MessageHandler : IUpdateHandler
         try
         {
             var chatFull = await _bot.GetChat(chat, cancellationToken);
-            var linked = chatFull.LinkedChatId;
-            if (linked != null && linked == senderChat.Id)
+            // Проверяем, является ли это обсуждением канала
+            if (chat.Type == ChatType.Supergroup && message.IsAutomaticForward)
                 return;
         }
         catch (Exception ex)
@@ -360,8 +415,22 @@ public class MessageHandler : IUpdateHandler
 
     private async Task HandleUserMessageAsync(Message message, CancellationToken cancellationToken)
     {
-        var user = message.From!;
+        var user = message.From;
         var chat = message.Chat;
+
+        // Игнорируем сообщения без пользователя (системные сообщения)
+        if (user == null)
+        {
+            _logger.LogDebug("Игнорируем системное сообщение без пользователя");
+            return;
+        }
+
+        // Игнорируем сообщения от ботов
+        if (user.IsBot)
+        {
+            _logger.LogDebug("Игнорируем сообщение от бота {BotId}", user.Id);
+            return;
+        }
 
         // Игнорируем системные сообщения (выход пользователей и т.д.)
         if (message.LeftChatMember != null)
@@ -495,16 +564,16 @@ public class MessageHandler : IUpdateHandler
             if (chat.Type != ChatType.Supergroup)
                 return false;
 
-            var chatFull = await _bot.GetChat(chat.Id);
-            var hasLinkedChannel = chatFull.LinkedChatId != null;
+            // Проверяем, является ли это автоматическим пересыланием из канала
+            var isAutoForward = message.IsAutomaticForward;
             
-            if (hasLinkedChannel)
+            if (isAutoForward)
             {
-                _logger.LogDebug("Обнаружено обсуждение канала: chat={ChatId}, linkedChannel={LinkedId}, autoForward={AutoForward}", 
-                    chat.Id, chatFull.LinkedChatId, message.IsAutomaticForward);
+                _logger.LogDebug("Обнаружено обсуждение канала: chat={ChatId}, autoForward={AutoForward}", 
+                    chat.Id, message.IsAutomaticForward);
             }
             
-            return hasLinkedChannel;
+            return isAutoForward;
         }
         catch (Exception e)
         {
@@ -926,7 +995,7 @@ public class MessageHandler : IUpdateHandler
                             CanPinMessages = false,
                             CanManageTopics = false
                         },
-                        untilDate: untilDate,
+                        untilDate: (DateTime?)untilDate,
                         cancellationToken: cancellationToken
                     );
                 }
