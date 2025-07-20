@@ -16,12 +16,14 @@ namespace ClubDoorman.TestInfrastructure;
 public class StatisticsServiceTestFactory
 {
     public Mock<ILogger<StatisticsService>> LoggerMock { get; } = new();
+    public Mock<IChatLinkFormatter> ChatLinkFormatterMock { get; } = new();
 
     public StatisticsService CreateStatisticsService()
     {
         return new StatisticsService(
             new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
-            LoggerMock.Object
+            LoggerMock.Object,
+            ChatLinkFormatterMock.Object
         );
     }
 

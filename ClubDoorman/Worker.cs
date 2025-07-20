@@ -22,7 +22,8 @@ internal sealed class Worker(
     SpamHamClassifier classifier,
     IUserManager userManager,
     BadMessageManager badMessageManager,
-    AiChecks aiChecks
+    AiChecks aiChecks,
+    IChatLinkFormatter chatLinkFormatter
 ) : BackgroundService
 {
     // Классы CaptchaInfo и Stats перенесены в Models
@@ -39,6 +40,7 @@ internal sealed class Worker(
     private readonly IUserManager _userManager = userManager;
     private readonly BadMessageManager _badMessageManager = badMessageManager;
     private readonly AiChecks _aiChecks = aiChecks;
+    private readonly IChatLinkFormatter _chatLinkFormatter = chatLinkFormatter;
     private readonly GlobalStatsManager _globalStatsManager = new();
     private User _me = default!;
     
@@ -333,57 +335,7 @@ internal sealed class Worker(
 
         // УДАЛЕН: IntroFlow - логика перенесена в IntroFlowService
 
-    private static string GetChatLink(Chat chat)
-    {
-        var escapedTitle = Markdown.Escape(chat.Title ?? "Неизвестный чат");
-        if (!string.IsNullOrEmpty(chat.Username))
-        {
-            // Публичная группа или канал
-            return $"[{escapedTitle}](https://t.me/{chat.Username})";
-        }
-        var formattedId = chat.Id.ToString();
-        if (formattedId.StartsWith("-100"))
-        {
-            // Супергруппа без username
-            formattedId = formattedId.Substring(4);
-            return $"[{escapedTitle}](https://t.me/c/{formattedId})";
-        }
-        else if (formattedId.StartsWith("-"))
-        {
-            // Обычная группа без username
-            return $"*{escapedTitle}*";
-        }
-        else
-        {
-            // Канал без username
-            return $"*{escapedTitle}*";
-        }
-    }
 
-    private static string GetChatLink(long chatId, string? chatTitle)
-    {
-        // Для обратной совместимости: используем только если нет объекта Chat
-        var escapedTitle = Markdown.Escape(chatTitle ?? "Неизвестный чат");
-        var formattedId = chatId.ToString();
-        if (formattedId.StartsWith("-100"))
-        {
-            formattedId = formattedId.Substring(4);
-            return $"[{escapedTitle}](https://t.me/c/{formattedId})";
-        }
-        else if (formattedId.StartsWith("-"))
-        {
-            return $"*{escapedTitle}*";
-        }
-        else
-        {
-            if (chatTitle?.StartsWith("@") == true)
-            {
-                var username = chatTitle.Substring(1);
-                return $"[{escapedTitle}](https://t.me/{username})";
-            }
-            return $"*{escapedTitle}*";
-        }
-    }
 
     private async Task ReportStatisticsLoop(CancellationToken ct)
     {
@@ -515,9 +467,9 @@ internal sealed class Worker(
                 try { chat = await _bot.GetChat(chatId); } catch { }
                 sb.AppendLine();
                 if (chat != null)
-                    sb.AppendLine($"{GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
+                    sb.AppendLine($"{_chatLinkFormatter.GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
                 else
-                    sb.AppendLine($"{GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
+                    sb.AppendLine($"{_chatLinkFormatter.GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
                 sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
                 if (stats.BlacklistBanned > 0)
                     sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
