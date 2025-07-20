@@ -3,6 +3,8 @@ using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
 using NUnit.Framework;
 using Telegram.Bot.Types;
+using Moq;
+using System;
 
 namespace ClubDoorman.Test.Unit.Moderation;
 
@@ -12,12 +14,12 @@ namespace ClubDoorman.Test.Unit.Moderation;
 [Category("critical")]
 public class ModerationServiceTests
 {
-    private ModerationTestFactory _factory = null!;
+    private ModerationServiceTestFactory _factory = null!;
 
     [SetUp]
     public void Setup()
     {
-        _factory = new ModerationTestFactory();
+        _factory = new ModerationServiceTestFactory();
     }
 
     [Test]
@@ -55,7 +57,9 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_SpamMessage_ReturnsDelete()
     {
         // Arrange
-        _factory.SetupSpamMessage();
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((true, 0.9f)));
         var service = _factory.CreateModerationService();
         var message = new Message
         {
@@ -76,7 +80,9 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_BannedUser_ReturnsBan()
     {
         // Arrange
-        _factory.SetupBannedUser();
+        _factory.WithUserManagerSetup(mock => 
+            mock.Setup(x => x.InBanlist(It.IsAny<long>()))
+                .ReturnsAsync(true));
         var service = _factory.CreateModerationService();
         var message = new Message
         {
@@ -129,7 +135,9 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_ClassifierException_ReturnsAllowWithFallback()
     {
         // Arrange
-        _factory.SetupClassifierException();
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ThrowsAsync(new Exception("Classifier error")));
         var service = _factory.CreateModerationService();
         var message = new Message
         {
@@ -164,13 +172,13 @@ public class ModerationServiceTests
         var service = _factory.CreateModerationService();
 
         // Assert - проверяем что все моки настроены
-        Assert.That(_factory.SpamHamClassifier, Is.Not.Null);
-        Assert.That(_factory.MimicryClassifier, Is.Not.Null);
-        Assert.That(_factory.BadMessageManager, Is.Not.Null);
-        Assert.That(_factory.UserManager, Is.Not.Null);
-        Assert.That(_factory.AiChecks, Is.Not.Null);
-        Assert.That(_factory.SuspiciousUsersStorage, Is.Not.Null);
-        Assert.That(_factory.TelegramBotClient, Is.Not.Null);
-        Assert.That(_factory.Logger, Is.Not.Null);
+        Assert.That(_factory.ClassifierMock, Is.Not.Null);
+        Assert.That(_factory.MimicryClassifierMock, Is.Not.Null);
+        Assert.That(_factory.BadMessageManagerMock, Is.Not.Null);
+        Assert.That(_factory.UserManagerMock, Is.Not.Null);
+        Assert.That(_factory.AiChecksMock, Is.Not.Null);
+        Assert.That(_factory.SuspiciousUsersStorageMock, Is.Not.Null);
+        Assert.That(_factory.BotClientMock, Is.Not.Null);
+        Assert.That(_factory.LoggerMock, Is.Not.Null);
     }
 } 

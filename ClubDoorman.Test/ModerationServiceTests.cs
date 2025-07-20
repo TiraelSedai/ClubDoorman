@@ -15,13 +15,13 @@ namespace ClubDoorman.Test;
 [Category("moderation")]
 public class ModerationServiceTests
 {
-    private ModerationTestFactory _factory;
+    private ModerationServiceTestFactory _factory;
     private ModerationService _service;
 
     [SetUp]
     public void Setup()
     {
-        _factory = new ModerationTestFactory();
+        _factory = new ModerationServiceTestFactory();
         _service = _factory.CreateModerationService();
     }
 
