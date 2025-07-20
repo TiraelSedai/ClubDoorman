@@ -85,3 +85,32 @@ jobs:
         SSH_USER: ${{ secrets.SSH_USER }}
         SERVER_IP: ${{ secrets.SERVER_IP }}
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Get Docker logs from server
+      id: get_logs
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -t rsa $SERVER_IP >> ~/.ssh/known_hosts
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "docker logs --tail 100 spampyre" > spampyre_logs.txt
+      env:
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Upload logs as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: spampyre-logs
+        path: spampyre_logs.txt
+
+    - name: Add logs to summary
+      run: |
+        echo '### Последние логи контейнера spampyre' >> $GITHUB_STEP_SUMMARY
+        echo '<details><summary>Показать логи</summary>' >> $GITHUB_STEP_SUMMARY
+        echo '' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat spampyre_logs.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo '</details>' >> $GITHUB_STEP_SUMMARY
