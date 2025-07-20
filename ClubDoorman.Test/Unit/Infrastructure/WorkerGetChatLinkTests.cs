@@ -5,8 +5,8 @@ using ClubDoorman.Services;
 namespace ClubDoorman.Test.Unit.Infrastructure;
 
 /// <summary>
-/// Тесты для метода GetChatLink в классе Worker
-/// Тестируем текущую реализацию перед рефакторингом
+/// Тесты для сервиса ChatLinkFormatter
+/// Проверяем корректность формирования ссылок для различных типов чатов
 /// </summary>
 [TestFixture]
 [Category("unit")]
