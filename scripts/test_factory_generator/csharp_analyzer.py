@@ -172,6 +172,12 @@ class CSharpAnalyzer:
         # Проверяем по списку известных интерфейсов
         return base_type in known_interfaces
     
+    def find_source_file(self, class_info: ClassInfo) -> Optional[Path]:
+        """Находит исходный файл для класса"""
+        if class_info.file_path:
+            return self.project_root / class_info.file_path
+        return None
+    
     def analyze_class_complexity(self, class_info: ClassInfo) -> ComplexityReport:
         """Анализирует сложность класса"""
         # Конвертируем ConstructorParam в dict для анализатора

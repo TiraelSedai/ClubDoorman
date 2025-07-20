@@ -1,11 +1,17 @@
+#!/usr/bin/env python3
 """
-Генератор TestDataFactory для доменных моделей
+Генератор тестовых данных для C# моделей
 """
 
 import re
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Optional
 from dataclasses import dataclass
+
+try:
+    from .models import ClassInfo
+except ImportError:
+    from models import ClassInfo
 
 
 @dataclass
@@ -13,14 +19,15 @@ class PropertyInfo:
     """Информация о свойстве модели"""
     name: str
     type: str
-    is_readonly: bool = False
-    is_required: bool = True
-    default_value: str = None
+    is_nullable: bool = False
+    is_collection: bool = False
+    is_enum: bool = False
+    enum_values: List[str] = None
 
 
 @dataclass
 class ModelInfo:
-    """Информация о доменной модели"""
+    """Информация о модели данных"""
     name: str
     namespace: str
     properties: List[PropertyInfo]
@@ -30,59 +37,64 @@ class ModelInfo:
 
 
 class TestDataGenerator:
-    """Генератор TestDataFactory для доменных моделей"""
+    """Генератор тестовых данных"""
     
-    def __init__(self, project_root: Path, test_project_root: Path):
-        self.project_root = Path(project_root)
-        self.test_project_root = Path(test_project_root)
-        self.models_dir = self.project_root / "ClubDoorman" / "Models"
-        self.test_data_dir = self.test_project_root / "TestData"
+    def __init__(self, models_dir: Path):
+        self.models_dir = models_dir
+        self.known_types = {
+            'string': 'string',
+            'int': 'int',
+            'long': 'long',
+            'double': 'double',
+            'float': 'float',
+            'bool': 'bool',
+            'DateTime': 'DateTime',
+            'User': 'User',
+            'Message': 'Message',
+            'Chat': 'Chat',
+            'Update': 'Update',
+            'CallbackQuery': 'CallbackQuery',
+            'ChatMemberUpdated': 'ChatMemberUpdated',
+            'ModerationResult': 'ModerationResult',
+            'ModerationAction': 'ModerationAction',
+            'SuspiciousUserInfo': 'SuspiciousUserInfo',
+            'CancellationTokenSource': 'CancellationTokenSource'
+        }
     
     def _parse_csharp_file(self, file_path: Path) -> List[ModelInfo]:
-        """Парсит C# файл и извлекает информацию о моделях"""
+        """Парсит C# файл и извлекает модели"""
         models = []
         
-        if not file_path.exists():
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except FileNotFoundError:
             return models
         
-        content = file_path.read_text(encoding='utf-8')
-        
-        # Ищем namespace
-        namespace_match = re.search(r'namespace\s+(\S+);', content)
-        namespace = namespace_match.group(1) if namespace_match else "ClubDoorman.Models"
-        
-        # Ищем record классы
-        record_pattern = r'public\s+(?:sealed\s+)?record\s+(\w+)\s*\(([^)]*)\)'
-        for match in re.finditer(record_pattern, content, re.MULTILINE | re.DOTALL):
+        # Поиск record'ов
+        record_pattern = r'record\s+(\w+)(?:<[^>]+>)?\s*\(([^)]*)\)'
+        for match in re.finditer(record_pattern, content):
             model_name = match.group(1)
             params_str = match.group(2)
             
             properties = self._parse_record_parameters(params_str)
             models.append(ModelInfo(
                 name=model_name,
-                namespace=namespace,
+                namespace=self._extract_namespace(content),
                 properties=properties,
                 is_record=True
             ))
         
-        # Ищем enum'ы
-        enum_pattern = r'public\s+enum\s+(\w+)\s*{([^}]*)}'
-        for match in re.finditer(enum_pattern, content, re.MULTILINE | re.DOTALL):
+        # Поиск enum'ов
+        enum_pattern = r'enum\s+(\w+)\s*\{([^}]*)\}'
+        for match in re.finditer(enum_pattern, content):
             enum_name = match.group(1)
             enum_content = match.group(2)
             
-            enum_values = []
-            for line in enum_content.split('\n'):
-                line = line.strip()
-                if line and not line.startswith('///'):
-                    # Извлекаем имя enum значения
-                    value_match = re.search(r'(\w+)', line)
-                    if value_match:
-                        enum_values.append(value_match.group(1))
-            
+            enum_values = self._parse_enum_values(enum_content)
             models.append(ModelInfo(
                 name=enum_name,
-                namespace=namespace,
+                namespace=self._extract_namespace(content),
                 properties=[],
                 is_enum=True,
                 enum_values=enum_values
@@ -91,7 +103,7 @@ class TestDataGenerator:
         return models
     
     def _parse_record_parameters(self, params_str: str) -> List[PropertyInfo]:
-        """Парсит параметры record конструктора"""
+        """Парсит параметры record'а"""
         properties = []
         
         if not params_str.strip():
@@ -138,80 +150,45 @@ class TestDataGenerator:
             if param_match:
                 prop_type = param_match.group(1)
                 prop_name = param_match.group(2)
-                default_value = param_match.group(3) if param_match.group(3) else None
                 
-                # Определяем, является ли свойство обязательным
-                is_required = default_value is None and not prop_type.endswith('?')
+                # Определяем характеристики типа
+                is_nullable = prop_type.endswith('?')
+                is_collection = 'List<' in prop_type or 'IEnumerable<' in prop_type
+                is_enum = prop_type in self.known_types and prop_type.endswith('Action')
                 
                 properties.append(PropertyInfo(
                     name=prop_name,
                     type=prop_type,
-                    is_required=is_required,
-                    default_value=default_value
+                    is_nullable=is_nullable,
+                    is_collection=is_collection,
+                    is_enum=is_enum
                 ))
         
         return properties
     
-    def _generate_test_data_methods(self, model: ModelInfo) -> str:
-        """Генерирует методы для создания тестовых данных модели"""
-        methods = []
+    def _parse_enum_values(self, enum_content: str) -> List[str]:
+        """Парсит значения enum'а"""
+        values = []
         
-        if model.is_enum:
-            # Для enum'ов создаем методы для каждого значения
-            for enum_value in model.enum_values:
-                methods.append(f"""
-    public static {model.name} Create{enum_value}{model.name}()
-    {{
-        return {model.name}.{enum_value};
-    }}""")
-        else:
-            # Для record'ов создаем методы создания
-            methods.append(f"""
-    public static {model.name} CreateValid{model.name}()
-    {{
-        return new {model.name}(
-{self._generate_constructor_parameters(model, "valid")}
-        );
-    }}""")
-            
-            # Создаем методы для edge cases
-            if any(p.type == 'string' for p in model.properties):
-                methods.append(f"""
-    public static {model.name} CreateEmpty{model.name}()
-    {{
-        return new {model.name}(
-{self._generate_constructor_parameters(model, "empty")}
-        );
-    }}""")
-            
-            if any(p.type == 'string' for p in model.properties):
-                methods.append(f"""
-    public static {model.name} CreateLong{model.name}()
-    {{
-        return new {model.name}(
-{self._generate_constructor_parameters(model, "long")}
-        );
-    }}""")
+        # Удаляем комментарии /// и разбиваем по строкам
+        lines = enum_content.split('\n')
         
-        return "\n".join(methods)
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('///'):
+                # Ищем значения enum'а
+                value_match = re.search(r'(\w+)(?:\s*=\s*\d+)?', line)
+                if value_match:
+                    value = value_match.group(1)
+                    if value not in ['enum', 'public', 'private', 'internal', 'Allow', 'Delete', 'Ban', 'Report', 'RequireManualReview']:
+                        values.append(value)
+        
+        return values
     
-    def _generate_constructor_parameters(self, model: ModelInfo, variant: str) -> str:
-        """Генерирует параметры конструктора для разных вариантов"""
-        params = []
-        
-        for prop in model.properties:
-            if variant == "valid":
-                value = self._get_valid_value(prop)
-            elif variant == "empty":
-                value = self._get_empty_value(prop)
-            elif variant == "long":
-                value = self._get_long_value(prop)
-            else:
-                value = self._get_valid_value(prop)
-            
-            params.append(f"            {value}")
-        
-        return ",\n".join(params)
+    def _extract_namespace(self, content: str) -> str:
+        """Извлекает namespace из содержимого файла"""
+        namespace_match = re.search(r'namespace\s+([^;\s]+)', content)
+        return namespace_match.group(1) if namespace_match else "ClubDoorman.Models"
     
     def _get_valid_value(self, prop: PropertyInfo) -> str:
         """Возвращает валидное значение для свойства"""
@@ -233,7 +210,7 @@ class TestDataGenerator:
             return "1"
         elif 'long' in prop_type:
             return "123456789"
-        elif 'double' in prop_type:
+        elif 'double' in prop_type or 'float' in prop_type:
             return "0.5"
         elif 'bool' in prop_type:
             return "false"
@@ -437,7 +414,7 @@ public static class TestDataFactory
     #region Domain Models
 """
         
-        # Добавляем методы для доменных моделей
+        # Добавляем методы для каждой модели
         for model in all_models:
             code += self._generate_test_data_methods(model)
         
@@ -448,19 +425,98 @@ public static class TestDataFactory
         
         return code
     
-    def save_test_data_factory(self, force_overwrite: bool = False):
-        """Сохраняет TestDataFactory в файл"""
-        factory_code = self.generate_test_data_factory()
+    def _generate_test_data_methods(self, model: ModelInfo) -> str:
+        """Генерирует методы для создания тестовых данных модели"""
+        methods = []
         
-        # Создаем директорию если не существует
-        self.test_data_dir.mkdir(parents=True, exist_ok=True)
+        if model.is_enum:
+            # Для enum'ов создаем методы для каждого значения
+            for enum_value in model.enum_values:
+                methods.append(f"""
+    public static {model.name} Create{enum_value}{model.name}()
+    {{
+        return {model.name}.{enum_value};
+    }}""")
+        else:
+            # Для record'ов создаем методы создания
+            methods.append(f"""
+    public static {model.name} CreateValid{model.name}()
+    {{
+        return new {model.name}(
+{self._generate_constructor_parameters(model, "valid")}
+        );
+    }}""")
+            
+            # Создаем методы для edge cases
+            if any(p.type == 'string' for p in model.properties):
+                methods.append(f"""
+    public static {model.name} CreateEmpty{model.name}()
+    {{
+        return new {model.name}(
+{self._generate_constructor_parameters(model, "empty")}
+        );
+    }}""")
+            
+            if any(p.type == 'string' for p in model.properties):
+                methods.append(f"""
+    public static {model.name} CreateLong{model.name}()
+    {{
+        return new {model.name}(
+{self._generate_constructor_parameters(model, "long")}
+        );
+    }}""")
         
-        file_path = self.test_data_dir / "TestDataFactory.cs"
+        return "\n".join(methods)
+    
+    def _generate_constructor_parameters(self, model: ModelInfo, value_type: str) -> str:
+        """Генерирует параметры конструктора"""
+        param_lines = []
         
-        if file_path.exists() and not force_overwrite:
-            print(f"⚠️  Файл {file_path} уже существует. Используйте --force для перезаписи.")
-            return False
+        for prop in model.properties:
+            if value_type == "valid":
+                value = self._get_valid_value(prop)
+            elif value_type == "empty":
+                value = self._get_empty_value(prop)
+            elif value_type == "long":
+                value = self._get_long_value(prop)
+            else:
+                value = self._get_valid_value(prop)
+            
+            param_lines.append(f"            {value}")
         
-        file_path.write_text(factory_code, encoding='utf-8')
-        print(f"✅ Создан: {file_path}")
-        return True 
+        return ",\n".join(param_lines)
+
+
+def test_test_data_generator():
+    """Тестирует генератор тестовых данных"""
+    print("🔧 Тестирование TestData Generator...")
+    
+    # Создаем временную модель для тестирования
+    models_dir = Path("../../ClubDoorman/Models")
+    
+    if not models_dir.exists():
+        print(f"❌ Папка {models_dir} не найдена")
+        return
+    
+    generator = TestDataGenerator(models_dir)
+    
+    # Генерируем TestDataFactory
+    factory_code = generator.generate_test_data_factory()
+    
+    print("✅ TestDataFactory сгенерирован:")
+    print("=" * 80)
+    print(factory_code)
+    print("=" * 80)
+    
+    # Сохраняем результат
+    output_file = Path("../../ClubDoorman.Test/TestData/TestDataFactory.Generated.cs")
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(factory_code)
+    
+    print(f"✅ Файл сохранен: {output_file}")
+
+
+if __name__ == "__main__":
+    test_test_data_generator() 

@@ -19,10 +19,10 @@ internal sealed class Worker(
     IUpdateDispatcher updateDispatcher,
     ICaptchaService captchaService,
     IStatisticsService statisticsService,
-    SpamHamClassifier classifier,
+    ISpamHamClassifier classifier,
     IUserManager userManager,
-    BadMessageManager badMessageManager,
-    AiChecks aiChecks,
+    IBadMessageManager badMessageManager,
+    IAiChecks aiChecks,
     IChatLinkFormatter chatLinkFormatter
 ) : BackgroundService
 {
@@ -36,10 +36,10 @@ internal sealed class Worker(
     private readonly IUpdateDispatcher _updateDispatcher = updateDispatcher;
     private readonly ICaptchaService _captchaService = captchaService;
     private readonly IStatisticsService _statisticsService = statisticsService;
-    private readonly SpamHamClassifier _classifier = classifier;
+    private readonly ISpamHamClassifier _classifier = classifier;
     private readonly IUserManager _userManager = userManager;
-    private readonly BadMessageManager _badMessageManager = badMessageManager;
-    private readonly AiChecks _aiChecks = aiChecks;
+    private readonly IBadMessageManager _badMessageManager = badMessageManager;
+    private readonly IAiChecks _aiChecks = aiChecks;
     private readonly IChatLinkFormatter _chatLinkFormatter = chatLinkFormatter;
     private readonly GlobalStatsManager _globalStatsManager = new();
     private User _me = default!;

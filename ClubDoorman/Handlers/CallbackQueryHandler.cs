@@ -16,9 +16,9 @@ public class CallbackQueryHandler : IUpdateHandler
     private readonly TelegramBotClient _bot;
     private readonly ICaptchaService _captchaService;
     private readonly IUserManager _userManager;
-    private readonly BadMessageManager _badMessageManager;
+    private readonly IBadMessageManager _badMessageManager;
     private readonly IStatisticsService _statisticsService;
-    private readonly AiChecks _aiChecks;
+    private readonly IAiChecks _aiChecks;
     private readonly IModerationService _moderationService;
     private readonly ILogger<CallbackQueryHandler> _logger;
 
@@ -26,9 +26,9 @@ public class CallbackQueryHandler : IUpdateHandler
         TelegramBotClient bot,
         ICaptchaService captchaService,
         IUserManager userManager,
-        BadMessageManager badMessageManager,
+        IBadMessageManager badMessageManager,
         IStatisticsService statisticsService,
-        AiChecks aiChecks,
+        IAiChecks aiChecks,
         IModerationService moderationService,
         ILogger<CallbackQueryHandler> logger)
     {
