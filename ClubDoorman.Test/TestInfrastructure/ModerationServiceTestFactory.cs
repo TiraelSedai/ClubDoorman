@@ -22,8 +22,8 @@ public class ModerationServiceTestFactory
     public Mock<IAiChecks> AiChecksMock { get; } = new();
     public Mock<ISuspiciousUsersStorage> SuspiciousUsersStorageMock { get; } = new();
     public Mock<ITelegramBotClient> BotClientMock { get; } = new();
+    public Mock<IMessageService> MessageServiceMock { get; } = new();
     public Mock<ILogger<ModerationService>> LoggerMock { get; } = new();
-    public FakeTelegramClient FakeTelegramClient { get; } = new();
 
     public ModerationService CreateModerationService()
     {
@@ -35,6 +35,7 @@ public class ModerationServiceTestFactory
             AiChecksMock.Object,
             SuspiciousUsersStorageMock.Object,
             BotClientMock.Object,
+            MessageServiceMock.Object,
             LoggerMock.Object
         );
     }
@@ -83,11 +84,41 @@ public class ModerationServiceTestFactory
         return this;
     }
 
+    public ModerationServiceTestFactory WithMessageServiceSetup(Action<Mock<IMessageService>> setup)
+    {
+        setup(MessageServiceMock);
+        return this;
+    }
+
     public ModerationServiceTestFactory WithLoggerSetup(Action<Mock<ILogger<ModerationService>>> setup)
     {
         setup(LoggerMock);
         return this;
     }
 
+    #endregion
+
+    #region Smart Methods Based on Business Logic
+
+    public FakeTelegramClient FakeTelegramClient => new FakeTelegramClient();
+    
+    public Mock<ITelegramBotClientWrapper> TelegramBotClientWrapperMock => new Mock<ITelegramBotClientWrapper>();
+
+    public IUserManager CreateUserManagerWithFake()
+    {
+        return new Mock<IUserManager>().Object;
+    }
+
+    public async Task<ModerationService> CreateAsync()
+    {
+        return await Task.FromResult(CreateModerationService());
+    }
+
+    public SpamHamClassifier CreateMockSpamHamClassifier()
+    {
+        return new SpamHamClassifier(
+            new Mock<ILogger<SpamHamClassifier>>().Object
+        );
+    }
     #endregion
 }

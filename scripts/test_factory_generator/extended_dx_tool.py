@@ -9,10 +9,10 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 
 try:
-    from .csharp_analyzer import CSharpAnalyzer
-    from .factory_generator import TestFactoryGenerator
-    from .complexity_analyzer import ComplexityAnalyzer
-    from .test_data_generator import TestDataGenerator
+    from csharp_analyzer import CSharpAnalyzer
+    from factory_generator import TestFactoryGenerator
+    from complexity_analyzer import ComplexityAnalyzer
+    from test_data_generator import TestDataGenerator
     from .mock_scenario_generator import MockScenarioGenerator
     from .models import ClassInfo
 except ImportError:

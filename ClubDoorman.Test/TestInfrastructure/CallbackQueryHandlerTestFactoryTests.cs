@@ -59,6 +59,17 @@ public class CallbackQueryHandlerTestFactoryTests
     }
 
     [Test]
+    public void BotMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new CallbackQueryHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BotMock, Is.Not.Null);
+        Assert.That(factory.BotMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void CaptchaServiceMock_IsProperlyConfigured()
     {
         // Arrange
@@ -81,6 +92,17 @@ public class CallbackQueryHandlerTestFactoryTests
     }
 
     [Test]
+    public void BadMessageManagerMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new CallbackQueryHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BadMessageManagerMock, Is.Not.Null);
+        Assert.That(factory.BadMessageManagerMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void StatisticsServiceMock_IsProperlyConfigured()
     {
         // Arrange
@@ -89,6 +111,17 @@ public class CallbackQueryHandlerTestFactoryTests
         // Act & Assert
         Assert.That(factory.StatisticsServiceMock, Is.Not.Null);
         Assert.That(factory.StatisticsServiceMock.Object, Is.Not.Null);
+    }
+
+    [Test]
+    public void AiChecksMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new CallbackQueryHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.AiChecksMock, Is.Not.Null);
+        Assert.That(factory.AiChecksMock.Object, Is.Not.Null);
     }
 
     [Test]

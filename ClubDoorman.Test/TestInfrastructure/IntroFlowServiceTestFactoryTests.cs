@@ -58,6 +58,17 @@ public class IntroFlowServiceTestFactoryTests
     }
 
     [Test]
+    public void BotMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new IntroFlowServiceTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BotMock, Is.Not.Null);
+        Assert.That(factory.BotMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void LoggerMock_IsProperlyConfigured()
     {
         // Arrange
@@ -88,6 +99,17 @@ public class IntroFlowServiceTestFactoryTests
         // Act & Assert
         Assert.That(factory.UserManagerMock, Is.Not.Null);
         Assert.That(factory.UserManagerMock.Object, Is.Not.Null);
+    }
+
+    [Test]
+    public void AiChecksMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new IntroFlowServiceTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.AiChecksMock, Is.Not.Null);
+        Assert.That(factory.AiChecksMock.Object, Is.Not.Null);
     }
 
     [Test]

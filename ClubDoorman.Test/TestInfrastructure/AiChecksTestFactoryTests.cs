@@ -58,6 +58,17 @@ public class AiChecksTestFactoryTests
     }
 
     [Test]
+    public void BotMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new AiChecksTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BotMock, Is.Not.Null);
+        Assert.That(factory.BotMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void LoggerMock_IsProperlyConfigured()
     {
         // Arrange

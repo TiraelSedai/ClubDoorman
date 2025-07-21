@@ -1,4 +1,32 @@
 {
-  "-1001234567890": { "type": "announcement" },
-  "-1009876543210": { "type": "default" }
-} 
+  "-1001234567890": {
+    "type": "announcement"
+  },
+  "-1009876543210": {
+    "type": "default"
+  },
+  "306157325": {
+    "type": "default",
+    "title": ""
+  },
+  "-4743852353": {
+    "type": "default",
+    "title": "test_group_001"
+  },
+  "-1002867169174": {
+    "type": "default",
+    "title": "test_group_001"
+  },
+  "-1002584726598": {
+    "type": "default",
+    "title": "Test_c#_bot_Admin"
+  },
+  "-4881744366": {
+    "type": "default",
+    "title": "test_c#_bot"
+  },
+  "-4829729373": {
+    "type": "default",
+    "title": "test_c#_bot_Log"
+  }
+}

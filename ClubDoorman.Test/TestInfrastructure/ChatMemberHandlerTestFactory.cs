@@ -16,20 +16,30 @@ namespace ClubDoorman.TestInfrastructure;
 [Category("test-infrastructure")]
 public class ChatMemberHandlerTestFactory
 {
+    public Mock<ITelegramBotClientWrapper> BotMock { get; } = new();
     public Mock<IUserManager> UserManagerMock { get; } = new();
     public Mock<ILogger<ChatMemberHandler>> LoggerMock { get; } = new();
+
+    public Mock<IMessageService> MessageServiceMock { get; } = new();
 
     public ChatMemberHandler CreateChatMemberHandler()
     {
         return new ChatMemberHandler(
-            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
+            BotMock.Object,
             UserManagerMock.Object,
             LoggerMock.Object,
-            new IntroFlowService(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<IntroFlowService>(), new Mock<ICaptchaService>().Object, new Mock<IUserManager>().Object, new AiChecks(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<AiChecks>()), new Mock<IStatisticsService>().Object, new GlobalStatsManager(), new Mock<IModerationService>().Object)
+            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object),
+            MessageServiceMock.Object
         );
     }
 
     #region Configuration Methods
+
+    public ChatMemberHandlerTestFactory WithBotSetup(Action<Mock<ITelegramBotClientWrapper>> setup)
+    {
+        setup(BotMock);
+        return this;
+    }
 
     public ChatMemberHandlerTestFactory WithUserManagerSetup(Action<Mock<IUserManager>> setup)
     {
@@ -43,5 +53,50 @@ public class ChatMemberHandlerTestFactory
         return this;
     }
 
+    public ChatMemberHandlerTestFactory WithMessageServiceSetup(Action<Mock<IMessageService>> setup)
+    {
+        setup(MessageServiceMock);
+        return this;
+    }
+
+    #endregion
+
+    #region Smart Methods Based on Business Logic
+
+    public FakeTelegramClient FakeTelegramClient => new FakeTelegramClient();
+    
+    public Mock<ITelegramBotClientWrapper> TelegramBotClientWrapperMock => new Mock<ITelegramBotClientWrapper>();
+
+    public ModerationService CreateModerationServiceWithFake()
+    {
+        return new ModerationService(
+            new Mock<ISpamHamClassifier>().Object,
+            new Mock<IMimicryClassifier>().Object,
+            new Mock<IBadMessageManager>().Object,
+            new Mock<IUserManager>().Object,
+            new Mock<IAiChecks>().Object,
+            new Mock<ISuspiciousUsersStorage>().Object,
+            new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
+            new Mock<ILogger<ModerationService>>().Object
+        );
+    }
+
+    public IUserManager CreateUserManagerWithFake()
+    {
+        return new Mock<IUserManager>().Object;
+    }
+
+    public async Task<ChatMemberHandler> CreateAsync()
+    {
+        return await Task.FromResult(CreateChatMemberHandler());
+    }
+
+    public SpamHamClassifier CreateMockSpamHamClassifier()
+    {
+        return new SpamHamClassifier(
+            new Mock<ILogger<SpamHamClassifier>>().Object
+        );
+    }
     #endregion
 }
