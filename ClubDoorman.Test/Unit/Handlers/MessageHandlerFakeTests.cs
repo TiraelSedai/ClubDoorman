@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Telegram.Bot.Types;
+using Telegram.Bot;
 using Moq;
 using Microsoft.Extensions.Logging;
 using ClubDoorman.Models;
@@ -253,7 +254,12 @@ public class MessageHandlerFakeTests
         var message = MessageTestData.StartCommand();
 
         // Настройка ServiceProvider для команд
-        var mockStartCommandHandler = new Mock<StartCommandHandler>(MockBehavior.Loose, null, null);
+        var mockStartCommandHandler = new Mock<StartCommandHandler>(
+            MockBehavior.Loose, 
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
+            NullLogger<StartCommandHandler>.Instance,
+            new Mock<IMessageService>().Object
+        );
         _factory.ServiceProviderMock
             .Setup(x => x.GetService(typeof(StartCommandHandler)))
             .Returns(mockStartCommandHandler.Object);

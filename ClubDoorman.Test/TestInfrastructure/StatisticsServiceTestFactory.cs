@@ -66,6 +66,7 @@ public class StatisticsServiceTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }
@@ -74,7 +75,8 @@ public class StatisticsServiceTestFactory
     {
         return new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
-            new Mock<ILogger<CaptchaService>>().Object
+            new Mock<ILogger<CaptchaService>>().Object,
+            new Mock<IMessageService>().Object
         );
     }
 

@@ -1,5 +1,6 @@
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
+using ClubDoorman.Models.Notifications;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -13,6 +14,7 @@ public class SuspiciousCommandHandler : ICommandHandler
 {
     private readonly ITelegramBotClientWrapper _bot;
     private readonly IModerationService _moderationService;
+    private readonly IMessageService _messageService;
     private readonly ILogger<SuspiciousCommandHandler> _logger;
 
     public string CommandName => "suspicious";
@@ -20,10 +22,12 @@ public class SuspiciousCommandHandler : ICommandHandler
     public SuspiciousCommandHandler(
         ITelegramBotClientWrapper bot, 
         IModerationService moderationService,
+        IMessageService messageService,
         ILogger<SuspiciousCommandHandler> logger)
     {
         _bot = bot;
         _moderationService = moderationService;
+        _messageService = messageService;
         _logger = logger;
     }
 
@@ -63,10 +67,12 @@ public class SuspiciousCommandHandler : ICommandHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при обработке команды /suspicious {SubCommand}", subCommand);
-            await _bot.SendMessage(
-                message.Chat.Id,
-                "❌ Произошла ошибка при выполнении команды",
-                cancellationToken: cancellationToken
+            await _messageService.SendUserNotificationAsync(
+                message.From!,
+                message.Chat,
+                UserNotificationType.Warning,
+                new SimpleNotificationData(message.From!, message.Chat, "Произошла ошибка при выполнении команды"),
+                cancellationToken
             );
         }
     }
@@ -95,11 +101,10 @@ public class SuspiciousCommandHandler : ICommandHandler
             $"• `/suspicious ban <userId> <chatId>` - забанить пользователя\n" +
             $"• `/suspicious cleanup <userId> <chatId>` - очистить из всех списков";
 
-        await _bot.SendMessage(
-            message.Chat.Id,
-            statusMessage,
-            parseMode: ParseMode.Markdown,
-            cancellationToken: cancellationToken
+        await _messageService.SendAdminNotificationAsync(
+            AdminNotificationType.SystemInfo,
+            new SimpleNotificationData(message.From!, message.Chat, statusMessage),
+            cancellationToken
         );
 
         _logger.LogInformation("Отправлена статистика подозрительных пользователей в админ-чат");
@@ -111,12 +116,10 @@ public class SuspiciousCommandHandler : ICommandHandler
 
         if (aiDetectUsers.Count == 0)
         {
-            await _bot.SendMessage(
-                message.Chat.Id,
-                "📝 *Список пользователей с AI детектом*\n\n" +
-                "Нет пользователей с включенным AI детектом.",
-                parseMode: ParseMode.Markdown,
-                cancellationToken: cancellationToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.SystemInfo,
+                new SimpleNotificationData(message.From!, message.Chat, "📝 *Список пользователей с AI детектом*\n\nНет пользователей с включенным AI детектом."),
+                cancellationToken
             );
             return;
         }
@@ -134,11 +137,10 @@ public class SuspiciousCommandHandler : ICommandHandler
             listText += $"\n... и ещё {aiDetectUsers.Count - 10} пользователей";
         }
 
-        await _bot.SendMessage(
-            message.Chat.Id,
-            listText,
-            parseMode: ParseMode.Markdown,
-            cancellationToken: cancellationToken
+        await _messageService.SendAdminNotificationAsync(
+            AdminNotificationType.SystemInfo,
+            new SimpleNotificationData(message.From!, message.Chat, listText),
+            cancellationToken
         );
 
         _logger.LogInformation("Отправлен список пользователей с AI детектом в админ-чат");
@@ -159,11 +161,10 @@ public class SuspiciousCommandHandler : ICommandHandler
 Для особо подозрительных пользователей администраторы могут включить AI детект, который будет пересылать все их сообщения в админ-чат для ручного анализа.
 """;
 
-        await _bot.SendMessage(
-            message.Chat.Id,
-            helpText,
-            parseMode: ParseMode.Markdown,
-            cancellationToken: cancellationToken
+        await _messageService.SendAdminNotificationAsync(
+            AdminNotificationType.SystemInfo,
+            new SimpleNotificationData(message.From!, message.Chat, helpText),
+            cancellationToken
         );
     }
 } 

@@ -20,13 +20,16 @@ public class ChatMemberHandlerTestFactory
     public Mock<IUserManager> UserManagerMock { get; } = new();
     public Mock<ILogger<ChatMemberHandler>> LoggerMock { get; } = new();
 
+    public Mock<IMessageService> MessageServiceMock { get; } = new();
+
     public ChatMemberHandler CreateChatMemberHandler()
     {
         return new ChatMemberHandler(
             BotMock.Object,
             UserManagerMock.Object,
             LoggerMock.Object,
-            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object)
+            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object),
+            MessageServiceMock.Object
         );
     }
 
@@ -50,6 +53,12 @@ public class ChatMemberHandlerTestFactory
         return this;
     }
 
+    public ChatMemberHandlerTestFactory WithMessageServiceSetup(Action<Mock<IMessageService>> setup)
+    {
+        setup(MessageServiceMock);
+        return this;
+    }
+
     #endregion
 
     #region Smart Methods Based on Business Logic
@@ -68,6 +77,7 @@ public class ChatMemberHandlerTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }

@@ -86,4 +86,39 @@ public interface IUserFlowLogger
     /// Логирует ограничение пользователя
     /// </summary>
     void LogUserRestricted(User user, Chat chat, string reason, TimeSpan? duration = null);
+    
+    /// <summary>
+    /// Логирует удаление пользователя из списка одобренных
+    /// </summary>
+    void LogUserRemovedFromApproved(User user, Chat chat, string reason);
+    
+    /// <summary>
+    /// Логирует добавление пользователя в список одобренных
+    /// </summary>
+    void LogUserAddedToApproved(User user, Chat chat, string reason);
+    
+    /// <summary>
+    /// Логирует пометку пользователя как подозрительного
+    /// </summary>
+    void LogUserMarkedAsSuspicious(User user, Chat chat, double mimicryScore, List<string> firstMessages);
+    
+    /// <summary>
+    /// Логирует удаление пользователя из подозрительных
+    /// </summary>
+    void LogUserRemovedFromSuspicious(User user, Chat chat, string reason);
+    
+    /// <summary>
+    /// Логирует AI анализ профиля
+    /// </summary>
+    void LogAiProfileAnalysis(User user, Chat chat, double spamProbability, string reason);
+    
+    /// <summary>
+    /// Логирует сообщение от канала
+    /// </summary>
+    void LogChannelMessage(Chat senderChat, Chat targetChat, string messageText);
+    
+    /// <summary>
+    /// Логирует системную ошибку
+    /// </summary>
+    void LogSystemError(Exception exception, string context, User? user = null, Chat? chat = null);
 } 

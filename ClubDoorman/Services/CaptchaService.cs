@@ -16,6 +16,7 @@ public class CaptchaService : ICaptchaService
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
     private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<CaptchaService> _logger;
+    private readonly IMessageService _messageService;
 
     // Черный список имен для отображения
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
@@ -25,10 +26,11 @@ public class CaptchaService : ICaptchaService
     /// </summary>
     /// <param name="bot">Клиент Telegram бота</param>
     /// <param name="logger">Логгер для записи событий</param>
-    public CaptchaService(ITelegramBotClientWrapper bot, ILogger<CaptchaService> logger)
+    public CaptchaService(ITelegramBotClientWrapper bot, ILogger<CaptchaService> logger, IMessageService messageService)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
     }
 
     /// <summary>
@@ -89,12 +91,12 @@ public class CaptchaService : ICaptchaService
         Message captchaMessage;
         try
         {
-            captchaMessage = await _bot.SendMessageAsync(
-                chat.Id,
+            captchaMessage = await _messageService.SendCaptchaMessageAsync(
+                chat,
                 welcomeMessage,
-                parseMode: ParseMode.Html,
-                replyParameters: replyParams,
-                replyMarkup: new InlineKeyboardMarkup(keyboard)
+                replyParams,
+                new InlineKeyboardMarkup(keyboard),
+                cancellationToken: default
             );
         }
         catch (Exception ex)

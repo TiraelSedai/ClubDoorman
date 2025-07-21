@@ -11,6 +11,7 @@ using System.Text.Json;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
 using ClubDoorman.Models;
+using ClubDoorman.Models.Notifications;
 
 namespace ClubDoorman;
 
@@ -24,7 +25,8 @@ internal sealed class Worker(
     IBadMessageManager badMessageManager,
     IAiChecks aiChecks,
     IChatLinkFormatter chatLinkFormatter,
-    ITelegramBotClientWrapper bot
+    ITelegramBotClientWrapper bot,
+    IMessageService messageService
 ) : BackgroundService
 {
     // Классы CaptchaInfo и Stats перенесены в Models
@@ -42,6 +44,7 @@ internal sealed class Worker(
     private readonly IBadMessageManager _badMessageManager = badMessageManager;
     private readonly IAiChecks _aiChecks = aiChecks;
     private readonly IChatLinkFormatter _chatLinkFormatter = chatLinkFormatter;
+    private readonly IMessageService _messageService = messageService;
     private readonly GlobalStatsManager _globalStatsManager = new();
     private User _me = default!;
     
@@ -216,21 +219,20 @@ internal sealed class Worker(
             message.MessageId,
             cancellationToken: stoppingToken
         );
-        await _bot.SendMessage(
-            Config.AdminChatId,
-            $"Авто-бан: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
-            replyParameters: forward,
-            cancellationToken: stoppingToken
+        await _messageService.SendAdminNotificationAsync(
+            AdminNotificationType.AutoBan,
+            new AutoBanNotificationData(user, message.Chat, "Авто-бан", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId)),
+            stoppingToken
         );
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
         _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
         if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
         {
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана",
-                cancellationToken: stoppingToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.UserCleanup,
+                new UserCleanupNotificationData(user, message.Chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана"),
+                stoppingToken
             );
         }
     }
@@ -249,11 +251,10 @@ internal sealed class Worker(
                 cancellationToken: stoppingToken
             );
             
-            await _bot.SendMessage(
-                Config.LogAdminChatId,
-                $"🚫 Автобан из блэклиста: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}{LinkToMessage(message.Chat, message.MessageId)}",
-                replyParameters: forward,
-                cancellationToken: stoppingToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.AutoBan,
+                new AutoBanNotificationData(user, message.Chat, "Автобан из блэклиста", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId)),
+                stoppingToken
             );
         }
         catch (Exception e)
@@ -288,10 +289,10 @@ internal sealed class Worker(
         // Удаляем из списка одобренных
         if (_userManager.RemoveApproval(user.Id))
         {
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана по блэклисту",
-                cancellationToken: stoppingToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.UserCleanup,
+                new UserCleanupNotificationData(user, message.Chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана по блэклисту"),
+                stoppingToken
             );
         }
         
@@ -310,10 +311,10 @@ internal sealed class Worker(
             _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
             if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
             {
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"⚠️ Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана за спам",
-                    cancellationToken: stoppingToken
+                await _messageService.SendAdminNotificationAsync(
+                    AdminNotificationType.UserCleanup,
+                    new UserCleanupNotificationData(user, message.Chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана за спам"),
+                    stoppingToken
                 );
             }
         }
@@ -350,7 +351,11 @@ internal sealed class Worker(
                 var report = await _statisticsService.GenerateReportAsync();
                 _statisticsService.ClearStats();
                 
-                await _bot.SendMessage(Config.AdminChatId, report, parseMode: ParseMode.Markdown, cancellationToken: ct);
+                await _messageService.SendAdminNotificationAsync(
+                    AdminNotificationType.SystemInfo,
+                    new SimpleNotificationData(new User { Id = 0, FirstName = "System" }, new Chat { Id = Config.AdminChatId, Title = "Admin" }, report),
+                    ct
+                );
             }
             catch (Exception e)
             {
@@ -381,150 +386,7 @@ internal sealed class Worker(
 
     private static string LinkToGroupWithNameMessage(Chat chat, long messageId) => $"https://t.me/{chat.Username}/{messageId}";
 
-    private async Task AdminChatMessage(Message message)
-    {
-        if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" })
-        {
-            if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardDate == null)
-            {
-                await _bot.SendMessage(
-                    message.Chat.Id,
-                    "⚠️ Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
-                    replyParameters: replyToMessage
-                );
-                return;
-            }
-            var text = replyToMessage.Text ?? replyToMessage.Caption;
-            _logger.LogDebug("Админская команда {Command}: извлечен текст='{Text}' (длина={Length})", 
-                message.Text, string.IsNullOrWhiteSpace(text) ? "[ПУСТОЙ]" : text.Length > 100 ? text.Substring(0, 100) + "..." : text, 
-                text?.Length ?? 0);
-                
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                switch (message.Text)
-                {
-                    case "/check":
-                    {
-                        var emojis = SimpleFilters.TooManyEmojis(text);
-                        var normalized = TextProcessor.NormalizeText(text);
-                        var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-                        var hasStopWords = SimpleFilters.HasStopWords(normalized);
-                        var (spam, score) = await _classifier.IsSpam(normalized);
-                        var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
-                        var msg =
-                            $"*Результат проверки:*\n"
-                            + $"• Много эмодзи: *{emojis}*\n"
-                            + $"• Найдены стоп-слова: *{hasStopWords}*\n"
-                            + $"• Маскирующиеся слова: *{lookAlikeMsg}*\n"
-                            + $"• ML классификатор: спам *{spam}*, скор *{score}*\n\n"
-                            + $"_Если простые фильтры отработали, то в датасет добавлять не нужно_";
-                        await _bot.SendMessage(message.Chat, msg, parseMode: ParseMode.Markdown);
-                        break;
-                    }
-                    case "/spam":
-                        _logger.LogInformation("🔥 Обрабатываем команду /spam для текста: '{Text}'", text);
-                        await _classifier.AddSpam(text);
-                        await _badMessageManager.MarkAsBad(text);
-                        await _bot.SendMessage(
-                            message.Chat.Id,
-                            "✅ Сообщение добавлено как пример спама в датасет, а также в список авто-бана",
-                            replyParameters: replyToMessage
-                        );
-                        _logger.LogInformation("✅ Команда /spam успешно выполнена");
-                        break;
-                    case "/ham":
-                        _logger.LogInformation("✅ Обрабатываем команду /ham для текста: '{Text}'", text);
-                        await _classifier.AddHam(text);
-                        await _bot.SendMessage(
-                            message.Chat.Id,
-                            "✅ Сообщение добавлено как пример НЕ-спама в датасет",
-                            replyParameters: replyToMessage
-                        );
-                        _logger.LogInformation("✅ Команда /ham успешно выполнена");
-                        break;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("❌ Команда {Command} не выполнена: текст сообщения пустой или отсутствует", message.Text);
-                await _bot.SendMessage(
-                    message.Chat.Id,
-                    "⚠️ Не могу выполнить команду: сообщение не содержит текста",
-                    replyParameters: replyToMessage
-                );
-            }
-        }
-        // Команда статистики по группам
-        else if (message.Text?.Trim().ToLower() == "/stat" || message.Text?.Trim().ToLower() == "/stats")
-        {
-            var report = _statisticsService.GetAllStats();
-            var sb = new StringBuilder();
-            sb.AppendLine("📊 *Статистика по группам:*\n");
-            foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
-            {
-                var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.LongNameBanned;
-                if (sum == 0) continue;
-                Chat? chat = null;
-                try { chat = await _bot.GetChat(chatId); } catch { }
-                sb.AppendLine();
-                if (chat != null)
-                    sb.AppendLine($"{_chatLinkFormatter.GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
-                else
-                    sb.AppendLine($"{_chatLinkFormatter.GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
-                sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
-                if (stats.BlacklistBanned > 0)
-                    sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
-                if (stats.StoppedCaptcha > 0)
-                    sb.AppendLine($"▫️ Не прошли капчу: *{stats.StoppedCaptcha}*");
-                if (stats.KnownBadMessage > 0)
-                    sb.AppendLine($"▫️ Известные спам-сообщения: *{stats.KnownBadMessage}*");
-                if (stats.LongNameBanned > 0)
-                    sb.AppendLine($"▫️ За длинные имена: *{stats.LongNameBanned}*");
-            }
-            if (sb.Length <= 35)
-                sb.AppendLine("\nНичего интересного не произошло 🎉");
-                            await _bot.SendMessage(message.Chat, sb.ToString(), parseMode: ParseMode.Markdown);
-            return;
-        }
-        // Добавляю обработку команды /say
-        if (message.Text != null && message.Text.StartsWith("/say "))
-        {
-            var parts = message.Text.Split(' ', 3);
-            if (parts.Length < 3)
-            {
-                await _bot.SendMessage(message.Chat, "Формат: /say @username сообщение или /say user_id сообщение");
-                return;
-            }
-            var target = parts[1];
-            var textToSend = parts[2];
-            long? userId = null;
-            if (target.StartsWith("@"))
-            {
-                // Пробуем найти userId по username среди недавних пользователей (по кэшу)
-                // Если нет — не отправляем
-                userId = TryFindUserIdByUsername(target.Substring(1));
-            }
-            else if (long.TryParse(target, out var id))
-            {
-                userId = id;
-            }
-            if (userId == null)
-            {
-                await _bot.SendMessage(message.Chat, $"Не удалось найти пользователя {target}. Сообщение не отправлено.");
-                return;
-            }
-            try
-            {
-                await _bot.SendMessage(userId.Value, textToSend, parseMode: ParseMode.Markdown);
-                await _bot.SendMessage(message.Chat, $"Сообщение отправлено пользователю {target}");
-            }
-            catch (Exception ex)
-            {
-                await _bot.SendMessage(message.Chat, $"Не удалось доставить сообщение пользователю {target}: {ex.Message}");
-            }
-            return;
-        }
-    }
+
 
     // Вспомогательная функция для поиска userId по username среди недавних пользователей (по кэшу)
     private long? TryFindUserIdByUsername(string username)

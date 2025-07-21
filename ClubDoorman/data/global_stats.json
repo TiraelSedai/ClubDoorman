@@ -3,8 +3,8 @@
   "Chats": {
     "-1002867169174": {
       "Title": "test_group_001",
-      "Members": 0,
-      "CaptchaShown": 0,
+      "Members": 4,
+      "CaptchaShown": 1,
       "Bans": 1
     }
   }

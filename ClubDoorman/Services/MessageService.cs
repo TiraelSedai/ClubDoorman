@@ -1,7 +1,10 @@
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Logging;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
+using System.Runtime.Caching;
 
 namespace ClubDoorman.Services;
 
@@ -13,37 +16,70 @@ public class MessageService : IMessageService
     private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<MessageService> _logger;
     private readonly MessageTemplates _templates;
+    private readonly ILoggingConfigurationService _configService;
     
     public MessageService(
         ITelegramBotClientWrapper bot,
         ILogger<MessageService> logger,
-        MessageTemplates templates)
+        MessageTemplates templates,
+        ILoggingConfigurationService configService)
     {
         _bot = bot;
         _logger = logger;
         _templates = templates;
+        _configService = configService;
     }
     
     public async Task SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken = default)
     {
         try
         {
-            var template = _templates.GetAdminTemplate(type);
-            var message = _templates.FormatNotificationTemplate(template, data);
+            var destinations = _configService.GetAdminNotificationDestinations(type);
             
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                message,
-                parseMode: ParseMode.Markdown,
-                cancellationToken: cancellationToken
-            );
-            
-            _logger.LogDebug("Отправлено админское уведомление типа {Type} для пользователя {User}", 
-                type, Utils.FullName(data.User));
+            // Проверяем, нужно ли отправлять в админский чат
+            if (destinations.HasFlag(NotificationDestination.AdminChat) && _configService.ShouldSendNotification(type.ToString(), NotificationDestination.AdminChat))
+            {
+                // Проверяем, что админский чат настроен корректно
+                var adminChatEnv = Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT");
+                if (string.IsNullOrEmpty(adminChatEnv))
+                {
+                    _logger.LogWarning("Админский чат не настроен (переменная DOORMAN_ADMIN_CHAT не установлена)");
+                    return;
+                }
+                
+                // Диагностика: проверяем доступность чата
+                try
+                {
+                    var chatInfo = await _bot.GetChat(Config.AdminChatId, cancellationToken);
+                    _logger.LogDebug("Админский чат доступен: {ChatTitle} (ID: {ChatId})", chatInfo.Title, chatInfo.Id);
+                }
+                catch (Exception chatEx)
+                {
+                    _logger.LogError(chatEx, "Не удается получить информацию об админском чате {ChatId}", Config.AdminChatId);
+                    return;
+                }
+                
+                var template = _templates.GetAdminTemplate(type);
+                var message = _templates.FormatNotificationTemplate(template, data);
+                
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    message,
+                    parseMode: ParseMode.Markdown,
+                    cancellationToken: cancellationToken
+                );
+                
+                _logger.LogDebug("Отправлено админское уведомление типа {Type} для пользователя {User}", 
+                    type, Utils.FullName(data.User));
+            }
+            else
+            {
+                _logger.LogDebug("Админское уведомление типа {Type} пропущено согласно конфигурации", type);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отправке админского уведомления типа {Type}", type);
+            _logger.LogError(ex, "Ошибка при отправке админского уведомления типа {Type} в чат {ChatId}", type, Config.AdminChatId);
         }
     }
     
@@ -51,22 +87,52 @@ public class MessageService : IMessageService
     {
         try
         {
-            var template = _templates.GetLogTemplate(type);
-            var message = _templates.FormatNotificationTemplate(template, data);
+            var destinations = _configService.GetLogNotificationDestinations(type);
             
-            await _bot.SendMessage(
-                Config.LogAdminChatId,
-                message,
-                parseMode: ParseMode.Markdown,
-                cancellationToken: cancellationToken
-            );
-            
-            _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User}", 
-                type, Utils.FullName(data.User));
+            // Проверяем, нужно ли отправлять в лог-чат
+            if (destinations.HasFlag(NotificationDestination.LogChat) && _configService.ShouldSendNotification(type.ToString(), NotificationDestination.LogChat))
+            {
+                // Проверяем, что лог-чат настроен корректно
+                var logChatEnv = Environment.GetEnvironmentVariable("DOORMAN_LOG_ADMIN_CHAT");
+                if (string.IsNullOrEmpty(logChatEnv))
+                {
+                    _logger.LogWarning("Лог-чат не настроен (переменная DOORMAN_LOG_ADMIN_CHAT не установлена)");
+                    return;
+                }
+                
+                // Диагностика: проверяем доступность чата
+                try
+                {
+                    var chatInfo = await _bot.GetChat(Config.LogAdminChatId, cancellationToken);
+                    _logger.LogDebug("Лог-чат доступен: {ChatTitle} (ID: {ChatId})", chatInfo.Title, chatInfo.Id);
+                }
+                catch (Exception chatEx)
+                {
+                    _logger.LogError(chatEx, "Не удается получить информацию о лог-чате {ChatId}", Config.LogAdminChatId);
+                    return;
+                }
+                
+                var template = _templates.GetLogTemplate(type);
+                var message = _templates.FormatNotificationTemplate(template, data);
+                
+                await _bot.SendMessage(
+                    Config.LogAdminChatId,
+                    message,
+                    parseMode: ParseMode.Markdown,
+                    cancellationToken: cancellationToken
+                );
+                
+                _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User}", 
+                    type, Utils.FullName(data.User));
+            }
+            else
+            {
+                _logger.LogDebug("Лог-уведомление типа {Type} пропущено согласно конфигурации", type);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отправке лог-уведомления типа {Type}", type);
+            _logger.LogError(ex, "Ошибка при отправке лог-уведомления типа {Type} в чат {ChatId}", type, Config.LogAdminChatId);
         }
     }
     
@@ -77,10 +143,19 @@ public class MessageService : IMessageService
             var template = _templates.GetUserTemplate(type);
             var message = _templates.FormatTemplate(template, data);
             
+            // Для команды /start используем HTML разметку, для системной информации - Markdown, для капчи - HTML
+            var parseMode = type switch
+            {
+                UserNotificationType.Welcome => ParseMode.Html,
+                UserNotificationType.SystemInfo => ParseMode.Markdown,
+                UserNotificationType.CaptchaWelcome => ParseMode.Html,
+                _ => ParseMode.MarkdownV2
+            };
+            
             await _bot.SendMessage(
                 chat.Id,
                 message,
-                parseMode: ParseMode.MarkdownV2,
+                parseMode: parseMode,
                 cancellationToken: cancellationToken
             );
             
@@ -91,6 +166,52 @@ public class MessageService : IMessageService
         {
             _logger.LogError(ex, "Ошибка при отправке пользовательского уведомления типа {Type} пользователю {User}", 
                 type, Utils.FullName(user));
+        }
+    }
+    
+    public async Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var template = _templates.GetUserTemplate(type);
+            string message;
+            
+            // Если data является NotificationData, используем FormatNotificationTemplate
+            if (data is NotificationData notificationData)
+            {
+                message = _templates.FormatNotificationTemplate(template, notificationData);
+            }
+            else
+            {
+                message = _templates.FormatTemplate(template, data);
+            }
+            
+            // Для команды /start используем HTML разметку, для системной информации - Markdown, для капчи - HTML
+            var parseMode = type switch
+            {
+                UserNotificationType.Welcome => ParseMode.Html,
+                UserNotificationType.SystemInfo => ParseMode.Markdown,
+                UserNotificationType.CaptchaWelcome => ParseMode.Html,
+                _ => ParseMode.MarkdownV2
+            };
+            
+            var sentMessage = await _bot.SendMessage(
+                chat.Id,
+                message,
+                parseMode: parseMode,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Отправлено пользовательское уведомление типа {Type} пользователю {User} в чате {Chat}", 
+                type, Utils.FullName(user), chat.Title);
+            
+            return sentMessage;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке пользовательского уведомления типа {Type} пользователю {User}", 
+                type, Utils.FullName(user));
+            throw;
         }
     }
     
@@ -180,5 +301,107 @@ public class MessageService : IMessageService
         {
             _logger.LogError(notificationEx, "Ошибка при отправке уведомления об ошибке: {Context}", context);
         }
+    }
+    
+    public async Task SendAiProfileAnalysisAsync(AiProfileAnalysisData data, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var displayName = !string.IsNullOrEmpty(data.User.FirstName)
+                ? Utils.FullName(data.User.FirstName, data.User.LastName)
+                : (!string.IsNullOrEmpty(data.User.Username) ? "@" + data.User.Username : "гость");
+
+            var userProfileLink = data.User.Username != null ? $"@{data.User.Username}" : displayName;
+            
+            // Ограничиваем длину Reason от AI
+            var reasonText = data.Reason;
+            if (reasonText.Length > 500)
+            {
+                reasonText = reasonText.Substring(0, 497) + "...";
+            }
+
+            // Создаем кнопки для админ-чата
+            var callbackDataBan = $"banprofile_{data.Chat.Id}_{data.User.Id}";
+            var callbackDataOk = $"aiOk_{data.Chat.Id}_{data.User.Id}";
+            
+            MemoryCache.Default.Add(callbackDataBan, data, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+
+            var buttons = new InlineKeyboardMarkup(new[]
+            {
+                new InlineKeyboardButton("❌❌❌ ban") { CallbackData = callbackDataBan },
+                new InlineKeyboardButton("✅✅✅ ok") { CallbackData = callbackDataOk }
+            });
+
+            ReplyParameters? replyParams = null;
+            
+            // 1. Если есть фото - отправляем его отдельно с краткой подписью
+            if (data.PhotoBytes?.Length > 0)
+            {
+                var photoCaption = $"{data.NameBio}\nСообщение:\n{data.MessageText}";
+                // Обрезаем caption если слишком длинный
+                if (photoCaption.Length > 1024)
+                {
+                    photoCaption = photoCaption.Substring(0, 1021) + "...";
+                }
+                
+                await using var stream = new MemoryStream(data.PhotoBytes);
+                var inputFile = InputFile.FromStream(stream, "profile.jpg");
+                
+                var photoMsg = await _bot.SendPhoto(
+                    Config.AdminChatId,
+                    inputFile,
+                    caption: photoCaption,
+                    cancellationToken: cancellationToken
+                );
+                replyParams = photoMsg;
+            }
+            
+            // 2. Основное сообщение с анализом
+            var template = _templates.GetAdminTemplate(AdminNotificationType.AiProfileAnalysis);
+            var message = _templates.FormatNotificationTemplate(template, data);
+            
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                message,
+                replyMarkup: buttons,
+                replyParameters: replyParams,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Отправлено AI уведомление о профиле для пользователя {User}", Utils.FullName(data.User));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке AI уведомления о профиле для пользователя {User}", Utils.FullName(data.User));
+        }
+    }
+    
+    public async Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var sentMessage = await _bot.SendMessage(
+                chat.Id,
+                message,
+                parseMode: ParseMode.Html,
+                replyParameters: replyParameters,
+                replyMarkup: replyMarkup,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Отправлено сообщение капчи в чат {Chat}", chat.Title);
+            
+            return sentMessage;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке сообщения капчи в чат {Chat}", chat.Title);
+            throw;
+        }
+    }
+    
+    public MessageTemplates GetTemplates()
+    {
+        return _templates;
     }
 } 
