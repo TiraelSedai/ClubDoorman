@@ -1,0 +1,782 @@
+2025-07-21 20:15:21.332 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:15:21.330 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:15:21.409 +03:00 [INF] [System] Загружено 807 записей из датасета
+2025-07-21 20:15:21.409 +03:00 [INF] [System] Спам: 275, НЕ спам: 532
+2025-07-21 20:15:21.564 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:15:21.573 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:15:21.580 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:15:21.592 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:15:21.615 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:15:21.615 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:15:21.615 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:15:21.976 +03:00 [INF] [System] ✅ ML модель успешно обучена за 626ms! Движок готов к работе.
+2025-07-21 20:15:22.244 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:15:25.101 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 20:16:22.375 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 20:17:35.748 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:17:35.746 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:17:35.824 +03:00 [INF] [System] Загружено 807 записей из датасета
+2025-07-21 20:17:35.824 +03:00 [INF] [System] Спам: 275, НЕ спам: 532
+2025-07-21 20:17:35.958 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:17:35.985 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:17:35.996 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:17:36.010 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:17:36.030 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:17:36.030 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:17:36.030 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:17:36.371 +03:00 [INF] [System] ✅ ML модель успешно обучена за 605ms! Движок готов к работе.
+2025-07-21 20:17:36.421 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:17:38.480 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 20:17:43.815 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам гараж
+2025-07-21 20:17:43.816 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам гараж
+================================================================
+2025-07-21 20:17:44.462 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:17:44.462 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам гараж
+2025-07-21 20:17:44.491 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -1,166) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:19:22.196 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): �� ИГРАЙ В КАЗИНО И ВЫИГРЫВАЙ! 
+Бонус 1000₽ при регистрации: casino-win.com
+2025-07-21 20:19:22.196 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: �� ИГРАЙ В КАЗИНО И ВЫИГРЫВАЙ! 
+Бонус 1000₽ при регистрации: casino-win.com
+================================================================
+2025-07-21 20:19:22.455 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:19:22.455 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): �� ИГРАЙ В КАЗИНО И ВЫИГРЫВАЙ! 
+Бонус 1000₽ при регистрации: casino-win.com
+2025-07-21 20:19:22.459 +03:00 [INF] [System] ML классификатор определил спам: ' играи в казино и выигрываи бонус 1000 при регистрации casino win com', скор=2.0294545
+2025-07-21 20:19:22.459 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 2,0294545 (уверенность: 2,029) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:19:22.459 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 2,0294545
+2025-07-21 20:19:22.569 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:19:22.760 +03:00 [ERR] [System] Ошибка при пересылке сообщения в админский чат с уведомлением типа "AutoBan"
+Telegram Bot API error 400: Bad Request: message to forward not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Services.MessageService.ForwardToAdminWithNotificationAsync(Message originalMessage, AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 173
+2025-07-21 20:19:22.848 +03:00 [ERR] [System] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Михаил
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 946
+2025-07-21 20:19:22.848 +03:00 [WRN] [System] Не удалось отправить предупреждение пользователю
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 946
+2025-07-21 20:19:22.848 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:24:07.252 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 20:24:10.539 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:24:10.536 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:24:10.633 +03:00 [INF] [System] Загружено 807 записей из датасета
+2025-07-21 20:24:10.634 +03:00 [INF] [System] Спам: 275, НЕ спам: 532
+2025-07-21 20:24:10.781 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:24:10.809 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:24:10.823 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:24:10.839 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:24:10.865 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:24:10.865 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:24:10.865 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:24:11.262 +03:00 [INF] [System] ✅ ML модель успешно обучена за 707ms! Движок готов к работе.
+2025-07-21 20:24:11.292 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:24:16.677 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 20:24:49.916 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): сдам шлюз 2000$ в секунду КАЗИНО 11123
+2025-07-21 20:24:49.917 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: сдам шлюз 2000$ в секунду КАЗИНО 11123
+================================================================
+2025-07-21 20:24:50.408 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:24:50.408 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): сдам шлюз 2000$ в секунду КАЗИНО 11123
+2025-07-21 20:24:50.441 +03:00 [INF] [System] ML классификатор определил спам: 'сдам шлюз 2000 в секунду казино 11123', скор=2.7954376
+2025-07-21 20:24:50.445 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 2,7954376 (уверенность: 2,795) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:24:50.445 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 2,7954376
+2025-07-21 20:24:50.534 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:24:50.647 +03:00 [ERR] [System] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 45
+2025-07-21 20:24:50.831 +03:00 [ERR] [System] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Михаил
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 956
+2025-07-21 20:24:50.831 +03:00 [WRN] [System] Не удалось отправить предупреждение пользователю
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 956
+2025-07-21 20:24:50.831 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:25:38.053 +03:00 [INF] [System] ==================== НОВЫЙ УЧАСТНИК ====================
+Пользователь Wodes (id=7203769455, username=-) зашел в группу 'test_group_001' (id=-1002867169174)
+========================================================
+2025-07-21 20:25:38.117 +03:00 [INF] [System] ==================== НОВЫЙ УЧАСТНИК ====================
+Пользователь Wodes (id=7203769455, username=-) зашел в группу 'test_group_001' (id=-1002867169174)
+========================================================
+2025-07-21 20:25:41.650 +03:00 [INF] [System] ==================== КАПЧА ПРОЙДЕНА ====================
+Пользователь Wodes (id=7203769455) успешно прошёл капчу в группе 'test_group_001' (id=-1002867169174) — показываем приветствие
+========================================================
+2025-07-21 20:26:22.965 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Продам гараж
+2025-07-21 20:26:22.965 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Продам гараж
+================================================================
+2025-07-21 20:26:23.168 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:26:23.168 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Продам гараж
+2025-07-21 20:26:23.169 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -1,126) | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:26:39.389 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): 😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😁🙈 ап
+2025-07-21 20:26:39.389 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: 😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😁🙈 ап
+================================================================
+2025-07-21 20:26:39.478 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:26:39.479 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): 😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😁🙈 ап
+2025-07-21 20:26:39.483 +03:00 [INF] [System] Слишком много эмодзи в тексте: '😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😁🙈 ап'
+2025-07-21 20:26:39.483 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - В этом сообщении многовато эмоджи | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:26:39.483 +03:00 [INF] [System] Удаление сообщения: В этом сообщении многовато эмоджи
+2025-07-21 20:26:39.593 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:26:39.686 +03:00 [ERR] [System] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 45
+2025-07-21 20:26:39.874 +03:00 [ERR] [System] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Wodes
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+2025-07-21 20:26:39.874 +03:00 [WRN] [System] Не удалось отправить предупреждение пользователю
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 956
+2025-07-21 20:26:39.874 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:26:52.743 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Пиши в личку
+2025-07-21 20:26:52.743 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Пиши в личку
+================================================================
+2025-07-21 20:26:52.839 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:26:52.839 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Пиши в личку
+2025-07-21 20:26:52.840 +03:00 [INF] [System] Найдены стоп-слова в тексте: 'пиши в личку'
+2025-07-21 20:26:52.840 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - В этом сообщении есть стоп-слова | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:26:52.840 +03:00 [INF] [System] Удаление сообщения: В этом сообщении есть стоп-слова
+2025-07-21 20:26:52.908 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:26:52.976 +03:00 [ERR] [System] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 45
+2025-07-21 20:26:53.137 +03:00 [ERR] [System] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Wodes
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 956
+2025-07-21 20:26:53.137 +03:00 [WRN] [System] Не удалось отправить предупреждение пользователю
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 956
+2025-07-21 20:26:53.137 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:29:31.497 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 20:29:34.887 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:29:34.888 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:29:34.981 +03:00 [INF] [System] Загружено 807 записей из датасета
+2025-07-21 20:29:34.981 +03:00 [INF] [System] Спам: 275, НЕ спам: 532
+2025-07-21 20:29:35.122 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:29:35.148 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:29:35.155 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:29:35.172 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:29:35.193 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:29:35.193 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:29:35.193 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:29:35.590 +03:00 [INF] [System] ✅ ML модель успешно обучена за 685ms! Движок готов к работе.
+2025-07-21 20:29:35.597 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:29:37.601 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 20:29:57.236 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): шлюхи и казино продам!
+2025-07-21 20:29:57.237 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: шлюхи и казино продам!
+================================================================
+2025-07-21 20:29:58.076 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:29:58.076 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): шлюхи и казино продам!
+2025-07-21 20:29:58.108 +03:00 [INF] [System] ML классификатор определил спам: 'шлюхи и казино продам ', скор=1.6561584
+2025-07-21 20:29:58.111 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 1,6561584 (уверенность: 1,656) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:29:58.111 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 1,6561584
+2025-07-21 20:29:58.247 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:29:58.472 +03:00 [ERR] [System] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:29:58.917 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:35:13.898 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам шлюх и  казино
+2025-07-21 20:35:13.898 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам шлюх и  казино
+================================================================
+2025-07-21 20:35:14.240 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:35:14.240 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам шлюх и  казино
+2025-07-21 20:35:14.243 +03:00 [INF] [System] ML классификатор определил спам: 'продам шлюх и казино', скор=1.9850435
+2025-07-21 20:35:14.243 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 1,9850435 (уверенность: 1,985) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:35:14.243 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 1,9850435
+2025-07-21 20:35:14.326 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:35:14.406 +03:00 [ERR] [System] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:35:14.505 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:39:11.970 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 20:39:17.049 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:39:17.051 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:39:17.130 +03:00 [INF] [System] Загружено 807 записей из датасета
+2025-07-21 20:39:17.130 +03:00 [INF] [System] Спам: 275, НЕ спам: 532
+2025-07-21 20:39:17.263 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:39:17.293 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:39:17.300 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:39:17.316 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:39:17.338 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:39:17.338 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:39:17.338 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:39:17.666 +03:00 [INF] [System] ✅ ML модель успешно обучена за 599ms! Движок готов к работе.
+2025-07-21 20:39:17.780 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:39:19.811 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 20:39:52.445 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 20:39:52.446 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам казино
+================================================================
+2025-07-21 20:39:53.331 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:39:53.332 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 20:39:53.365 +03:00 [INF] [System] ML классификатор определил спам: 'продам казино', скор=2.2143054
+2025-07-21 20:39:53.369 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 2,2143054 (уверенность: 2,214) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:39:53.369 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 2,2143054
+2025-07-21 20:39:53.454 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:39:53.550 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:39:53.780 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:40:21.849 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): хуита
+2025-07-21 20:40:21.849 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: хуита
+================================================================
+2025-07-21 20:40:21.932 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:40:21.932 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): хуита
+2025-07-21 20:40:21.935 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -3,006) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:40:22.954 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): [20:39:53 WRN] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not foun...
+2025-07-21 20:40:22.954 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: [20:39:53 WRN] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not foun
+================================================================
+2025-07-21 20:40:23.033 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:40:23.033 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): [20:39:53 WRN] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not foun...
+2025-07-21 20:40:23.039 +03:00 [INF] [System] ML классификатор определил спам: ' 20 39 53 wrn не удалось переслать сообщение telegram bot api error 400 bad request chat not found at telegram bot telegrambotclient sendrequesttresponse at telegram bot telegrambotclientextensions forwardmessage itelegrambotclient botclient chatid chatid chatid fromchatid int32 messageid nullable 1 messagethreadid boolean disablenotification boolean protectcontent nullable 1 videostarttimestamp cancellationtoken cancellationtoken at clubdoorman services telegrambotclientwrapper forwardmessage chatid chatid chatid fromchatid int32 messageid cancellationtoken cancellationtoken in home kpblc projects clubdoorman clubdoorman services telegrambotclientwrapper cs line 173 at clubdoorman handlers messagehandler deleteandreportmessage message message string reason cancellationtoken cancellationtoken in home kpblc projects clubdoorman clubdoorman handlers messagehandler cs line 882 20 39 53 err не удается получить информацию об админском чате 2584726598 telegram bot api error 400 bad request chat not found at telegram bot telegrambotclient sendrequesttresponse at telegram bot telegrambotclientextensions getchat itelegrambotclient botclient chatid chatid cancellationtoken cancellationtoken at clubdoorman services telegrambotclientwrapper getchat chatid chatid cancellationtoken cancellationtoken in home kpblc projects clubdoorman clubdoorman services telegrambotclientwrapper cs line 137 at clubdoorman services messageservice sendadminnotificationasync adminnotificationtype type notificationdata data cancellationtoken cancellationtoken in home kpblc projects clubdoorman clubdoorman services messageservice cs line 53 20 39 53 dbg уведомление успешно отправлено в админ чат 20 39 53 dbg пытаемся удалить сообщение 93 из чата 1002867169174 20 39 53 dbg сообщение успешно удалено 20 39 53 dbg отправлено пользовательское уведомление типа moderationwarning пользователю михаил в чате test group 001 20 39 53 dbg предупреждение отправлено пользователю и будет удалено через 40 секунд 20 39 53 inf сообщение успешно обработано для удаления 20 39 53 dbg handler callbackqueryhandler отклонил update 20 39 53 dbg handler chatmemberhandler отклонил update', скор=1.6097827
+2025-07-21 20:40:23.039 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 1,6097827 (уверенность: 1,610) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:40:23.039 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 1,6097827
+2025-07-21 20:40:23.114 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:40:23.185 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:40:23.270 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:40:24.746 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'test_group_001' (id=-1002867169174): с админкой бы еще разобраться
+2025-07-21 20:40:24.746 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'test_group_001' (id=-1002867169174)
+Сообщение: с админкой бы еще разобраться
+================================================================
+2025-07-21 20:40:24.913 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 20:40:24.913 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'test_group_001' (id=-1002867169174): с админкой бы еще разобраться
+2025-07-21 20:40:24.914 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -4,304) | momai (id=45302352) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:42:06.581 +03:00 [INF] [System] ==================== НОВЫЙ УЧАСТНИК ====================
+Пользователь Spampyre (id=984928071, username=gate_troitsk_bot) зашел в группу 'test_group_001' (id=-1002867169174)
+========================================================
+2025-07-21 20:42:18.399 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'test_group_001' (id=-1002867169174): ид этого чата -1002867169174
+2025-07-21 20:42:18.399 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'test_group_001' (id=-1002867169174)
+Сообщение: ид этого чата -1002867169174
+================================================================
+2025-07-21 20:42:18.487 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 20:42:18.487 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'test_group_001' (id=-1002867169174): ид этого чата -1002867169174
+2025-07-21 20:42:18.487 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -2,314) | momai (id=45302352) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:42:28.202 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): но это ж не админский чат
+2025-07-21 20:42:28.202 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: но это ж не админский чат
+================================================================
+2025-07-21 20:42:28.286 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:42:28.286 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): но это ж не админский чат
+2025-07-21 20:42:28.287 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -4,739) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:42:36.220 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'test_group_001' (id=-1002867169174): а
+2025-07-21 20:42:36.220 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'test_group_001' (id=-1002867169174)
+Сообщение: а
+================================================================
+2025-07-21 20:42:36.301 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 20:42:36.301 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'test_group_001' (id=-1002867169174): а
+2025-07-21 20:42:36.301 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -2,888) | momai (id=45302352) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:42:36.310 +03:00 [INF] [System] User momai behaved well for the last 3 messages in group test_group_001, approving in this group
+2025-07-21 20:42:36.310 +03:00 [INF] [System] Пользователь 45302352 добавлен в список одобренных группы -1002867169174
+2025-07-21 20:42:49.465 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): у тебя в лс
+2025-07-21 20:42:49.465 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: у тебя в лс
+================================================================
+2025-07-21 20:42:49.553 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:42:49.553 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): у тебя в лс
+2025-07-21 20:42:49.553 +03:00 [INF] [System] ML классификатор определил спам: 'у тебя в лс', скор=2.4126935
+2025-07-21 20:42:49.553 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 2,4126935 (уверенность: 2,413) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:42:49.553 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 2,4126935
+2025-07-21 20:42:49.640 +03:00 [WRN] [System] Не удалось переслать сообщение
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 882
+2025-07-21 20:42:49.709 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:42:49.788 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:43:21.338 +03:00 [INF] [System] Пользователь Spampyre (id=984928071) не прошёл капчу (таймаут) в группе 'test_group_001' (id=-1002867169174)
+2025-07-21 20:43:43.812 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'test_c#_bot_Admin' (id=-4829729373): [медиа/стикер/файл]
+2025-07-21 20:43:43.812 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'test_c#_bot_Admin' (id=-4829729373)
+Сообщение: [медиа]
+================================================================
+2025-07-21 20:43:43.897 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 20:43:43.897 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'test_c#_bot_Admin' (id=-4829729373): [медиа/стикер/файл]
+2025-07-21 20:43:43.898 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Report - Медиа без подписи | momai (id=45302352) в чате 'test_c#_bot_Admin' (id=-4829729373)
+2025-07-21 20:43:43.898 +03:00 [INF] [System] Отправка в админ-чат: Медиа без подписи
+2025-07-21 20:43:43.985 +03:00 [WRN] [System] Ошибка при пересылке сообщения
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DontDeleteButReportMessage(Message message, User user, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 985
+2025-07-21 20:43:44.065 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:44:33.743 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_c#_bot_Log' (id=-4829729373): [медиа/стикер/файл]
+2025-07-21 20:44:33.743 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_c#_bot_Log' (id=-4829729373)
+Сообщение: [медиа]
+================================================================
+2025-07-21 20:44:33.828 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:44:33.828 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_c#_bot_Log' (id=-4829729373): [медиа/стикер/файл]
+2025-07-21 20:44:33.828 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Report - Медиа без подписи | Михаил (id=306157325) в чате 'test_c#_bot_Log' (id=-4829729373)
+2025-07-21 20:44:33.828 +03:00 [INF] [System] Отправка в админ-чат: Медиа без подписи
+2025-07-21 20:44:33.898 +03:00 [WRN] [System] Ошибка при пересылке сообщения
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DontDeleteButReportMessage(Message message, User user, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 985
+2025-07-21 20:44:33.965 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:45:12.871 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'est_c#_bot_Admin' (id=-1002584726598): [медиа/стикер/файл]
+2025-07-21 20:45:12.871 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'est_c#_bot_Admin' (id=-1002584726598)
+Сообщение: [медиа]
+================================================================
+2025-07-21 20:45:12.958 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:45:12.958 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'est_c#_bot_Admin' (id=-1002584726598): [медиа/стикер/файл]
+2025-07-21 20:45:12.959 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Report - Медиа без подписи | Михаил (id=306157325) в чате 'est_c#_bot_Admin' (id=-1002584726598)
+2025-07-21 20:45:12.959 +03:00 [INF] [System] Отправка в админ-чат: Медиа без подписи
+2025-07-21 20:45:13.034 +03:00 [WRN] [System] Ошибка при пересылке сообщения
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DontDeleteButReportMessage(Message message, User user, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 985
+2025-07-21 20:45:13.116 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:47:23.816 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'Test_c#_bot_Admin' (id=-1002584726598): [медиа/стикер/файл]
+2025-07-21 20:47:23.816 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'Test_c#_bot_Admin' (id=-1002584726598)
+Сообщение: [медиа]
+================================================================
+2025-07-21 20:47:24.024 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:47:24.024 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'Test_c#_bot_Admin' (id=-1002584726598): [медиа/стикер/файл]
+2025-07-21 20:47:24.024 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Report - Медиа без подписи | Михаил (id=306157325) в чате 'Test_c#_bot_Admin' (id=-1002584726598)
+2025-07-21 20:47:24.024 +03:00 [INF] [System] Отправка в админ-чат: Медиа без подписи
+2025-07-21 20:47:24.128 +03:00 [WRN] [System] Ошибка при пересылке сообщения
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Handlers.MessageHandler.DontDeleteButReportMessage(Message message, User user, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 985
+2025-07-21 20:47:24.222 +03:00 [ERR] [System] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:47:29.959 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 20:47:44.281 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:47:44.283 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:47:44.361 +03:00 [INF] [System] Загружено 807 записей из датасета
+2025-07-21 20:47:44.361 +03:00 [INF] [System] Спам: 275, НЕ спам: 532
+2025-07-21 20:47:44.541 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:47:44.550 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:47:44.560 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:47:44.580 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:47:44.611 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:47:44.611 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:47:44.611 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:47:44.930 +03:00 [INF] [System] ✅ ML модель успешно обучена за 631ms! Движок готов к работе.
+2025-07-21 20:47:45.104 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:47:48.187 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 20:47:59.690 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 20:47:59.691 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам казино
+================================================================
+2025-07-21 20:48:00.191 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:48:00.192 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 20:48:00.219 +03:00 [INF] [System] ML классификатор определил спам: 'продам казино', скор=2.2060778
+2025-07-21 20:48:00.223 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 2,2060778 (уверенность: 2,206) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:48:00.223 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 2,2060778
+2025-07-21 20:48:00.876 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:50:30.121 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): бот хуй
+2025-07-21 20:50:30.121 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: бот хуй
+================================================================
+2025-07-21 20:50:30.380 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:50:30.380 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): бот хуй
+2025-07-21 20:50:30.384 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -2,638) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:50:40.942 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам сиськи
+2025-07-21 20:50:40.942 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам сиськи
+================================================================
+2025-07-21 20:50:41.017 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:50:41.017 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам сиськи
+2025-07-21 20:50:41.018 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -2,553) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:51:05.919 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам сиськи гараж
+2025-07-21 20:51:05.919 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам сиськи гараж
+================================================================
+2025-07-21 20:51:06.013 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:51:06.013 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам сиськи гараж
+2025-07-21 20:51:06.014 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -1,999) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:51:06.024 +03:00 [INF] [System] User Михаил behaved well for the last 3 messages in group test_group_001, approving in this group
+2025-07-21 20:51:06.025 +03:00 [INF] [System] Пользователь 306157325 добавлен в список одобренных группы -1002867169174
+2025-07-21 20:51:32.743 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Продам гараж
+2025-07-21 20:51:32.743 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Продам гараж
+================================================================
+2025-07-21 20:51:32.934 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:51:32.934 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Продам гараж
+2025-07-21 20:51:32.934 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -1,030) | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:51:54.816 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Купить крипту у меня в профиле
+2025-07-21 20:51:54.816 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Купить крипту у меня в профиле
+================================================================
+2025-07-21 20:51:54.887 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:51:54.887 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Купить крипту у меня в профиле
+2025-07-21 20:51:54.888 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: RequireManualReview - Классификатор думает что это НЕ спам, но конфиденс низкий: скор -0,34628844 (уверенность: -0,346) | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:51:54.888 +03:00 [INF] [System] Требует ручной проверки: Классификатор думает что это НЕ спам, но конфиденс низкий: скор -0,34628844
+2025-07-21 20:52:28.263 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598): да. Такое же поведение при неуверенности и у меня. Почему-то кнопки проебались :)
+2025-07-21 20:52:28.263 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'Test_c#_bot_Admin' (id=-1002584726598)
+Сообщение: да. Такое же поведение при неуверенности и у меня. Почему-то кнопки проебались :)
+================================================================
+2025-07-21 20:52:28.496 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 20:52:28.496 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598): да. Такое же поведение при неуверенности и у меня. Почему-то кнопки проебались :)
+2025-07-21 20:52:28.497 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -3,246) | momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598)
+2025-07-21 20:53:43.396 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Требуется человек на выполнение доставки. Платим много.
+2025-07-21 20:53:43.396 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Требуется человек на выполнение доставки. Платим много.
+================================================================
+2025-07-21 20:53:43.827 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:53:43.827 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Требуется человек на выполнение доставки. Платим много.
+2025-07-21 20:53:43.827 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -1,206) | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:56:33.678 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 20:56:50.847 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 20:56:50.845 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 20:56:50.934 +03:00 [INF] [System] Загружено 822 записей из датасета
+2025-07-21 20:56:50.934 +03:00 [INF] [System] Спам: 281, НЕ спам: 541
+2025-07-21 20:56:51.090 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 20:56:51.122 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 20:56:51.131 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 20:56:51.151 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 20:56:51.176 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 20:56:51.177 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 20:56:51.177 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 20:56:51.531 +03:00 [INF] [System] ✅ ML модель успешно обучена за 664ms! Движок готов к работе.
+2025-07-21 20:56:51.842 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 20:56:52.029 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Manu Чыфыс (id=6078060880) в чате 'test_group_001' (id=-1002867169174): Привет
+2025-07-21 20:56:52.029 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Manu Чыфыс (id=6078060880, username=Dnekxpb) в 'test_group_001' (id=-1002867169174)
+Сообщение: Привет
+================================================================
+2025-07-21 20:56:54.817 +03:00 [INF] [System] AI анализ профиля пользователя 6078060880: 0.9 - Профиль выглядит 'продажным'. Наличие ссылки на канал с 'фотками' и название 'маркмойка стайл' указывают на попытку привлечения внимания, вероятно, к контенту эротического или сомнительного характера.
+2025-07-21 20:56:54.823 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 6078060880, вероятность=0.9, причина=Профиль выглядит 'продажным'. Наличие ссылки на канал с 'фотками' и название 'маркмойка стайл' указывают на попытку привлечения внимания, вероятно, к контенту эротического или сомнительного характера.
+2025-07-21 20:56:54.823 +03:00 [WRN] [System] 🚫 AI определил подозрительный профиль: пользователь 6078060880, вероятность=0.9
+2025-07-21 20:56:55.140 +03:00 [INF] [System] ⚠️ ПОЛЬЗОВАТЕЛЬ ОГРАНИЧЕН на 10 минут: Manu Чыфыс (id=6078060880) в чате 'test_group_001' (id=-1002867169174) - AI анализ профиля: Профиль выглядит 'продажным'. Наличие ссылки на канал с 'фотками' и название 'маркмойка стайл' указывают на попытку привлечения внимания, вероятно, к контенту эротического или сомнительного характера.
+2025-07-21 20:56:56.358 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 1, стало 2437243 записей
+2025-07-21 20:57:33.086 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): Требуется человек на выполнение доставки. Платим много.
+2025-07-21 20:57:33.086 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: Требуется человек на выполнение доставки. Платим много.
+================================================================
+2025-07-21 20:57:33.296 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 20:57:33.297 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): Требуется человек на выполнение доставки. Платим много.
+2025-07-21 20:57:33.350 +03:00 [INF] [System] ML классификатор определил спам: 'требуется человек на выполнение доставки платим много ', скор=0.5109253
+2025-07-21 20:57:33.351 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 0,5109253 (уверенность: 0,511) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:57:33.351 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 0,5109253
+2025-07-21 20:57:33.919 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:58:32.240 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Подработка в твоём городе
+2025-07-21 20:58:32.241 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Подработка в твоём городе
+================================================================
+2025-07-21 20:58:32.410 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:58:32.411 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Подработка в твоём городе
+2025-07-21 20:58:32.412 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: RequireManualReview - Классификатор думает что это НЕ спам, но конфиденс низкий: скор -0,24709415 (уверенность: -0,247) | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:58:32.412 +03:00 [INF] [System] Требует ручной проверки: Классификатор думает что это НЕ спам, но конфиденс низкий: скор -0,24709415
+2025-07-21 20:58:32.610 +03:00 [ERR] [System] Ошибка при отправке подозрительного сообщения с кнопками
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '-' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Handlers.MessageHandler.SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 1040
+2025-07-21 20:59:06.059 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Доход от 900$ в неделю! Пиши!
+2025-07-21 20:59:06.059 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Wodes (id=7203769455, username=-) в 'test_group_001' (id=-1002867169174)
+Сообщение: Доход от 900$ в неделю! Пиши!
+================================================================
+2025-07-21 20:59:06.163 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 7203769455, вероятность=0, причина=
+2025-07-21 20:59:06.163 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174): Доход от 900$ в неделю! Пиши!
+2025-07-21 20:59:06.166 +03:00 [INF] [System] ML классификатор определил спам: 'доход от 900 в неделю пиши ', скор=5.3217134
+2025-07-21 20:59:06.166 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 5,3217134 (уверенность: 5,322) | Wodes (id=7203769455) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 20:59:06.166 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 5,3217134
+2025-07-21 20:59:06.716 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 20:59:33.326 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598): нихуя не автобан) А удаление. Ну + кнопки.
+Крч проблема не во флоу. а в сообщении тупо. Поведение ве...
+2025-07-21 20:59:33.326 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'Test_c#_bot_Admin' (id=-1002584726598)
+Сообщение: нихуя не автобан) А удаление. Ну + кнопки.
+Крч проблема не во флоу. а в сообщении тупо. Поведение ве
+================================================================
+2025-07-21 20:59:33.537 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 20:59:33.537 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598): нихуя не автобан) А удаление. Ну + кнопки.
+Крч проблема не во флоу. а в сообщении тупо. Поведение ве...
+2025-07-21 20:59:33.538 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -2,197) | momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598)
+2025-07-21 21:00:44.740 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598): вот тут будет круто если тоже сразу кнопки добавишь. В проде их тоже нет
+2025-07-21 21:00:44.740 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: momai (id=45302352, username=momai) в 'Test_c#_bot_Admin' (id=-1002584726598)
+Сообщение: вот тут будет круто если тоже сразу кнопки добавишь. В проде их тоже нет
+================================================================
+2025-07-21 21:00:45.039 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 45302352, вероятность=0, причина=
+2025-07-21 21:00:45.039 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598): вот тут будет круто если тоже сразу кнопки добавишь. В проде их тоже нет
+2025-07-21 21:00:45.040 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Allow - Сообщение прошло все проверки (уверенность: -3,373) | momai (id=45302352) в чате 'Test_c#_bot_Admin' (id=-1002584726598)
+2025-07-21 21:02:16.634 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 21:02:20.127 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 21:02:20.129 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 21:02:20.245 +03:00 [INF] [System] Загружено 822 записей из датасета
+2025-07-21 21:02:20.245 +03:00 [INF] [System] Спам: 281, НЕ спам: 541
+2025-07-21 21:02:20.377 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 21:02:20.405 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 21:02:20.413 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 21:02:20.431 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 21:02:20.454 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 21:02:20.454 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 21:02:20.454 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 21:02:20.949 +03:00 [INF] [System] ✅ ML модель успешно обучена за 794ms! Движок готов к работе.
+2025-07-21 21:02:21.091 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 21:02:23.234 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 21:02:38.916 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино с членодевками
+2025-07-21 21:02:38.917 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам казино с членодевками
+================================================================
+2025-07-21 21:02:39.333 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 21:02:39.333 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино с членодевками
+2025-07-21 21:02:39.367 +03:00 [INF] [System] ML классификатор определил спам: 'продам казино с членодевками', скор=1.3866723
+2025-07-21 21:02:39.372 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 1,3866723 (уверенность: 1,387) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 21:02:39.372 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 1,3866723
+2025-07-21 21:02:40.065 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 21:08:17.870 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 21:08:21.342 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 21:08:21.343 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 21:08:21.423 +03:00 [INF] [System] Загружено 822 записей из датасета
+2025-07-21 21:08:21.423 +03:00 [INF] [System] Спам: 281, НЕ спам: 541
+2025-07-21 21:08:21.565 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 21:08:21.595 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 21:08:21.603 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 21:08:21.622 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 21:08:21.641 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 21:08:21.641 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 21:08:21.641 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 21:08:21.969 +03:00 [INF] [System] ✅ ML модель успешно обучена за 610ms! Движок готов к работе.
+2025-07-21 21:08:22.151 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 21:08:25.331 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 21:08:36.663 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): казино продам
+2025-07-21 21:08:36.664 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: казино продам
+================================================================
+2025-07-21 21:08:37.263 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 21:08:37.263 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): казино продам
+2025-07-21 21:08:37.292 +03:00 [INF] [System] ML классификатор определил спам: 'казино продам', скор=0.9223099
+2025-07-21 21:08:37.296 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 0,9223099 (уверенность: 0,922) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 21:08:37.296 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 0,9223099
+2025-07-21 21:08:37.788 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 21:16:01.819 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 21:16:06.301 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 21:16:06.299 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 21:16:06.383 +03:00 [INF] [System] Загружено 822 записей из датасета
+2025-07-21 21:16:06.383 +03:00 [INF] [System] Спам: 281, НЕ спам: 541
+2025-07-21 21:16:06.519 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 21:16:06.549 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 21:16:06.558 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 21:16:06.573 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 21:16:06.596 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 21:16:06.596 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 21:16:06.596 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 21:16:06.984 +03:00 [INF] [System] ✅ ML модель успешно обучена за 664ms! Движок готов к работе.
+2025-07-21 21:16:07.131 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 21:16:09.721 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 21:16:22.697 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 21:16:22.697 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам казино
+================================================================
+2025-07-21 21:16:23.244 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 21:16:23.244 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 21:16:23.273 +03:00 [INF] [System] ML классификатор определил спам: 'продам казино', скор=2.1572795
+2025-07-21 21:16:23.277 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 2,1572795 (уверенность: 2,157) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 21:16:23.277 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 2,1572795
+2025-07-21 21:16:23.755 +03:00 [INF] [System] Сообщение успешно обработано для удаления
+2025-07-21 21:27:53.987 +03:00 [INF] [System] Application is shutting down...
+2025-07-21 21:28:00.446 +03:00 [INF] [System] Начинаем обучение ML модели...
+2025-07-21 21:28:00.443 +03:00 [INF] [System] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 21:28:00.539 +03:00 [INF] [System] Загружено 822 записей из датасета
+2025-07-21 21:28:00.539 +03:00 [INF] [System] Спам: 281, НЕ спам: 541
+2025-07-21 21:28:00.685 +03:00 [INF] [System] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 21:28:00.713 +03:00 [INF] [System] Загружено 0 подозрительных пользователей из файла
+2025-07-21 21:28:00.723 +03:00 [INF] [System] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 21:28:00.739 +03:00 [INF] [System] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 21:28:00.763 +03:00 [INF] [System] Application started. Press Ctrl+C to shut down.
+2025-07-21 21:28:00.764 +03:00 [INF] [System] Hosting environment: Development
+2025-07-21 21:28:00.764 +03:00 [INF] [System] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 21:28:01.129 +03:00 [INF] [System] ✅ ML модель успешно обучена за 667ms! Движок готов к работе.
+2025-07-21 21:28:01.292 +03:00 [INF] [System] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 21:28:03.583 +03:00 [INF] [System] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 21:28:20.048 +03:00 [INF] [System] 📝 ПЕРВОЕ СООБЩЕНИЕ: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 21:28:20.049 +03:00 [INF] [System] ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+новый участник: Михаил (id=306157325, username=kpblcko_mike) в 'test_group_001' (id=-1002867169174)
+Сообщение: продам казино
+================================================================
+2025-07-21 21:28:21.216 +03:00 [WRN] [System] GetClubUsername
+System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.
+ ---> System.IO.IOException: Received an unexpected EOF or 0 bytes from the transport stream.
+   at System.Net.Security.SslStream.ReceiveHandshakeFrameAsync[TIOAdapter](CancellationToken cancellationToken)
+   at System.Net.Security.SslStream.ForceAuthenticationAsync[TIOAdapter](Boolean receiveFirst, Byte[] reAuthenticationData, CancellationToken cancellationToken)
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at ClubDoorman.Services.UserManagerV2.GetClubUsername(Int64 userId) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/UserManagerV2.cs:line 207
+2025-07-21 21:28:21.392 +03:00 [INF] [System] 🤖 AI анализ профиля: пользователь 306157325, вероятность=0, причина=
+2025-07-21 21:28:21.392 +03:00 [INF] [System] 🔍 МОДЕРАЦИЯ НАЧАТА: Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174): продам казино
+2025-07-21 21:28:21.422 +03:00 [INF] [System] ML классификатор определил спам: 'продам казино', скор=1.9844043
+2025-07-21 21:28:21.426 +03:00 [INF] [System] 🎯 РЕЗУЛЬТАТ МОДЕРАЦИИ: Delete - ML решил что это спам, скор 1,9844043 (уверенность: 1,984) | Михаил (id=306157325) в чате 'test_group_001' (id=-1002867169174)
+2025-07-21 21:28:21.426 +03:00 [INF] [System] Удаление сообщения: ML решил что это спам, скор 1,9844043
+2025-07-21 21:28:22.291 +03:00 [INF] [System] Сообщение успешно обработано для удаления

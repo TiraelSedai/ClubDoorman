@@ -803,12 +803,11 @@ public class MessageHandler : IUpdateHandler
             var chat = message.Chat;
             var senderChat = message.SenderChat!;
             
-            var fwd = await _bot.ForwardMessage(Config.AdminChatId, chat, message.MessageId, cancellationToken: cancellationToken);
             await _bot.DeleteMessage(chat, message.MessageId, cancellationToken);
             await _bot.BanChatSenderChat(chat, senderChat.Id, cancellationToken);
             
             var channelData = new ChannelMessageNotificationData(senderChat, chat, message.Text ?? "[медиа]");
-            await _messageService.SendAdminNotificationAsync(AdminNotificationType.ChannelMessage, channelData, cancellationToken);
+            await _messageService.ForwardToAdminWithNotificationAsync(message, AdminNotificationType.ChannelMessage, channelData, cancellationToken);
         }
         catch (Exception e)
         {
@@ -848,6 +847,7 @@ public class MessageHandler : IUpdateHandler
             message.MessageId,
             cancellationToken: cancellationToken
         );
+        
         var autoBanData = new AutoBanNotificationData(
             user, 
             message.Chat, 
@@ -857,6 +857,7 @@ public class MessageHandler : IUpdateHandler
             LinkToMessage(message.Chat, message.MessageId)
         );
         await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, autoBanData, cancellationToken);
+        
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
         
@@ -872,25 +873,76 @@ public class MessageHandler : IUpdateHandler
         _logger.LogDebug("Начинаем DeleteAndReportMessage для сообщения {MessageId} в чате {ChatId}", message.MessageId, message.Chat.Id);
         
         var user = message.From;
-        
-        Message? forward = null;
         var deletionMessagePart = $"{reason}";
-        
-        try 
+
+        try
         {
-            _logger.LogDebug("Пытаемся переслать сообщение в админ-чат {AdminChatId}", Config.AdminChatId);
-            // Пытаемся переслать сообщение
-            forward = await _bot.ForwardMessage(
+            // Создаем кнопки реакции для админ-чата
+            var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
+            MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+            
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
+                    new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
+                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+                }
+            });
+
+            var deletionData = new AutoBanNotificationData(
+                user, 
+                message.Chat, 
+                deletionMessagePart, 
+                reason, 
+                message.MessageId, 
+                LinkToMessage(message.Chat, message.MessageId)
+            );
+            
+            // Получаем шаблон и форматируем сообщение
+            var template = _messageService.GetTemplates().GetAdminTemplate(AdminNotificationType.AutoBan);
+            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
+            
+            // Пересылаем сообщение
+            await _bot.ForwardMessage(
                 new ChatId(Config.AdminChatId),
                 message.Chat.Id,
                 message.MessageId,
                 cancellationToken: cancellationToken
             );
-            _logger.LogDebug("Сообщение успешно переслано в админ-чат");
+            
+            // Отправляем уведомление с кнопками
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                messageText,
+                parseMode: ParseMode.Markdown,
+                replyMarkup: keyboard,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Уведомление с кнопками успешно отправлено в админ-чат");
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Не удалось переслать сообщение");
+            _logger.LogError(e, "Не удалось отправить уведомление в админ-чат");
+            // Fallback: отправляем простое уведомление без пересылки и кнопок
+            try
+            {
+                var deletionData = new AutoBanNotificationData(
+                    user, 
+                    message.Chat, 
+                    deletionMessagePart, 
+                    reason, 
+                    message.MessageId, 
+                    LinkToMessage(message.Chat, message.MessageId)
+                );
+                await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, deletionData, cancellationToken);
+            }
+            catch (Exception fallbackEx)
+            {
+                _logger.LogError(fallbackEx, "Не удалось отправить fallback уведомление в админ-чат");
+            }
         }
         
         try
@@ -906,36 +958,6 @@ public class MessageHandler : IUpdateHandler
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
 
-        try
-        {
-            // Создаем кнопки реакции для админ-чата
-            var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
-            MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-            
-            var row = new List<InlineKeyboardButton>
-            {
-                new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
-                new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
-                new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
-            };
-
-            var postLink = LinkToMessage(message.Chat, message.MessageId);
-            _logger.LogDebug("Отправляем уведомление в админ-чат {AdminChatId}", Config.AdminChatId);
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ *{deletionMessagePart}*\nПользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) в чате *{message.Chat.Title}*\n{postLink}",
-                parseMode: ParseMode.Markdown,
-                replyParameters: forward,
-                replyMarkup: new InlineKeyboardMarkup(row),
-                cancellationToken: cancellationToken
-            );
-            _logger.LogDebug("Уведомление успешно отправлено в админ-чат");
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Не удалось отправить уведомление в админ-чат");
-        }
-
         // Отправляем предупреждение пользователю (только если не было отправлено недавно)
         var warningKey = $"warning_{message.Chat.Id}_{user.Id}";
         var existingWarning = MemoryCache.Default.Get(warningKey);
@@ -944,14 +966,13 @@ public class MessageHandler : IUpdateHandler
         {
             try
             {
-                var mention = $"[{user.FirstName}](tg://user?id={user.Id})";
-                var warnMsg = $"👋 {mention}, вы пока *новичок* в этом чате\\.\n\n*Первые 3 сообщения* проходят антиспам\\-проверку:\n• нельзя эмодзи, рекламу и *стоп\\-слова*\n• работает ML\\-анализ";
-                
-                var sentWarn = await _bot.SendMessage(
-                    message.Chat.Id, 
-                    warnMsg, 
-                    parseMode: ParseMode.MarkdownV2,
-                    cancellationToken: cancellationToken
+                var warningData = new SimpleNotificationData(user, message.Chat, "новичок в этом чате");
+                var sentWarn = await _messageService.SendUserNotificationWithReplyAsync(
+                    user, 
+                    message.Chat, 
+                    UserNotificationType.ModerationWarning, 
+                    warningData, 
+                    cancellationToken
                 );
                 
                 // Сохраняем ID предупреждающего сообщения в кэше (на 10 минут, чтобы не спамить)
@@ -988,16 +1009,64 @@ public class MessageHandler : IUpdateHandler
                 message.Text ?? message.Caption ?? "[медиа]", 
                 message.MessageId
             );
-            await _messageService.SendAdminNotificationAsync(AdminNotificationType.SuspiciousMessage, suspiciousData, cancellationToken);
+            
+            // Отправляем уведомление с кнопками для подозрительного сообщения
+            await SendSuspiciousMessageWithButtons(message, user, suspiciousData, cancellationToken);
         }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Ошибка при пересылке сообщения");
+            var errorData = new ErrorNotificationData(
+                new InvalidOperationException("Не удалось переслать подозрительное сообщение"),
+                "Ошибка пересылки",
+                user,
+                message.Chat
+            );
+            await _messageService.SendAdminNotificationAsync(AdminNotificationType.SystemError, errorData, cancellationToken);
+        }
+    }
+    
+    private async Task SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var template = _messageService.GetTemplates().GetAdminTemplate(AdminNotificationType.SuspiciousMessage);
+            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, data);
+            
+            // Создаем кнопки для подозрительного сообщения
+            var approveCallback = $"suspicious_approve_{user.Id}_{message.Chat.Id}";
+            var banCallback = $"suspicious_ban_{user.Id}_{message.Chat.Id}";
+            var aiCallback = $"suspicious_ai_{user.Id}_{message.Chat.Id}";
+            
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("✅ Одобрить", approveCallback),
+                    InlineKeyboardButton.WithCallbackData("🚫 Забанить", banCallback)
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("🔍 AI анализ вкл/выкл", aiCallback)
+                }
+            });
+            
             await _bot.SendMessage(
                 Config.AdminChatId,
-                $"⚠️ Не удалось переслать подозрительное сообщение из чата *{message.Chat.Title}* от пользователя [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id})",
-                parseMode: ParseMode.Markdown
+                messageText,
+                parseMode: ParseMode.Markdown,
+                replyMarkup: keyboard,
+                cancellationToken: cancellationToken
             );
+            
+            _logger.LogDebug("Отправлено подозрительное сообщение с кнопками для пользователя {User} в чате {Chat}", 
+                Utils.FullName(user), message.Chat.Title);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке подозрительного сообщения с кнопками");
+            // Fallback: отправляем без кнопок
+            await _messageService.SendAdminNotificationAsync(AdminNotificationType.SuspiciousMessage, data, cancellationToken);
         }
     }
 
@@ -1023,14 +1092,15 @@ public class MessageHandler : IUpdateHandler
                 cancellationToken: cancellationToken
             );
             
-            await _bot.SendMessage(
-                Config.LogAdminChatId,
-                $"🚫 Автобан по блэклисту lols.bot (первое сообщение){Environment.NewLine}" +
-                $"Юзер {FullName(user.FirstName, user.LastName)} из чата {message.Chat.Title}{Environment.NewLine}" +
-                $"{LinkToMessage(message.Chat, message.MessageId)}",
-                replyParameters: forward,
-                cancellationToken: cancellationToken
+            var blacklistData = new AutoBanNotificationData(
+                user, 
+                message.Chat, 
+                "Автобан по блэклисту lols.bot", 
+                "первое сообщение", 
+                message.MessageId, 
+                LinkToMessage(message.Chat, message.MessageId)
             );
+            await _messageService.SendLogNotificationAsync(LogNotificationType.AutoBanBlacklist, blacklistData, cancellationToken);
         }
         catch (Exception e)
         {

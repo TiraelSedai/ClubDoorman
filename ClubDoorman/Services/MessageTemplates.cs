@@ -66,14 +66,14 @@ public class MessageTemplates
             "Ошибка: {ErrorMessage}",
             
         [AdminNotificationType.AutoBan] = 
-            "Авто-бан: {Reason}\n" +
+            "Сообщение удалено: {Reason}\n" +
             "Юзер {UserFullName} из чата {ChatTitle}\n" +
             "{MessageLink}",
             
         [AdminNotificationType.SuspiciousMessage] = 
             "⚠️ *Подозрительное сообщение* - требует ручной проверки. Сообщение *НЕ удалено*.\n" +
             "Пользователь [{UserFullName}](tg://user?id={UserId}) в чате *{ChatTitle}*\n" +
-            "Сообщение: {MessageText}",
+            "Сообщение: `{MessageText}`",
             
         [AdminNotificationType.ChannelError] = 
             "⚠️ Не могу забанить канал в чате {ChatTitle}. Не хватает могущества?",
@@ -238,6 +238,7 @@ public class MessageTemplates
         
         // Базовые поля
         result = result.Replace("{UserFullName}", Utils.FullName(data.User));
+        result = result.Replace("{UserMention}", $"[{Utils.FullName(data.User)}](tg://user?id={data.User.Id})");
         result = result.Replace("{UserId}", data.User.Id.ToString());
         result = result.Replace("{ChatTitle}", data.Chat.Title ?? data.Chat.Id.ToString());
         result = result.Replace("{ChatId}", data.Chat.Id.ToString());
@@ -270,7 +271,11 @@ public class MessageTemplates
         }
         else if (data is SuspiciousMessageNotificationData suspiciousMsgData)
         {
-            result = result.Replace("{MessageText}", suspiciousMsgData.MessageText);
+            result = result.Replace("{UserFullName}", Utils.FullName(suspiciousMsgData.User));
+            result = result.Replace("{UserName}", Utils.FullName(suspiciousMsgData.User));
+            result = result.Replace("{UserId}", suspiciousMsgData.User.Id.ToString());
+            result = result.Replace("{ChatTitle}", suspiciousMsgData.Chat.Title ?? "");
+            result = result.Replace("{MessageText}", EscapeMarkdown(suspiciousMsgData.MessageText));
             result = result.Replace("{MessageLink}", suspiciousMsgData.MessageLink ?? "");
         }
                     else if (data is UserCleanupNotificationData cleanupData)
@@ -279,8 +284,8 @@ public class MessageTemplates
             }
             else if (data is AiProfileAnalysisData aiProfileData)
             {
-                result = result.Replace("{SpamProbability}", (aiProfileData.SpamProbability * 100).ToString("F1"));
-                result = result.Replace("{Reason}", aiProfileData.Reason);
+                result = result.Replace("{SpamProbability:F2}", (aiProfileData.SpamProbability * 100).ToString("F2"));
+                result = result.Replace("{AiReason}", aiProfileData.Reason);
                 result = result.Replace("{NameBio}", aiProfileData.NameBio);
                 result = result.Replace("{MessageText}", aiProfileData.MessageText);
             }
@@ -349,5 +354,30 @@ public class MessageTemplates
         }
         
         return result;
+    }
+    
+    private string EscapeMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        
+        return text
+            .Replace("_", "\\_")
+            .Replace("*", "\\*")
+            .Replace("[", "\\[")
+            .Replace("]", "\\]")
+            .Replace("(", "\\(")
+            .Replace(")", "\\)")
+            .Replace("~", "\\~")
+            .Replace("`", "\\`")
+            .Replace(">", "\\>")
+            .Replace("#", "\\#")
+            .Replace("+", "\\+")
+            .Replace("-", "\\-")
+            .Replace("=", "\\=")
+            .Replace("|", "\\|")
+            .Replace("{", "\\{")
+            .Replace("}", "\\}")
+            .Replace(".", "\\.")
+            .Replace("!", "\\!");
     }
 } 

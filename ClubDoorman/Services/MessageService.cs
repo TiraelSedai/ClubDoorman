@@ -1,5 +1,6 @@
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Logging;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -15,37 +16,70 @@ public class MessageService : IMessageService
     private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<MessageService> _logger;
     private readonly MessageTemplates _templates;
+    private readonly ILoggingConfigurationService _configService;
     
     public MessageService(
         ITelegramBotClientWrapper bot,
         ILogger<MessageService> logger,
-        MessageTemplates templates)
+        MessageTemplates templates,
+        ILoggingConfigurationService configService)
     {
         _bot = bot;
         _logger = logger;
         _templates = templates;
+        _configService = configService;
     }
     
     public async Task SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken = default)
     {
         try
         {
-            var template = _templates.GetAdminTemplate(type);
-            var message = _templates.FormatNotificationTemplate(template, data);
+            var destinations = _configService.GetAdminNotificationDestinations(type);
             
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                message,
-                parseMode: ParseMode.Markdown,
-                cancellationToken: cancellationToken
-            );
-            
-            _logger.LogDebug("Отправлено админское уведомление типа {Type} для пользователя {User}", 
-                type, Utils.FullName(data.User));
+            // Проверяем, нужно ли отправлять в админский чат
+            if (destinations.HasFlag(NotificationDestination.AdminChat) && _configService.ShouldSendNotification(type.ToString(), NotificationDestination.AdminChat))
+            {
+                // Проверяем, что админский чат настроен корректно
+                var adminChatEnv = Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT");
+                if (string.IsNullOrEmpty(adminChatEnv))
+                {
+                    _logger.LogWarning("Админский чат не настроен (переменная DOORMAN_ADMIN_CHAT не установлена)");
+                    return;
+                }
+                
+                // Диагностика: проверяем доступность чата
+                try
+                {
+                    var chatInfo = await _bot.GetChat(Config.AdminChatId, cancellationToken);
+                    _logger.LogDebug("Админский чат доступен: {ChatTitle} (ID: {ChatId})", chatInfo.Title, chatInfo.Id);
+                }
+                catch (Exception chatEx)
+                {
+                    _logger.LogError(chatEx, "Не удается получить информацию об админском чате {ChatId}", Config.AdminChatId);
+                    return;
+                }
+                
+                var template = _templates.GetAdminTemplate(type);
+                var message = _templates.FormatNotificationTemplate(template, data);
+                
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    message,
+                    parseMode: ParseMode.Markdown,
+                    cancellationToken: cancellationToken
+                );
+                
+                _logger.LogDebug("Отправлено админское уведомление типа {Type} для пользователя {User}", 
+                    type, Utils.FullName(data.User));
+            }
+            else
+            {
+                _logger.LogDebug("Админское уведомление типа {Type} пропущено согласно конфигурации", type);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отправке админского уведомления типа {Type}", type);
+            _logger.LogError(ex, "Ошибка при отправке админского уведомления типа {Type} в чат {ChatId}", type, Config.AdminChatId);
         }
     }
     
@@ -53,22 +87,52 @@ public class MessageService : IMessageService
     {
         try
         {
-            var template = _templates.GetLogTemplate(type);
-            var message = _templates.FormatNotificationTemplate(template, data);
+            var destinations = _configService.GetLogNotificationDestinations(type);
             
-            await _bot.SendMessage(
-                Config.LogAdminChatId,
-                message,
-                parseMode: ParseMode.Markdown,
-                cancellationToken: cancellationToken
-            );
-            
-            _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User}", 
-                type, Utils.FullName(data.User));
+            // Проверяем, нужно ли отправлять в лог-чат
+            if (destinations.HasFlag(NotificationDestination.LogChat) && _configService.ShouldSendNotification(type.ToString(), NotificationDestination.LogChat))
+            {
+                // Проверяем, что лог-чат настроен корректно
+                var logChatEnv = Environment.GetEnvironmentVariable("DOORMAN_LOG_ADMIN_CHAT");
+                if (string.IsNullOrEmpty(logChatEnv))
+                {
+                    _logger.LogWarning("Лог-чат не настроен (переменная DOORMAN_LOG_ADMIN_CHAT не установлена)");
+                    return;
+                }
+                
+                // Диагностика: проверяем доступность чата
+                try
+                {
+                    var chatInfo = await _bot.GetChat(Config.LogAdminChatId, cancellationToken);
+                    _logger.LogDebug("Лог-чат доступен: {ChatTitle} (ID: {ChatId})", chatInfo.Title, chatInfo.Id);
+                }
+                catch (Exception chatEx)
+                {
+                    _logger.LogError(chatEx, "Не удается получить информацию о лог-чате {ChatId}", Config.LogAdminChatId);
+                    return;
+                }
+                
+                var template = _templates.GetLogTemplate(type);
+                var message = _templates.FormatNotificationTemplate(template, data);
+                
+                await _bot.SendMessage(
+                    Config.LogAdminChatId,
+                    message,
+                    parseMode: ParseMode.Markdown,
+                    cancellationToken: cancellationToken
+                );
+                
+                _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User}", 
+                    type, Utils.FullName(data.User));
+            }
+            else
+            {
+                _logger.LogDebug("Лог-уведомление типа {Type} пропущено согласно конфигурации", type);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отправке лог-уведомления типа {Type}", type);
+            _logger.LogError(ex, "Ошибка при отправке лог-уведомления типа {Type} в чат {ChatId}", type, Config.LogAdminChatId);
         }
     }
     
@@ -110,7 +174,17 @@ public class MessageService : IMessageService
         try
         {
             var template = _templates.GetUserTemplate(type);
-            var message = _templates.FormatTemplate(template, data);
+            string message;
+            
+            // Если data является NotificationData, используем FormatNotificationTemplate
+            if (data is NotificationData notificationData)
+            {
+                message = _templates.FormatNotificationTemplate(template, notificationData);
+            }
+            else
+            {
+                message = _templates.FormatTemplate(template, data);
+            }
             
             // Для команды /start используем HTML разметку, для системной информации - Markdown, для капчи - HTML
             var parseMode = type switch
@@ -324,5 +398,10 @@ public class MessageService : IMessageService
             _logger.LogError(ex, "Ошибка при отправке сообщения капчи в чат {Chat}", chat.Title);
             throw;
         }
+    }
+    
+    public MessageTemplates GetTemplates()
+    {
+        return _templates;
     }
 } 

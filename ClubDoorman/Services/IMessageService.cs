@@ -53,4 +53,9 @@ public interface IMessageService
     /// Отправить уведомление о AI анализе профиля с фото
     /// </summary>
     Task SendAiProfileAnalysisAsync(AiProfileAnalysisData data, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Получить доступ к шаблонам сообщений
+    /// </summary>
+    MessageTemplates GetTemplates();
 } 

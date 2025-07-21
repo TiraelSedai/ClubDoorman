@@ -126,3 +126,113 @@ Telegram.Bot.Exceptions.RequestException: Exception during making request
    at ClubDoorman.Services.TelegramBotClientWrapper.GetMe(CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 96
    at ClubDoorman.Worker.ExecuteAsync(CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 146
    at Microsoft.Extensions.Hosting.Internal.Host.TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)
+2025-07-21 20:19:22.760 +03:00 [ERR] Ошибка при пересылке сообщения в админский чат с уведомлением типа "AutoBan"
+Telegram Bot API error 400: Bad Request: message to forward not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.ForwardMessage(ITelegramBotClient botClient, ChatId chatId, ChatId fromChatId, Int32 messageId, Nullable`1 messageThreadId, Boolean disableNotification, Boolean protectContent, Nullable`1 videoStartTimestamp, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.ForwardMessage(ChatId chatId, ChatId fromChatId, Int32 messageId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 173
+   at ClubDoorman.Services.MessageService.ForwardToAdminWithNotificationAsync(Message originalMessage, AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 173
+2025-07-21 20:19:22.848 +03:00 [ERR] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Михаил
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 946
+2025-07-21 20:24:50.647 +03:00 [ERR] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 45
+2025-07-21 20:24:50.831 +03:00 [ERR] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Михаил
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+   at ClubDoorman.Handlers.MessageHandler.DeleteAndReportMessage(Message message, String reason, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 956
+2025-07-21 20:26:39.686 +03:00 [ERR] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 45
+2025-07-21 20:26:39.874 +03:00 [ERR] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Wodes
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+2025-07-21 20:26:52.976 +03:00 [ERR] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 45
+2025-07-21 20:26:53.137 +03:00 [ERR] Ошибка при отправке пользовательского уведомления типа "ModerationWarning" пользователю Wodes
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '{' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, Object data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 148
+2025-07-21 20:29:58.472 +03:00 [ERR] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:35:14.406 +03:00 [ERR] Ошибка при отправке админского уведомления типа "AutoBan"
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:39:53.550 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:40:23.185 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:42:49.709 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:43:44.065 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:44:33.965 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:45:13.116 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:47:24.222 +03:00 [ERR] Не удается получить информацию об админском чате -2584726598
+Telegram Bot API error 400: Bad Request: chat not found
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetChat(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetChat(ChatId chatId, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 137
+   at ClubDoorman.Services.MessageService.SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/MessageService.cs:line 53
+2025-07-21 20:58:32.610 +03:00 [ERR] Ошибка при отправке подозрительного сообщения с кнопками
+Telegram Bot API error 400: Bad Request: can't parse entities: Character '-' is reserved and must be escaped with the preceding '\'
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
+   at ClubDoorman.Handlers.MessageHandler.SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 1040

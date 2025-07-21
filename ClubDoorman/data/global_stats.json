@@ -4,7 +4,7 @@
     "-1002867169174": {
       "Title": "test_group_001",
       "Members": 4,
-      "CaptchaShown": 0,
+      "CaptchaShown": 1,
       "Bans": 1
     }
   }

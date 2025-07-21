@@ -4,6 +4,7 @@ using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
 using ClubDoorman.Handlers;
 using ClubDoorman.Handlers.Commands;
+using ClubDoorman.Models.Logging;
 using Telegram.Bot;
 using DotNetEnv;
 
@@ -59,7 +60,23 @@ public class Program
                             retainedFileCountLimit: 30,
                             restrictedToMinimumLevel: LogEventLevel.Error,
                             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
-                        ));
+                        ))
+                        .WriteTo.Async(a => a.File(
+                            path: Path.Combine(logsDir, "system-.log"),
+                            rollingInterval: RollingInterval.Day,
+                            retainedFileCountLimit: 14,
+                            restrictedToMinimumLevel: LogEventLevel.Information,
+                            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [System] {Message:lj}{NewLine}{Exception}"
+                        ))
+                        .WriteTo.Logger(lc => lc
+                            .Filter.ByIncludingOnly(e => e.Properties.ContainsKey("UserFlow"))
+                            .WriteTo.Async(a => a.File(
+                                path: Path.Combine(logsDir, "userflow-.log"),
+                                rollingInterval: RollingInterval.Day,
+                                retainedFileCountLimit: 7,
+                                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [UserFlow] {Message:lj}{NewLine}{Exception}"
+                            ))
+                        );
                 }
             )
             .ConfigureServices(services =>
@@ -125,6 +142,8 @@ public class Program
                 
                 // Централизованная система сообщений
                 services.AddSingleton<MessageTemplates>();
+                services.Configure<LoggingConfiguration>(options => {});
+                services.AddSingleton<ILoggingConfigurationService, LoggingConfigurationService>();
                 services.AddSingleton<IMessageService, MessageService>();
                 
                 // Обработчики обновлений
