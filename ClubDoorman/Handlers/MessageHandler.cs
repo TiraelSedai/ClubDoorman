@@ -29,6 +29,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IStatisticsService _statisticsService;
     private readonly ILogger<MessageHandler> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IUserFlowLogger _userFlowLogger;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -59,6 +60,7 @@ public class MessageHandler : IUpdateHandler
         GlobalStatsManager globalStatsManager,
         IStatisticsService statisticsService,
         IServiceProvider serviceProvider,
+        IUserFlowLogger userFlowLogger,
         ILogger<MessageHandler> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
@@ -71,6 +73,7 @@ public class MessageHandler : IUpdateHandler
         _globalStatsManager = globalStatsManager ?? throw new ArgumentNullException(nameof(globalStatsManager));
         _statisticsService = statisticsService ?? throw new ArgumentNullException(nameof(statisticsService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _userFlowLogger = userFlowLogger ?? throw new ArgumentNullException(nameof(userFlowLogger));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -119,11 +122,17 @@ public class MessageHandler : IUpdateHandler
         // Автоматически добавляем чат в конфиг
         ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
 
-
         // Обработка команд
         if (message.Text?.StartsWith("/") == true)
         {
             await HandleCommandAsync(message, cancellationToken);
+            return;
+        }
+
+        // Для приватных чатов обрабатываем только команды, остальное игнорируем
+        if (chat.Type == ChatType.Private)
+        {
+            _logger.LogDebug("Приватный чат {ChatId} - обрабатываем только команды", chat.Id);
             return;
         }
 
@@ -473,9 +482,7 @@ public class MessageHandler : IUpdateHandler
 
         // Логируем сообщения от неодобренных пользователей для анализа
         var messageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
-        var truncatedText = messageText.Length > 200 ? messageText.Substring(0, 200) + "..." : messageText;
-        _logger.LogInformation("📝 ПЕРВОЕ СООБЩЕНИЕ: {User} (id={UserId}, username={Username}) в '{ChatTitle}' (id={ChatId}): {MessageText}", 
-            FullName(user.FirstName, user.LastName), user.Id, user.Username ?? "нет", chat.Title ?? "неизвестно", chat.Id, truncatedText);
+        _userFlowLogger.LogFirstMessage(user, chat, messageText);
 
         // Определяем тип пользователя
         var isChannelDiscussion = await IsChannelDiscussion(chat, message);
@@ -505,11 +512,9 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Модерация сообщения
-        _logger.LogDebug("Запускаем модерацию для сообщения {MessageId} от пользователя {UserId}", 
-            message.MessageId, user.Id);
+        _userFlowLogger.LogModerationStarted(user, chat, messageText);
         var moderationResult = await _moderationService.CheckMessageAsync(message);
-        _logger.LogDebug("Результат модерации: {Action} - {Reason}", 
-            moderationResult.Action, moderationResult.Reason);
+        _userFlowLogger.LogModerationResult(user, chat, moderationResult.Action.ToString(), moderationResult.Reason, moderationResult.Confidence);
         
         switch (moderationResult.Action)
         {
@@ -528,7 +533,7 @@ public class MessageHandler : IUpdateHandler
                 break;
             
             case ModerationAction.Ban:
-                _logger.LogInformation("Автобан: {Reason}", moderationResult.Reason);
+                _userFlowLogger.LogUserBanned(user, chat, moderationResult.Reason);
                 await AutoBan(message, moderationResult.Reason, cancellationToken);
                 break;
             
@@ -588,6 +593,18 @@ public class MessageHandler : IUpdateHandler
         {
             var chat = userJoinMessage?.Chat!;
             
+            // Проверяем, что чат не приватный - в приватных чатах нельзя банить пользователей
+            if (chat.Type == ChatType.Private)
+            {
+                _logger.LogWarning("Попытка бана за длинное имя в приватном чате {ChatId} - операция невозможна", chat.Id);
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"⚠️ Попытка бана за длинное имя в приватном чате: {reason}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}{Environment.NewLine}Операция невозможна в приватных чатах",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+            
             await _bot.BanChatMember(
                 chat.Id, 
                 user.Id,
@@ -608,7 +625,7 @@ public class MessageHandler : IUpdateHandler
                 cancellationToken: cancellationToken
             );
             
-            _logger.LogInformation("Пользователь {User} забанен за длинное имя: {Reason}", Utils.FullName(user), reason);
+            _userFlowLogger.LogUserBanned(user, chat, reason);
         }
         catch (Exception e)
         {
@@ -622,13 +639,24 @@ public class MessageHandler : IUpdateHandler
         {
             var chat = userJoinMessage.Chat;
             
+            // Проверяем, что чат не приватный - в приватных чатах нельзя банить пользователей
+            if (chat.Type == ChatType.Private)
+            {
+                _logger.LogWarning("Попытка бана из блэклиста в приватном чате {ChatId} - операция невозможна", chat.Id);
+                await _bot.SendMessage(
+                    Config.AdminChatId,
+                    $"⚠️ Попытка бана из блэклиста в приватном чате{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}{Environment.NewLine}Операция невозможна в приватных чатах",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+            
             var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
             await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true, cancellationToken: cancellationToken);
             
             await _bot.DeleteMessage(chat.Id, userJoinMessage.MessageId, cancellationToken);
             
-            _logger.LogInformation("Пользователь {User} (id={UserId}) из блэклиста забанен на 4 часа в чате {ChatTitle} (id={ChatId})", 
-                Utils.FullName(user), user.Id, chat.Title, chat.Id);
+            _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте");
         }
         catch (Exception e)
         {
@@ -668,6 +696,20 @@ public class MessageHandler : IUpdateHandler
     private async Task AutoBan(Message message, string reason, CancellationToken cancellationToken)
     {
         var user = message.From;
+        var chat = message.Chat;
+        
+        // Проверяем, что чат не приватный - в приватных чатах нельзя банить пользователей
+        if (chat.Type == ChatType.Private)
+        {
+            _logger.LogWarning("Попытка бана в приватном чате {ChatId} - операция невозможна", chat.Id);
+            await _bot.SendMessage(
+                Config.AdminChatId,
+                $"⚠️ Попытка бана в приватном чате: {reason}{Environment.NewLine}Юзер {FullName(user.FirstName, user.LastName)} из чата {chat.Title}{Environment.NewLine}Операция невозможна в приватных чатах",
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+        
         var forward = await _bot.ForwardMessage(
             new ChatId(Config.AdminChatId),
             message.Chat.Id,
@@ -836,6 +878,8 @@ public class MessageHandler : IUpdateHandler
         _logger.LogWarning("🚫 БЛЭКЛИСТ LOLS.BOT: {UserName} (id={UserId}) в чате '{ChatTitle}' (id={ChatId}) написал: {MessageText}", 
             FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id, 
             messageText.Length > 100 ? messageText.Substring(0, 100) + "..." : messageText);
+        
+        _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте lols.bot");
         
         // Пересылаем сообщение в лог-чат перед удалением
         try
@@ -1008,6 +1052,7 @@ public class MessageHandler : IUpdateHandler
                 await SendAiProfileAlert(message, user, chat, result.SpamProbability, result.Photo, result.NameBio, cancellationToken);
 
                 _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
+                _userFlowLogger.LogUserRestricted(user, chat, $"AI анализ профиля: {result.SpamProbability.Reason}", TimeSpan.FromMinutes(10));
                 return true; // Возвращаем true - пользователь получил ограничения
             }
             else

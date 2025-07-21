@@ -59,6 +59,17 @@ public class ChatMemberHandlerTestFactoryTests
     }
 
     [Test]
+    public void BotMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new ChatMemberHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BotMock, Is.Not.Null);
+        Assert.That(factory.BotMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void UserManagerMock_IsProperlyConfigured()
     {
         // Arrange

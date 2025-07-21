@@ -59,6 +59,17 @@ public class MessageHandlerTestFactoryTests
     }
 
     [Test]
+    public void BotMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new MessageHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BotMock, Is.Not.Null);
+        Assert.That(factory.BotMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void ModerationServiceMock_IsProperlyConfigured()
     {
         // Arrange
@@ -89,6 +100,39 @@ public class MessageHandlerTestFactoryTests
         // Act & Assert
         Assert.That(factory.UserManagerMock, Is.Not.Null);
         Assert.That(factory.UserManagerMock.Object, Is.Not.Null);
+    }
+
+    [Test]
+    public void ClassifierMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new MessageHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.ClassifierMock, Is.Not.Null);
+        Assert.That(factory.ClassifierMock.Object, Is.Not.Null);
+    }
+
+    [Test]
+    public void BadMessageManagerMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new MessageHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BadMessageManagerMock, Is.Not.Null);
+        Assert.That(factory.BadMessageManagerMock.Object, Is.Not.Null);
+    }
+
+    [Test]
+    public void AiChecksMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new MessageHandlerTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.AiChecksMock, Is.Not.Null);
+        Assert.That(factory.AiChecksMock.Object, Is.Not.Null);
     }
 
     [Test]

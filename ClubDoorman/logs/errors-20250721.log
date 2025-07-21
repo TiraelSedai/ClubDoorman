@@ -1,0 +1,7 @@
+2025-07-21 15:50:13.199 +03:00 [ERR] ExecuteAsync
+Telegram Bot API error 409: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetUpdates(ITelegramBotClient botClient, Nullable`1 offset, Nullable`1 limit, Nullable`1 timeout, IEnumerable`1 allowedUpdates, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetUpdates(Nullable`1 offset, Nullable`1 limit, Nullable`1 timeout, IEnumerable`1 allowedUpdates, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 251
+   at ClubDoorman.Worker.UpdateLoop(Int32 offset, CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 176
+   at ClubDoorman.Worker.ExecuteAsync(CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 162

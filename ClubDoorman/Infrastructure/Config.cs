@@ -34,10 +34,23 @@ namespace ClubDoorman.Infrastructure
         public static bool ApproveButtonEnabled { get; } = GetEnvironmentBool("DOORMAN_APPROVE_BUTTON");
         
         /// <summary>
-        /// API токен бота
+        /// API токен бота Telegram
+        /// Если не настроен или равен "test-bot-token", бот не запустится
         /// </summary>
-        public static string BotApi { get; } =
-            Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? "test-bot-token";
+        public static string BotApi { get; } = GetBotApi();
+
+        private static string GetBotApi()
+        {
+            var botToken = Environment.GetEnvironmentVariable("DOORMAN_BOT_API");
+            
+            // Если переменная не установлена или равна "test-bot-token", возвращаем пустую строку
+            if (string.IsNullOrEmpty(botToken) || botToken == "test-bot-token")
+            {
+                return string.Empty;
+            }
+            
+            return botToken;
+        }
         
         /// <summary>
         /// ID админского чата
@@ -118,9 +131,23 @@ namespace ClubDoorman.Infrastructure
         }
 
         /// <summary>
-        /// API ключ OpenRouter для AI проверок
+        /// API ключ для OpenRouter (AI анализ)
+        /// Если не настроен или равен "test-api-key", AI анализ отключен
         /// </summary>
-        public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API") ?? "test-api-key";
+        public static string? OpenRouterApi { get; } = GetOpenRouterApi();
+
+        private static string? GetOpenRouterApi()
+        {
+            var apiKey = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
+            
+            // Если переменная не установлена или равна "test-api-key", возвращаем null
+            if (string.IsNullOrEmpty(apiKey) || apiKey == "test-api-key")
+            {
+                return null;
+            }
+            
+            return apiKey;
+        }
         
         /// <summary>
         /// Автоматически банить по кнопкам

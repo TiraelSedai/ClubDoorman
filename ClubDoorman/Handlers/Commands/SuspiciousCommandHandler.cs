@@ -73,20 +73,31 @@ public class SuspiciousCommandHandler : ICommandHandler
 
     private async Task HandleStatsCommand(Message message, CancellationToken cancellationToken)
     {
-        var (totalSuspicious, withAiDetect, groupsCount) = _moderationService.GetSuspiciousUsersStats();
-
-        var statsText = $"📊 *Статистика подозрительных пользователей*\n\n" +
-                       $"👥 Всего подозрительных: *{totalSuspicious}*\n" +
-                       $"🔍 С включенным AI детектом: *{withAiDetect}*\n" +
-                       $"🏠 Затронуто групп: *{groupsCount}*\n\n" +
-                       $"⚙️ Настройки:\n" +
-                       $"• Система включена: {(Config.SuspiciousDetectionEnabled ? "✅" : "❌")}\n" +
-                       $"• Порог мимикрии: *{Config.MimicryThreshold:F1}*\n" +
-                       $"• Сообщений для одобрения: *{Config.SuspiciousToApprovedMessageCount}*";
+        var stats = _moderationService.GetSuspiciousUsersStats();
+        var aiDetectUsers = _moderationService.GetAiDetectUsers();
+        
+        var statusMessage = 
+            $"*Статус системы подозрительных пользователей:*\n\n" +
+            $"• Система включена: {(Config.SuspiciousDetectionEnabled ? "✅" : "❌")}\n" +
+            $"• Порог мимикрии: *{Config.MimicryThreshold:F1}*\n" +
+            $"• Сообщений для одобрения: *{Config.SuspiciousToApprovedMessageCount}*\n\n" +
+            $"*Статистика:*\n" +
+            $"• Всего подозрительных: *{stats.TotalSuspicious}*\n" +
+            $"• С AI детектом: *{stats.WithAiDetect}*\n" +
+            $"• Групп: *{stats.GroupsCount}*\n\n" +
+            $"*AI анализ:*\n" +
+            $"• API настроен: {(Config.OpenRouterApi != null ? "✅" : "❌")}\n" +
+            $"• AI чаты включены: *{Config.AiEnabledChats.Count}*\n\n" +
+            $"*Команды:*\n" +
+            $"• `/suspicious list` - список подозрительных\n" +
+            $"• `/suspicious ai <on|off> <userId> <chatId>` - включить/выключить AI детект\n" +
+            $"• `/suspicious approve <userId> <chatId>` - одобрить пользователя\n" +
+            $"• `/suspicious ban <userId> <chatId>` - забанить пользователя\n" +
+            $"• `/suspicious cleanup <userId> <chatId>` - очистить из всех списков";
 
         await _bot.SendMessage(
             message.Chat.Id,
-            statsText,
+            statusMessage,
             parseMode: ParseMode.Markdown,
             cancellationToken: cancellationToken
         );

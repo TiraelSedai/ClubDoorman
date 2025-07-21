@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 
 try:
     from .models import ClassInfo, ConstructorParam
-    from .complexity_analyzer import ComplexityAnalyzer, ComplexityReport
+    from complexity_analyzer import ComplexityAnalyzer, ComplexityReport
 except ImportError:
     from models import ClassInfo, ConstructorParam
     from complexity_analyzer import ComplexityAnalyzer, ComplexityReport
@@ -38,6 +38,13 @@ class CSharpAnalyzer:
         handlers_dir = self.project_root / "Handlers"
         if handlers_dir.exists():
             for cs_file in handlers_dir.glob("*.cs"):
+                classes = self._parse_file(cs_file)
+                services.extend(classes)
+        
+        # Ищем в папке Infrastructure
+        infrastructure_dir = self.project_root / "Infrastructure"
+        if infrastructure_dir.exists():
+            for cs_file in infrastructure_dir.glob("*.cs"):
                 classes = self._parse_file(cs_file)
                 services.extend(classes)
         

@@ -32,4 +32,12 @@ public class ApprovedUsersStorageV2TestFactory
     }
 
     #endregion
+
+    #region Smart Methods Based on Business Logic
+
+    public IUserManager CreateUserManagerWithFake()
+    {
+        return new Mock<IUserManager>().Object;
+    }
+    #endregion
 }

@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 
 try:
     from .models import ClassInfo
-    from .complexity_analyzer import ComplexityReport
+    from complexity_analyzer import ComplexityReport
 except ImportError:
     from models import ClassInfo
     from complexity_analyzer import ComplexityReport
@@ -19,7 +19,11 @@ class TestFactoryGenerator:
     
     def __init__(self, test_project_root: Path, force_overwrite: bool = False):
         self.test_project_root = test_project_root
-        self.test_infrastructure_dir = test_project_root / "TestInfrastructure"
+        # Проверяем, является ли test_project_root уже папкой TestInfrastructure
+        if test_project_root.name == "TestInfrastructure":
+            self.test_infrastructure_dir = test_project_root
+        else:
+            self.test_infrastructure_dir = test_project_root / "TestInfrastructure"
         self.force_overwrite = force_overwrite
         self.complexity_report: Optional[ComplexityReport] = None
         self.test_markers: List[str] = []
