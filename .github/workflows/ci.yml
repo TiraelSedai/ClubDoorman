@@ -2,7 +2,7 @@ name: CI - Build and Test
 
 on:
   pull_request:
-    branches: [ next-dev ]
+    branches: [ "*" ]
 
 jobs:
   build-and-test:
