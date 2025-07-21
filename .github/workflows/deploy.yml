@@ -34,8 +34,8 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t ghcr.io/${{ env.repo_name }}:latest \
-                     -t ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }} \
+        docker build -t ghcr.io/${{ env.repo_name }}:dev \
+                     -t ghcr.io/${{ env.repo_name }}:dev-2.0.${{ github.run_number }} \
                      ./ClubDoorman
 
     - name: Log in to GitHub Container Registry
@@ -47,10 +47,8 @@ jobs:
 
     - name: Push Docker image
       run: |
-        docker push ghcr.io/${{ env.repo_name }}:latest
-        docker push ghcr.io/${{ env.repo_name }}:${{ steps.vars.outputs.version }}
-        docker tag ghcr.io/${{ env.repo_name }}:latest ghcr.io/${{ env.repo_name }}:dev
         docker push ghcr.io/${{ env.repo_name }}:dev
+        docker push ghcr.io/${{ env.repo_name }}:dev-2.0.${{ github.run_number }}
 
     # - name: SSH and Update Container
     #   run: |
