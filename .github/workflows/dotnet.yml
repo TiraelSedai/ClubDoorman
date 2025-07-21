@@ -49,7 +49,7 @@ jobs:
         tag_name: v${{ steps.vars.outputs.version }}
         name: Release v${{ steps.vars.outputs.version }}
         body: |
-          ## GateTroitsBot v${{ steps.vars.outputs.version }}
+          ## Spampyre v${{ steps.vars.outputs.version }}
 
           **Сборка:**
           - Коммит: ${{ steps.build_info.outputs.commit }}
