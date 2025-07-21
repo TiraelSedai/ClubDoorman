@@ -1,5 +1,6 @@
 using ClubDoorman.Models.Notifications;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman.Services;
 
@@ -22,6 +23,16 @@ public interface IMessageService
     /// Отправить уведомление пользователю
     /// </summary>
     Task SendUserNotificationAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Отправляет пользовательское уведомление и возвращает отправленное сообщение
+    /// </summary>
+    Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Отправляет сообщение капчи с кнопками
+    /// </summary>
+    Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Переслать сообщение в админский чат с уведомлением

@@ -271,3 +271,63 @@ public class AiDetectNotificationData : NotificationData
         MessageId = messageId;
     }
 } 
+
+/// <summary>
+/// Данные для уведомления о пользователе с ограничениями
+/// </summary>
+public class UserRestrictedNotificationData : NotificationData
+{
+    public string LastMessage { get; }
+    public string ChatTitle { get; }
+
+    public UserRestrictedNotificationData(
+        User user,
+        Chat chat,
+        string reason,
+        long messageId,
+        string lastMessage,
+        string chatTitle) : base(user, chat, reason, messageId)
+    {
+        LastMessage = lastMessage;
+        ChatTitle = chatTitle;
+    }
+}
+
+/// <summary>
+/// Данные для уведомления о пользователе, удаленном из одобренных
+/// </summary>
+public class UserRemovedFromApprovedNotificationData : NotificationData
+{
+    public string ChatTitle { get; }
+
+    public UserRemovedFromApprovedNotificationData(
+        User user,
+        Chat chat,
+        string reason,
+        long messageId,
+        string chatTitle) : base(user, chat, reason, messageId)
+    {
+        ChatTitle = chatTitle;
+    }
+} 
+
+/// <summary>
+/// Данные для приветственного сообщения после капчи
+/// </summary>
+public class CaptchaWelcomeNotificationData : NotificationData
+{
+    public string MediaWarning { get; }
+    public string VpnAd { get; }
+
+    public CaptchaWelcomeNotificationData(
+        User user,
+        Chat chat,
+        string reason,
+        long messageId,
+        string mediaWarning,
+        string vpnAd) : base(user, chat, reason, messageId)
+    {
+        MediaWarning = mediaWarning;
+        VpnAd = vpnAd;
+    }
+} 

@@ -48,5 +48,10 @@ public enum UserNotificationType
     /// <summary>
     /// Системная информация
     /// </summary>
-    SystemInfo
+    SystemInfo,
+
+    /// <summary>
+    /// Приветствие после капчи
+    /// </summary>
+    CaptchaWelcome
 } 

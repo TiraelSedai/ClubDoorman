@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.Caching;
 using ClubDoorman.Infrastructure;
+using ClubDoorman.Models.Notifications;
 using ClubDoorman.Services;
+using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
@@ -18,17 +20,20 @@ public class ChatMemberHandler : IUpdateHandler
     private readonly IUserManager _userManager;
     private readonly ILogger<ChatMemberHandler> _logger;
     private readonly IntroFlowService _introFlowService;
+    private readonly IMessageService _messageService;
 
     public ChatMemberHandler(
         ITelegramBotClientWrapper bot,
         IUserManager userManager,
         ILogger<ChatMemberHandler> logger,
-        IntroFlowService introFlowService)
+        IntroFlowService introFlowService,
+        IMessageService messageService)
     {
         _bot = bot;
         _userManager = userManager;
         _logger = logger;
         _introFlowService = introFlowService;
+        _messageService = messageService;
     }
 
     public bool CanHandle(Update update) => update.Type == UpdateType.ChatMember;
@@ -86,19 +91,21 @@ public class ChatMemberHandler : IUpdateHandler
                 // Удаляем из списка доверенных
                 if (_userManager.RemoveApproval(user.Id, chatMember.Chat.Id, removeAll: true))
                 {
-                    await _bot.SendMessage(
-                        Config.AdminChatId,
-                        $"⚠️ Пользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) удален из списка одобренных после получения ограничений в чате *{chatMember.Chat.Title}*",
-                        parseMode: ParseMode.Markdown,
-                        cancellationToken: cancellationToken
+                    var removedData = new UserRemovedFromApprovedNotificationData(
+                        user, chatMember.Chat, "удален из списка одобренных после получения ограничений", 0, chatMember.Chat.Title ?? "");
+                    await _messageService.SendAdminNotificationAsync(
+                        AdminNotificationType.UserRemovedFromApproved,
+                        removedData,
+                        cancellationToken
                     );
                 }
                 
-                await _bot.SendMessage(
-                    new ChatId(Config.AdminChatId),
-                    $"🔔 В чате *{chatMember.Chat.Title}* пользователю [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{tailMessage}",
-                    parseMode: ParseMode.Markdown,
-                    cancellationToken: cancellationToken
+                var restrictedData = new UserRestrictedNotificationData(
+                    user, chatMember.Chat, "пользователь получил ограничения", 0, lastMessage, chatMember.Chat.Title ?? "");
+                await _messageService.SendAdminNotificationAsync(
+                    AdminNotificationType.UserRestricted,
+                    restrictedData,
+                    cancellationToken
                 );
                 break;
         }

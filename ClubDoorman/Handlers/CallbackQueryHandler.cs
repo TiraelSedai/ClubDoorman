@@ -204,17 +204,22 @@ public class CallbackQueryHandler : IUpdateHandler
         var vpnAd = isNoAdGroup ? "" : "\n\n\n📍 <b>Место для рекламы</b> \n <i>...</i>";
         
         string greetMsg;
+        string mediaWarning;
         if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
         {
+            mediaWarning = "";
             greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, сообщения со стоп-словами и спамом будут удалены. Не просите писать в ЛС!{vpnAd}";
         }
         else
         {
-            var mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры, документы" : ", изображения, стикеры, документы";
+            mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры, документы" : ", изображения, стикеры, документы";
             greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически. Не просите писать в ЛС!{vpnAd}";
         }
 
-        var sent = await _bot.SendMessage(chat.Id, greetMsg, parseMode: ParseMode.Html, cancellationToken: cancellationToken);
+        var captchaWelcomeData = new CaptchaWelcomeNotificationData(
+            user, chat, "приветствие после капчи", 0, mediaWarning, vpnAd);
+        var sent = await _messageService.SendUserNotificationWithReplyAsync(
+            user, chat, UserNotificationType.CaptchaWelcome, captchaWelcomeData, cancellationToken);
         
         // Удаляем приветствие через 20 секунд
         _ = Task.Run(async () =>

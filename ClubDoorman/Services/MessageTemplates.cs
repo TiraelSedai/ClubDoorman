@@ -112,10 +112,13 @@ public class MessageTemplates
                 "🤖 AI анализ: *{AiScore:F2}* - {AiReason}\n" +
                 "🔬 ML скор: *{MlScore:F2}*\n" +
                 "🔒 Пользователь ограничен на 2 часа. Требуется решение.",
-                
-            [AdminNotificationType.AiProfileAnalysis] = 
-                "🤖 AI: Вероятность что это профиль бейт спаммер {SpamProbability}%. Даём ридонли на 10 минут\n{Reason}\nЮзер {UserFullName} из чата {ChatTitle}"
-    };
+
+            [AdminNotificationType.UserRemovedFromApproved] =
+                "⚠️ Пользователь [{UserName}](tg://user?id={UserId}) удален из списка одобренных после получения ограничений в чате *{ChatTitle}*",
+
+            [AdminNotificationType.UserRestricted] =
+                "🔔 В чате *{ChatTitle}* пользователю [{UserName}](tg://user?id={UserId}) дали ридонли или забанили, посмотрите в Recent actions, возможно ML пропустил спам. Если это так - кидайте его сюда.{LastMessage}"
+        };
     
     private readonly Dictionary<LogNotificationType, string> _logTemplates = new()
     {
@@ -185,8 +188,11 @@ public class MessageTemplates
                 "{Reason}",
 
             [UserNotificationType.Welcome] = 
-                "{Reason}"
-    };
+                "{Reason}",
+
+            [UserNotificationType.CaptchaWelcome] =
+                "👋 {UserName}\\n\\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{MediaWarning} и реклама запрещены — они могут удаляться автоматически. Не просите писать в ЛС!{VpnAd}"
+        };
     
     /// <summary>
     /// Получить шаблон для админского уведомления
@@ -288,6 +294,42 @@ public class MessageTemplates
                 result = result.Replace("{MlScore}", aiDetectData.MlScore.ToString("F2"));
                 result = result.Replace("{AiReason}", aiDetectData.AiReason);
                 result = result.Replace("{MessageText}", aiDetectData.MessageText.Substring(0, Math.Min(aiDetectData.MessageText.Length, 200)));
+            }
+            else if (data is UserRestrictedNotificationData restrictedData)
+            {
+                result = result.Replace("{UserName}", Utils.FullName(restrictedData.User));
+                result = result.Replace("{UserId}", restrictedData.User.Id.ToString());
+                result = result.Replace("{ChatTitle}", restrictedData.ChatTitle);
+                result = result.Replace("{LastMessage}", string.IsNullOrWhiteSpace(restrictedData.LastMessage) 
+                    ? "" 
+                    : $" Его/её последним сообщением было:\n```\n{restrictedData.LastMessage}\n```");
+            }
+            else if (data is UserRemovedFromApprovedNotificationData removedData)
+            {
+                result = result.Replace("{UserName}", Utils.FullName(removedData.User));
+                result = result.Replace("{UserId}", removedData.User.Id.ToString());
+                result = result.Replace("{ChatTitle}", removedData.ChatTitle);
+            }
+            else if (data is CaptchaWelcomeNotificationData captchaWelcomeData)
+            {
+                result = result.Replace("{UserName}", Utils.FullName(captchaWelcomeData.User));
+                result = result.Replace("{MediaWarning}", captchaWelcomeData.MediaWarning);
+                result = result.Replace("{VpnAd}", captchaWelcomeData.VpnAd);
+            }
+            else if (data is SimpleNotificationData simpleData)
+            {
+                result = result.Replace("{UserName}", Utils.FullName(simpleData.User));
+                result = result.Replace("{UserId}", simpleData.User.Id.ToString());
+                result = result.Replace("{ChatTitle}", simpleData.Chat.Title ?? "");
+                result = result.Replace("{Reason}", simpleData.Reason);
+            }
+            else
+            {
+                // Fallback для базовых полей
+                result = result.Replace("{UserName}", Utils.FullName(data.User));
+                result = result.Replace("{UserId}", data.User.Id.ToString());
+                result = result.Replace("{ChatTitle}", data.Chat.Title ?? "");
+                result = result.Replace("{Reason}", data.Reason);
             }
         
         return result;

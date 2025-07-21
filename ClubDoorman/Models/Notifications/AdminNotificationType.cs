@@ -108,5 +108,15 @@ public enum AdminNotificationType
     /// <summary>
     /// AI детект - подозрительное сообщение
     /// </summary>
-    AiDetectSuspicious
+    AiDetectSuspicious,
+
+    /// <summary>
+    /// Пользователь удален из списка одобренных
+    /// </summary>
+    UserRemovedFromApproved,
+
+    /// <summary>
+    /// Пользователь получил ограничения
+    /// </summary>
+    UserRestricted
 } 

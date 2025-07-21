@@ -79,11 +79,12 @@ public class MessageService : IMessageService
             var template = _templates.GetUserTemplate(type);
             var message = _templates.FormatTemplate(template, data);
             
-            // Для команды /start используем HTML разметку, для системной информации - Markdown
+            // Для команды /start используем HTML разметку, для системной информации - Markdown, для капчи - HTML
             var parseMode = type switch
             {
                 UserNotificationType.Welcome => ParseMode.Html,
                 UserNotificationType.SystemInfo => ParseMode.Markdown,
+                UserNotificationType.CaptchaWelcome => ParseMode.Html,
                 _ => ParseMode.MarkdownV2
             };
             
@@ -101,6 +102,42 @@ public class MessageService : IMessageService
         {
             _logger.LogError(ex, "Ошибка при отправке пользовательского уведомления типа {Type} пользователю {User}", 
                 type, Utils.FullName(user));
+        }
+    }
+    
+    public async Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var template = _templates.GetUserTemplate(type);
+            var message = _templates.FormatTemplate(template, data);
+            
+            // Для команды /start используем HTML разметку, для системной информации - Markdown, для капчи - HTML
+            var parseMode = type switch
+            {
+                UserNotificationType.Welcome => ParseMode.Html,
+                UserNotificationType.SystemInfo => ParseMode.Markdown,
+                UserNotificationType.CaptchaWelcome => ParseMode.Html,
+                _ => ParseMode.MarkdownV2
+            };
+            
+            var sentMessage = await _bot.SendMessage(
+                chat.Id,
+                message,
+                parseMode: parseMode,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Отправлено пользовательское уведомление типа {Type} пользователю {User} в чате {Chat}", 
+                type, Utils.FullName(user), chat.Title);
+            
+            return sentMessage;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке пользовательского уведомления типа {Type} пользователю {User}", 
+                type, Utils.FullName(user));
+            throw;
         }
     }
     
@@ -262,6 +299,30 @@ public class MessageService : IMessageService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка при отправке AI уведомления о профиле для пользователя {User}", Utils.FullName(data.User));
+        }
+    }
+    
+    public async Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var sentMessage = await _bot.SendMessage(
+                chat.Id,
+                message,
+                parseMode: ParseMode.Html,
+                replyParameters: replyParameters,
+                replyMarkup: replyMarkup,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Отправлено сообщение капчи в чат {Chat}", chat.Title);
+            
+            return sentMessage;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке сообщения капчи в чат {Chat}", chat.Title);
+            throw;
         }
     }
 } 
