@@ -32,6 +32,15 @@ public class AiChecks : IAiChecks
         _bot = bot;
         _logger = logger;
         _api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
+        
+        if (_api == null)
+        {
+            _logger.LogWarning("🤖 AI анализ ОТКЛЮЧЕН: DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'");
+        }
+        else
+        {
+            _logger.LogInformation("🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен");
+        }
     }
 
     private static string CacheKey(long userId) => $"ai_profile_check:{userId}";

@@ -52,6 +52,17 @@ public class ModerationService : IModerationService
         _suspiciousUsersStorage = suspiciousUsersStorage;
         _botClient = botClient;
         _logger = logger;
+        
+        // Логируем статус системы мимикрии
+        if (Config.SuspiciousDetectionEnabled)
+        {
+            _logger.LogInformation("🎭 Система мимикрии ВКЛЮЧЕНА: порог={Threshold:F1}, сообщений для одобрения={Count}", 
+                Config.MimicryThreshold, Config.SuspiciousToApprovedMessageCount);
+        }
+        else
+        {
+            _logger.LogWarning("🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения");
+        }
     }
 
     /// <summary>
@@ -468,14 +479,21 @@ public class ModerationService : IModerationService
                 firstMessages = _userFirstMessages.GetValueOrDefault(user.Id, new List<string>());
             }
             
+            _logger.LogDebug("🎭 Анализ мимикрии для {User}: собрано {Count} сообщений", 
+                Utils.FullName(user), firstMessages.Count);
+            
             if (firstMessages.Count < 3)
             {
-                _logger.LogWarning("Недостаточно сообщений для анализа мимикрии: {Count}", firstMessages.Count);
+                _logger.LogDebug("🎭 Недостаточно сообщений для анализа мимикрии: {Count}/3 для {User}", 
+                    firstMessages.Count, Utils.FullName(user));
                 return false;
             }
             
             // Анализируем мимикрию
             var mimicryScore = _mimicryClassifier.AnalyzeMessages(firstMessages);
+            
+            _logger.LogDebug("🎭 Результат анализа мимикрии для {User}: скор={Score:F2}, порог={Threshold:F2}", 
+                Utils.FullName(user), mimicryScore, Config.MimicryThreshold);
             
             if (mimicryScore >= Config.MimicryThreshold)
             {
@@ -491,7 +509,7 @@ public class ModerationService : IModerationService
                 _suspiciousUsersStorage.AddSuspicious(user.Id, chat.Id, suspiciousInfo);
                 
                 _logger.LogWarning(
-                    "User {FullName} marked as suspicious in chat {ChatTitle} with mimicry score {Score:F2}. First messages: [{Messages}]",
+                    "🎭🚨 User {FullName} marked as suspicious in chat {ChatTitle} with mimicry score {Score:F2}. First messages: [{Messages}]",
                     Utils.FullName(user),
                     chat.Title ?? chat.Id.ToString(),
                     mimicryScore,
@@ -503,6 +521,9 @@ public class ModerationService : IModerationService
                 
                 return true;
             }
+            
+            _logger.LogDebug("🎭✅ Пользователь {User} прошел проверку мимикрии: скор={Score:F2} < порог={Threshold:F2}", 
+                Utils.FullName(user), mimicryScore, Config.MimicryThreshold);
             
             return false;
         }

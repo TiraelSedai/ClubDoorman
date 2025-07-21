@@ -41,4 +41,17 @@ public class UpdateDispatcherTestFactory
     }
 
     #endregion
+
+    #region Smart Methods Based on Business Logic
+
+    public IUserManager CreateUserManagerWithFake()
+    {
+        return new Mock<IUserManager>().Object;
+    }
+
+    public async Task<UpdateDispatcher> CreateAsync()
+    {
+        return await Task.FromResult(CreateUpdateDispatcher());
+    }
+    #endregion
 }

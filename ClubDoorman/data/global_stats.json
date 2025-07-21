@@ -1,4 +1,11 @@
 {
-  "StartDate": "2025-07-20",
-  "Chats": {}
+  "StartDate": "2025-07-21",
+  "Chats": {
+    "-1002867169174": {
+      "Title": "test_group_001",
+      "Members": 0,
+      "CaptchaShown": 0,
+      "Bans": 1
+    }
+  }
 }

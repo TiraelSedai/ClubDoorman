@@ -26,6 +26,8 @@
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="2.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
     <PackageReference Include="Telegram.Bot" Version="22.4.4" />
     <!-- AI проверки профилей -->
@@ -33,6 +35,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="8.0.0" />
     <PackageReference Include="Polly" Version="8.5.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.9" />
+    <PackageReference Include="DotNetEnv" Version="2.6.0" />
   </ItemGroup>
 
   <ItemGroup>

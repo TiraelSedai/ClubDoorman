@@ -192,47 +192,75 @@ class TestDataGenerator:
     
     def _get_valid_value(self, prop: PropertyInfo) -> str:
         """Возвращает валидное значение для свойства"""
-        prop_type = prop.type.lower()
-        prop_name = prop.name.lower()
-        
-        if 'string' in prop_type:
-            if 'name' in prop_name:
-                return f'"{prop.name.capitalize()}"'
-            elif 'title' in prop_name:
-                return f'"{prop.name.capitalize()} Title"'
-            elif 'reason' in prop_name:
-                return f'"Test reason"'
-            elif 'messages' in prop_name:
-                return 'new List<string> { "First message", "Second message", "Third message" }'
+        if prop.type == 'string':
+            if prop.name.lower() in ['text', 'message', 'content']:
+                return '"Hello, this is a valid message!"'
+            elif prop.name.lower() in ['username', 'name']:
+                return '"testuser"'
+            elif prop.name.lower() in ['title']:
+                return '"Test Group"'
+            elif prop.name.lower() in ['data']:
+                return '"test_data"'
+            elif prop.name.lower() in ['id', 'callback_id']:
+                return '"test_callback_id"'
             else:
-                return f'"{prop.name}"'
-        elif 'int' in prop_type:
-            return "1"
-        elif 'long' in prop_type:
-            return "123456789"
-        elif 'double' in prop_type or 'float' in prop_type:
-            return "0.5"
-        elif 'bool' in prop_type:
-            return "false"
-        elif 'datetime' in prop_type:
-            return "DateTime.UtcNow"
-        elif 'user' in prop_type.lower():
-            return "TestDataFactory.CreateValidUser()"
-        elif 'message' in prop_type.lower():
-            return "TestDataFactory.CreateValidMessage()"
-        elif 'chat' in prop_type.lower():
-            return "TestDataFactory.CreateGroupChat()"
-        elif 'cancellationtokensource' in prop_type.lower():
-            return "new CancellationTokenSource()"
-        elif 'list<string>' in prop_type.lower():
-            return 'new List<string> { "First message", "Second message", "Third message" }'
-        elif prop.type.endswith('?'):
-            # Nullable тип
-            return "null"
+                return '"test_value"'
+        elif prop.type == 'int':
+            if prop.name.lower() in ['id', 'messageid', 'chatid', 'userid']:
+                return '123456789'
+            elif prop.name.lower() in ['date']:
+                return 'DateTime.UtcNow'
+            else:
+                return '42'
+        elif prop.type == 'long':
+            if prop.name.lower() in ['id', 'messageid', 'chatid', 'userid']:
+                return '123456789L'
+            else:
+                return '42L'
+        elif prop.type == 'double':
+            if prop.name.lower() in ['score', 'mimicryscore']:
+                return '0.85'
+            else:
+                return '3.14'
+        elif prop.type == 'float':
+            return '3.14f'
+        elif prop.type == 'bool':
+            if prop.name.lower() in ['isbot', 'is_bot']:
+                return 'false'
+            elif prop.name.lower() in ['isapproved', 'is_approved']:
+                return 'true'
+            else:
+                return 'true'
+        elif prop.type == 'DateTime':
+            return 'DateTime.UtcNow'
+        elif prop.type == 'User':
+            return 'CreateValidUser()'
+        elif prop.type == 'Message':
+            return 'CreateValidMessage()'
+        elif prop.type == 'Chat':
+            return 'CreateGroupChat()'
+        elif prop.type == 'Update':
+            return 'CreateMessageUpdate()'
+        elif prop.type == 'CallbackQuery':
+            return 'CreateValidCallbackQuery()'
+        elif prop.type == 'ChatMemberUpdated':
+            return 'CreateMemberJoined()'
+        elif prop.type == 'ModerationResult':
+            return 'CreateValidModerationResult()'
+        elif prop.type == 'SuspiciousUserInfo':
+            return 'CreateValidSuspiciousUserInfo()'
+        elif prop.type == 'CancellationTokenSource':
+            return 'new CancellationTokenSource()'
+        elif prop.type == 'List<string>':
+            return 'new List<string> { "test1", "test2" }'
+        elif prop.type == 'ChatType':
+            return 'ChatType.Group'
         elif prop.type == 'ModerationAction':
-            return "ModerationAction.Allow"
+            return 'ModerationAction.Allow'
+        elif prop.is_nullable:
+            return 'null'
         else:
-            return f"new {prop.type}()"
+            return f'new {prop.type}()'
     
     def _get_empty_value(self, prop: PropertyInfo) -> str:
         """Возвращает пустое значение для свойства"""
@@ -285,7 +313,6 @@ public static class TestDataFactory
     {
         return new Message
         {
-            MessageId = 1,
             Date = DateTime.UtcNow,
             Text = "Hello, this is a valid message!",
             From = CreateValidUser(),
@@ -297,7 +324,6 @@ public static class TestDataFactory
     {
         return new Message
         {
-            MessageId = 2,
             Date = DateTime.UtcNow,
             Text = "BUY NOW!!! AMAZING OFFER!!! CLICK HERE!!!",
             From = CreateValidUser(),
@@ -309,7 +335,6 @@ public static class TestDataFactory
     {
         return new Message
         {
-            MessageId = 3,
             Date = DateTime.UtcNow,
             Text = "",
             From = CreateValidUser(),
@@ -418,6 +443,9 @@ public static class TestDataFactory
         for model in all_models:
             code += self._generate_test_data_methods(model)
         
+        # Добавляем дополнительные методы
+        code += self._generate_additional_methods()
+        
         code += """
     #endregion
 }
@@ -438,35 +466,220 @@ public static class TestDataFactory
         return {model.name}.{enum_value};
     }}""")
         else:
-            # Для record'ов создаем методы создания
-            methods.append(f"""
+            # Для обычных классов создаем методы через object initializer
+            if model.name in ['Message', 'User', 'Chat', 'CallbackQuery', 'ChatMemberUpdated']:
+                methods.append(f"""
+    public static {model.name} CreateValid{model.name}()
+    {{
+        return new {model.name}
+        {{
+{self._generate_object_initializer(model, "valid")}
+        }};
+    }}""")
+                
+                # Создаем методы для edge cases
+                if any(p.type == 'string' for p in model.properties):
+                    methods.append(f"""
+    public static {model.name} CreateEmpty{model.name}()
+    {{
+        return new {model.name}
+        {{
+{self._generate_object_initializer(model, "empty")}
+        }};
+    }}""")
+                
+                if any(p.type == 'string' for p in model.properties):
+                    methods.append(f"""
+    public static {model.name} CreateLong{model.name}()
+    {{
+        return new {model.name}
+        {{
+{self._generate_object_initializer(model, "long")}
+        }};
+    }}""")
+            else:
+                # Для record'ов создаем методы через конструктор
+                methods.append(f"""
     public static {model.name} CreateValid{model.name}()
     {{
         return new {model.name}(
 {self._generate_constructor_parameters(model, "valid")}
         );
     }}""")
-            
-            # Создаем методы для edge cases
-            if any(p.type == 'string' for p in model.properties):
-                methods.append(f"""
-    public static {model.name} CreateEmpty{model.name}()
-    {{
-        return new {model.name}(
-{self._generate_constructor_parameters(model, "empty")}
-        );
-    }}""")
-            
-            if any(p.type == 'string' for p in model.properties):
-                methods.append(f"""
-    public static {model.name} CreateLong{model.name}()
-    {{
-        return new {model.name}(
-{self._generate_constructor_parameters(model, "long")}
-        );
-    }}""")
         
         return "\n".join(methods)
+    
+    def _generate_additional_methods(self) -> str:
+        """Генерирует дополнительные методы для TestDataFactory"""
+        return """
+    // Дополнительные методы для совместимости с существующими тестами
+    public static Message CreateNullTextMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = null,
+            From = CreateValidUser(),
+            Chat = CreateGroupChat()
+        };
+    }
+    
+    public static Message CreateLongMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = "This is a very long message that contains a lot of text and should be considered as a long message for testing purposes. " + 
+                   "It has multiple sentences and should trigger any logic that handles long messages. " +
+                   "The message continues with more content to ensure it's properly classified as long.",
+            From = CreateValidUser(),
+            Chat = CreateGroupChat()
+        };
+    }
+    
+    public static ModerationResult CreateAllowResult()
+    {
+        return new ModerationResult(ModerationAction.Allow, "Message allowed");
+    }
+    
+    public static ModerationResult CreateDeleteResult()
+    {
+        return new ModerationResult(ModerationAction.Delete, "Message deleted");
+    }
+    
+    public static ModerationResult CreateBanResult()
+    {
+        return new ModerationResult(ModerationAction.Ban, "User banned");
+    }
+    
+    public static CaptchaInfo CreateExpiredCaptchaInfo()
+    {
+        return new CaptchaInfo(
+            123456789L,
+            "expired-chat",
+            DateTime.UtcNow.AddHours(-2), // Expired 2 hours ago
+            CreateValidUser(),
+            3,
+            new CancellationTokenSource(),
+            CreateValidMessage()
+        );
+    }
+    
+    public static ChatMemberUpdated CreateMemberLeft()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberLeft()
+        };
+    }
+    
+    public static ChatMemberUpdated CreateMemberBanned()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberBanned()
+        };
+    }
+    
+    public static ChatMemberUpdated CreateMemberRestricted()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberRestricted()
+        };
+    }
+    
+    public static ChatMemberUpdated CreateMemberPromoted()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberMember(),
+            NewChatMember = new ChatMemberAdministrator()
+        };
+    }
+    
+    public static ChatMemberUpdated CreateMemberDemoted()
+    {
+        return new ChatMemberUpdated
+        {
+            Chat = CreateGroupChat(),
+            From = CreateValidUser(),
+            Date = DateTime.UtcNow,
+            OldChatMember = new ChatMemberAdministrator(),
+            NewChatMember = new ChatMemberMember()
+        };
+    }
+    
+    public static CallbackQuery CreateInvalidCallbackQuery()
+    {
+        return new CallbackQuery
+        {
+            Id = "invalid_callback_id",
+            From = CreateValidUser(),
+            Message = null,
+            Data = null
+        };
+    }
+    
+    public static Chat CreatePrivateChat()
+    {
+        return new Chat
+        {
+            Id = 123456789,
+            Type = ChatType.Private,
+            Title = "Private Chat",
+            Username = "privateuser"
+        };
+    }
+    
+    public static User CreateAnonymousUser()
+    {
+        return new User
+        {
+            Id = 111111111,
+            IsBot = false,
+            FirstName = "Anonymous",
+            LastName = null,
+            Username = null
+        };
+    }"""
+    
+    def _generate_object_initializer(self, model: ModelInfo, value_type: str) -> str:
+        """Генерирует object initializer для класса"""
+        prop_lines = []
+        
+        for prop in model.properties:
+            # Пропускаем readonly свойства
+            if prop.name in ['MessageId']:
+                continue
+                
+            if value_type == "valid":
+                value = self._get_valid_value(prop)
+            elif value_type == "empty":
+                value = self._get_empty_value(prop)
+            elif value_type == "long":
+                value = self._get_long_value(prop)
+            else:
+                value = self._get_valid_value(prop)
+            
+            prop_lines.append(f"            {prop.name} = {value},")
+        
+        return "\n".join(prop_lines)
     
     def _generate_constructor_parameters(self, model: ModelInfo, value_type: str) -> str:
         """Генерирует параметры конструктора"""

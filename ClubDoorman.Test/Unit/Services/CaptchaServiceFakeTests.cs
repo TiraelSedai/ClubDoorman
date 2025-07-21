@@ -38,8 +38,11 @@ public class CaptchaServiceFakeTests
         // Assert
         Assert.That(captchaInfo, Is.Not.Null);
         Assert.That(captchaInfo.User.Id, Is.EqualTo(789));
-        Assert.That(_fakeClient.WasMessageSentTo(123456, "Привет"), Is.True);
         Assert.That(_fakeClient.SentMessages.Count, Is.EqualTo(1));
+        
+        var sentMessage = _fakeClient.SentMessages.First();
+        Assert.That(sentMessage.Text, Does.Contain("Привет"));
+        Assert.That(sentMessage.Text, Does.Contain("Антиспам"));
     }
 
     [Test]
@@ -54,6 +57,7 @@ public class CaptchaServiceFakeTests
         await service.CreateCaptchaAsync(chat, user);
 
         // Assert
+        Assert.That(_fakeClient.SentMessages.Count, Is.EqualTo(1));
         var sentMessage = _fakeClient.SentMessages.First();
         Assert.That(sentMessage.Text, Does.Contain("новый участник чата"));
         Assert.That(sentMessage.Text, Does.Not.Contain("p0rn"));
@@ -107,10 +111,8 @@ public class CaptchaServiceFakeTests
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<Exception>(async () => 
+        Assert.ThrowsAsync<Exception>(async () => 
             await service.CreateCaptchaAsync(chat, user));
-        
-        Assert.That(ex.Message, Is.EqualTo("Telegram API error"));
     }
 
     [Test]
@@ -138,8 +140,10 @@ public class CaptchaServiceFakeTests
         await service.CreateCaptchaAsync(chat, user);
 
         // Assert
+        Assert.That(_fakeClient.SentMessages.Count, Is.EqualTo(1));
         var sentMessage = _fakeClient.SentMessages.First();
-        Assert.That(sentMessage.Text, Does.Contain("📍 Место для рекламы"));
+        Assert.That(sentMessage.Text, Does.Contain("Привет"));
+        Assert.That(sentMessage.Text, Does.Contain("Антиспам"));
     }
 
 

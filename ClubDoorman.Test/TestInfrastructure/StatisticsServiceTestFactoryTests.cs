@@ -58,6 +58,17 @@ public class StatisticsServiceTestFactoryTests
     }
 
     [Test]
+    public void BotMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new StatisticsServiceTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.BotMock, Is.Not.Null);
+        Assert.That(factory.BotMock.Object, Is.Not.Null);
+    }
+
+    [Test]
     public void LoggerMock_IsProperlyConfigured()
     {
         // Arrange
@@ -66,5 +77,16 @@ public class StatisticsServiceTestFactoryTests
         // Act & Assert
         Assert.That(factory.LoggerMock, Is.Not.Null);
         Assert.That(factory.LoggerMock.Object, Is.Not.Null);
+    }
+
+    [Test]
+    public void ChatLinkFormatterMock_IsProperlyConfigured()
+    {
+        // Arrange
+        var factory = new StatisticsServiceTestFactory();
+
+        // Act & Assert
+        Assert.That(factory.ChatLinkFormatterMock, Is.Not.Null);
+        Assert.That(factory.ChatLinkFormatterMock.Object, Is.Not.Null);
     }
 }
