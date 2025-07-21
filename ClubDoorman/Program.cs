@@ -75,25 +75,6 @@ public class Program
 
                 Console.WriteLine($"🤖 Запуск бота с токеном: {Config.BotApi.Substring(0, Math.Min(Config.BotApi.Length, 10))}...");
                 
-                // Логируем статус AI и Mimicry систем
-                if (Config.OpenRouterApi != null)
-                {
-                    Console.WriteLine("🤖 AI анализ: ВКЛЮЧЕН");
-                }
-                else
-                {
-                    Console.WriteLine("🤖 AI анализ: ОТКЛЮЧЕН (DOORMAN_OPENROUTER_API не настроен)");
-                }
-                
-                if (Config.SuspiciousDetectionEnabled)
-                {
-                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {Config.MimicryThreshold:F1})");
-                }
-                else
-                {
-                    Console.WriteLine("🎭 Система мимикрии: ОТКЛЮЧЕНА (DOORMAN_SUSPICIOUS_DETECTION_ENABLE не установлен)");
-                }
-                
                 services.AddHostedService<Worker>();
                 
                 // Telegram Bot Client
@@ -158,6 +139,50 @@ public class Program
                     services.AddSingleton<UserManager>();
                     services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
                 }
+                
+                // Логируем статус AI и Mimicry систем после полной инициализации
+                if (Config.OpenRouterApi != null)
+                {
+                    Console.WriteLine("🤖 AI анализ: ВКЛЮЧЕН");
+                }
+                else
+                {
+                    Console.WriteLine("🤖 AI анализ: ОТКЛЮЧЕН (DOORMAN_OPENROUTER_API не настроен)");
+                }
+                
+                if (Config.SuspiciousDetectionEnabled)
+                {
+                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {Config.MimicryThreshold:F1})");
+                }
+                else
+                {
+                    Console.WriteLine("🎭 Система мимикрии: ОТКЛЮЧЕНА (DOORMAN_SUSPICIOUS_DETECTION_ENABLE не установлен)");
+                }
+                
+                // Информация о загруженных переменных окружения
+                Console.WriteLine("📋 Загруженные переменные окружения:");
+                Console.WriteLine($"   • DOORMAN_BOT_API: {(string.IsNullOrEmpty(Config.BotApi) ? "не найдено" : "найдено")}");
+                Console.WriteLine($"   • DOORMAN_ADMIN_CHAT: {Config.AdminChatId}");
+                Console.WriteLine($"   • DOORMAN_LOG_ADMIN_CHAT: {Config.LogAdminChatId}");
+                Console.WriteLine($"   • DOORMAN_OPENROUTER_API: {(Config.OpenRouterApi != null ? "найдено" : "не найдено")}");
+                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {Config.SuspiciousDetectionEnabled}");
+                Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {Config.MimicryThreshold:F1}");
+                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {Config.SuspiciousToApprovedMessageCount}");
+                Console.WriteLine($"   • DOORMAN_USE_NEW_APPROVAL_SYSTEM: {Config.UseNewApprovalSystem}");
+                Console.WriteLine($"   • DOORMAN_GLOBAL_APPROVAL_MODE: {Config.GlobalApprovalMode}");
+                Console.WriteLine($"   • DOORMAN_BLACKLIST_AUTOBAN_DISABLE: {!Config.BlacklistAutoBan}");
+                Console.WriteLine($"   • DOORMAN_CHANNELS_AUTOBAN_DISABLE: {!Config.ChannelAutoBan}");
+                Console.WriteLine($"   • DOORMAN_BUTTON_AUTOBAN_DISABLE: {!Config.ButtonAutoBan}");
+                Console.WriteLine($"   • DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE: {!Config.HighConfidenceAutoBan}");
+                Console.WriteLine($"   • DOORMAN_LOW_CONFIDENCE_HAM_ENABLE: {Config.LowConfidenceHamForward}");
+                Console.WriteLine($"   • DOORMAN_APPROVE_BUTTON: {Config.ApproveButtonEnabled}");
+                Console.WriteLine($"   • DOORMAN_DISABLE_MEDIA_FILTERING: {Config.DisableMediaFiltering}");
+                Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!Config.IsPrivateStartAllowed()}");
+                Console.WriteLine($"   • Отключенные чаты: {Config.DisabledChats.Count}");
+                Console.WriteLine($"   • Белый список чатов: {Config.WhitelistChats.Count}");
+                Console.WriteLine($"   • AI-включенные чаты: {Config.AiEnabledChats.Count}");
+                Console.WriteLine($"   • Группы без VPN-рекламы: {Config.NoVpnAdGroups.Count}");
+                Console.WriteLine($"   • Чаты с отключенной фильтрацией медиа: {Config.MediaFilteringDisabledChats.Count}");
             })
             .Build();
 

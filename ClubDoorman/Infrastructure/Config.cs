@@ -223,7 +223,7 @@ namespace ClubDoorman.Infrastructure
         /// Порог для определения подозрительности (0.0 - 1.0)
         /// Если ML анализ превышает этот порог, пользователь помечается как подозрительный
         /// </summary>
-        public static double MimicryThreshold { get; } = GetEnvironmentDouble("DOORMAN_MIMICRY_THRESHOLD", 0.7);
+        public static double MimicryThreshold { get => GetEnvironmentDouble("DOORMAN_MIMICRY_THRESHOLD", 0.7); }
 
         /// <summary>
         /// Количество сообщений для перехода из подозрительных в одобренные
@@ -298,7 +298,8 @@ namespace ClubDoorman.Infrastructure
             var env = Environment.GetEnvironmentVariable(envName);
             if (env == null)
                 return defaultValue;
-            if (double.TryParse(env, out var num))
+            // Используем InvariantCulture для парсинга чисел с точкой
+            if (double.TryParse(env, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
                 return num;
             return defaultValue;
         }
