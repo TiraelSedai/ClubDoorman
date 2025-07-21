@@ -24,11 +24,11 @@ public class IntroFlowServiceTestFactory
     public IntroFlowService CreateIntroFlowService()
     {
         return new IntroFlowService(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             LoggerMock.Object,
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
-            new AiChecks(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), new NullLogger<AiChecks>()),
+            new AiChecks(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<AiChecks>()),
             StatisticsServiceMock.Object,
             new GlobalStatsManager(),
             ModerationServiceMock.Object

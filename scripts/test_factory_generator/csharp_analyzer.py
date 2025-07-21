@@ -4,9 +4,14 @@
 
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Optional
 
-from .models import ClassInfo, ConstructorParam
+try:
+    from .models import ClassInfo, ConstructorParam
+    from .complexity_analyzer import ComplexityAnalyzer, ComplexityReport
+except ImportError:
+    from models import ClassInfo, ConstructorParam
+    from complexity_analyzer import ComplexityAnalyzer, ComplexityReport
 
 
 class CSharpAnalyzer:
@@ -16,20 +21,21 @@ class CSharpAnalyzer:
         self.project_root = Path(project_root)
         self.test_project_root = self.project_root / "ClubDoorman.Test"
         self.force_overwrite = force_overwrite
+        self.complexity_analyzer = ComplexityAnalyzer()
         
     def find_service_classes(self) -> List[ClassInfo]:
         """Находит все сервисные классы с конструкторами"""
         services = []
         
         # Ищем в папке Services
-        services_dir = self.project_root / "ClubDoorman" / "Services"
+        services_dir = self.project_root / "Services"
         if services_dir.exists():
             for cs_file in services_dir.glob("*.cs"):
                 classes = self._parse_file(cs_file)
                 services.extend(classes)
         
         # Ищем в папке Handlers
-        handlers_dir = self.project_root / "ClubDoorman" / "Handlers"
+        handlers_dir = self.project_root / "Handlers"
         if handlers_dir.exists():
             for cs_file in handlers_dir.glob("*.cs"):
                 classes = self._parse_file(cs_file)
@@ -54,23 +60,29 @@ class CSharpAnalyzer:
         namespace = namespace.rstrip(';')
         
         # Ищем классы с конструкторами
-        class_pattern = r'public\s+(?:sealed\s+)?class\s+(\w+)[^{]*?{.*?public\s+\1\s*\(([^)]*)\)[^{]*?{'
-        class_matches = re.finditer(class_pattern, content, re.DOTALL)
+        class_pattern = r'public\s+(?:sealed\s+)?class\s+(\w+)'
+        class_matches = re.finditer(class_pattern, content)
         
-        for match in class_matches:
-            class_name = match.group(1)
-            constructor_params_str = match.group(2)
+        for class_match in class_matches:
+            class_name = class_match.group(1)
             
-            # Парсим параметры конструктора
-            params = self._parse_constructor_params(constructor_params_str)
+            # Ищем конструктор для этого класса
+            constructor_pattern = rf'public\s+{class_name}\s*\(([^)]*)\)'
+            constructor_match = re.search(constructor_pattern, content)
             
-            if params:  # Только если есть параметры
-                classes.append(ClassInfo(
-                    name=class_name,
-                    namespace=namespace,
-                    constructor_params=params,
-                    file_path=str(file_path.relative_to(self.project_root))
-                ))
+            if constructor_match:
+                constructor_params_str = constructor_match.group(1)
+                
+                # Парсим параметры конструктора
+                params = self._parse_constructor_params(constructor_params_str)
+                
+                if params:  # Только если есть параметры
+                    classes.append(ClassInfo(
+                        name=class_name,
+                        namespace=namespace,
+                        constructor_params=params,
+                        file_path=str(file_path.relative_to(self.project_root))
+                    ))
         
         return classes
     
@@ -158,4 +170,91 @@ class CSharpAnalyzer:
             return True
         
         # Проверяем по списку известных интерфейсов
-        return base_type in known_interfaces 
+        return base_type in known_interfaces
+    
+    def find_source_file(self, class_info: ClassInfo) -> Optional[Path]:
+        """Находит исходный файл для класса"""
+        if class_info.file_path:
+            return self.project_root / class_info.file_path
+        return None
+    
+    def analyze_class_complexity(self, class_info: ClassInfo) -> ComplexityReport:
+        """Анализирует сложность класса"""
+        # Конвертируем ConstructorParam в dict для анализатора
+        params_dict = []
+        for param in class_info.constructor_params:
+            params_dict.append({
+                'type': param.type,
+                'name': param.name,
+                'is_interface': param.is_interface,
+                'is_logger': param.is_logger,
+                'is_concrete': param.is_concrete
+            })
+        
+        return self.complexity_analyzer.analyze_constructor(
+            class_name=class_info.name,
+            namespace=class_info.namespace,
+            constructor_params=params_dict
+        )
+    
+    def find_test_markers(self, file_path: Path) -> Dict[str, List[str]]:
+        """Находит тестовые маркеры в файле"""
+        markers = {}
+        
+        try:
+            content = file_path.read_text(encoding='utf-8')
+        except Exception as e:
+            print(f"Ошибка чтения файла {file_path}: {e}")
+            return markers
+        
+        # Ищем маркеры TestRequiresConcreteMock
+        concrete_mock_pattern = r'\[TestRequiresConcreteMock\("([^"]+)"(?:,\s*"([^"]+)")*\)\]'
+        concrete_matches = re.finditer(concrete_mock_pattern, content)
+        for match in concrete_matches:
+            class_name = self._extract_class_name_from_file(content)
+            if class_name:
+                markers[class_name] = ['TestRequiresConcreteMock']
+        
+        # Ищем маркеры TestRequiresCustomInitialization
+        custom_init_pattern = r'\[TestRequiresCustomInitialization\("([^"]*)"\)\]'
+        custom_matches = re.finditer(custom_init_pattern, content)
+        for match in custom_matches:
+            class_name = self._extract_class_name_from_file(content)
+            if class_name:
+                if class_name not in markers:
+                    markers[class_name] = []
+                markers[class_name].append('TestRequiresCustomInitialization')
+        
+        # Ищем маркеры TestRequiresUtility
+        utility_pattern = r'\[TestRequiresUtility\("([^"]+)"\)\]'
+        utility_matches = re.finditer(utility_pattern, content)
+        for match in utility_matches:
+            class_name = self._extract_class_name_from_file(content)
+            if class_name:
+                if class_name not in markers:
+                    markers[class_name] = []
+                markers[class_name].append('TestRequiresUtility')
+        
+        return markers
+    
+    def _extract_class_name_from_file(self, content: str) -> Optional[str]:
+        """Извлекает имя класса из содержимого файла"""
+        class_pattern = r'public\s+(?:sealed\s+)?class\s+(\w+)'
+        match = re.search(class_pattern, content)
+        return match.group(1) if match else None
+    
+    def get_enhanced_class_info(self, class_info: ClassInfo) -> Dict:
+        """Получает расширенную информацию о классе с анализом сложности и маркерами"""
+        # Анализируем сложность
+        complexity_report = self.analyze_class_complexity(class_info)
+        
+        # Ищем маркеры в файле
+        file_path = self.project_root / class_info.file_path
+        markers = self.find_test_markers(file_path)
+        
+        return {
+            'class_info': class_info,
+            'complexity_report': complexity_report,
+            'test_markers': markers.get(class_info.name, []),
+            'suggested_markers': [marker.value for marker in complexity_report.suggested_markers]
+        } 

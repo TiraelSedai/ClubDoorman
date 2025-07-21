@@ -1,4 +1,3 @@
-root@web:~/ClubDoorman# cat ClubDoorman/data/spam-ham.txt
 Text,Label
 восклицательный знак забыл,False
 "Ну, что я за человек! Даже застрелиться нормально не могу!",False

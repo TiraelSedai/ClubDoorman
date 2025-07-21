@@ -23,4 +23,9 @@ public interface ISpamHamClassifier
     /// </summary>
     /// <param name="message">Текст сообщения</param>
     Task AddHam(string message);
+
+    /// <summary>
+    /// Метод для инициализации/проверки состояния классификатора
+    /// </summary>
+    void Touch();
 } 

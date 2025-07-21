@@ -1,0 +1,165 @@
+#!/bin/bash
+# CLI wrapper для Enhanced DX Tool
+# Упрощенный интерфейс для генерации тестовых фабрик
+
+set -e
+
+# Определяем директорию скрипта
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Проверяем, что мы в корне проекта
+if [[ ! -f "$PROJECT_ROOT/ClubDoorman.sln" ]]; then
+    echo "❌ Ошибка: Запустите скрипт из корня проекта ClubDoorman"
+    echo "   Текущая директория: $(pwd)"
+    echo "   Ожидаемая директория: $PROJECT_ROOT"
+    exit 1
+fi
+
+# Переходим в директорию скрипта для корректных путей
+cd "$SCRIPT_DIR"
+
+# Функция для показа справки
+show_help() {
+    echo "🚀 Enhanced DX Tool - Улучшенный инструмент для генерации тестов"
+    echo ""
+    echo "Использование:"
+    echo "  ./dxgen <команда> [опции]"
+    echo ""
+    echo "Команды:"
+    echo "  generate <класс>           - Генерирует тестовую фабрику для класса"
+    echo "  generate-simple <класс>    - Генерирует упрощенную фабрику с анализом интерфейсов"
+    echo "  generate-all               - Генерирует фабрики для всех классов"
+    echo "  generate-templates <класс> - Генерирует шаблоны тестов для класса"
+    echo "  dry-run                    - Показывает анализ всех классов без генерации"
+    echo "  analyze-interfaces <класс> - Анализирует интерфейсы класса"
+    echo "  validate <класс>           - Валидирует сгенерированный код"
+    echo ""
+    echo "Примеры:"
+    echo "  ./dxgen generate ModerationService"
+    echo "  ./dxgen generate-simple MessageHandler"
+    echo "  ./dxgen generate-templates SpamHamClassifier"
+    echo "  ./dxgen analyze-interfaces IUserManager"
+    echo "  ./dxgen validate ModerationService"
+    echo ""
+    echo "Опции:"
+    echo "  --output <файл>            - Сохранить результат в файл"
+    echo "  --help, -h                 - Показать эту справку"
+}
+
+# Обработка аргументов
+if [[ $# -eq 0 ]]; then
+    show_help
+    exit 0
+fi
+
+COMMAND=""
+CLASS_NAME=""
+OUTPUT_FILE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        generate|generate-simple|generate-templates|analyze-interfaces|validate)
+            COMMAND="$1"
+            if [[ $# -lt 2 ]]; then
+                echo "❌ Ошибка: Для команды '$1' необходимо указать имя класса"
+                echo "   Пример: ./dxgen $1 ModerationService"
+                exit 1
+            fi
+            CLASS_NAME="$2"
+            shift 2
+            ;;
+        generate-all|dry-run)
+            COMMAND="$1"
+            shift
+            ;;
+        *)
+            echo "❌ Неизвестная опция: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# Проверяем Python
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Ошибка: Python 3 не найден"
+    exit 1
+fi
+
+# Проверяем зависимости
+if [[ ! -f "enhanced_dx_tool.py" ]]; then
+    echo "❌ Ошибка: Файл enhanced_dx_tool.py не найден"
+    exit 1
+fi
+
+# Выполняем команду
+echo "🔧 Enhanced DX Tool - $COMMAND"
+echo "📁 Проект: $PROJECT_ROOT"
+echo ""
+
+case $COMMAND in
+    generate)
+        echo "📝 Генерация тестовой фабрики для $CLASS_NAME..."
+        if [[ -n "$OUTPUT_FILE" ]]; then
+            python3 enhanced_dx_tool.py generate --class "$CLASS_NAME" --project-root "$PROJECT_ROOT" --output "$OUTPUT_FILE"
+        else
+            python3 enhanced_dx_tool.py generate --class "$CLASS_NAME" --project-root "$PROJECT_ROOT"
+        fi
+        ;;
+    
+    generate-simple)
+        echo "📝 Генерация упрощенной фабрики для $CLASS_NAME..."
+        if [[ -n "$OUTPUT_FILE" ]]; then
+            python3 enhanced_dx_tool.py generate-simple --class "$CLASS_NAME" --project-root "$PROJECT_ROOT" --output "$OUTPUT_FILE"
+        else
+            python3 enhanced_dx_tool.py generate-simple --class "$CLASS_NAME" --project-root "$PROJECT_ROOT"
+        fi
+        ;;
+    
+    generate-templates)
+        echo "📝 Генерация шаблонов тестов для $CLASS_NAME..."
+        if [[ -n "$OUTPUT_FILE" ]]; then
+            python3 enhanced_dx_tool.py generate-templates --class "$CLASS_NAME" --project-root "$PROJECT_ROOT" --output "$OUTPUT_FILE"
+        else
+            python3 enhanced_dx_tool.py generate-templates --class "$CLASS_NAME" --project-root "$PROJECT_ROOT"
+        fi
+        ;;
+    
+    generate-all)
+        echo "📝 Генерация фабрик для всех классов..."
+        python3 enhanced_dx_tool.py generate-all --project-root "$PROJECT_ROOT"
+        ;;
+    
+    dry-run)
+        echo "🔍 Анализ всех классов..."
+        python3 enhanced_dx_tool.py dry-run --project-root "$PROJECT_ROOT"
+        ;;
+    
+    analyze-interfaces)
+        echo "🔍 Анализ интерфейсов для $CLASS_NAME..."
+        python3 enhanced_dx_tool.py analyze-interfaces --class "$CLASS_NAME" --project-root "$PROJECT_ROOT"
+        ;;
+    
+    validate)
+        echo "✅ Валидация сгенерированного кода для $CLASS_NAME..."
+        python3 enhanced_dx_tool.py validate --class "$CLASS_NAME" --project-root "$PROJECT_ROOT"
+        ;;
+    
+    *)
+        echo "❌ Неизвестная команда: $COMMAND"
+        show_help
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "✅ Команда выполнена успешно!" 

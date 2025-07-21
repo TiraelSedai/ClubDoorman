@@ -4,9 +4,14 @@
 
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Optional
 
-from .models import ClassInfo
+try:
+    from .models import ClassInfo
+    from .complexity_analyzer import ComplexityReport
+except ImportError:
+    from models import ClassInfo
+    from complexity_analyzer import ComplexityReport
 
 
 class TestFactoryGenerator:
@@ -16,6 +21,8 @@ class TestFactoryGenerator:
         self.test_project_root = test_project_root
         self.test_infrastructure_dir = test_project_root / "TestInfrastructure"
         self.force_overwrite = force_overwrite
+        self.complexity_report: Optional[ComplexityReport] = None
+        self.test_markers: List[str] = []
     
     def _create_concrete_instance(self, type_name: str, class_info: ClassInfo) -> str:
         """Создает строку для конкретного экземпляра типа"""
@@ -80,6 +87,132 @@ class TestFactoryGenerator:
             return name
         return name[0].upper() + name[1:]
     
+    def set_complexity_analysis(self, complexity_report: ComplexityReport, test_markers: List[str]):
+        """Устанавливает результаты анализа сложности"""
+        self.complexity_report = complexity_report
+        self.test_markers = test_markers
+    
+    def _should_mock_concrete_type(self, type_name: str) -> bool:
+        """Определяет, нужно ли мокать конкретный тип"""
+        if not self.complexity_report:
+            return False
+        
+        base_type = re.sub(r'<[^>]+>', '', type_name)
+        
+        # Проверяем маркеры
+        if 'TestRequiresConcreteMock' in self.test_markers:
+            return True
+        
+        # Проверяем типы, которые всегда нужно мокать
+        always_mock_types = {
+            'AiChecks', 'SpamHamClassifier', 'MimicryClassifier',
+            'BadMessageManager', 'GlobalStatsManager', 'SuspiciousUsersStorage'
+        }
+        
+        return base_type in always_mock_types
+    
+    def _should_use_utility(self, type_name: str) -> bool:
+        """Определяет, нужно ли использовать утилиту вместо мока"""
+        if not self.complexity_report:
+            return False
+        
+        base_type = re.sub(r'<[^>]+>', '', type_name)
+        
+        # Проверяем маркеры
+        if 'TestRequiresUtility' in self.test_markers:
+            return True
+        
+        # Проверяем типы, которые лучше использовать как утилиты
+        utility_types = {
+            'ITelegramBotClientWrapper': 'FakeTelegramClient',
+            'ITelegramBotClient': 'FakeTelegramClient',
+            'TelegramBotClient': 'FakeTelegramClient'  # Добавляем конкретный класс
+        }
+        
+        return base_type in utility_types
+    
+    def _get_utility_type(self, type_name: str) -> str:
+        """Получает тип утилиты для замены"""
+        base_type = re.sub(r'<[^>]+>', '', type_name)
+        
+        utility_types = {
+            'ITelegramBotClientWrapper': 'FakeTelegramClient',
+            'ITelegramBotClient': 'FakeTelegramClient',
+            'TelegramBotClient': 'FakeTelegramClient'  # Добавляем конкретный класс
+        }
+        
+        return utility_types.get(base_type, type_name)
+    
+    def _generate_custom_constructor(self, class_info: ClassInfo) -> str:
+        """Генерирует кастомный конструктор для сложной инициализации"""
+        code = f"    public {class_info.name}TestFactory()\n"
+        code += "    {\n"
+        
+        # Добавляем сложную инициализацию для конкретных классов
+        for param in class_info.constructor_params:
+            if param.is_concrete and self._should_mock_concrete_type(param.type):
+                param_name_pascal = self._to_pascal_case(param.name)
+                base_type = re.sub(r'<[^>]+>', '', param.type)
+                
+                if base_type == "AiChecks":
+                    code += f"        // Создаем мок AiChecks с правильными параметрами конструктора\n"
+                    code += f"        var mockLogger = new Mock<ILogger<{base_type}>>();\n"
+                    code += f"        {param_name_pascal}Mock = new Mock<{param.type}>(new TelegramBotClient(\"1234567890:ABCdefGHIjklMNOpqrsTUVwxyz\"), mockLogger.Object);\n"
+                elif base_type in ["SpamHamClassifier", "MimicryClassifier", "SuspiciousUsersStorage"]:
+                    code += f"        // Создаем мок {base_type} с логгером\n"
+                    code += f"        var mockLogger = new Mock<ILogger<{base_type}>>();\n"
+                    code += f"        {param_name_pascal}Mock = new Mock<{param.type}>(mockLogger.Object);\n"
+                else:
+                    code += f"        // Создаем мок {base_type}\n"
+                    code += f"        {param_name_pascal}Mock = new Mock<{param.type}>();\n"
+        
+        code += "    }\n\n"
+        return code
+    
+    def _generate_additional_methods(self, class_info: ClassInfo) -> str:
+        """Генерирует дополнительные методы для гибкости"""
+        code = "\n"
+        code += "    #region Additional Methods\n"
+        code += "\n"
+        
+        # Метод с кастомным FakeTelegramClient
+        if any(self._should_use_utility(param.type) for param in class_info.constructor_params):
+            utility_param = next(param for param in class_info.constructor_params if self._should_use_utility(param.type))
+            utility_type = self._get_utility_type(utility_param.type)
+            param_name_pascal = self._to_pascal_case(utility_param.name)
+            
+            code += f"    public {class_info.name} Create{class_info.name}WithFake({utility_type}? {param_name_pascal} = null)\n"
+            code += "    {\n"
+            code += f"        var client = {param_name_pascal} ?? new {utility_type}();\n"
+            code += "\n"
+            code += f"        return new {class_info.name}(\n"
+            
+            # Параметры конструктора
+            param_lines = []
+            for param in class_info.constructor_params:
+                if param.is_interface and not self._should_use_utility(param.type):
+                    param_lines.append(f"            {self._to_pascal_case(param.name)}Mock.Object")
+                elif param.is_interface and self._should_use_utility(param.type):
+                    param_lines.append(f"            client")
+                elif param.is_logger:
+                    logger_type_match = re.search(r'ILogger<(\w+)>', param.type)
+                    if logger_type_match:
+                        logger_type = logger_type_match.group(1)
+                        param_lines.append(f"            new NullLogger<{logger_type}>()")
+                    else:
+                        param_lines.append(f"            new NullLogger<{class_info.name}>()")
+                elif param.is_concrete and self._should_mock_concrete_type(param.type):
+                    param_lines.append(f"            {self._to_pascal_case(param.name)}Mock.Object")
+                elif param.is_concrete:
+                    param_lines.append(self._create_concrete_instance(param.type, class_info))
+            
+            code += ",\n".join(param_lines)
+            code += "\n        );\n"
+            code += "    }\n\n"
+        
+        code += "    #endregion\n"
+        return code
+    
     def generate_test_factory(self, class_info: ClassInfo) -> str:
         """Генерирует TestFactory для класса"""
         
@@ -108,9 +241,22 @@ public class {factory_name}
 {{
 """
         
-        # Добавляем моки для интерфейсов
-        for param in mock_params:
-            code += f"    public Mock<{param.type}> {self._to_pascal_case(param.name)}Mock {{ get; }} = new();\n"
+        # Добавляем моки для интерфейсов и конкретных типов, которые нужно мокать
+        for param in class_info.constructor_params:
+            if param.is_interface and not self._should_use_utility(param.type):
+                code += f"    public Mock<{param.type}> {self._to_pascal_case(param.name)}Mock {{ get; }} = new();\n"
+            elif param.is_concrete and self._should_mock_concrete_type(param.type):
+                code += f"    public Mock<{param.type}> {self._to_pascal_case(param.name)}Mock {{ get; }} = new();\n"
+        
+        # Добавляем утилиты
+        for param in class_info.constructor_params:
+            if self._should_use_utility(param.type):
+                utility_type = self._get_utility_type(param.type)
+                code += f"    public {utility_type} {self._to_pascal_case(param.name)} {{ get; }} = new();\n"
+        
+        # Добавляем кастомный конструктор для сложной инициализации
+        if self.complexity_report and self.complexity_report.complexity_score >= 7:
+            code += self._generate_custom_constructor(class_info)
         
         code += "\n"
         
@@ -122,8 +268,10 @@ public class {factory_name}
         # Параметры конструктора
         param_lines = []
         for param in class_info.constructor_params:
-            if param.is_interface:
+            if param.is_interface and not self._should_use_utility(param.type):
                 param_lines.append(f"            {self._to_pascal_case(param.name)}Mock.Object")
+            elif param.is_interface and self._should_use_utility(param.type):
+                param_lines.append(f"            {self._to_pascal_case(param.name)}")
             elif param.is_logger:
                 # Извлекаем тип логгера из generic параметра
                 logger_type_match = re.search(r'ILogger<(\w+)>', param.type)
@@ -132,6 +280,8 @@ public class {factory_name}
                     param_lines.append(f"            new NullLogger<{logger_type}>()")
                 else:
                     param_lines.append(f"            new NullLogger<{class_info.name}>()")
+            elif param.is_concrete and self._should_mock_concrete_type(param.type):
+                param_lines.append(f"            {self._to_pascal_case(param.name)}Mock.Object")
             elif param.is_concrete:
                 # Для конкретных классов создаем реальные экземпляры
                 param_lines.append(self._create_concrete_instance(param.type, class_info))
@@ -145,15 +295,22 @@ public class {factory_name}
         code += "    #region Configuration Methods\n"
         code += "\n"
         
-        for param in mock_params:
-            param_name_pascal = self._to_pascal_case(param.name)
-            code += f"    public {factory_name} With{param_name_pascal}Setup(Action<Mock<{param.type}>> setup)\n"
-            code += "    {\n"
-            code += f"        setup({param_name_pascal}Mock);\n"
-            code += "        return this;\n"
-            code += "    }\n\n"
+        for param in class_info.constructor_params:
+            if (param.is_interface and not self._should_use_utility(param.type)) or \
+               (param.is_concrete and self._should_mock_concrete_type(param.type)):
+                param_name_pascal = self._to_pascal_case(param.name)
+                code += f"    public {factory_name} With{param_name_pascal}Setup(Action<Mock<{param.type}>> setup)\n"
+                code += "    {\n"
+                code += f"        setup({param_name_pascal}Mock);\n"
+                code += "        return this;\n"
+                code += "    }\n\n"
         
         code += "    #endregion\n"
+        
+        # Добавляем дополнительные методы для гибкости
+        if self.complexity_report and self.complexity_report.complexity_score >= 7:
+            code += self._generate_additional_methods(class_info)
+        
         code += "}\n"
         
         return code
