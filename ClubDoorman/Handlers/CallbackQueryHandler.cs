@@ -13,7 +13,7 @@ namespace ClubDoorman.Handlers;
 /// </summary>
 public class CallbackQueryHandler : IUpdateHandler
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ICaptchaService _captchaService;
     private readonly IUserManager _userManager;
     private readonly IBadMessageManager _badMessageManager;
@@ -23,7 +23,7 @@ public class CallbackQueryHandler : IUpdateHandler
     private readonly ILogger<CallbackQueryHandler> _logger;
 
     public CallbackQueryHandler(
-        TelegramBotClient bot,
+        ITelegramBotClientWrapper bot,
         ICaptchaService captchaService,
         IUserManager userManager,
         IBadMessageManager badMessageManager,

@@ -1,4 +1,5 @@
 using ClubDoorman.Infrastructure;
+using ClubDoorman.Services;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -10,12 +11,12 @@ namespace ClubDoorman.Handlers.Commands;
 /// </summary>
 public class StartCommandHandler : ICommandHandler
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<StartCommandHandler> _logger;
 
     public string CommandName => "start";
 
-    public StartCommandHandler(TelegramBotClient bot, ILogger<StartCommandHandler> logger)
+    public StartCommandHandler(ITelegramBotClientWrapper bot, ILogger<StartCommandHandler> logger)
     {
         _bot = bot;
         _logger = logger;

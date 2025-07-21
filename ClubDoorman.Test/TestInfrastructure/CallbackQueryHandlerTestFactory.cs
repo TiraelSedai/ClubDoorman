@@ -25,12 +25,12 @@ public class CallbackQueryHandlerTestFactory
     public CallbackQueryHandler CreateCallbackQueryHandler()
     {
         return new CallbackQueryHandler(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             CaptchaServiceMock.Object,
             UserManagerMock.Object,
             new BadMessageManager(),
             StatisticsServiceMock.Object,
-            new AiChecks(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), new NullLogger<AiChecks>()),
+            new AiChecks(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<AiChecks>()),
             ModerationServiceMock.Object,
             LoggerMock.Object
         );

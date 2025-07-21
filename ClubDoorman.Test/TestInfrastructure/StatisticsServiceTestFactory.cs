@@ -21,7 +21,7 @@ public class StatisticsServiceTestFactory
     public StatisticsService CreateStatisticsService()
     {
         return new StatisticsService(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             LoggerMock.Object,
             ChatLinkFormatterMock.Object
         );

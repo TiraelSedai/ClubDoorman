@@ -2,6 +2,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
+using System.Text;
 using ClubDoorman.Services;
 
 namespace ClubDoorman.TestInfrastructure;
@@ -230,7 +231,102 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         return Task.FromResult(message);
     }
 
+    public Task<ChatFullInfo> GetChatFullInfo(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
 
+        var chatFullInfo = new ChatFullInfo
+        {
+            Id = chatId.Identifier ?? 0,
+            Type = ChatType.Group,
+            Title = "Test Chat",
+            Username = "testchat",
+            Description = "Test chat description",
+            InviteLink = "https://t.me/testchat",
+            LinkedChatId = null
+        };
+
+        return Task.FromResult(chatFullInfo);
+    }
+
+    public Task<int> GetChatMemberCount(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.FromResult(Random.Shared.Next(10, 1000));
+    }
+
+    public Task<Update[]> GetUpdates(
+        int? offset = null,
+        int? limit = null,
+        int? timeout = null,
+        IEnumerable<UpdateType>? allowedUpdates = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.FromResult(Array.Empty<Update>());
+    }
+
+    public Task GetInfoAndDownloadFile(string fileId, Stream destination, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        // Записываем тестовые данные в поток
+        var testData = Encoding.UTF8.GetBytes("fake_image_data");
+        destination.Write(testData, 0, testData.Length);
+        return Task.CompletedTask;
+    }
+
+    public Task AnswerCallbackQuery(string callbackQueryId, string? text = null, bool? showAlert = null, string? url = null, int? cacheTime = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.CompletedTask;
+    }
+
+    public Task EditMessageReplyMarkup(ChatId chatId, int messageId, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        return Task.CompletedTask;
+    }
+
+    public Task<Message> EditMessageText(ChatId chatId, int messageId, string text, ParseMode? parseMode = null, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        var message = new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group },
+            From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" },
+            Text = text
+        };
+
+        return Task.FromResult(message);
+    }
+
+    public Task UnbanChatMember(ChatId chatId, long userId, bool? onlyIfBanned = null, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        UnbannedUsers.Add(new UnbannedUser(
+            chatId.Identifier ?? 0,
+            userId,
+            onlyIfBanned ?? false
+        ));
+
+        return Task.CompletedTask;
+    }
 
     // Методы для тестирования
     public void Reset()
