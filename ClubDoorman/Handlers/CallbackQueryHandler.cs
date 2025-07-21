@@ -1,6 +1,7 @@
 using System.Runtime.Caching;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
+using ClubDoorman.Models.Notifications;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -20,6 +21,7 @@ public class CallbackQueryHandler : IUpdateHandler
     private readonly IStatisticsService _statisticsService;
     private readonly IAiChecks _aiChecks;
     private readonly IModerationService _moderationService;
+    private readonly IMessageService _messageService;
     private readonly ILogger<CallbackQueryHandler> _logger;
 
     public CallbackQueryHandler(
@@ -30,6 +32,7 @@ public class CallbackQueryHandler : IUpdateHandler
         IStatisticsService statisticsService,
         IAiChecks aiChecks,
         IModerationService moderationService,
+        IMessageService messageService,
         ILogger<CallbackQueryHandler> logger)
     {
         _bot = bot;
@@ -39,6 +42,7 @@ public class CallbackQueryHandler : IUpdateHandler
         _statisticsService = statisticsService;
         _aiChecks = aiChecks;
         _moderationService = moderationService;
+        _messageService = messageService;
         _logger = logger;
     }
 
@@ -287,11 +291,10 @@ public class CallbackQueryHandler : IUpdateHandler
         await _userManager.Approve(userId);
         
         var adminName = GetAdminDisplayName(callbackQuery.From);
-        await _bot.SendMessage(
-            Config.AdminChatId,
-            $"✅ {adminName} добавил пользователя в список доверенных",
-            replyParameters: callbackQuery.Message?.MessageId,
-            cancellationToken: cancellationToken
+        await _messageService.SendAdminNotificationAsync(
+            AdminNotificationType.UserApproved,
+            new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, $"{adminName} добавил пользователя в список доверенных"),
+            cancellationToken
         );
 
         // Убираем кнопки
@@ -331,21 +334,19 @@ public class CallbackQueryHandler : IUpdateHandler
                 );
             }
             
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"🚫 {adminName} забанил пользователя\n🧹 Пользователь очищен из всех списков\n📝 Сообщение добавлено в список авто-бана",
-                replyParameters: callbackQuery.Message?.MessageId,
-                cancellationToken: cancellationToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.AutoBan,
+                new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, $"{adminName} забанил пользователя\n🧹 Пользователь очищен из всех списков\n📝 Сообщение добавлено в список авто-бана"),
+                cancellationToken
             );
         }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Не удалось забанить пользователя через админский callback");
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                "⚠️ Не могу забанить. Не хватает могущества? Сходите забаньте руками",
-                replyParameters: callbackQuery.Message?.MessageId,
-                cancellationToken: cancellationToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.ChannelError,
+                new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, "Не могу забанить. Не хватает могущества? Сходите забаньте руками"),
+                cancellationToken
             );
         }
 
@@ -393,21 +394,19 @@ public class CallbackQueryHandler : IUpdateHandler
                 );
             }
             
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"🚫 {adminName} забанил пользователя за спам-профиль\n🧹 Пользователь очищен из всех списков\n⚠️ Сообщение НЕ добавлено в автобан (проблема в профиле)",
-                replyParameters: callbackQuery.Message?.MessageId,
-                cancellationToken: cancellationToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.AutoBan,
+                new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, $"{adminName} забанил пользователя за спам-профиль\n🧹 Пользователь очищен из всех списков\n⚠️ Сообщение НЕ добавлено в автобан (проблема в профиле)"),
+                cancellationToken
             );
         }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Не удалось забанить пользователя через админский callback (бан по профилю)");
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                "⚠️ Не могу забанить. Не хватает могущества? Сходите забаньте руками",
-                replyParameters: callbackQuery.Message?.MessageId,
-                cancellationToken: cancellationToken
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.ChannelError,
+                new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, "Не могу забанить. Не хватает могущества? Сходите забаньте руками"),
+                cancellationToken
             );
         }
 
@@ -474,11 +473,10 @@ public class CallbackQueryHandler : IUpdateHandler
             }
         }
         
-        await _bot.SendMessage(
-            Config.AdminChatId,
-            message,
-            replyParameters: callbackQuery.Message?.MessageId,
-            cancellationToken: cancellationToken
+        await _messageService.SendAdminNotificationAsync(
+            AdminNotificationType.UserApproved,
+            new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, message),
+            cancellationToken
         );
 
         // Убираем кнопки

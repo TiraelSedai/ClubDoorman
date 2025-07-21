@@ -55,6 +55,7 @@ public class ModerationServiceSimpleTests : TestBase
             _mockAiChecks,
             _mockSuspiciousUsersStorage,
             _mockBotClient.Object,
+            new Mock<IMessageService>().Object,
             _mockLogger.Object
         );
         Console.WriteLine("Setup completed");

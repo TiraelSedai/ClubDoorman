@@ -43,5 +43,10 @@ public enum UserNotificationType
     /// <summary>
     /// Успешная операция
     /// </summary>
-    Success
+    Success,
+
+    /// <summary>
+    /// Системная информация
+    /// </summary>
+    SystemInfo
 } 

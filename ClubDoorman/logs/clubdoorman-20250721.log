@@ -2094,3 +2094,126 @@ System.Threading.Tasks.TaskCanceledException: A task was canceled.
 2025-07-21 18:12:34.115 +03:00 [INF] Первичное обновление количества участников во всех чатах для статистики
 2025-07-21 18:12:36.105 +03:00 [INF] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
 2025-07-21 18:12:41.178 +03:00 [INF] Application is shutting down...
+2025-07-21 18:26:01.113 +03:00 [INF] Начинаем обучение ML модели...
+2025-07-21 18:26:01.112 +03:00 [INF] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 18:26:01.134 +03:00 [DBG] Загружено 279 стоп-слов
+2025-07-21 18:26:01.185 +03:00 [INF] Загружено 807 записей из датасета
+2025-07-21 18:26:01.185 +03:00 [INF] Спам: 275, НЕ спам: 532
+2025-07-21 18:26:01.277 +03:00 [DBG] Создаем pipeline для обучения...
+2025-07-21 18:26:01.285 +03:00 [DBG] Обучаем модель...
+2025-07-21 18:26:01.354 +03:00 [INF] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 18:26:01.361 +03:00 [INF] Загружено 0 подозрительных пользователей из файла
+2025-07-21 18:26:01.363 +03:00 [INF] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 18:26:01.382 +03:00 [INF] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 18:26:01.399 +03:00 [DBG] Touch
+2025-07-21 18:26:01.400 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-07-21 18:26:01.400 +03:00 [INF] Hosting environment: Development
+2025-07-21 18:26:01.400 +03:00 [INF] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 18:26:01.400 +03:00 [DBG] offset read ok
+2025-07-21 18:26:01.718 +03:00 [INF] ✅ ML модель успешно обучена за 590ms! Движок готов к работе.
+2025-07-21 18:26:02.119 +03:00 [INF] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 18:26:08.241 +03:00 [INF] Application is shutting down...
+2025-07-21 19:01:31.614 +03:00 [INF] Начинаем обучение ML модели...
+2025-07-21 19:01:31.613 +03:00 [INF] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 19:01:31.636 +03:00 [DBG] Загружено 279 стоп-слов
+2025-07-21 19:01:31.691 +03:00 [INF] Загружено 807 записей из датасета
+2025-07-21 19:01:31.691 +03:00 [INF] Спам: 275, НЕ спам: 532
+2025-07-21 19:01:31.785 +03:00 [DBG] Создаем pipeline для обучения...
+2025-07-21 19:01:31.794 +03:00 [DBG] Обучаем модель...
+2025-07-21 19:01:31.877 +03:00 [INF] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 19:01:31.884 +03:00 [INF] Загружено 0 подозрительных пользователей из файла
+2025-07-21 19:01:31.886 +03:00 [INF] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 19:01:31.909 +03:00 [INF] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 19:01:31.937 +03:00 [DBG] Touch
+2025-07-21 19:01:31.939 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-07-21 19:01:31.939 +03:00 [DBG] offset read ok
+2025-07-21 19:01:31.939 +03:00 [INF] Hosting environment: Development
+2025-07-21 19:01:31.939 +03:00 [INF] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 19:01:32.271 +03:00 [INF] ✅ ML модель успешно обучена за 641ms! Движок готов к работе.
+2025-07-21 19:01:33.071 +03:00 [ERR] BackgroundService failed
+Telegram.Bot.Exceptions.RequestException: Exception during making request
+ ---> System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.
+ ---> System.IO.IOException: Received an unexpected EOF or 0 bytes from the transport stream.
+   at System.Net.Security.SslStream.ReceiveHandshakeFrameAsync[TIOAdapter](CancellationToken cancellationToken)
+   at System.Net.Security.SslStream.ForceAuthenticationAsync[TIOAdapter](Boolean receiveFirst, Byte[] reAuthenticationData, CancellationToken cancellationToken)
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetMe(ITelegramBotClient botClient, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetMe(CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 96
+   at ClubDoorman.Worker.ExecuteAsync(CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 146
+   at Microsoft.Extensions.Hosting.Internal.Host.TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)
+2025-07-21 19:01:33.072 +03:00 [FTL] The HostOptions.BackgroundServiceExceptionBehavior is configured to StopHost. A BackgroundService has thrown an unhandled exception, and the IHost instance is stopping. To avoid this behavior, configure this to Ignore; however the BackgroundService will not be restarted.
+Telegram.Bot.Exceptions.RequestException: Exception during making request
+ ---> System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.
+ ---> System.IO.IOException: Received an unexpected EOF or 0 bytes from the transport stream.
+   at System.Net.Security.SslStream.ReceiveHandshakeFrameAsync[TIOAdapter](CancellationToken cancellationToken)
+   at System.Net.Security.SslStream.ForceAuthenticationAsync[TIOAdapter](Boolean receiveFirst, Byte[] reAuthenticationData, CancellationToken cancellationToken)
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetMe(ITelegramBotClient botClient, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetMe(CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 96
+   at ClubDoorman.Worker.ExecuteAsync(CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 146
+   at Microsoft.Extensions.Hosting.Internal.Host.TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)
+2025-07-21 19:01:33.072 +03:00 [INF] Application is shutting down...
+2025-07-21 19:02:17.487 +03:00 [INF] Начинаем обучение ML модели...
+2025-07-21 19:02:17.484 +03:00 [INF] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 19:02:17.509 +03:00 [DBG] Загружено 279 стоп-слов
+2025-07-21 19:02:17.566 +03:00 [INF] Загружено 807 записей из датасета
+2025-07-21 19:02:17.567 +03:00 [INF] Спам: 275, НЕ спам: 532
+2025-07-21 19:02:17.664 +03:00 [DBG] Создаем pipeline для обучения...
+2025-07-21 19:02:17.672 +03:00 [DBG] Обучаем модель...
+2025-07-21 19:02:17.737 +03:00 [INF] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 19:02:17.746 +03:00 [INF] Загружено 0 подозрительных пользователей из файла
+2025-07-21 19:02:17.748 +03:00 [INF] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 19:02:17.766 +03:00 [INF] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 19:02:17.787 +03:00 [DBG] Touch
+2025-07-21 19:02:17.789 +03:00 [DBG] offset read ok
+2025-07-21 19:02:17.789 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-07-21 19:02:17.789 +03:00 [INF] Hosting environment: Development
+2025-07-21 19:02:17.789 +03:00 [INF] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 19:02:18.158 +03:00 [INF] ✅ ML модель успешно обучена за 655ms! Движок готов к работе.
+2025-07-21 19:02:18.307 +03:00 [INF] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 19:02:20.428 +03:00 [INF] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 19:02:26.326 +03:00 [INF] Application is shutting down...
+2025-07-21 19:33:45.191 +03:00 [INF] Начинаем обучение ML модели...
+2025-07-21 19:33:45.189 +03:00 [INF] RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+2025-07-21 19:33:45.215 +03:00 [DBG] Загружено 279 стоп-слов
+2025-07-21 19:33:45.280 +03:00 [INF] Загружено 807 записей из датасета
+2025-07-21 19:33:45.280 +03:00 [INF] Спам: 275, НЕ спам: 532
+2025-07-21 19:33:45.377 +03:00 [DBG] Создаем pipeline для обучения...
+2025-07-21 19:33:45.390 +03:00 [DBG] Обучаем модель...
+2025-07-21 19:33:45.473 +03:00 [INF] 🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+2025-07-21 19:33:45.482 +03:00 [INF] Загружено 0 подозрительных пользователей из файла
+2025-07-21 19:33:45.490 +03:00 [INF] 🎭 Система мимикрии ВКЛЮЧЕНА: порог=0.6, сообщений для одобрения=3
+2025-07-21 19:33:45.508 +03:00 [INF] Начальное обновление банлиста из lols.bot при старте бота
+2025-07-21 19:33:45.527 +03:00 [DBG] Touch
+2025-07-21 19:33:45.528 +03:00 [DBG] offset read ok
+2025-07-21 19:33:45.528 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-07-21 19:33:45.528 +03:00 [INF] Hosting environment: Development
+2025-07-21 19:33:45.528 +03:00 [INF] Content root path: /home/kpblc/projects/ClubDoorman/ClubDoorman
+2025-07-21 19:33:45.875 +03:00 [INF] ✅ ML модель успешно обучена за 668ms! Движок готов к работе.
+2025-07-21 19:33:46.055 +03:00 [INF] Первичное обновление количества участников во всех чатах для статистики
+2025-07-21 19:33:48.101 +03:00 [INF] Обновлен банлист из lols.bot: было 0, стало 2437243 записей
+2025-07-21 19:33:51.755 +03:00 [INF] Application is shutting down...

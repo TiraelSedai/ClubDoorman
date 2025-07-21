@@ -80,6 +80,38 @@ public class MessageTemplates
             
                     [AdminNotificationType.UserCleanup] = 
                 "🧹 Пользователь {UserFullName} очищен из всех списков после автобана",
+
+            [AdminNotificationType.UserApproved] = 
+                "✅ {Reason}",
+
+            [AdminNotificationType.SystemInfo] = 
+                "{Reason}",
+
+            [AdminNotificationType.Success] = 
+                "✅ {Reason}",
+
+            [AdminNotificationType.Warning] = 
+                "⚠️ {Reason}",
+
+            [AdminNotificationType.AiDetectAutoDelete] =
+                "🔍🤖🚫 *Специальный AI детект: автоудаление спама*\n\n" +
+                "👤 Пользователь: [{UserName}](tg://user?id={UserId})\n" +
+                "🏠 Чат: *{ChatTitle}*\n" +
+                "📨 Сообщение: `{MessageText}`\n" +
+                "🎭 Скор мимикрии: *{MimicryScore:F2}*\n" +
+                "🤖 AI анализ: *{AiScore:F2}* - {AiReason}\n" +
+                "🔬 ML скор: *{MlScore:F2}*\n" +
+                "⚡ Действие: **Автоматически удалено + ограничение на 2 часа**",
+
+            [AdminNotificationType.AiDetectSuspicious] =
+                "🔍🤖❓ *Специальный AI детект: подозрительное сообщение*\n\n" +
+                "👤 Пользователь: [{UserName}](tg://user?id={UserId})\n" +
+                "🏠 Чат: *{ChatTitle}*\n" +
+                "📨 Сообщение: `{MessageText}`\n" +
+                "🎭 Скор мимикрии: *{MimicryScore:F2}*\n" +
+                "🤖 AI анализ: *{AiScore:F2}* - {AiReason}\n" +
+                "🔬 ML скор: *{MlScore:F2}*\n" +
+                "🔒 Пользователь ограничен на 2 часа. Требуется решение.",
                 
             [AdminNotificationType.AiProfileAnalysis] = 
                 "🤖 AI: Вероятность что это профиль бейт спаммер {SpamProbability}%. Даём ридонли на 10 минут\n{Reason}\nЮзер {UserFullName} из чата {ChatTitle}"
@@ -148,7 +180,10 @@ public class MessageTemplates
             
                     [UserNotificationType.Success] = 
                 "✅ {Reason}",
-                
+
+                        [UserNotificationType.SystemInfo] =
+                "{Reason}",
+
             [UserNotificationType.Welcome] = 
                 "{Reason}"
     };
@@ -242,6 +277,17 @@ public class MessageTemplates
                 result = result.Replace("{Reason}", aiProfileData.Reason);
                 result = result.Replace("{NameBio}", aiProfileData.NameBio);
                 result = result.Replace("{MessageText}", aiProfileData.MessageText);
+            }
+            else if (data is AiDetectNotificationData aiDetectData)
+            {
+                result = result.Replace("{UserName}", Utils.FullName(aiDetectData.User));
+                result = result.Replace("{UserId}", aiDetectData.User.Id.ToString());
+                result = result.Replace("{ChatTitle}", aiDetectData.Chat.Title ?? "");
+                result = result.Replace("{MimicryScore}", aiDetectData.MimicryScore.ToString("F2"));
+                result = result.Replace("{AiScore}", aiDetectData.AiScore.ToString("F2"));
+                result = result.Replace("{MlScore}", aiDetectData.MlScore.ToString("F2"));
+                result = result.Replace("{AiReason}", aiDetectData.AiReason);
+                result = result.Replace("{MessageText}", aiDetectData.MessageText.Substring(0, Math.Min(aiDetectData.MessageText.Length, 200)));
             }
         
         return result;

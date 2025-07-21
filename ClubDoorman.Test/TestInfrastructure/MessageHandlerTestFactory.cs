@@ -27,6 +27,7 @@ public class MessageHandlerTestFactory
     public Mock<IServiceProvider> ServiceProviderMock { get; } = new();
     public Mock<IUserFlowLogger> UserFlowLoggerMock { get; } = new();
     public Mock<IMessageService> MessageServiceMock { get; } = new();
+    public Mock<IChatLinkFormatter> ChatLinkFormatterMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
 
     public MessageHandler CreateMessageHandler()
@@ -44,6 +45,7 @@ public class MessageHandlerTestFactory
             ServiceProviderMock.Object,
             UserFlowLoggerMock.Object,
             MessageServiceMock.Object,
+            ChatLinkFormatterMock.Object,
             LoggerMock.Object
         );
     }
@@ -110,6 +112,18 @@ public class MessageHandlerTestFactory
         return this;
     }
 
+    public MessageHandlerTestFactory WithMessageServiceSetup(Action<Mock<IMessageService>> setup)
+    {
+        setup(MessageServiceMock);
+        return this;
+    }
+
+    public MessageHandlerTestFactory WithChatLinkFormatterSetup(Action<Mock<IChatLinkFormatter>> setup)
+    {
+        setup(ChatLinkFormatterMock);
+        return this;
+    }
+
     public MessageHandlerTestFactory WithLoggerSetup(Action<Mock<ILogger<MessageHandler>>> setup)
     {
         setup(LoggerMock);
@@ -134,6 +148,7 @@ public class MessageHandlerTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }
@@ -183,6 +198,7 @@ public class MessageHandlerTestFactory
             ServiceProviderMock.Object,
             UserFlowLoggerMock.Object,
             MessageServiceMock.Object,
+            ChatLinkFormatterMock.Object,
             LoggerMock.Object
         );
     }

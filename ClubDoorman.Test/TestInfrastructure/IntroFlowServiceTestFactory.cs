@@ -22,6 +22,7 @@ public class IntroFlowServiceTestFactory
     public Mock<IAiChecks> AiChecksMock { get; } = new();
     public Mock<IStatisticsService> StatisticsServiceMock { get; } = new();
     public Mock<IModerationService> ModerationServiceMock { get; } = new();
+    public Mock<IMessageService> MessageServiceMock { get; } = new();
 
     public IntroFlowService CreateIntroFlowService()
     {
@@ -33,7 +34,8 @@ public class IntroFlowServiceTestFactory
             AiChecksMock.Object,
             StatisticsServiceMock.Object,
             new GlobalStatsManager(),
-            ModerationServiceMock.Object
+            ModerationServiceMock.Object,
+            MessageServiceMock.Object
         );
     }
 
@@ -81,6 +83,12 @@ public class IntroFlowServiceTestFactory
         return this;
     }
 
+    public IntroFlowServiceTestFactory WithMessageServiceSetup(Action<Mock<IMessageService>> setup)
+    {
+        setup(MessageServiceMock);
+        return this;
+    }
+
     #endregion
 
     #region Smart Methods Based on Business Logic
@@ -99,6 +107,7 @@ public class IntroFlowServiceTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }

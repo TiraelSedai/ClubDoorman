@@ -79,8 +79,13 @@ public class MessageService : IMessageService
             var template = _templates.GetUserTemplate(type);
             var message = _templates.FormatTemplate(template, data);
             
-            // Для команды /start используем HTML разметку
-            var parseMode = type == UserNotificationType.Welcome ? ParseMode.Html : ParseMode.MarkdownV2;
+            // Для команды /start используем HTML разметку, для системной информации - Markdown
+            var parseMode = type switch
+            {
+                UserNotificationType.Welcome => ParseMode.Html,
+                UserNotificationType.SystemInfo => ParseMode.Markdown,
+                _ => ParseMode.MarkdownV2
+            };
             
             await _bot.SendMessage(
                 chat.Id,

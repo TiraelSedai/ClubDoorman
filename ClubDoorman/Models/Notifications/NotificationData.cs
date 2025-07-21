@@ -235,4 +235,39 @@ public class SimpleNotificationData : NotificationData
         : base(user, chat, reason, messageId)
     {
     }
+}
+
+/// <summary>
+/// Данные для AI детекта уведомлений
+/// </summary>
+public class AiDetectNotificationData : NotificationData
+{
+    public double MimicryScore { get; }
+    public double AiScore { get; }
+    public double MlScore { get; }
+    public string AiReason { get; }
+    public string MessageText { get; }
+    public bool IsAutoDelete { get; }
+    public long MessageId { get; }
+
+    public AiDetectNotificationData(
+        User user, 
+        Chat chat, 
+        string reason,
+        double mimicryScore,
+        double aiScore,
+        double mlScore,
+        string aiReason,
+        string messageText,
+        bool isAutoDelete,
+        long messageId) : base(user, chat, reason, messageId)
+    {
+        MimicryScore = mimicryScore;
+        AiScore = aiScore;
+        MlScore = mlScore;
+        AiReason = aiReason;
+        MessageText = messageText;
+        IsAutoDelete = isAutoDelete;
+        MessageId = messageId;
+    }
 } 

@@ -52,6 +52,7 @@ namespace ClubDoorman.Test.StepDefinitions
                 realAiChecks,
                 realSuspiciousStorage,
                 realBotClient,
+                new Mock<IMessageService>().Object,
                 _mockLogger.Object
             );
         }

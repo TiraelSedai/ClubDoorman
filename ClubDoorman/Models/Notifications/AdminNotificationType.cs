@@ -78,5 +78,35 @@ public enum AdminNotificationType
     /// <summary>
     /// Очистка пользователя из списков
     /// </summary>
-    UserCleanup
+    UserCleanup,
+
+    /// <summary>
+    /// Пользователь одобрен администратором
+    /// </summary>
+    UserApproved,
+
+    /// <summary>
+    /// Системная информация
+    /// </summary>
+    SystemInfo,
+
+    /// <summary>
+    /// Успешная операция
+    /// </summary>
+    Success,
+
+    /// <summary>
+    /// Предупреждение
+    /// </summary>
+    Warning,
+
+    /// <summary>
+    /// AI детект - автоудаление спама
+    /// </summary>
+    AiDetectAutoDelete,
+
+    /// <summary>
+    /// AI детект - подозрительное сообщение
+    /// </summary>
+    AiDetectSuspicious
 } 

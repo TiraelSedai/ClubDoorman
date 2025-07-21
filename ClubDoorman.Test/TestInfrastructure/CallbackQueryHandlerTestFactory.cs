@@ -23,6 +23,7 @@ public class CallbackQueryHandlerTestFactory
     public Mock<IStatisticsService> StatisticsServiceMock { get; } = new();
     public Mock<IAiChecks> AiChecksMock { get; } = new();
     public Mock<IModerationService> ModerationServiceMock { get; } = new();
+    public Mock<IMessageService> MessageServiceMock { get; } = new();
     public Mock<ILogger<CallbackQueryHandler>> LoggerMock { get; } = new();
 
     public CallbackQueryHandler CreateCallbackQueryHandler()
@@ -35,6 +36,7 @@ public class CallbackQueryHandlerTestFactory
             StatisticsServiceMock.Object,
             AiChecksMock.Object,
             ModerationServiceMock.Object,
+            MessageServiceMock.Object,
             LoggerMock.Object
         );
     }
@@ -83,6 +85,12 @@ public class CallbackQueryHandlerTestFactory
         return this;
     }
 
+    public CallbackQueryHandlerTestFactory WithMessageServiceSetup(Action<Mock<IMessageService>> setup)
+    {
+        setup(MessageServiceMock);
+        return this;
+    }
+
     public CallbackQueryHandlerTestFactory WithLoggerSetup(Action<Mock<ILogger<CallbackQueryHandler>>> setup)
     {
         setup(LoggerMock);
@@ -107,6 +115,7 @@ public class CallbackQueryHandlerTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }

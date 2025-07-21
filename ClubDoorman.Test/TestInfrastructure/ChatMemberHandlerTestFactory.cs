@@ -26,7 +26,7 @@ public class ChatMemberHandlerTestFactory
             BotMock.Object,
             UserManagerMock.Object,
             LoggerMock.Object,
-            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object)
+            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object)
         );
     }
 
@@ -68,6 +68,7 @@ public class ChatMemberHandlerTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }

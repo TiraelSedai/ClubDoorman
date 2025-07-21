@@ -80,3 +80,49 @@ Telegram Bot API error 400: Bad Request: chat not found
    at Telegram.Bot.TelegramBotClientExtensions.SendMessage(ITelegramBotClient botClient, ChatId chatId, String text, ParseMode parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, LinkPreviewOptions linkPreviewOptions, Nullable`1 messageThreadId, IEnumerable`1 entities, Boolean disableNotification, Boolean protectContent, String messageEffectId, String businessConnectionId, Boolean allowPaidBroadcast, CancellationToken cancellationToken)
    at ClubDoorman.Services.TelegramBotClientWrapper.SendMessage(ChatId chatId, String text, Nullable`1 parseMode, ReplyParameters replyParameters, ReplyMarkup replyMarkup, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 123
    at ClubDoorman.Handlers.MessageHandler.SendAiProfileAlert(Message message, User user, Chat chat, SpamProbability spamInfo, Byte[] photoBytes, String nameBio, CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Handlers/MessageHandler.cs:line 1144
+2025-07-21 19:01:33.071 +03:00 [ERR] BackgroundService failed
+Telegram.Bot.Exceptions.RequestException: Exception during making request
+ ---> System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.
+ ---> System.IO.IOException: Received an unexpected EOF or 0 bytes from the transport stream.
+   at System.Net.Security.SslStream.ReceiveHandshakeFrameAsync[TIOAdapter](CancellationToken cancellationToken)
+   at System.Net.Security.SslStream.ForceAuthenticationAsync[TIOAdapter](Boolean receiveFirst, Byte[] reAuthenticationData, CancellationToken cancellationToken)
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetMe(ITelegramBotClient botClient, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetMe(CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 96
+   at ClubDoorman.Worker.ExecuteAsync(CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 146
+   at Microsoft.Extensions.Hosting.Internal.Host.TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)
+2025-07-21 19:01:33.072 +03:00 [FTL] The HostOptions.BackgroundServiceExceptionBehavior is configured to StopHost. A BackgroundService has thrown an unhandled exception, and the IHost instance is stopping. To avoid this behavior, configure this to Ignore; however the BackgroundService will not be restarted.
+Telegram.Bot.Exceptions.RequestException: Exception during making request
+ ---> System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.
+ ---> System.IO.IOException: Received an unexpected EOF or 0 bytes from the transport stream.
+   at System.Net.Security.SslStream.ReceiveHandshakeFrameAsync[TIOAdapter](CancellationToken cancellationToken)
+   at System.Net.Security.SslStream.ForceAuthenticationAsync[TIOAdapter](Boolean receiveFirst, Byte[] reAuthenticationData, CancellationToken cancellationToken)
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.ConnectHelper.EstablishSslConnectionAsync(SslClientAuthenticationOptions sslOptions, HttpRequestMessage request, Boolean async, Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Telegram.Bot.TelegramBotClient.SendRequest[TResponse](IRequest`1 request, CancellationToken cancellationToken)
+   at Telegram.Bot.TelegramBotClientExtensions.GetMe(ITelegramBotClient botClient, CancellationToken cancellationToken)
+   at ClubDoorman.Services.TelegramBotClientWrapper.GetMe(CancellationToken cancellationToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/TelegramBotClientWrapper.cs:line 96
+   at ClubDoorman.Worker.ExecuteAsync(CancellationToken stoppingToken) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Worker.cs:line 146
+   at Microsoft.Extensions.Hosting.Internal.Host.TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)

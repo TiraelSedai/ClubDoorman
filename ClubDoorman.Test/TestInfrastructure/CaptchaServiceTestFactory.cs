@@ -58,6 +58,7 @@ public class CaptchaServiceTestFactory
             new Mock<IAiChecks>().Object,
             new Mock<ISuspiciousUsersStorage>().Object,
             new Mock<ITelegramBotClient>().Object,
+            new Mock<IMessageService>().Object,
             new Mock<ILogger<ModerationService>>().Object
         );
     }

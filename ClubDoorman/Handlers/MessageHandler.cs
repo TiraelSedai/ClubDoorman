@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.Caching;
+using System.Text;
 using ClubDoorman.Handlers.Commands;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models;
@@ -32,6 +33,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IServiceProvider _serviceProvider;
     private readonly IUserFlowLogger _userFlowLogger;
     private readonly IMessageService _messageService;
+    private readonly IChatLinkFormatter _chatLinkFormatter;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -66,6 +68,7 @@ public class MessageHandler : IUpdateHandler
         IServiceProvider serviceProvider,
         IUserFlowLogger userFlowLogger,
         IMessageService messageService,
+        IChatLinkFormatter chatLinkFormatter,
         ILogger<MessageHandler> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
@@ -80,6 +83,7 @@ public class MessageHandler : IUpdateHandler
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _userFlowLogger = userFlowLogger ?? throw new ArgumentNullException(nameof(userFlowLogger));
         _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
+        _chatLinkFormatter = chatLinkFormatter ?? throw new ArgumentNullException(nameof(chatLinkFormatter));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -204,6 +208,18 @@ public class MessageHandler : IUpdateHandler
         {
             await HandleAdminCommandAsync(message, command, cancellationToken);
         }
+        
+        // Команда статистики по группам (/stat, /stats) - только в админ-чатах
+        if (isAdminChat && (command == "stat" || command == "stats"))
+        {
+            await HandleStatsCommandAsync(message, cancellationToken);
+        }
+        
+        // Команда отправки сообщения (/say) - только в админ-чатах
+        if (isAdminChat && command == "say")
+        {
+            await HandleSayCommandAsync(message, cancellationToken);
+        }
     }
 
     private async Task HandleAdminCommandAsync(Message message, string command, CancellationToken cancellationToken)
@@ -262,7 +278,9 @@ public class MessageHandler : IUpdateHandler
             + $"• Маскирующиеся слова: *{lookAlikeMsg}*\n"
             + $"• ML классификатор: спам *{spam}*, скор *{score}*\n\n"
             + $"_Если простые фильтры отработали, то в датасет добавлять не нужно_";
-        await _bot.SendMessage(message.Chat.Id, msg, parseMode: ParseMode.Markdown, cancellationToken: cancellationToken);
+        await _messageService.SendUserNotificationAsync(message.From!, message.Chat, UserNotificationType.SystemInfo, 
+            new SimpleNotificationData(message.From!, message.Chat, msg), 
+            cancellationToken);
     }
 
     private async Task HandleSpamCommandAsync(Message message, string text, Message replyToMessage, CancellationToken cancellationToken)
@@ -284,6 +302,126 @@ public class MessageHandler : IUpdateHandler
             new SimpleNotificationData(message.From!, message.Chat, "Сообщение добавлено как пример НЕ-спама"), 
             cancellationToken);
         _logger.LogInformation("✅ Команда /ham успешно выполнена");
+    }
+
+    private async Task HandleStatsCommandAsync(Message message, CancellationToken cancellationToken)
+    {
+        var report = _statisticsService.GetAllStats();
+        var sb = new StringBuilder();
+        sb.AppendLine("📊 *Статистика по группам:*\n");
+        foreach (var (chatId, stats) in report.OrderBy(x => x.Value.ChatTitle))
+        {
+            var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.LongNameBanned;
+            if (sum == 0) continue;
+            Chat? chat = null;
+            try { chat = await _bot.GetChat(chatId); } catch { }
+            sb.AppendLine();
+            if (chat != null)
+                sb.AppendLine($"{_chatLinkFormatter.GetChatLink(chat)} (`{chat.Id}`) [{ChatSettingsManager.GetChatType(chat.Id)}]:");
+            else
+                sb.AppendLine($"{_chatLinkFormatter.GetChatLink(chatId, stats.ChatTitle)} (`{chatId}`) [{ChatSettingsManager.GetChatType(chatId)}]:");
+            sb.AppendLine($"▫️ Всего блокировок: *{sum}*");
+            if (stats.BlacklistBanned > 0)
+                sb.AppendLine($"▫️ По блеклистам: *{stats.BlacklistBanned}*");
+            if (stats.StoppedCaptcha > 0)
+                sb.AppendLine($"▫️ Не прошли капчу: *{stats.StoppedCaptcha}*");
+            if (stats.KnownBadMessage > 0)
+                sb.AppendLine($"▫️ Известные спам-сообщения: *{stats.KnownBadMessage}*");
+            if (stats.LongNameBanned > 0)
+                sb.AppendLine($"▫️ За длинные имена: *{stats.LongNameBanned}*");
+        }
+        if (sb.Length <= 35)
+            sb.AppendLine("\nНичего интересного не произошло 🎉");
+        
+        await _messageService.SendUserNotificationAsync(
+            message.From!,
+            message.Chat,
+            UserNotificationType.SystemInfo,
+            new SimpleNotificationData(message.From!, message.Chat, sb.ToString()),
+            cancellationToken
+        );
+    }
+
+    private async Task HandleSayCommandAsync(Message message, CancellationToken cancellationToken)
+    {
+        var parts = message.Text!.Split(' ', 3);
+        if (parts.Length < 3)
+        {
+            await _messageService.SendUserNotificationAsync(
+                message.From!,
+                message.Chat,
+                UserNotificationType.Warning,
+                new SimpleNotificationData(message.From!, message.Chat, "Формат: /say @username сообщение или /say user_id сообщение"),
+                cancellationToken
+            );
+            return;
+        }
+        
+        var target = parts[1];
+        var textToSend = parts[2];
+        long? userId = null;
+        
+        if (target.StartsWith("@"))
+        {
+            // Пробуем найти userId по username среди недавних пользователей (по кэшу)
+            userId = TryFindUserIdByUsername(target.Substring(1));
+        }
+        else if (long.TryParse(target, out var id))
+        {
+            userId = id;
+        }
+        
+        if (userId == null)
+        {
+            await _messageService.SendUserNotificationAsync(
+                message.From!,
+                message.Chat,
+                UserNotificationType.Warning,
+                new SimpleNotificationData(message.From!, message.Chat, $"Не удалось найти пользователя {target}. Сообщение не отправлено."),
+                cancellationToken
+            );
+            return;
+        }
+
+        try
+        {
+            await _bot.SendMessage(userId.Value, textToSend, parseMode: ParseMode.Markdown);
+            await _messageService.SendUserNotificationAsync(
+                message.From!,
+                message.Chat,
+                UserNotificationType.Success,
+                new SimpleNotificationData(message.From!, message.Chat, $"Сообщение отправлено пользователю {target}"),
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await _messageService.SendUserNotificationAsync(
+                message.From!,
+                message.Chat,
+                UserNotificationType.Warning,
+                new SimpleNotificationData(message.From!, message.Chat, $"Не удалось доставить сообщение пользователю {target}: {ex.Message}"),
+                cancellationToken
+            );
+        }
+    }
+
+    // Вспомогательная функция для поиска userId по username среди недавних пользователей (по кэшу)
+    private long? TryFindUserIdByUsername(string username)
+    {
+        // Можно использовать MemoryCache или другой кэш, если он есть
+        // Здесь пример с MemoryCache: ищем по ключам, где username встречался
+        foreach (var item in MemoryCache.Default)
+        {
+            if (item.Value is string text && text.Contains(username, StringComparison.OrdinalIgnoreCase))
+            {
+                // Ключи вида chatId_userId
+                var parts = item.Key.ToString().Split('_');
+                if (parts.Length == 2 && long.TryParse(parts[1], out var uid))
+                    return uid;
+            }
+        }
+        return null;
     }
 
     private async Task HandleNewMembersAsync(Message message, CancellationToken cancellationToken)
