@@ -43,7 +43,7 @@ public class ModerationServiceSimpleTests : TestBase
         // Создаем реальный AiChecks с TelegramBotClient и логгером
         var bot = new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"); // Тестовый токен
         var mockAiLogger = new Mock<ILogger<AiChecks>>();
-        _mockAiChecks = new AiChecks(bot, mockAiLogger.Object);
+        _mockAiChecks = new AiChecks(new TelegramBotClientWrapper(bot), mockAiLogger.Object);
         
         _mockBotClient = new Mock<ITelegramBotClient>();
 

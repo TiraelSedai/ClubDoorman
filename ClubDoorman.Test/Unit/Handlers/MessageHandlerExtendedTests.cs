@@ -55,12 +55,12 @@ public class MessageHandlerExtendedTests
         {
             // Создаем реальные экземпляры командных обработчиков для тестов
             var startCommandHandler = new StartCommandHandler(
-                new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+                new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
                 NullLogger<StartCommandHandler>.Instance
             );
             
             var suspiciousCommandHandler = new SuspiciousCommandHandler(
-                new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+                new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
                 _factory.ModerationServiceMock.Object,
                 NullLogger<SuspiciousCommandHandler>.Instance
             );

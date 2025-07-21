@@ -13,7 +13,7 @@ namespace ClubDoorman.Services;
 /// </summary>
 public class IntroFlowService
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<IntroFlowService> _logger;
     private readonly ICaptchaService _captchaService;
     private readonly IUserManager _userManager;
@@ -23,7 +23,7 @@ public class IntroFlowService
     private readonly IModerationService _moderationService;
 
     public IntroFlowService(
-        TelegramBotClient bot,
+        ITelegramBotClientWrapper bot,
         ILogger<IntroFlowService> logger,
         ICaptchaService captchaService,
         IUserManager userManager,
