@@ -20,7 +20,7 @@ public class AiChecksTestFactory
     public AiChecks CreateAiChecks()
     {
         return new AiChecks(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             LoggerMock.Object
         );
     }

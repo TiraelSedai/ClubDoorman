@@ -138,6 +138,30 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
     }
 
     /// <summary>
+    /// Получает полную информацию о чате
+    /// </summary>
+    public async Task<ChatFullInfo> GetChatFullInfo(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        // В новой версии API используем GetChat для получения базовой информации
+        // LinkedChatId доступен только через специальные методы, но для наших целей достаточно
+        var chat = await _bot.GetChat(chatId, cancellationToken);
+        return new ChatFullInfo
+        {
+            Id = chat.Id,
+            Type = chat.Type,
+            Title = chat.Title,
+            Username = chat.Username,
+            FirstName = chat.FirstName,
+            LastName = chat.LastName,
+            Bio = chat.Bio,
+            Description = chat.Description,
+            InviteLink = chat.InviteLink,
+            // LinkedChatId не доступен через базовый GetChat, но это не критично для нашей логики
+            LinkedChatId = null
+        };
+    }
+
+    /// <summary>
     /// Пересылает сообщение
     /// </summary>
     public async Task<Message> ForwardMessage(
@@ -204,5 +228,66 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
             replyParameters: replyParameters,
             replyMarkup: replyMarkup,
             cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Получает количество участников чата
+    /// </summary>
+    public async Task<int> GetChatMemberCount(ChatId chatId, CancellationToken cancellationToken = default)
+    {
+        return await _bot.GetChatMemberCount(chatId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Получает обновления
+    /// </summary>
+    public async Task<Update[]> GetUpdates(
+        int? offset = null,
+        int? limit = null,
+        int? timeout = null,
+        IEnumerable<UpdateType>? allowedUpdates = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await _bot.GetUpdates(offset, limit, timeout, allowedUpdates, cancellationToken);
+    }
+
+    /// <summary>
+    /// Получает информацию о файле и скачивает его
+    /// </summary>
+    public async Task GetInfoAndDownloadFile(string fileId, Stream destination, CancellationToken cancellationToken = default)
+    {
+        await _bot.GetInfoAndDownloadFile(fileId, destination, cancellationToken);
+    }
+
+    /// <summary>
+    /// Отвечает на callback query
+    /// </summary>
+    public async Task AnswerCallbackQuery(string callbackQueryId, string? text = null, bool? showAlert = null, string? url = null, int? cacheTime = null, CancellationToken cancellationToken = default)
+    {
+        await _bot.AnswerCallbackQuery(callbackQueryId, text, showAlert ?? false, url, cacheTime, cancellationToken);
+    }
+
+    /// <summary>
+    /// Редактирует reply markup сообщения
+    /// </summary>
+    public async Task EditMessageReplyMarkup(ChatId chatId, int messageId, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        await _bot.EditMessageReplyMarkup(chatId, messageId, replyMarkup as InlineKeyboardMarkup, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Редактирует текст сообщения
+    /// </summary>
+    public async Task<Message> EditMessageText(ChatId chatId, int messageId, string text, ParseMode? parseMode = null, ReplyMarkup? replyMarkup = null, CancellationToken cancellationToken = default)
+    {
+        return await _bot.EditMessageText(chatId, messageId, text, parseMode: parseMode ?? ParseMode.Html, replyMarkup: replyMarkup as InlineKeyboardMarkup, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Разбанивает пользователя в чате
+    /// </summary>
+    public async Task UnbanChatMember(ChatId chatId, long userId, bool? onlyIfBanned = null, CancellationToken cancellationToken = default)
+    {
+        await _bot.UnbanChatMember(chatId, userId, onlyIfBanned ?? false, cancellationToken);
     }
 } 

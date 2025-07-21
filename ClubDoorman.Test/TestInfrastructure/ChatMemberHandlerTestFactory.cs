@@ -22,10 +22,10 @@ public class ChatMemberHandlerTestFactory
     public ChatMemberHandler CreateChatMemberHandler()
     {
         return new ChatMemberHandler(
-            new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"),
+            new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             UserManagerMock.Object,
             LoggerMock.Object,
-            new IntroFlowService(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), new NullLogger<IntroFlowService>(), new Mock<ICaptchaService>().Object, new Mock<IUserManager>().Object, new AiChecks(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"), new NullLogger<AiChecks>()), new Mock<IStatisticsService>().Object, new GlobalStatsManager(), new Mock<IModerationService>().Object)
+            new IntroFlowService(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<IntroFlowService>(), new Mock<ICaptchaService>().Object, new Mock<IUserManager>().Object, new AiChecks(new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")), new NullLogger<AiChecks>()), new Mock<IStatisticsService>().Object, new GlobalStatsManager(), new Mock<IModerationService>().Object)
         );
     }
 

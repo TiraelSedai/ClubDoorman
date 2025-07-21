@@ -14,13 +14,13 @@ namespace ClubDoorman.Handlers;
 /// </summary>
 public class ChatMemberHandler : IUpdateHandler
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly IUserManager _userManager;
     private readonly ILogger<ChatMemberHandler> _logger;
     private readonly IntroFlowService _introFlowService;
 
     public ChatMemberHandler(
-        TelegramBotClient bot,
+        ITelegramBotClientWrapper bot,
         IUserManager userManager,
         ILogger<ChatMemberHandler> logger,
         IntroFlowService introFlowService)

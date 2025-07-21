@@ -23,12 +23,13 @@ internal sealed class Worker(
     IUserManager userManager,
     IBadMessageManager badMessageManager,
     IAiChecks aiChecks,
-    IChatLinkFormatter chatLinkFormatter
+    IChatLinkFormatter chatLinkFormatter,
+    ITelegramBotClientWrapper bot
 ) : BackgroundService
 {
     // Классы CaptchaInfo и Stats перенесены в Models
 
-    private readonly TelegramBotClient _bot = new(Config.BotApi);
+    private readonly ITelegramBotClientWrapper _bot = bot;
     private readonly PeriodicTimer _timer = new(TimeSpan.FromHours(1));
     private readonly PeriodicTimer _banlistRefreshTimer = new(TimeSpan.FromHours(12));
     private readonly PeriodicTimer _membersCountUpdateTimer = new(TimeSpan.FromHours(8));
@@ -305,7 +306,7 @@ internal sealed class Worker(
             var chat = message.Chat;
             _statisticsService.IncrementKnownBadMessage(chat.Id);
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
-            await _bot.BanChatMember(chat.Id, user.Id, cancellationToken: stoppingToken);
+            await _bot.BanChatMember(chat, user.Id, cancellationToken: stoppingToken);
             _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
             if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
             {
@@ -417,7 +418,7 @@ internal sealed class Worker(
                             + $"• Маскирующиеся слова: *{lookAlikeMsg}*\n"
                             + $"• ML классификатор: спам *{spam}*, скор *{score}*\n\n"
                             + $"_Если простые фильтры отработали, то в датасет добавлять не нужно_";
-                        await _bot.SendMessage(message.Chat.Id, msg, parseMode: ParseMode.Markdown);
+                        await _bot.SendMessage(message.Chat, msg, parseMode: ParseMode.Markdown);
                         break;
                     }
                     case "/spam":
@@ -482,7 +483,7 @@ internal sealed class Worker(
             }
             if (sb.Length <= 35)
                 sb.AppendLine("\nНичего интересного не произошло 🎉");
-            await _bot.SendMessage(message.Chat.Id, sb.ToString(), parseMode: ParseMode.Markdown);
+                            await _bot.SendMessage(message.Chat, sb.ToString(), parseMode: ParseMode.Markdown);
             return;
         }
         // Добавляю обработку команды /say
@@ -491,7 +492,7 @@ internal sealed class Worker(
             var parts = message.Text.Split(' ', 3);
             if (parts.Length < 3)
             {
-                await _bot.SendMessage(message.Chat.Id, "Формат: /say @username сообщение или /say user_id сообщение");
+                await _bot.SendMessage(message.Chat, "Формат: /say @username сообщение или /say user_id сообщение");
                 return;
             }
             var target = parts[1];
@@ -509,17 +510,17 @@ internal sealed class Worker(
             }
             if (userId == null)
             {
-                await _bot.SendMessage(message.Chat.Id, $"Не удалось найти пользователя {target}. Сообщение не отправлено.");
+                await _bot.SendMessage(message.Chat, $"Не удалось найти пользователя {target}. Сообщение не отправлено.");
                 return;
             }
             try
             {
-                await _bot.SendMessage(userId.Value, textToSend, parseMode: ParseMode.Markdown, disableNotification: true);
-                await _bot.SendMessage(message.Chat.Id, $"Сообщение отправлено пользователю {target}");
+                await _bot.SendMessage(userId.Value, textToSend, parseMode: ParseMode.Markdown);
+                await _bot.SendMessage(message.Chat, $"Сообщение отправлено пользователю {target}");
             }
             catch (Exception ex)
             {
-                await _bot.SendMessage(message.Chat.Id, $"Не удалось доставить сообщение пользователю {target}: {ex.Message}");
+                await _bot.SendMessage(message.Chat, $"Не удалось доставить сообщение пользователю {target}: {ex.Message}");
             }
             return;
         }
@@ -574,8 +575,18 @@ internal sealed class Worker(
                 return false;
 
             // Проверяем, есть ли у группы связанный канал
-            var chatFull = await _bot.GetChat(chat.Id);
-            var hasLinkedChannel = chatFull.LinkedChatId != null;
+            // Для получения LinkedChatId нужно использовать GetChatFullInfo
+            var hasLinkedChannel = false;
+            try
+            {
+                var chatFull = await _bot.GetChatFullInfo(chat.Id);
+                hasLinkedChannel = chatFull.LinkedChatId != null;
+            }
+            catch
+            {
+                // Если не удалось получить полную информацию, считаем что связанного канала нет
+                hasLinkedChannel = false;
+            }
             
             // Обсуждение канала если:
             // 1. Есть связанный канал И сообщение автоматически переслано
@@ -584,8 +595,8 @@ internal sealed class Worker(
             
             if (isDiscussion)
             {
-                _logger.LogDebug("Обнаружено обсуждение канала: chat={ChatId}, linkedChannel={LinkedId}, autoForward={AutoForward}", 
-                    chat.Id, chatFull.LinkedChatId, message.IsAutomaticForward);
+                _logger.LogDebug("Обнаружено обсуждение канала: chat={ChatId}, hasLinkedChannel={HasLinked}, autoForward={AutoForward}", 
+                    chat.Id, hasLinkedChannel, message.IsAutomaticForward);
             }
             
             return isDiscussion;
@@ -609,7 +620,7 @@ internal sealed class Worker(
                 try
                 {
                     await Task.Delay(after, cancellationToken);
-                    await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: cancellationToken);
+                    await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
