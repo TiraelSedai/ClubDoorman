@@ -38,5 +38,10 @@ public enum LogNotificationType
     /// <summary>
     /// Критическая ошибка
     /// </summary>
-    CriticalError
+    CriticalError,
+    
+    /// <summary>
+    /// Сообщение от канала
+    /// </summary>
+    ChannelMessage
 } 

@@ -37,4 +37,9 @@ public interface IMessageService
     /// Отправить уведомление об ошибке
     /// </summary>
     Task SendErrorNotificationAsync(Exception ex, string context, User? user = null, Chat? chat = null, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Отправить уведомление о AI анализе профиля с фото
+    /// </summary>
+    Task SendAiProfileAnalysisAsync(AiProfileAnalysisData data, CancellationToken cancellationToken = default);
 } 

@@ -63,7 +63,26 @@ public class MessageTemplates
             
         [AdminNotificationType.SystemError] = 
             "💥 Системная ошибка: {Context}\n" +
-            "Ошибка: {ErrorMessage}"
+            "Ошибка: {ErrorMessage}",
+            
+        [AdminNotificationType.AutoBan] = 
+            "Авто-бан: {Reason}\n" +
+            "Юзер {UserFullName} из чата {ChatTitle}\n" +
+            "{MessageLink}",
+            
+        [AdminNotificationType.SuspiciousMessage] = 
+            "⚠️ *Подозрительное сообщение* - требует ручной проверки. Сообщение *НЕ удалено*.\n" +
+            "Пользователь [{UserFullName}](tg://user?id={UserId}) в чате *{ChatTitle}*\n" +
+            "Сообщение: {MessageText}",
+            
+        [AdminNotificationType.ChannelError] = 
+            "⚠️ Не могу забанить канал в чате {ChatTitle}. Не хватает могущества?",
+            
+                    [AdminNotificationType.UserCleanup] = 
+                "🧹 Пользователь {UserFullName} очищен из всех списков после автобана",
+                
+            [AdminNotificationType.AiProfileAnalysis] = 
+                "🤖 AI: Вероятность что это профиль бейт спаммер {SpamProbability}%. Даём ридонли на 10 минут\n{Reason}\nЮзер {UserFullName} из чата {ChatTitle}"
     };
     
     private readonly Dictionary<LogNotificationType, string> _logTemplates = new()
@@ -95,7 +114,10 @@ public class MessageTemplates
             
         [LogNotificationType.CriticalError] = 
             "💥 Критическая ошибка: {Context}\n" +
-            "Ошибка: {ErrorMessage}"
+            "Ошибка: {ErrorMessage}",
+            
+        [LogNotificationType.ChannelMessage] = 
+            "📢 Сообщение от канала {ChannelTitle} в чате {ChatTitle}"
     };
     
     private readonly Dictionary<UserNotificationType, string> _userTemplates = new()
@@ -119,7 +141,16 @@ public class MessageTemplates
             "🧩 Пожалуйста, пройдите капчу для входа в чат",
             
         [UserNotificationType.Welcome] = 
-            "👋 Добро пожаловать в чат!"
+            "👋 Добро пожаловать в чат!",
+            
+        [UserNotificationType.Warning] = 
+            "⚠️ {Reason}",
+            
+                    [UserNotificationType.Success] = 
+                "✅ {Reason}",
+                
+            [UserNotificationType.Welcome] = 
+                "{Reason}"
     };
     
     /// <summary>
@@ -185,17 +216,33 @@ public class MessageTemplates
             result = result.Replace("{FirstMessages}", FormatFirstMessages(suspiciousData.FirstMessages));
             result = result.Replace("{RequiredMessages}", Config.SuspiciousToApprovedMessageCount.ToString());
         }
-        else if (data is AiProfileAnalysisData aiData)
-        {
-            result = result.Replace("{SpamProbability}", aiData.SpamProbability.ToString("F2"));
-            result = result.Replace("{AiReason}", aiData.AiReason);
-            result = result.Replace("{NameBio}", aiData.NameBio);
-        }
+
         else if (data is ErrorNotificationData errorData)
         {
             result = result.Replace("{Context}", errorData.Context);
             result = result.Replace("{ErrorMessage}", errorData.Exception.Message);
         }
+        else if (data is ChannelMessageNotificationData channelData)
+        {
+            result = result.Replace("{ChannelTitle}", channelData.SenderChat.Title ?? channelData.SenderChat.Id.ToString());
+            result = result.Replace("{MessageText}", channelData.MessageText);
+        }
+        else if (data is SuspiciousMessageNotificationData suspiciousMsgData)
+        {
+            result = result.Replace("{MessageText}", suspiciousMsgData.MessageText);
+            result = result.Replace("{MessageLink}", suspiciousMsgData.MessageLink ?? "");
+        }
+                    else if (data is UserCleanupNotificationData cleanupData)
+            {
+                result = result.Replace("{CleanupReason}", cleanupData.CleanupReason);
+            }
+            else if (data is AiProfileAnalysisData aiProfileData)
+            {
+                result = result.Replace("{SpamProbability}", (aiProfileData.SpamProbability * 100).ToString("F1"));
+                result = result.Replace("{Reason}", aiProfileData.Reason);
+                result = result.Replace("{NameBio}", aiProfileData.NameBio);
+                result = result.Replace("{MessageText}", aiProfileData.MessageText);
+            }
         
         return result;
     }

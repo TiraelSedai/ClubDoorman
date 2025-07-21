@@ -58,5 +58,25 @@ public enum AdminNotificationType
     /// <summary>
     /// Системная ошибка
     /// </summary>
-    SystemError
+    SystemError,
+    
+    /// <summary>
+    /// Автобан пользователя
+    /// </summary>
+    AutoBan,
+    
+    /// <summary>
+    /// Подозрительное сообщение (требует проверки)
+    /// </summary>
+    SuspiciousMessage,
+    
+    /// <summary>
+    /// Ошибка при работе с каналом
+    /// </summary>
+    ChannelError,
+    
+    /// <summary>
+    /// Очистка пользователя из списков
+    /// </summary>
+    UserCleanup
 } 

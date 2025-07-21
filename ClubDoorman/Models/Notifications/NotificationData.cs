@@ -110,9 +110,9 @@ public class AiProfileAnalysisData : NotificationData
     public double SpamProbability { get; set; }
     
     /// <summary>
-    /// Причина
+    /// Причина от AI
     /// </summary>
-    public string AiReason { get; set; }
+    public string Reason { get; set; }
     
     /// <summary>
     /// Байты фото профиля
@@ -124,12 +124,18 @@ public class AiProfileAnalysisData : NotificationData
     /// </summary>
     public string NameBio { get; set; }
     
-    public AiProfileAnalysisData(User user, Chat chat, double spamProbability, string aiReason, string nameBio, byte[]? photoBytes = null) 
-        : base(user, chat)
+    /// <summary>
+    /// Текст сообщения
+    /// </summary>
+    public string MessageText { get; set; }
+    
+    public AiProfileAnalysisData(User user, Chat chat, double spamProbability, string reason, string nameBio, string messageText, byte[]? photoBytes = null, long? messageId = null) 
+        : base(user, chat, reason, messageId)
     {
         SpamProbability = spamProbability;
-        AiReason = aiReason;
+        Reason = reason;
         NameBio = nameBio;
+        MessageText = messageText;
         PhotoBytes = photoBytes;
     }
 }
@@ -154,5 +160,79 @@ public class ErrorNotificationData : NotificationData
     {
         Exception = exception;
         Context = context;
+    }
+}
+
+/// <summary>
+/// Данные для уведомления о сообщении от канала
+/// </summary>
+public class ChannelMessageNotificationData : NotificationData
+{
+    /// <summary>
+    /// Отправитель (канал)
+    /// </summary>
+    public Chat SenderChat { get; set; }
+    
+    /// <summary>
+    /// Текст сообщения
+    /// </summary>
+    public string MessageText { get; set; }
+    
+    public ChannelMessageNotificationData(Chat senderChat, Chat targetChat, string messageText) 
+        : base(new User { Id = senderChat.Id, FirstName = senderChat.Title ?? "Канал" }, targetChat)
+    {
+        SenderChat = senderChat;
+        MessageText = messageText;
+    }
+}
+
+/// <summary>
+/// Данные для уведомления о подозрительном сообщении
+/// </summary>
+public class SuspiciousMessageNotificationData : NotificationData
+{
+    /// <summary>
+    /// Текст сообщения
+    /// </summary>
+    public string MessageText { get; set; }
+    
+    /// <summary>
+    /// Ссылка на сообщение
+    /// </summary>
+    public string? MessageLink { get; set; }
+    
+    public SuspiciousMessageNotificationData(User user, Chat chat, string messageText, long? messageId = null, string? messageLink = null) 
+        : base(user, chat, messageId: messageId)
+    {
+        MessageText = messageText;
+        MessageLink = messageLink;
+    }
+}
+
+/// <summary>
+/// Данные для уведомления об очистке пользователя
+/// </summary>
+public class UserCleanupNotificationData : NotificationData
+{
+    /// <summary>
+    /// Причина очистки
+    /// </summary>
+    public string CleanupReason { get; set; }
+    
+    public UserCleanupNotificationData(User user, Chat chat, string cleanupReason) 
+        : base(user, chat, cleanupReason)
+    {
+        CleanupReason = cleanupReason;
+    }
+}
+
+/// <summary>
+/// Простые данные для уведомлений
+/// </summary>
+public class SimpleNotificationData : NotificationData
+{
+    public SimpleNotificationData(User user, Chat chat, string? reason = null, long? messageId = null) 
+        : base(user, chat, reason, messageId)
+    {
     }
 } 

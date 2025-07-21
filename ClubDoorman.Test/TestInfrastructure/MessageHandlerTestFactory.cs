@@ -26,6 +26,7 @@ public class MessageHandlerTestFactory
     public Mock<IStatisticsService> StatisticsServiceMock { get; } = new();
     public Mock<IServiceProvider> ServiceProviderMock { get; } = new();
     public Mock<IUserFlowLogger> UserFlowLoggerMock { get; } = new();
+    public Mock<IMessageService> MessageServiceMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
 
     public MessageHandler CreateMessageHandler()
@@ -42,6 +43,7 @@ public class MessageHandlerTestFactory
             StatisticsServiceMock.Object,
             ServiceProviderMock.Object,
             UserFlowLoggerMock.Object,
+            MessageServiceMock.Object,
             LoggerMock.Object
         );
     }
@@ -180,6 +182,7 @@ public class MessageHandlerTestFactory
             StatisticsServiceMock.Object,
             ServiceProviderMock.Object,
             UserFlowLoggerMock.Object,
+            MessageServiceMock.Object,
             LoggerMock.Object
         );
     }
