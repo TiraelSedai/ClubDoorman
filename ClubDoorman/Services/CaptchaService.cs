@@ -34,14 +34,14 @@ public class CaptchaService : ICaptchaService
     }
 
     /// <summary>
-    /// Создает капчу для нового пользователя в чате.
+    /// Создает капчу для нового пользователя в чате, либо возвращает null, если капча отключена для чата.
     /// </summary>
     /// <param name="chat">Чат, в котором создается капча</param>
     /// <param name="user">Пользователь, для которого создается капча</param>
     /// <param name="userJoinMessage">Сообщение о присоединении пользователя (опционально)</param>
-    /// <returns>Информация о созданной капче</returns>
+    /// <returns>Информация о созданной капче или null, если капча отключена для чата</returns>
     /// <exception cref="ArgumentNullException">Если chat или user равны null</exception>
-    public async Task<CaptchaInfo> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null)
+    public async Task<CaptchaInfo?> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null)
     {
         if (chat == null) throw new ArgumentNullException(nameof(chat));
         if (user == null) throw new ArgumentNullException(nameof(user));
