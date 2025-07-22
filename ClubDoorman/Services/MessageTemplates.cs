@@ -132,6 +132,11 @@ public class MessageTemplates
             "Юзер {UserFullName} из чата {ChatTitle}\n" +
             "{MessageLink}",
             
+        [LogNotificationType.AutoBanKnownSpam] = 
+            "🚫 Автобан за известное спам-сообщение\n" +
+            "Юзер {UserFullName} из чата {ChatTitle}\n" +
+            "{MessageLink}",
+            
         [LogNotificationType.BanForLongName] = 
             "🚫 Бан за длинное имя: {Reason}\n" +
             "Юзер {UserFullName} из чата {ChatTitle}",

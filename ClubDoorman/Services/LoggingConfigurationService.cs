@@ -51,7 +51,7 @@ public class LoggingConfigurationService : ILoggingConfigurationService
         return type switch
         {
             AdminNotificationType.AutoBan or AdminNotificationType.AutoBanBlacklist or AdminNotificationType.AutoBanFromBlacklist 
-                => NotificationDestination.AdminChat | NotificationDestination.LogChat | NotificationDestination.FileLog,
+                => NotificationDestination.FileLog,
             
             AdminNotificationType.SystemError 
                 => NotificationDestination.AdminChat | NotificationDestination.LogChat | NotificationDestination.FileLog,
@@ -78,7 +78,7 @@ public class LoggingConfigurationService : ILoggingConfigurationService
         // Значения по умолчанию
         return type switch
         {
-            LogNotificationType.AutoBanBlacklist or LogNotificationType.AutoBanFromBlacklist or LogNotificationType.BanForLongName or LogNotificationType.BanChannel
+            LogNotificationType.AutoBanBlacklist or LogNotificationType.AutoBanFromBlacklist or LogNotificationType.AutoBanKnownSpam or LogNotificationType.BanForLongName or LogNotificationType.BanChannel
                 => NotificationDestination.LogChat | NotificationDestination.FileLog,
             
             LogNotificationType.CriticalError

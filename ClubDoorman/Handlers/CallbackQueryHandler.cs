@@ -332,15 +332,18 @@ public class CallbackQueryHandler : IUpdateHandler
             // Полная очистка из всех списков
             _moderationService.CleanupUserFromAllLists(userId, chatId);
             
-            // Пересылаем оригинальное сообщение пользователя из кэша
+            // Удаляем оригинальное сообщение пользователя
             if (userMessage != null)
             {
-                await _bot.ForwardMessage(
-                    chatId: Config.AdminChatId,
-                    fromChatId: userMessage.Chat.Id,
-                    messageId: userMessage.MessageId,
-                    cancellationToken: cancellationToken
-                );
+                try
+                {
+                    await _bot.DeleteMessage(userMessage.Chat.Id, userMessage.MessageId, cancellationToken);
+                    _logger.LogDebug("Удалено оригинальное сообщение пользователя {UserId} после бана", userId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Не удалось удалить оригинальное сообщение пользователя {UserId} после бана", userId);
+                }
             }
             
             // Обновляем сообщение с результатом действия

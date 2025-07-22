@@ -655,10 +655,24 @@ public class MessageHandler : IUpdateHandler
             {
                 await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
                 
-                // Отправляем предупреждение пользователю
-                await _messageService.SendUserNotificationAsync(user, chat, UserNotificationType.MessageDeleted, 
+                // Отправляем предупреждение пользователю с автоудалением
+                var notificationMessage = await _messageService.SendUserNotificationWithReplyAsync(user, chat, UserNotificationType.MessageDeleted, 
                     new SimpleNotificationData(user, chat, "пересланные сообщения от новичков не разрешены"), 
                     cancellationToken);
+                
+                // Удаляем уведомление через 10 секунд
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                        await _bot.DeleteMessage(chat.Id, notificationMessage.MessageId, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Не удалось удалить уведомление пользователю");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -899,7 +913,13 @@ public class MessageHandler : IUpdateHandler
             message.MessageId, 
             LinkToMessage(message.Chat, message.MessageId)
         );
-        await _messageService.ForwardToLogWithNotificationAsync(message, LogNotificationType.AutoBanBlacklist, autoBanData, cancellationToken);
+        
+        // Выбираем правильный тип уведомления в зависимости от причины
+        var logNotificationType = reason.Contains("Известное спам-сообщение") 
+            ? LogNotificationType.AutoBanKnownSpam 
+            : LogNotificationType.AutoBanBlacklist;
+            
+        await _messageService.ForwardToLogWithNotificationAsync(message, logNotificationType, autoBanData, cancellationToken);
         
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
@@ -972,23 +992,8 @@ public class MessageHandler : IUpdateHandler
         catch (Exception e)
         {
             _logger.LogError(e, "Не удалось отправить уведомление в админ-чат");
-            // Fallback: отправляем простое уведомление без пересылки и кнопок
-            try
-            {
-                var deletionData = new AutoBanNotificationData(
-                    user, 
-                    message.Chat, 
-                    deletionMessagePart, 
-                    reason, 
-                    message.MessageId, 
-                    LinkToMessage(message.Chat, message.MessageId)
-                );
-                await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, deletionData, cancellationToken);
-            }
-            catch (Exception fallbackEx)
-            {
-                _logger.LogError(fallbackEx, "Не удалось отправить fallback уведомление в админ-чат");
-            }
+            // Fallback убран - автобаны теперь идут только в лог-чат
+            _logger.LogDebug("Не удалось отправить уведомление в админ-чат, но это ожидаемое поведение для автобанов");
         }
         
         try
@@ -1079,6 +1084,14 @@ public class MessageHandler : IUpdateHandler
     {
         try
         {
+            // Сначала пересылаем оригинальное сообщение
+            var forward = await _bot.ForwardMessage(
+                new ChatId(Config.AdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: cancellationToken
+            );
+            
             var template = _messageService.GetTemplates().GetAdminTemplate(AdminNotificationType.SuspiciousMessage);
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, data);
             
@@ -1088,28 +1101,26 @@ public class MessageHandler : IUpdateHandler
                 messageText = $"🔇 **Тихий режим**\n\n{messageText}";
             }
             
-            // Создаем кнопки для подозрительного сообщения
-            var approveCallback = $"suspicious_approve_{user.Id}_{message.Chat.Id}_{message.MessageId}";
-            var banCallback = $"suspicious_ban_{user.Id}_{message.Chat.Id}_{message.MessageId}";
-            var aiCallback = $"suspicious_ai_{user.Id}_{message.Chat.Id}_{message.MessageId}";
+            // Создаем кнопки реакции для админ-чата (стандартные кнопки: бан, пропуск, свой)
+            var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
+            MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
             
             var keyboard = new InlineKeyboardMarkup(new[]
             {
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("✅ Одобрить", approveCallback),
-                    InlineKeyboardButton.WithCallbackData("🚫 Забанить", banCallback)
-                },
-                new[]
-                {
-                    InlineKeyboardButton.WithCallbackData("🔍 AI анализ вкл/выкл", aiCallback)
+                    new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
+                    new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
+                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
                 }
             });
             
+            // Отправляем уведомление с кнопками как ответ на форвард
             await _bot.SendMessage(
                 Config.AdminChatId,
                 messageText,
                 parseMode: ParseMode.Markdown,
+                replyParameters: forward,
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken
             );
