@@ -213,46 +213,31 @@ internal sealed class Worker(
     private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
     {
         var user = message.From;
-        var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: stoppingToken
-        );
-        await _messageService.SendAdminNotificationAsync(
-            AdminNotificationType.AutoBan,
-            new AutoBanNotificationData(user, message.Chat, "Авто-бан", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId)),
+        
+        // Форвардим сообщение в лог-чат с уведомлением
+        await _messageService.ForwardToLogWithNotificationAsync(
+            message, 
+            LogNotificationType.AutoBanBlacklist,
+            new AutoBanNotificationData(user, message.Chat, "Автобан", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId)),
             stoppingToken
         );
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
         _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
-        if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
-        {
-            await _messageService.SendAdminNotificationAsync(
-                AdminNotificationType.UserCleanup,
-                new UserCleanupNotificationData(user, message.Chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана"),
-                stoppingToken
-            );
-        }
+        // Удаляем из списка одобренных без уведомления
+        _userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true);
     }
 
     private async Task AutoBanWithLogging(Message message, string reason, CancellationToken stoppingToken)
     {
         var user = message.From;
         
-        // Пересылаем сообщение в лог-чат перед удалением
+        // Пересылаем сообщение в лог-чат с уведомлением
         try
         {
-            var forward = await _bot.ForwardMessage(
-                new ChatId(Config.LogAdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: stoppingToken
-            );
-            
-            await _messageService.SendAdminNotificationAsync(
-                AdminNotificationType.AutoBan,
+            await _messageService.ForwardToLogWithNotificationAsync(
+                message,
+                LogNotificationType.AutoBanFromBlacklist,
                 new AutoBanNotificationData(user, message.Chat, "Автобан из блэклиста", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId)),
                 stoppingToken
             );
@@ -286,15 +271,8 @@ internal sealed class Worker(
         _statisticsService.IncrementBlacklistBan(message.Chat.Id);
         _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
         
-        // Удаляем из списка одобренных
-        if (_userManager.RemoveApproval(user.Id))
-        {
-            await _messageService.SendAdminNotificationAsync(
-                AdminNotificationType.UserCleanup,
-                new UserCleanupNotificationData(user, message.Chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после автобана по блэклисту"),
-                stoppingToken
-            );
-        }
+        // Удаляем из списка одобренных без уведомления
+        _userManager.RemoveApproval(user.Id);
         
         _logger.LogInformation("Автобан по блэклисту: пользователь {User} (id={UserId}) забанен в чате {ChatTitle} (id={ChatId})", 
             FullName(user.FirstName, user.LastName), user.Id, message.Chat.Title, message.Chat.Id);
@@ -309,14 +287,8 @@ internal sealed class Worker(
             await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
             await _bot.BanChatMember(chat, user.Id, cancellationToken: stoppingToken);
             _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
-            if (_userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true))
-            {
-                await _messageService.SendAdminNotificationAsync(
-                    AdminNotificationType.UserCleanup,
-                    new UserCleanupNotificationData(user, message.Chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана за спам"),
-                    stoppingToken
-                );
-            }
+            // Удаляем из списка одобренных без уведомления
+            _userManager.RemoveApproval(user.Id, message.Chat.Id, removeAll: true);
         }
         catch (Exception e)
         {

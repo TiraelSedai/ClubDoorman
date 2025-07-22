@@ -770,7 +770,16 @@ public class MessageHandler : IUpdateHandler
 
             var banType = banDuration.HasValue ? "Автобан на 10 минут" : "🚫 Перманентный бан";
             var banData = new AutoBanNotificationData(user, chat, banType, reason, userJoinMessage?.MessageId);
-            await _messageService.SendAdminNotificationAsync(AdminNotificationType.BanForLongName, banData, cancellationToken);
+            
+            // Отправляем уведомление только в лог-чат
+            if (userJoinMessage != null)
+            {
+                await _messageService.ForwardToLogWithNotificationAsync(userJoinMessage, LogNotificationType.BanForLongName, banData, cancellationToken);
+            }
+            else
+            {
+                await _messageService.SendLogNotificationAsync(LogNotificationType.BanForLongName, banData, cancellationToken);
+            }
             
             _userFlowLogger.LogUserBanned(user, chat, reason);
         }
@@ -858,31 +867,22 @@ public class MessageHandler : IUpdateHandler
             return;
         }
         
-        var forward = await _bot.ForwardMessage(
-            new ChatId(Config.AdminChatId),
-            message.Chat.Id,
-            message.MessageId,
-            cancellationToken: cancellationToken
-        );
-        
+        // Форвардим сообщение в лог-чат с уведомлением
         var autoBanData = new AutoBanNotificationData(
             user, 
             message.Chat, 
-            "Авто-бан", 
+            "Автобан", 
             reason, 
             message.MessageId, 
             LinkToMessage(message.Chat, message.MessageId)
         );
-        await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, autoBanData, cancellationToken);
+        await _messageService.ForwardToLogWithNotificationAsync(message, LogNotificationType.AutoBanBlacklist, autoBanData, cancellationToken);
         
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
         await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
         
         // Полностью очищаем пользователя из всех списков
         _moderationService.CleanupUserFromAllLists(user.Id, message.Chat.Id);
-        
-        var cleanupData = new UserCleanupNotificationData(user, message.Chat, "после автобана");
-        await _messageService.SendAdminNotificationAsync(AdminNotificationType.UserCleanup, cleanupData, cancellationToken);
     }
 
     private async Task DeleteAndReportMessage(Message message, string reason, bool isSilentMode, CancellationToken cancellationToken)
@@ -1114,16 +1114,9 @@ public class MessageHandler : IUpdateHandler
         
         _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте lols.bot");
         
-        // Пересылаем сообщение в лог-чат перед удалением
+        // Пересылаем сообщение в лог-чат с уведомлением
         try
         {
-            var forward = await _bot.ForwardMessage(
-                new ChatId(Config.LogAdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: cancellationToken
-            );
-            
             var blacklistData = new AutoBanNotificationData(
                 user, 
                 message.Chat, 
@@ -1132,7 +1125,7 @@ public class MessageHandler : IUpdateHandler
                 message.MessageId, 
                 LinkToMessage(message.Chat, message.MessageId)
             );
-            await _messageService.SendLogNotificationAsync(LogNotificationType.AutoBanBlacklist, blacklistData, cancellationToken);
+            await _messageService.ForwardToLogWithNotificationAsync(message, LogNotificationType.AutoBanBlacklist, blacklistData, cancellationToken);
         }
         catch (Exception e)
         {
