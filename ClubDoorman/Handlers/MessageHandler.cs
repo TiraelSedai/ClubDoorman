@@ -524,7 +524,12 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Создаем капчу
-        await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
+        var captchaInfo = await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
+        if (captchaInfo == null)
+        {
+            _logger.LogInformation($"[NO_CAPTCHA] Капча не требуется для чата {chat.Id}");
+            return;
+        }
     }
 
     private async Task HandleChannelMessageAsync(Message message, CancellationToken cancellationToken)

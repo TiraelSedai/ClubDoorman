@@ -9,9 +9,13 @@ namespace ClubDoorman.Services;
 public interface ICaptchaService
 {
     /// <summary>
-    /// Создает капчу для пользователя
+    /// Создает капчу для нового пользователя в чате, либо возвращает null, если капча отключена для чата.
     /// </summary>
-    Task<CaptchaInfo> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null);
+    /// <param name="chat">Чат, в котором создается капча</param>
+    /// <param name="user">Пользователь, для которого создается капча</param>
+    /// <param name="userJoinMessage">Сообщение о присоединении пользователя (опционально)</param>
+    /// <returns>Информация о созданной капче или null, если капча отключена для чата</returns>
+    Task<CaptchaInfo?> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null);
 
     /// <summary>
     /// Проверяет ответ на капчу

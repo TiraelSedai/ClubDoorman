@@ -109,6 +109,17 @@ namespace ClubDoorman.Infrastructure
             .ToHashSet();
 
         /// <summary>
+        /// Группы, в которых отключена капча
+        /// </summary>
+        public static HashSet<long> NoCaptchaGroups { get; } =
+            (Environment.GetEnvironmentVariable("DOORMAN_NO_CAPTCHA_GROUPS") ?? "")
+            .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value)
+            .ToHashSet();
+
+        /// <summary>
         /// Проверяет, разрешен ли бот в данном чате
         /// </summary>
         /// <param name="chatId">ID чата</param>
