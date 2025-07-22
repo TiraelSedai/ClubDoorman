@@ -168,4 +168,9 @@ public interface ITelegramBotClientWrapper
     /// Разбанивает пользователя в чате
     /// </summary>
     Task UnbanChatMember(ChatId chatId, long userId, bool? onlyIfBanned = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Получает информацию о члене чата
+    /// </summary>
+    Task<ChatMember> GetChatMember(ChatId chatId, long userId, CancellationToken cancellationToken = default);
 } 

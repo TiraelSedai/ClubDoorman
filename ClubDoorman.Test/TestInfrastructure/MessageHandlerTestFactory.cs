@@ -28,6 +28,7 @@ public class MessageHandlerTestFactory
     public Mock<IUserFlowLogger> UserFlowLoggerMock { get; } = new();
     public Mock<IMessageService> MessageServiceMock { get; } = new();
     public Mock<IChatLinkFormatter> ChatLinkFormatterMock { get; } = new();
+    public Mock<IBotPermissionsService> BotPermissionsServiceMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
 
     public MessageHandler CreateMessageHandler()
@@ -46,6 +47,7 @@ public class MessageHandlerTestFactory
             UserFlowLoggerMock.Object,
             MessageServiceMock.Object,
             ChatLinkFormatterMock.Object,
+            BotPermissionsServiceMock.Object,
             LoggerMock.Object
         );
     }
@@ -200,6 +202,7 @@ public class MessageHandlerTestFactory
             UserFlowLoggerMock.Object,
             MessageServiceMock.Object,
             ChatLinkFormatterMock.Object,
+            BotPermissionsServiceMock.Object,
             LoggerMock.Object
         );
     }

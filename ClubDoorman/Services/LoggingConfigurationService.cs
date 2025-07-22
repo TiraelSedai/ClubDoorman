@@ -59,6 +59,9 @@ public class LoggingConfigurationService : ILoggingConfigurationService
             AdminNotificationType.ChannelMessage or AdminNotificationType.BanChannel or AdminNotificationType.BanForLongName
                 => NotificationDestination.AdminChat | NotificationDestination.LogChat | NotificationDestination.FileLog,
             
+            AdminNotificationType.SilentMode
+                => NotificationDestination.AdminChat | NotificationDestination.LogChat | NotificationDestination.FileLog,
+            
             _ => NotificationDestination.AdminChat | NotificationDestination.FileLog
         };
     }

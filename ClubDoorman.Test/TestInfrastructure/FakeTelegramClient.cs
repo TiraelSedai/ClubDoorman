@@ -380,6 +380,51 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         return Task.CompletedTask;
     }
 
+    public Task<ChatMember> GetChatMember(ChatId chatId, long userId, CancellationToken cancellationToken = default)
+    {
+        if (ShouldThrowException)
+            throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        // По умолчанию возвращаем бота как администратора
+        ChatMember chatMember;
+        
+        if (userId == BotId)
+        {
+            // Создаем базовый ChatMember и приводим к нужному типу
+            var user = new User { Id = userId, IsBot = true, FirstName = "TestBot" };
+            chatMember = new ChatMemberAdministrator
+            {
+                User = user,
+                CanBeEdited = false,
+                IsAnonymous = false,
+                CanManageChat = true,
+                CanDeleteMessages = true,
+                CanManageVideoChats = true,
+                CanRestrictMembers = true,
+                CanPromoteMembers = true,
+                CanChangeInfo = true,
+                CanInviteUsers = true,
+                CanPostMessages = true,
+                CanEditMessages = true,
+                CanPinMessages = true,
+                CanPostStories = true,
+                CanEditStories = true,
+                CanDeleteStories = true,
+                CanManageTopics = true
+            };
+        }
+        else
+        {
+            var user = new User { Id = userId, IsBot = false, FirstName = "TestUser" };
+            chatMember = new ChatMemberMember
+            {
+                User = user
+            };
+        }
+
+        return Task.FromResult(chatMember);
+    }
+
     // Методы для тестирования
     public void Reset()
     {
