@@ -34,12 +34,17 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
     {
         try
         {
+            _logger.LogDebug("🤖 ServiceChatDispatcher: отправляем уведомление типа {NotificationType}", notification.GetType().Name);
+            
             // Специальная обработка для AI анализа профиля с фото
             if (notification is AiProfileAnalysisData aiProfileData)
             {
+                _logger.LogDebug("🤖 ServiceChatDispatcher: используем специальную обработку для AI анализа профиля");
                 await SendAiProfileAnalysisWithPhoto(aiProfileData, cancellationToken);
                 return;
             }
+            
+            _logger.LogDebug("🤖 ServiceChatDispatcher: используем обычную обработку для типа {NotificationType}", notification.GetType().Name);
 
             var message = FormatNotificationForAdminChat(notification);
             await _bot.SendMessageAsync(
@@ -224,6 +229,8 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
 
     private async Task SendAiProfileAnalysisWithPhoto(AiProfileAnalysisData data, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("🤖 SendAiProfileAnalysisWithPhoto: начало обработки для пользователя {UserId}", data.User.Id);
+        
         // Кэшируем данные для кнопок
         var callbackDataBan = $"banprofile_{data.Chat.Id}_{data.User.Id}";
         MemoryCache.Default.Add(callbackDataBan, data, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });

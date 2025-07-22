@@ -303,13 +303,18 @@ public class MessageService : IMessageService
     {
         try
         {
+            _logger.LogDebug("🤖 MessageService.SendAiProfileAnalysisAsync: начало обработки для пользователя {UserId}, PhotoBytes: {PhotoBytesLength}", 
+                data.User.Id, data.PhotoBytes?.Length ?? 0);
+            
             // Используем диспетчер для определения типа чата
             if (_serviceChatDispatcher.ShouldSendToAdminChat(data))
             {
+                _logger.LogDebug("🤖 MessageService: отправляем в админ-чат");
                 await _serviceChatDispatcher.SendToAdminChatAsync(data, cancellationToken);
             }
             else
             {
+                _logger.LogDebug("🤖 MessageService: отправляем в лог-чат");
                 await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
             }
             
