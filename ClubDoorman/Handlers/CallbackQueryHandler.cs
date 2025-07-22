@@ -328,13 +328,13 @@ public class CallbackQueryHandler : IUpdateHandler
             
             var adminName = GetAdminDisplayName(callbackQuery.From);
             
-            // Пересылаем оригинальное сообщение
-            if (callbackQuery.Message?.ReplyToMessage != null)
+            // Пересылаем оригинальное сообщение пользователя из кэша
+            if (userMessage != null)
             {
                 await _bot.ForwardMessage(
                     chatId: Config.AdminChatId,
-                    fromChatId: callbackQuery.Message.Chat.Id,
-                    messageId: callbackQuery.Message.ReplyToMessage.MessageId,
+                    fromChatId: userMessage.Chat.Id,
+                    messageId: userMessage.MessageId,
                     cancellationToken: cancellationToken
                 );
             }
@@ -388,13 +388,14 @@ public class CallbackQueryHandler : IUpdateHandler
             
             var adminName = GetAdminDisplayName(callbackQuery.From);
             
-            // Пересылаем оригинальное сообщение
-            if (callbackQuery.Message?.ReplyToMessage != null)
+            // НЕ пересылаем фото профиля повторно - оно уже было отправлено
+            // При бане по профилю пересылаем только сообщение пользователя из кэша
+            if (userMessage != null)
             {
                 await _bot.ForwardMessage(
                     chatId: Config.AdminChatId,
-                    fromChatId: callbackQuery.Message.Chat.Id,
-                    messageId: callbackQuery.Message.ReplyToMessage.MessageId,
+                    fromChatId: userMessage.Chat.Id,
+                    messageId: userMessage.MessageId,
                     cancellationToken: cancellationToken
                 );
             }
