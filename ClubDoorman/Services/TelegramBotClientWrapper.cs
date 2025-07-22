@@ -156,6 +156,7 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
             Bio = chat.Bio,
             Description = chat.Description,
             InviteLink = chat.InviteLink,
+            Photo = chat.Photo, // Добавляем Photo!
             // LinkedChatId не доступен через базовый GetChat, но это не критично для нашей логики
             LinkedChatId = null
         };

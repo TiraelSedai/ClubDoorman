@@ -22,6 +22,10 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     public bool ShouldThrowException { get; set; } = false;
     public Exception? ExceptionToThrow { get; set; }
     public long BotId => 123456789;
+    
+    // Для интеграционных тестов
+    private Dictionary<long, ChatFullInfo> _chatFullInfos = new();
+    private Dictionary<string, string> _filePaths = new();
 
     public Task<Message> SendMessageAsync(
         ChatId chatId,
@@ -236,6 +240,13 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
+        // Проверяем, есть ли настроенный ChatFullInfo для этого ID
+        if (_chatFullInfos.TryGetValue(chatId.Identifier ?? 0, out var customChatFullInfo))
+        {
+            return Task.FromResult(customChatFullInfo);
+        }
+
+        // Дефолтный ChatFullInfo
         var chatFullInfo = new ChatFullInfo
         {
             Id = chatId.Identifier ?? 0,
@@ -244,10 +255,30 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             Username = "testchat",
             Description = "Test chat description",
             InviteLink = "https://t.me/testchat",
-            LinkedChatId = null
+            LinkedChatId = null,
+            Photo = new ChatPhoto
+            {
+                SmallFileId = "fake_small_file_id",
+                BigFileId = "fake_big_file_id"
+            }
         };
 
         return Task.FromResult(chatFullInfo);
+    }
+    
+    public void SetupGetChatFullInfo(long chatId, ChatFullInfo chatFullInfo)
+    {
+        _chatFullInfos[chatId] = chatFullInfo;
+    }
+
+    public void SetupGetChatFullInfo(ChatFullInfo chatFullInfo)
+    {
+        _chatFullInfos[chatFullInfo.Id] = chatFullInfo;
+    }
+    
+    public void SetupGetFile(string fileId, string filePath)
+    {
+        _filePaths[fileId] = filePath;
     }
 
     public Task<int> GetChatMemberCount(ChatId chatId, CancellationToken cancellationToken = default)
@@ -275,6 +306,27 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     {
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        // Проверяем, есть ли настроенный путь для этого fileId
+        if (_filePaths.TryGetValue(fileId, out var customFilePath))
+        {
+            Console.WriteLine($"FakeTelegramClient: Найден путь для fileId {fileId}: {customFilePath}");
+            if (File.Exists(customFilePath))
+            {
+                var fileBytes = File.ReadAllBytes(customFilePath);
+                Console.WriteLine($"FakeTelegramClient: Файл найден, размер: {fileBytes.Length} байт");
+                destination.Write(fileBytes, 0, fileBytes.Length);
+                return Task.CompletedTask;
+            }
+            else
+            {
+                Console.WriteLine($"FakeTelegramClient: Файл НЕ найден: {customFilePath}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"FakeTelegramClient: Путь НЕ найден для fileId: {fileId}");
+        }
 
         // Записываем тестовые данные в поток
         var testData = Encoding.UTF8.GetBytes("fake_image_data");

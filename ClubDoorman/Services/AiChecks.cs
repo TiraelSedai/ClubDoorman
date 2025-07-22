@@ -70,9 +70,12 @@ public class AiChecks : IAiChecks
         var cached = MemoryCache.Default.Get(CacheKey(user.Id)) as SpamPhotoBio;
         if (cached != null)
         {
-            _logger.LogDebug("Найден кэш для пользователя {UserId}: {Probability}", user.Id, cached.SpamProbability.Probability);
+            _logger.LogDebug("🤖 AI анализ профиля: найден кэш для пользователя {UserId}: вероятность={Probability}, фото={PhotoSize} байт", 
+                user.Id, cached.SpamProbability.Probability, cached.Photo.Length);
             return cached;
         }
+        
+        _logger.LogDebug("🤖 AI анализ профиля: кэш не найден для пользователя {UserId}, выполняем анализ", user.Id);
 
         var probability = new SpamProbability();
         var pic = Array.Empty<byte>();
@@ -80,7 +83,10 @@ public class AiChecks : IAiChecks
 
         try
         {
+            _logger.LogDebug("🤖 AI анализ профиля: получаем GetChatFullInfo для пользователя {UserId}", user.Id);
             var userChat = await _bot.GetChatFullInfo(user.Id);
+            _logger.LogDebug("🤖 AI анализ профиля: GetChatFullInfo получен для пользователя {UserId}, Bio: {Bio}, LinkedChatId: {LinkedChatId}, Photo: {Photo}", 
+                user.Id, userChat.Bio ?? "null", userChat.LinkedChatId?.ToString() ?? "null", userChat.Photo?.ToString() ?? "null");
             
             // Если у пользователя нет био и нет связанного канала - проверяем только фото
             if (userChat.Bio == null && userChat.LinkedChatId == null)
@@ -109,14 +115,36 @@ public class AiChecks : IAiChecks
             ChatCompletionRequestUserMessage? photoMessage = null;
 
             // Загружаем фото профиля если есть
+            _logger.LogDebug("🤖 AI анализ профиля: проверяем userChat.Photo для пользователя {UserId}, Photo: {Photo}", 
+                user.Id, userChat.Photo?.ToString() ?? "null");
+                
             if (userChat.Photo != null)
             {
-                using var ms = new MemoryStream();
-                await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms);
-                photoBytes = ms.ToArray();
-                pic = photoBytes;
-                photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
-                sb.Append($"\nФото: прикреплено");
+                _logger.LogDebug("🤖 AI анализ профиля: загружаем фото для пользователя {UserId}, FileId: {FileId}", 
+                    user.Id, userChat.Photo.BigFileId);
+                    
+                try
+                {
+                    using var ms = new MemoryStream();
+                    await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms);
+                    photoBytes = ms.ToArray();
+                    pic = photoBytes;
+                    photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
+                    _logger.LogDebug("🔍 PHOTO MESSAGE: Content создан, тип={Type}", photoMessage.Content.GetType().Name);
+                    sb.Append($"\nФото: прикреплено");
+                    
+                    _logger.LogDebug("🤖 AI анализ профиля: фото загружено для пользователя {UserId}, размер: {Size} байт", 
+                        user.Id, photoBytes.Length);
+                    _logger.LogDebug("🔍 ФОТО: {Size} байт, fileId={FileId}", photoBytes.Length, userChat.Photo.BigFileId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "🤖 AI анализ профиля: не удалось загрузить фото для пользователя {UserId}", user.Id);
+                }
+            }
+            else
+            {
+                _logger.LogDebug("🤖 AI анализ профиля: у пользователя {UserId} нет фото профиля", user.Id);
             }
 
             var prompt = $"""
@@ -167,6 +195,11 @@ public class AiChecks : IAiChecks
                 }
             }
 
+            _logger.LogDebug("🤖 AI анализ профиля: отправляем запрос в API для пользователя {UserId}, количество сообщений: {MessagesCount}", 
+                user.Id, messages.Count);
+            _logger.LogDebug("🔍 ОТПРАВКА В AI: messages.Count={Count}, photoMessage={PhotoMessage}", 
+                messages.Count, photoMessage != null ? "ЕСТЬ" : "НЕТ");
+                
             var response = await _retry.ExecuteAsync(
                 async token => await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                     messages: messages,
@@ -207,11 +240,17 @@ public class AiChecks : IAiChecks
 
         try
         {
+            _logger.LogDebug("🤖 AI анализ профиля: GetEroticPhotoBaitProbability для пользователя {UserId}, Photo: {Photo}", 
+                user.Id, userChat.Photo?.ToString() ?? "null");
+                
             var photo = userChat.Photo!;
             using var ms = new MemoryStream();
             await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
             var photoBytes = ms.ToArray();
             pic = photoBytes;
+            
+            _logger.LogDebug("🤖 AI анализ профиля: фото загружено в GetEroticPhotoBaitProbability для пользователя {UserId}, размер: {Size} байт", 
+                user.Id, photoBytes.Length);
             
             var photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
             var prompt = "Проанализируй, выглядит ли эта аватарка пользователя сексуализированно или развратно. Отвечай вероятностью от 0 до 1.";
@@ -453,6 +492,8 @@ public class AiChecks : IAiChecks
 
     private void CacheResult(long userId, SpamPhotoBio result)
     {
+        _logger.LogDebug("🤖 AI анализ профиля: кэшируем результат для пользователя {UserId}: вероятность={Probability}, фото={PhotoSize} байт", 
+            userId, result.SpamProbability.Probability, result.Photo.Length);
         var cacheItem = new CacheItem(CacheKey(userId), result);
         var policy = new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(24) };
         MemoryCache.Default.Set(cacheItem, policy);

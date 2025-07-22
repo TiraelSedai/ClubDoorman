@@ -17,17 +17,20 @@ public class MessageService : IMessageService
     private readonly ILogger<MessageService> _logger;
     private readonly MessageTemplates _templates;
     private readonly ILoggingConfigurationService _configService;
+    private readonly IServiceChatDispatcher _serviceChatDispatcher;
     
     public MessageService(
         ITelegramBotClientWrapper bot,
         ILogger<MessageService> logger,
         MessageTemplates templates,
-        ILoggingConfigurationService configService)
+        ILoggingConfigurationService configService,
+        IServiceChatDispatcher serviceChatDispatcher)
     {
         _bot = bot;
         _logger = logger;
         _templates = templates;
         _configService = configService;
+        _serviceChatDispatcher = serviceChatDispatcher;
     }
     
     public async Task SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken = default)
@@ -59,17 +62,17 @@ public class MessageService : IMessageService
                     return;
                 }
                 
-                var template = _templates.GetAdminTemplate(type);
-                var message = _templates.FormatNotificationTemplate(template, data);
+                // Используем диспетчер для определения типа чата
+                if (_serviceChatDispatcher.ShouldSendToAdminChat(data))
+                {
+                    await _serviceChatDispatcher.SendToAdminChatAsync(data, cancellationToken);
+                }
+                else
+                {
+                    await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
+                }
                 
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    message,
-                    parseMode: ParseMode.Markdown,
-                    cancellationToken: cancellationToken
-                );
-                
-                _logger.LogDebug("Отправлено админское уведомление типа {Type} для пользователя {User}", 
+                _logger.LogDebug("Отправлено уведомление типа {Type} для пользователя {User} через диспетчер", 
                     type, Utils.FullName(data.User));
             }
             else
@@ -112,17 +115,10 @@ public class MessageService : IMessageService
                     return;
                 }
                 
-                var template = _templates.GetLogTemplate(type);
-                var message = _templates.FormatNotificationTemplate(template, data);
+                // Используем диспетчер для отправки в лог-чат
+                await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
                 
-                await _bot.SendMessage(
-                    Config.LogAdminChatId,
-                    message,
-                    parseMode: ParseMode.Markdown,
-                    cancellationToken: cancellationToken
-                );
-                
-                _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User}", 
+                _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User} через диспетчер", 
                     type, Utils.FullName(data.User));
             }
             else
@@ -307,68 +303,22 @@ public class MessageService : IMessageService
     {
         try
         {
-            var displayName = !string.IsNullOrEmpty(data.User.FirstName)
-                ? Utils.FullName(data.User.FirstName, data.User.LastName)
-                : (!string.IsNullOrEmpty(data.User.Username) ? "@" + data.User.Username : "гость");
-
-            var userProfileLink = data.User.Username != null ? $"@{data.User.Username}" : displayName;
+            _logger.LogDebug("🤖 MessageService.SendAiProfileAnalysisAsync: начало обработки для пользователя {UserId}, PhotoBytes: {PhotoBytesLength}", 
+                data.User.Id, data.PhotoBytes?.Length ?? 0);
             
-            // Ограничиваем длину Reason от AI
-            var reasonText = data.Reason;
-            if (reasonText.Length > 500)
+            // Используем диспетчер для определения типа чата
+            if (_serviceChatDispatcher.ShouldSendToAdminChat(data))
             {
-                reasonText = reasonText.Substring(0, 497) + "...";
+                _logger.LogDebug("🤖 MessageService: отправляем в админ-чат");
+                await _serviceChatDispatcher.SendToAdminChatAsync(data, cancellationToken);
             }
-
-            // Создаем кнопки для админ-чата
-            var callbackDataBan = $"banprofile_{data.Chat.Id}_{data.User.Id}";
-            var callbackDataOk = $"aiOk_{data.Chat.Id}_{data.User.Id}";
-            
-            MemoryCache.Default.Add(callbackDataBan, data, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-
-            var buttons = new InlineKeyboardMarkup(new[]
+            else
             {
-                new InlineKeyboardButton("❌❌❌ ban") { CallbackData = callbackDataBan },
-                new InlineKeyboardButton("✅✅✅ ok") { CallbackData = callbackDataOk }
-            });
-
-            ReplyParameters? replyParams = null;
-            
-            // 1. Если есть фото - отправляем его отдельно с краткой подписью
-            if (data.PhotoBytes?.Length > 0)
-            {
-                var photoCaption = $"{data.NameBio}\nСообщение:\n{data.MessageText}";
-                // Обрезаем caption если слишком длинный
-                if (photoCaption.Length > 1024)
-                {
-                    photoCaption = photoCaption.Substring(0, 1021) + "...";
-                }
-                
-                await using var stream = new MemoryStream(data.PhotoBytes);
-                var inputFile = InputFile.FromStream(stream, "profile.jpg");
-                
-                var photoMsg = await _bot.SendPhoto(
-                    Config.AdminChatId,
-                    inputFile,
-                    caption: photoCaption,
-                    cancellationToken: cancellationToken
-                );
-                replyParams = photoMsg;
+                _logger.LogDebug("🤖 MessageService: отправляем в лог-чат");
+                await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
             }
             
-            // 2. Основное сообщение с анализом
-            var template = _templates.GetAdminTemplate(AdminNotificationType.AiProfileAnalysis);
-            var message = _templates.FormatNotificationTemplate(template, data);
-            
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                message,
-                replyMarkup: buttons,
-                replyParameters: replyParams,
-                cancellationToken: cancellationToken
-            );
-            
-            _logger.LogDebug("Отправлено AI уведомление о профиле для пользователя {User}", Utils.FullName(data.User));
+            _logger.LogDebug("Отправлено AI уведомление о профиле для пользователя {User} через диспетчер", Utils.FullName(data.User));
         }
         catch (Exception ex)
         {
