@@ -303,68 +303,17 @@ public class MessageService : IMessageService
     {
         try
         {
-            var displayName = !string.IsNullOrEmpty(data.User.FirstName)
-                ? Utils.FullName(data.User.FirstName, data.User.LastName)
-                : (!string.IsNullOrEmpty(data.User.Username) ? "@" + data.User.Username : "гость");
-
-            var userProfileLink = data.User.Username != null ? $"@{data.User.Username}" : displayName;
-            
-            // Ограничиваем длину Reason от AI
-            var reasonText = data.Reason;
-            if (reasonText.Length > 500)
+            // Используем диспетчер для определения типа чата
+            if (_serviceChatDispatcher.ShouldSendToAdminChat(data))
             {
-                reasonText = reasonText.Substring(0, 497) + "...";
+                await _serviceChatDispatcher.SendToAdminChatAsync(data, cancellationToken);
             }
-
-            // Создаем кнопки для админ-чата
-            var callbackDataBan = $"banprofile_{data.Chat.Id}_{data.User.Id}";
-            var callbackDataOk = $"aiOk_{data.Chat.Id}_{data.User.Id}";
-            
-            MemoryCache.Default.Add(callbackDataBan, data, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
-
-            var buttons = new InlineKeyboardMarkup(new[]
+            else
             {
-                new InlineKeyboardButton("❌❌❌ ban") { CallbackData = callbackDataBan },
-                new InlineKeyboardButton("✅✅✅ ok") { CallbackData = callbackDataOk }
-            });
-
-            ReplyParameters? replyParams = null;
-            
-            // 1. Если есть фото - отправляем его отдельно с краткой подписью
-            if (data.PhotoBytes?.Length > 0)
-            {
-                var photoCaption = $"{data.NameBio}\nСообщение:\n{data.MessageText}";
-                // Обрезаем caption если слишком длинный
-                if (photoCaption.Length > 1024)
-                {
-                    photoCaption = photoCaption.Substring(0, 1021) + "...";
-                }
-                
-                await using var stream = new MemoryStream(data.PhotoBytes);
-                var inputFile = InputFile.FromStream(stream, "profile.jpg");
-                
-                var photoMsg = await _bot.SendPhoto(
-                    Config.AdminChatId,
-                    inputFile,
-                    caption: photoCaption,
-                    cancellationToken: cancellationToken
-                );
-                replyParams = photoMsg;
+                await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
             }
             
-            // 2. Основное сообщение с анализом
-            var template = _templates.GetAdminTemplate(AdminNotificationType.AiProfileAnalysis);
-            var message = _templates.FormatNotificationTemplate(template, data);
-            
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                message,
-                replyMarkup: buttons,
-                replyParameters: replyParams,
-                cancellationToken: cancellationToken
-            );
-            
-            _logger.LogDebug("Отправлено AI уведомление о профиле для пользователя {User}", Utils.FullName(data.User));
+            _logger.LogDebug("Отправлено AI уведомление о профиле для пользователя {User} через диспетчер", Utils.FullName(data.User));
         }
         catch (Exception ex)
         {

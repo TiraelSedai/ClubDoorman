@@ -1,5 +1,6 @@
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models.Notifications;
+using System.Runtime.Caching;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -33,6 +34,13 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
     {
         try
         {
+            // Специальная обработка для AI анализа профиля с фото
+            if (notification is AiProfileAnalysisData aiProfileData)
+            {
+                await SendAiProfileAnalysisWithPhoto(aiProfileData, cancellationToken);
+                return;
+            }
+
             var message = FormatNotificationForAdminChat(notification);
             await _bot.SendMessageAsync(
                 Config.AdminChatId,
@@ -86,6 +94,7 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
             SuspiciousMessageNotificationData => true,
             SuspiciousUserNotificationData => true,
             AiDetectNotificationData aiDetect => !aiDetect.IsAutoDelete, // Если не автоудаление - требует проверки
+            AiProfileAnalysisData => true, // AI анализ профиля требует реакции
             
             // Редкие уведомления, полезные даже без реакции - админ-чат
             PrivateChatBanAttemptData => true,
@@ -111,6 +120,7 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
             SuspiciousMessageNotificationData suspicious => FormatSuspiciousMessage(suspicious),
             SuspiciousUserNotificationData suspicious => FormatSuspiciousUser(suspicious),
             AiDetectNotificationData aiDetect => FormatAiDetect(aiDetect),
+            AiProfileAnalysisData aiProfile => FormatAiProfileAnalysis(aiProfile),
             PrivateChatBanAttemptData privateBan => FormatPrivateChatBanAttempt(privateBan),
             ChannelMessageNotificationData channel => FormatChannelMessage(channel),
             UserRestrictedNotificationData restricted => FormatUserRestricted(restricted),
@@ -156,6 +166,11 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                 new[] { InlineKeyboardButton.WithCallbackData("✅ OK", "approve_ai_detect") },
                 new[] { InlineKeyboardButton.WithCallbackData("❌ Спам", "spam_ai_detect") }
             }),
+            AiProfileAnalysisData aiProfile => new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithCallbackData("❌❌❌ ban", $"banprofile_{aiProfile.Chat.Id}_{aiProfile.User.Id}") },
+                new[] { InlineKeyboardButton.WithCallbackData("✅✅✅ ok", $"aiOk_{aiProfile.Chat.Id}_{aiProfile.User.Id}") }
+            }),
             _ => null
         };
     }
@@ -189,6 +204,65 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                $"📊 ML: {notification.MlScore:F2}\n" +
                $"📝 Сообщение: {notification.MessageText}\n" +
                $"🔗 Ссылка: {FormatMessageLink(notification.Chat, notification.MessageId)}";
+    }
+
+    private string FormatAiProfileAnalysis(AiProfileAnalysisData notification)
+    {
+        var reasonText = notification.Reason.Length > 200 ? 
+            notification.Reason.Substring(0, 197) + "..." : 
+            notification.Reason;
+            
+        return $"🤖 <b>AI анализ профиля</b>\n\n" +
+               $"👤 Пользователь: {FormatUser(notification.User)}\n" +
+               $"💬 Чат: {FormatChat(notification.Chat)}\n" +
+               $"📊 Вероятность спама: {notification.SpamProbability:F1}%\n" +
+               $"📝 Причина: {reasonText}\n" +
+               $"📋 Профиль: {notification.NameBio}\n" +
+               $"💬 Сообщение: {notification.MessageText}\n" +
+               $"🔗 Ссылка: {FormatMessageLink(notification.Chat, notification.MessageId)}";
+    }
+
+    private async Task SendAiProfileAnalysisWithPhoto(AiProfileAnalysisData data, CancellationToken cancellationToken)
+    {
+        // Кэшируем данные для кнопок
+        var callbackDataBan = $"banprofile_{data.Chat.Id}_{data.User.Id}";
+        MemoryCache.Default.Add(callbackDataBan, data, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+        
+        ReplyParameters? replyParams = null;
+        
+        // 1. Если есть фото - отправляем его отдельно с краткой подписью
+        if (data.PhotoBytes?.Length > 0)
+        {
+            var photoCaption = $"{data.NameBio}\nСообщение:\n{data.MessageText}";
+            // Обрезаем caption если слишком длинный
+            if (photoCaption.Length > 1024)
+            {
+                photoCaption = photoCaption.Substring(0, 1021) + "...";
+            }
+            
+            await using var stream = new MemoryStream(data.PhotoBytes);
+            var inputFile = InputFile.FromStream(stream, "profile.jpg");
+            
+            var photoMsg = await _bot.SendPhoto(
+                Config.AdminChatId,
+                inputFile,
+                caption: photoCaption,
+                cancellationToken: cancellationToken
+            );
+            replyParams = new ReplyParameters { MessageId = photoMsg.MessageId };
+        }
+        
+        // 2. Основное сообщение с анализом
+        var message = FormatAiProfileAnalysis(data);
+        
+        await _bot.SendMessageAsync(
+            Config.AdminChatId,
+            message,
+            parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+            replyMarkup: GetAdminChatReplyMarkup(data),
+            replyParameters: replyParams,
+            cancellationToken: cancellationToken
+        );
     }
 
     private string FormatPrivateChatBanAttempt(PrivateChatBanAttemptData notification)
