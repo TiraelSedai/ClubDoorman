@@ -80,7 +80,10 @@ public class AiChecks : IAiChecks
 
         try
         {
+            _logger.LogDebug("🤖 AI анализ профиля: получаем GetChatFullInfo для пользователя {UserId}", user.Id);
             var userChat = await _bot.GetChatFullInfo(user.Id);
+            _logger.LogDebug("🤖 AI анализ профиля: GetChatFullInfo получен для пользователя {UserId}, Bio: {Bio}, LinkedChatId: {LinkedChatId}, Photo: {Photo}", 
+                user.Id, userChat.Bio ?? "null", userChat.LinkedChatId?.ToString() ?? "null", userChat.Photo?.ToString() ?? "null");
             
             // Если у пользователя нет био и нет связанного канала - проверяем только фото
             if (userChat.Bio == null && userChat.LinkedChatId == null)
@@ -109,6 +112,9 @@ public class AiChecks : IAiChecks
             ChatCompletionRequestUserMessage? photoMessage = null;
 
             // Загружаем фото профиля если есть
+            _logger.LogDebug("🤖 AI анализ профиля: проверяем userChat.Photo для пользователя {UserId}, Photo: {Photo}", 
+                user.Id, userChat.Photo?.ToString() ?? "null");
+                
             if (userChat.Photo != null)
             {
                 _logger.LogDebug("🤖 AI анализ профиля: загружаем фото для пользователя {UserId}, FileId: {FileId}", 
