@@ -1191,10 +1191,12 @@ public class MessageHandler : IUpdateHandler
     {
         _logger.LogDebug("🤖 Запускаем AI анализ профиля пользователя {UserId} ({UserName})", 
             user.Id, FullName(user.FirstName, user.LastName));
+        _logger.LogDebug("🔍 TRACE: PerformAiProfileAnalysis начат для пользователя {UserId}", user.Id);
         
         try
         {
             var result = await _aiChecks.GetAttentionBaitProbability(user);
+            _logger.LogDebug("🔍 TRACE: AiChecks.GetAttentionBaitProbability завершен для пользователя {UserId}", user.Id);
             _logger.LogInformation("🤖 AI анализ профиля: пользователь {UserId}, вероятность={Probability}, причина={Reason}", 
                 user.Id, result.SpamProbability.Probability, result.SpamProbability.Reason);
 

@@ -130,10 +130,12 @@ public class AiChecks : IAiChecks
                     photoBytes = ms.ToArray();
                     pic = photoBytes;
                     photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
+                    _logger.LogDebug("🔍 PHOTO MESSAGE: Content создан, тип={Type}", photoMessage.Content.GetType().Name);
                     sb.Append($"\nФото: прикреплено");
                     
                     _logger.LogDebug("🤖 AI анализ профиля: фото загружено для пользователя {UserId}, размер: {Size} байт", 
                         user.Id, photoBytes.Length);
+                    _logger.LogDebug("🔍 ФОТО: {Size} байт, fileId={FileId}", photoBytes.Length, userChat.Photo.BigFileId);
                 }
                 catch (Exception ex)
                 {
@@ -193,6 +195,11 @@ public class AiChecks : IAiChecks
                 }
             }
 
+            _logger.LogDebug("🤖 AI анализ профиля: отправляем запрос в API для пользователя {UserId}, количество сообщений: {MessagesCount}", 
+                user.Id, messages.Count);
+            _logger.LogDebug("🔍 ОТПРАВКА В AI: messages.Count={Count}, photoMessage={PhotoMessage}", 
+                messages.Count, photoMessage != null ? "ЕСТЬ" : "НЕТ");
+                
             var response = await _retry.ExecuteAsync(
                 async token => await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                     messages: messages,

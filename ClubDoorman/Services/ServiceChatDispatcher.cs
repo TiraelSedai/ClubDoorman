@@ -213,14 +213,14 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
 
     private string FormatAiProfileAnalysis(AiProfileAnalysisData notification)
     {
-        var reasonText = notification.Reason.Length > 200 ? 
-            notification.Reason.Substring(0, 197) + "..." : 
+        var reasonText = notification.Reason.Length > 500 ? 
+            notification.Reason.Substring(0, 497) + "..." : 
             notification.Reason;
             
         return $"🤖 <b>AI анализ профиля</b>\n\n" +
                $"👤 Пользователь: {FormatUser(notification.User)}\n" +
                $"💬 Чат: {FormatChat(notification.Chat)}\n" +
-               $"📊 Вероятность спама: {notification.SpamProbability:F1}%\n" +
+               $"📊 Вероятность спама: {notification.SpamProbability * 100:F1}%\n" +
                $"📝 Причина: {reasonText}\n" +
                $"📋 Профиль: {notification.NameBio}\n" +
                $"💬 Сообщение: {notification.MessageText}\n" +
@@ -273,7 +273,7 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
         // 2. Основное сообщение с анализом
         var message = FormatAiProfileAnalysis(data);
         
-        await _bot.SendMessageAsync(
+        var mainMessage = await _bot.SendMessageAsync(
             Config.AdminChatId,
             message,
             parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
@@ -281,6 +281,8 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
             replyParameters: replyParams,
             cancellationToken: cancellationToken
         );
+        
+
     }
 
     private string FormatPrivateChatBanAttempt(PrivateChatBanAttemptData notification)

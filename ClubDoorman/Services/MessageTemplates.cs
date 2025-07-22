@@ -52,8 +52,8 @@ public class MessageTemplates
             "👤 Пользователь: [{UserFullName}](tg://user?id={UserId})\n" +
             "🏠 Чат: *{ChatTitle}*\n" +
             "📊 Вероятность спама: *{SpamProbability:F2}*\n" +
-            "🔍 Причина: {AiReason}\n\n" +
-            "📝 Имя и био:\n`{NameBio}`",
+            "📝 Имя и био:\n`{NameBio}`\n\n" +
+            "🔍 Причина: {AiReason}",
             
         [AdminNotificationType.ModerationError] = 
             "❌ Ошибка модерации: {Context}\n" +
