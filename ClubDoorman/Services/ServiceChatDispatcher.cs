@@ -231,8 +231,13 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
         ReplyParameters? replyParams = null;
         
         // 1. Если есть фото - отправляем его отдельно с краткой подписью
+        _logger.LogDebug("🤖 AI анализ профиля: проверяем фото для пользователя {UserId}, PhotoBytes: {PhotoBytesLength}", 
+            data.User.Id, data.PhotoBytes?.Length ?? 0);
+            
         if (data.PhotoBytes?.Length > 0)
         {
+            _logger.LogDebug("🤖 AI анализ профиля: отправляем фото для пользователя {UserId}", data.User.Id);
+            
             var photoCaption = $"{data.NameBio}\nСообщение:\n{data.MessageText}";
             // Обрезаем caption если слишком длинный
             if (photoCaption.Length > 1024)
@@ -250,6 +255,12 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                 cancellationToken: cancellationToken
             );
             replyParams = new ReplyParameters { MessageId = photoMsg.MessageId };
+            
+            _logger.LogDebug("🤖 AI анализ профиля: фото отправлено для пользователя {UserId}", data.User.Id);
+        }
+        else
+        {
+            _logger.LogDebug("🤖 AI анализ профиля: фото отсутствует для пользователя {UserId}", data.User.Id);
         }
         
         // 2. Основное сообщение с анализом

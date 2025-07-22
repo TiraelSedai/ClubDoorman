@@ -111,12 +111,29 @@ public class AiChecks : IAiChecks
             // Загружаем фото профиля если есть
             if (userChat.Photo != null)
             {
-                using var ms = new MemoryStream();
-                await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms);
-                photoBytes = ms.ToArray();
-                pic = photoBytes;
-                photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
-                sb.Append($"\nФото: прикреплено");
+                _logger.LogDebug("🤖 AI анализ профиля: загружаем фото для пользователя {UserId}, FileId: {FileId}", 
+                    user.Id, userChat.Photo.BigFileId);
+                    
+                try
+                {
+                    using var ms = new MemoryStream();
+                    await _bot.GetInfoAndDownloadFile(userChat.Photo.BigFileId, ms);
+                    photoBytes = ms.ToArray();
+                    pic = photoBytes;
+                    photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
+                    sb.Append($"\nФото: прикреплено");
+                    
+                    _logger.LogDebug("🤖 AI анализ профиля: фото загружено для пользователя {UserId}, размер: {Size} байт", 
+                        user.Id, photoBytes.Length);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "🤖 AI анализ профиля: не удалось загрузить фото для пользователя {UserId}", user.Id);
+                }
+            }
+            else
+            {
+                _logger.LogDebug("🤖 AI анализ профиля: у пользователя {UserId} нет фото профиля", user.Id);
             }
 
             var prompt = $"""
