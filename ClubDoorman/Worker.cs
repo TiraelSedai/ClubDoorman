@@ -215,10 +215,17 @@ internal sealed class Worker(
         var user = message.From;
         
         // Форвардим сообщение в лог-чат с уведомлением
+        var autoBanData = new AutoBanNotificationData(user, message.Chat, "Автобан", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId));
+        
+        // Выбираем правильный тип уведомления в зависимости от причины
+        var logNotificationType = reason.Contains("Известное спам-сообщение") 
+            ? LogNotificationType.AutoBanKnownSpam 
+            : LogNotificationType.AutoBanBlacklist;
+            
         await _messageService.ForwardToLogWithNotificationAsync(
             message, 
-            LogNotificationType.AutoBanBlacklist,
-            new AutoBanNotificationData(user, message.Chat, "Автобан", reason, message.MessageId, LinkToMessage(message.Chat, message.MessageId)),
+            logNotificationType,
+            autoBanData,
             stoppingToken
         );
         await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: stoppingToken);

@@ -120,6 +120,11 @@ namespace ClubDoorman.Infrastructure
             .ToHashSet();
 
         /// <summary>
+        /// Удаление пересланных сообщений от новичков (из .env DOORMAN_DELETE_FORWARDED_MESSAGES)
+        /// </summary>
+        public static bool DeleteForwardedMessages { get; } = GetEnvironmentBool("DOORMAN_DELETE_FORWARDED_MESSAGES");
+
+        /// <summary>
         /// Проверяет, разрешен ли бот в данном чате
         /// </summary>
         /// <param name="chatId">ID чата</param>

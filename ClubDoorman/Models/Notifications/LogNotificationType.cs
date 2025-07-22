@@ -16,6 +16,11 @@ public enum LogNotificationType
     AutoBanFromBlacklist,
     
     /// <summary>
+    /// Автобан за известное спам-сообщение
+    /// </summary>
+    AutoBanKnownSpam,
+    
+    /// <summary>
     /// Бан за длинное имя
     /// </summary>
     BanForLongName,
