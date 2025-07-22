@@ -225,11 +225,13 @@ public class Program
                 Console.WriteLine($"   • DOORMAN_LOW_CONFIDENCE_HAM_ENABLE: {Config.LowConfidenceHamForward}");
                 Console.WriteLine($"   • DOORMAN_APPROVE_BUTTON: {Config.ApproveButtonEnabled}");
                 Console.WriteLine($"   • DOORMAN_DISABLE_MEDIA_FILTERING: {Config.DisableMediaFiltering}");
+                Console.WriteLine($"   • DOORMAN_DELETE_FORWARDED_MESSAGES: {Config.DeleteForwardedMessages}");
                 Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!Config.IsPrivateStartAllowed()}");
                 Console.WriteLine($"   • Отключенные чаты: {Config.DisabledChats.Count}");
                 Console.WriteLine($"   • Белый список чатов: {Config.WhitelistChats.Count}");
                 Console.WriteLine($"   • AI-включенные чаты: {Config.AiEnabledChats.Count}");
                 Console.WriteLine($"   • Группы без VPN-рекламы: {Config.NoVpnAdGroups.Count}");
+                Console.WriteLine($"   • Группы с отключенной капчей: {Config.NoCaptchaGroups.Count}");
                 Console.WriteLine($"   • Чаты с отключенной фильтрацией медиа: {Config.MediaFilteringDisabledChats.Count}");
             })
             .Build();

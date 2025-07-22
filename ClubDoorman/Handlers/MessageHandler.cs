@@ -644,6 +644,29 @@ public class MessageHandler : IUpdateHandler
             userType, Utils.FullName(user), user.Id, user.Username ?? "-", chat.Title ?? "-", chat.Id, 
             (message.Text ?? message.Caption)?.Substring(0, Math.Min((message.Text ?? message.Caption)?.Length ?? 0, 100)) ?? "[медиа]");
 
+        // Проверка на пересланные сообщения от новичков
+        if (Config.DeleteForwardedMessages && message.ForwardOrigin != null)
+        {
+            _logger.LogInformation("🔄 Удаление пересланного сообщения от новичка {User} (id={UserId}) в чате '{ChatTitle}' (id={ChatId})", 
+                Utils.FullName(user), user.Id, chat.Title ?? "-", chat.Id);
+            
+            // Удаляем сообщение
+            try
+            {
+                await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
+                
+                // Отправляем предупреждение пользователю
+                await _messageService.SendUserNotificationAsync(user, chat, UserNotificationType.MessageDeleted, 
+                    new SimpleNotificationData(user, chat, "пересланные сообщения от новичков не разрешены"), 
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Не удалось удалить пересланное сообщение от новичка");
+            }
+            return;
+        }
+
         // Проверка на клубного пользователя
         var clubName = await _userManager.GetClubUsername(user.Id);
         if (!string.IsNullOrEmpty(clubName))
