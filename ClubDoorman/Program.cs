@@ -144,6 +144,7 @@ public class Program
                 services.AddSingleton<MessageTemplates>();
                 services.Configure<LoggingConfiguration>(options => {});
                 services.AddSingleton<ILoggingConfigurationService, LoggingConfigurationService>();
+                services.AddSingleton<IServiceChatDispatcher, ServiceChatDispatcher>();
                 services.AddSingleton<IMessageService, MessageService>();
                 
                 // Обработчики обновлений

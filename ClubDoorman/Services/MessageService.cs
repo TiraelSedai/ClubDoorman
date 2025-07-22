@@ -17,17 +17,20 @@ public class MessageService : IMessageService
     private readonly ILogger<MessageService> _logger;
     private readonly MessageTemplates _templates;
     private readonly ILoggingConfigurationService _configService;
+    private readonly IServiceChatDispatcher _serviceChatDispatcher;
     
     public MessageService(
         ITelegramBotClientWrapper bot,
         ILogger<MessageService> logger,
         MessageTemplates templates,
-        ILoggingConfigurationService configService)
+        ILoggingConfigurationService configService,
+        IServiceChatDispatcher serviceChatDispatcher)
     {
         _bot = bot;
         _logger = logger;
         _templates = templates;
         _configService = configService;
+        _serviceChatDispatcher = serviceChatDispatcher;
     }
     
     public async Task SendAdminNotificationAsync(AdminNotificationType type, NotificationData data, CancellationToken cancellationToken = default)
@@ -59,17 +62,17 @@ public class MessageService : IMessageService
                     return;
                 }
                 
-                var template = _templates.GetAdminTemplate(type);
-                var message = _templates.FormatNotificationTemplate(template, data);
+                // Используем диспетчер для определения типа чата
+                if (_serviceChatDispatcher.ShouldSendToAdminChat(data))
+                {
+                    await _serviceChatDispatcher.SendToAdminChatAsync(data, cancellationToken);
+                }
+                else
+                {
+                    await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
+                }
                 
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    message,
-                    parseMode: ParseMode.Markdown,
-                    cancellationToken: cancellationToken
-                );
-                
-                _logger.LogDebug("Отправлено админское уведомление типа {Type} для пользователя {User}", 
+                _logger.LogDebug("Отправлено уведомление типа {Type} для пользователя {User} через диспетчер", 
                     type, Utils.FullName(data.User));
             }
             else
@@ -112,17 +115,10 @@ public class MessageService : IMessageService
                     return;
                 }
                 
-                var template = _templates.GetLogTemplate(type);
-                var message = _templates.FormatNotificationTemplate(template, data);
+                // Используем диспетчер для отправки в лог-чат
+                await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
                 
-                await _bot.SendMessage(
-                    Config.LogAdminChatId,
-                    message,
-                    parseMode: ParseMode.Markdown,
-                    cancellationToken: cancellationToken
-                );
-                
-                _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User}", 
+                _logger.LogDebug("Отправлено лог-уведомление типа {Type} для пользователя {User} через диспетчер", 
                     type, Utils.FullName(data.User));
             }
             else
