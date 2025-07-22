@@ -46,6 +46,13 @@ public class CaptchaService : ICaptchaService
         if (chat == null) throw new ArgumentNullException(nameof(chat));
         if (user == null) throw new ArgumentNullException(nameof(user));
 
+        // Отключение капчи для определённых групп
+        if (Config.NoCaptchaGroups.Contains(chat.Id))
+        {
+            _logger.LogInformation($"[NO_CAPTCHA] Капча отключена для чата {chat.Id}");
+            return null;
+        }
+
         const int challengeLength = 8;
         var correctAnswerIndex = Random.Shared.Next(challengeLength);
         var challenge = new List<int>(challengeLength);
