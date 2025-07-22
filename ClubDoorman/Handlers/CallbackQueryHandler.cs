@@ -525,12 +525,23 @@ public class CallbackQueryHandler : IUpdateHandler
                 case "ban":
                     try
                     {
-                        // Проверяем, есть ли пересланное сообщение для удаления (для AI детекта)
-                        var replyToMessage = callbackQuery.Message!.ReplyToMessage;
-                        var messageIdToDelete = replyToMessage?.MessageId;
-                        
                         // Банируем пользователя и очищаем из всех списков
-                        var banSuccess = await _moderationService.BanAndCleanupUserAsync(userId, chatId, messageIdToDelete);
+                        var banSuccess = await _moderationService.BanAndCleanupUserAsync(userId, chatId);
+                        
+                        // Удаляем пересланное сообщение пользователя (если есть)
+                        var replyToMessage = callbackQuery.Message!.ReplyToMessage;
+                        if (replyToMessage != null)
+                        {
+                            try
+                            {
+                                await _bot.DeleteMessage(replyToMessage.Chat.Id, replyToMessage.MessageId, cancellationToken);
+                                _logger.LogDebug("Удалено пересланное сообщение пользователя {UserId} из чата {ChatId}", userId, chatId);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Не удалось удалить пересланное сообщение пользователя {UserId} из чата {ChatId}", userId, chatId);
+                            }
+                        }
                         
                         var banMessage = banSuccess 
                             ? $"{callbackQuery.Message.Text}\n\n🚫 *Забанен и очищен администратором {adminName}*"
