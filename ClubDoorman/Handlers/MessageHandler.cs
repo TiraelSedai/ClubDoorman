@@ -1034,9 +1034,9 @@ public class MessageHandler : IUpdateHandler
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, data);
             
             // Создаем кнопки для подозрительного сообщения
-            var approveCallback = $"suspicious_approve_{user.Id}_{message.Chat.Id}";
-            var banCallback = $"suspicious_ban_{user.Id}_{message.Chat.Id}";
-            var aiCallback = $"suspicious_ai_{user.Id}_{message.Chat.Id}";
+            var approveCallback = $"suspicious_approve_{user.Id}_{message.Chat.Id}_{message.MessageId}";
+            var banCallback = $"suspicious_ban_{user.Id}_{message.Chat.Id}_{message.MessageId}";
+            var aiCallback = $"suspicious_ai_{user.Id}_{message.Chat.Id}_{message.MessageId}";
             
             var keyboard = new InlineKeyboardMarkup(new[]
             {

@@ -514,11 +514,11 @@ public class CallbackQueryHandler : IUpdateHandler
 
     private async Task HandleSuspiciousUserCallback(CallbackQuery callbackQuery, List<string> split, CancellationToken cancellationToken)
     {
-        if (split.Count < 4)
+        if (split.Count < 5)
             return;
 
         var action = split[1]; // approve, ban, ai
-        if (!long.TryParse(split[2], out var userId) || !long.TryParse(split[3], out var chatId))
+        if (!long.TryParse(split[2], out var userId) || !long.TryParse(split[3], out var chatId) || !long.TryParse(split[4], out var messageId))
             return;
 
         var adminName = GetAdminDisplayName(callbackQuery.From);
@@ -565,6 +565,17 @@ public class CallbackQueryHandler : IUpdateHandler
                             {
                                 _logger.LogWarning(ex, "Не удалось удалить пересланное сообщение пользователя {UserId} из чата {ChatId}", userId, chatId);
                             }
+                        }
+                        
+                        // Удаляем оригинальное сообщение из чата пользователя
+                        try
+                        {
+                            await _bot.DeleteMessage(chatId, (int)messageId, cancellationToken);
+                            _logger.LogDebug("Удалено оригинальное сообщение пользователя {UserId} из чата {ChatId}", userId, chatId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Не удалось удалить оригинальное сообщение пользователя {UserId} из чата {ChatId}", userId, chatId);
                         }
                         
                         var banMessage = banSuccess 
