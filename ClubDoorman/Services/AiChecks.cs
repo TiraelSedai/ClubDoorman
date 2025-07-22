@@ -70,9 +70,12 @@ public class AiChecks : IAiChecks
         var cached = MemoryCache.Default.Get(CacheKey(user.Id)) as SpamPhotoBio;
         if (cached != null)
         {
-            _logger.LogDebug("Найден кэш для пользователя {UserId}: {Probability}", user.Id, cached.SpamProbability.Probability);
+            _logger.LogDebug("🤖 AI анализ профиля: найден кэш для пользователя {UserId}: вероятность={Probability}, фото={PhotoSize} байт", 
+                user.Id, cached.SpamProbability.Probability, cached.Photo.Length);
             return cached;
         }
+        
+        _logger.LogDebug("🤖 AI анализ профиля: кэш не найден для пользователя {UserId}, выполняем анализ", user.Id);
 
         var probability = new SpamProbability();
         var pic = Array.Empty<byte>();
@@ -230,11 +233,17 @@ public class AiChecks : IAiChecks
 
         try
         {
+            _logger.LogDebug("🤖 AI анализ профиля: GetEroticPhotoBaitProbability для пользователя {UserId}, Photo: {Photo}", 
+                user.Id, userChat.Photo?.ToString() ?? "null");
+                
             var photo = userChat.Photo!;
             using var ms = new MemoryStream();
             await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms);
             var photoBytes = ms.ToArray();
             pic = photoBytes;
+            
+            _logger.LogDebug("🤖 AI анализ профиля: фото загружено в GetEroticPhotoBaitProbability для пользователя {UserId}, размер: {Size} байт", 
+                user.Id, photoBytes.Length);
             
             var photoMessage = photoBytes.ToUserMessage(mimeType: "image/jpg");
             var prompt = "Проанализируй, выглядит ли эта аватарка пользователя сексуализированно или развратно. Отвечай вероятностью от 0 до 1.";
@@ -476,6 +485,8 @@ public class AiChecks : IAiChecks
 
     private void CacheResult(long userId, SpamPhotoBio result)
     {
+        _logger.LogDebug("🤖 AI анализ профиля: кэшируем результат для пользователя {UserId}: вероятность={Probability}, фото={PhotoSize} байт", 
+            userId, result.SpamProbability.Probability, result.Photo.Length);
         var cacheItem = new CacheItem(CacheKey(userId), result);
         var policy = new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(24) };
         MemoryCache.Default.Set(cacheItem, policy);
