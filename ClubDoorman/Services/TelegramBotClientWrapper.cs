@@ -291,4 +291,12 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
     {
         await _bot.UnbanChatMember(chatId, userId, onlyIfBanned ?? false, cancellationToken);
     }
+
+    /// <summary>
+    /// Получает информацию о члене чата
+    /// </summary>
+    public async Task<ChatMember> GetChatMember(ChatId chatId, long userId, CancellationToken cancellationToken = default)
+    {
+        return await _bot.GetChatMember(chatId, userId, cancellationToken);
+    }
 } 

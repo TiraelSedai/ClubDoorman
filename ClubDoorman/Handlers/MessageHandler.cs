@@ -34,6 +34,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IUserFlowLogger _userFlowLogger;
     private readonly IMessageService _messageService;
     private readonly IChatLinkFormatter _chatLinkFormatter;
+    private readonly IBotPermissionsService _botPermissionsService;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -53,6 +54,8 @@ public class MessageHandler : IUpdateHandler
     /// <param name="serviceProvider">Провайдер сервисов</param>
     /// <param name="userFlowLogger">Логгер пользовательского флоу</param>
     /// <param name="messageService">Сервис уведомлений</param>
+    /// <param name="chatLinkFormatter">Форматтер ссылок на чаты</param>
+    /// <param name="botPermissionsService">Сервис проверки прав бота</param>
     /// <param name="logger">Логгер</param>
     /// <exception cref="ArgumentNullException">Если любой из параметров равен null</exception>
     public MessageHandler(
@@ -69,6 +72,7 @@ public class MessageHandler : IUpdateHandler
         IUserFlowLogger userFlowLogger,
         IMessageService messageService,
         IChatLinkFormatter chatLinkFormatter,
+        IBotPermissionsService botPermissionsService,
         ILogger<MessageHandler> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
@@ -84,6 +88,7 @@ public class MessageHandler : IUpdateHandler
         _userFlowLogger = userFlowLogger ?? throw new ArgumentNullException(nameof(userFlowLogger));
         _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
         _chatLinkFormatter = chatLinkFormatter ?? throw new ArgumentNullException(nameof(chatLinkFormatter));
+        _botPermissionsService = botPermissionsService ?? throw new ArgumentNullException(nameof(botPermissionsService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -128,6 +133,13 @@ public class MessageHandler : IUpdateHandler
         // Игнорировать полностью отключённые чаты
         if (Config.DisabledChats.Contains(chat.Id))
             return;
+
+        // Проверяем тихий режим (бот без прав администратора)
+        var isSilentMode = await _botPermissionsService.IsSilentModeAsync(chat.Id, cancellationToken);
+        if (isSilentMode)
+        {
+            _logger.LogInformation("🔇 Тихий режим в чате {ChatId} ({ChatTitle}) - бот без прав администратора", chat.Id, chat.Title);
+        }
 
         // Автоматически добавляем чат в конфиг
         ChatSettingsManager.EnsureChatInConfig(chat.Id, chat.Title);
@@ -176,7 +188,7 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Обычные сообщения пользователей
-        await HandleUserMessageAsync(message, cancellationToken);
+        await HandleUserMessageAsync(message, isSilentMode, cancellationToken);
     }
 
     private async Task HandleCommandAsync(Message message, CancellationToken cancellationToken)
@@ -554,7 +566,7 @@ public class MessageHandler : IUpdateHandler
         }
     }
 
-    private async Task HandleUserMessageAsync(Message message, CancellationToken cancellationToken)
+    private async Task HandleUserMessageAsync(Message message, bool isSilentMode, CancellationToken cancellationToken)
     {
         var user = message.From;
         var chat = message.Chat;
@@ -673,7 +685,7 @@ public class MessageHandler : IUpdateHandler
                 _logger.LogInformation("Удаление сообщения: {Reason}", moderationResult.Reason);
                 try
                 {
-                    await DeleteAndReportMessage(message, moderationResult.Reason, cancellationToken);
+                    await DeleteAndReportMessage(message, moderationResult.Reason, isSilentMode, cancellationToken);
                     _logger.LogInformation("Сообщение успешно обработано для удаления");
                 }
                 catch (Exception ex)
@@ -684,12 +696,12 @@ public class MessageHandler : IUpdateHandler
             
             case ModerationAction.Report:
                 _logger.LogInformation("Отправка в админ-чат: {Reason}", moderationResult.Reason);
-                await DontDeleteButReportMessage(message, user, cancellationToken);
+                await DontDeleteButReportMessage(message, user, isSilentMode, cancellationToken);
                 break;
             
             case ModerationAction.RequireManualReview:
                 _logger.LogInformation("Требует ручной проверки: {Reason}", moderationResult.Reason);
-                await DontDeleteButReportMessage(message, user, cancellationToken);
+                await DontDeleteButReportMessage(message, user, isSilentMode, cancellationToken);
                 break;
         }
     }
@@ -868,7 +880,7 @@ public class MessageHandler : IUpdateHandler
         await _messageService.SendAdminNotificationAsync(AdminNotificationType.UserCleanup, cleanupData, cancellationToken);
     }
 
-    private async Task DeleteAndReportMessage(Message message, string reason, CancellationToken cancellationToken)
+    private async Task DeleteAndReportMessage(Message message, string reason, bool isSilentMode, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Начинаем DeleteAndReportMessage для сообщения {MessageId} в чате {ChatId}", message.MessageId, message.Chat.Id);
         
@@ -903,6 +915,12 @@ public class MessageHandler : IUpdateHandler
             // Получаем шаблон и форматируем сообщение
             var template = _messageService.GetTemplates().GetAdminTemplate(AdminNotificationType.AutoBan);
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
+            
+            // Добавляем префикс тихого режима если нужно
+            if (isSilentMode)
+            {
+                messageText = $"🔇 **Тихий режим**\n\n{messageText}";
+            }
             
             // Пересылаем сообщение
             await _bot.ForwardMessage(
@@ -958,41 +976,44 @@ public class MessageHandler : IUpdateHandler
             deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
         }
 
-        // Отправляем предупреждение пользователю (только если не было отправлено недавно)
-        var warningKey = $"warning_{message.Chat.Id}_{user.Id}";
-        var existingWarning = MemoryCache.Default.Get(warningKey);
-        
-        if (existingWarning == null)
+        // Отправляем предупреждение пользователю (только если не было отправлено недавно и не тихий режим)
+        if (!isSilentMode)
         {
-            try
+            var warningKey = $"warning_{message.Chat.Id}_{user.Id}";
+            var existingWarning = MemoryCache.Default.Get(warningKey);
+            
+            if (existingWarning == null)
             {
-                var warningData = new SimpleNotificationData(user, message.Chat, "новичок в этом чате");
-                var sentWarn = await _messageService.SendUserNotificationWithReplyAsync(
-                    user, 
-                    message.Chat, 
-                    UserNotificationType.ModerationWarning, 
-                    warningData, 
-                    cancellationToken
-                );
-                
-                // Сохраняем ID предупреждающего сообщения в кэше (на 10 минут, чтобы не спамить)
-                MemoryCache.Default.Add(warningKey, sentWarn.MessageId, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(10) });
-                
-                DeleteMessageLater(sentWarn, TimeSpan.FromSeconds(40), cancellationToken);
-                _logger.LogDebug("Предупреждение отправлено пользователю и будет удалено через 40 секунд");
+                try
+                {
+                    var warningData = new SimpleNotificationData(user, message.Chat, "новичок в этом чате");
+                    var sentWarn = await _messageService.SendUserNotificationWithReplyAsync(
+                        user, 
+                        message.Chat, 
+                        UserNotificationType.ModerationWarning, 
+                        warningData, 
+                        cancellationToken
+                    );
+                    
+                    // Сохраняем ID предупреждающего сообщения в кэше (на 10 минут, чтобы не спамить)
+                    MemoryCache.Default.Add(warningKey, sentWarn.MessageId, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(10) });
+                    
+                    DeleteMessageLater(sentWarn, TimeSpan.FromSeconds(40), cancellationToken);
+                    _logger.LogDebug("Предупреждение отправлено пользователю и будет удалено через 40 секунд");
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Не удалось отправить предупреждение пользователю");
+                }
             }
-            catch (Exception e)
+            else
             {
-                _logger.LogWarning(e, "Не удалось отправить предупреждение пользователю");
+                _logger.LogDebug("Предупреждение пользователю {UserId} в чате {ChatId} уже было отправлено недавно, пропускаем", user.Id, message.Chat.Id);
             }
-        }
-        else
-        {
-            _logger.LogDebug("Предупреждение пользователю {UserId} в чате {ChatId} уже было отправлено недавно, пропускаем", user.Id, message.Chat.Id);
         }
     }
 
-    private async Task DontDeleteButReportMessage(Message message, User user, CancellationToken cancellationToken)
+    private async Task DontDeleteButReportMessage(Message message, User user, bool isSilentMode, CancellationToken cancellationToken)
     {
         try
         {
@@ -1011,7 +1032,7 @@ public class MessageHandler : IUpdateHandler
             );
             
             // Отправляем уведомление с кнопками для подозрительного сообщения
-            await SendSuspiciousMessageWithButtons(message, user, suspiciousData, cancellationToken);
+            await SendSuspiciousMessageWithButtons(message, user, suspiciousData, isSilentMode, cancellationToken);
         }
         catch (Exception e)
         {
@@ -1026,12 +1047,18 @@ public class MessageHandler : IUpdateHandler
         }
     }
     
-    private async Task SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, CancellationToken cancellationToken)
+    private async Task SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, bool isSilentMode, CancellationToken cancellationToken)
     {
         try
         {
             var template = _messageService.GetTemplates().GetAdminTemplate(AdminNotificationType.SuspiciousMessage);
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, data);
+            
+            // Добавляем префикс тихого режима если нужно
+            if (isSilentMode)
+            {
+                messageText = $"🔇 **Тихий режим**\n\n{messageText}";
+            }
             
             // Создаем кнопки для подозрительного сообщения
             var approveCallback = $"suspicious_approve_{user.Id}_{message.Chat.Id}_{message.MessageId}";

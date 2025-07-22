@@ -118,5 +118,10 @@ public enum AdminNotificationType
     /// <summary>
     /// Пользователь получил ограничения
     /// </summary>
-    UserRestricted
+    UserRestricted,
+
+    /// <summary>
+    /// Бот работает в тихом режиме (без прав администратора)
+    /// </summary>
+    SilentMode
 } 
