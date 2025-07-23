@@ -192,48 +192,8 @@ public class CallbackQueryHandler : IUpdateHandler
             "========================================================", 
             Utils.FullName(user), user.Id, chat.Title ?? "-", chat.Id);
 
-        // Создаем приветственное сообщение
-        var displayName = !string.IsNullOrEmpty(user.FirstName)
-            ? System.Net.WebUtility.HtmlEncode(Utils.FullName(user))
-            : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
-        
-        var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
-        
-        // Заглушка для рекламы (если группа не в исключениях)
-        var isNoAdGroup = IsNoAdGroup(chat.Id);
-        var vpnAd = isNoAdGroup ? "" : "\n\n\n📍 <b>Место для рекламы</b> \n <i>...</i>";
-        
-        string greetMsg;
-        string mediaWarning;
-        if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
-        {
-            mediaWarning = "";
-            greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, сообщения со стоп-словами и спамом будут удалены. Не просите писать в ЛС!{vpnAd}";
-        }
-        else
-        {
-            mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры, документы" : ", изображения, стикеры, документы";
-            greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически. Не просите писать в ЛС!{vpnAd}";
-        }
-
-        var captchaWelcomeData = new CaptchaWelcomeNotificationData(
-            user, chat, "приветствие после капчи", 0, mediaWarning, vpnAd);
-        var sent = await _messageService.SendUserNotificationWithReplyAsync(
-            user, chat, UserNotificationType.CaptchaWelcome, captchaWelcomeData, cancellationToken);
-        
-        // Удаляем приветствие через 20 секунд
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
-                await _bot.DeleteMessage(chat.Id, sent.MessageId, cancellationToken: cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Не удалось удалить приветственное сообщение");
-            }
-        }, cancellationToken);
+        // Используем новый метод для отправки приветствия
+        await _messageService.SendWelcomeMessageAsync(user, chat, "приветствие после капчи", cancellationToken);
     }
 
     private async Task HandleAdminCallback(CallbackQuery callbackQuery, CancellationToken cancellationToken)
@@ -642,8 +602,5 @@ public class CallbackQueryHandler : IUpdateHandler
             : Utils.FullName(user);
     }
 
-    private static bool IsNoAdGroup(long chatId)
-    {
-        return Config.NoVpnAdGroups.Contains(chatId);
-    }
+
 } 
