@@ -129,7 +129,12 @@ public class AiProfileAnalysisData : NotificationData
     /// </summary>
     public string MessageText { get; set; }
     
-    public AiProfileAnalysisData(User user, Chat chat, double spamProbability, string reason, string nameBio, string messageText, byte[]? photoBytes = null, long? messageId = null) 
+    /// <summary>
+    /// Автоматическое действие, предпринятое ботом (если есть)
+    /// </summary>
+    public string? AutomaticAction { get; set; }
+    
+    public AiProfileAnalysisData(User user, Chat chat, double spamProbability, string reason, string nameBio, string messageText, byte[]? photoBytes = null, long? messageId = null, string? automaticAction = null) 
         : base(user, chat, reason, messageId)
     {
         SpamProbability = spamProbability;
@@ -137,6 +142,7 @@ public class AiProfileAnalysisData : NotificationData
         NameBio = nameBio;
         MessageText = messageText;
         PhotoBytes = photoBytes;
+        AutomaticAction = automaticAction;
     }
 }
 

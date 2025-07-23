@@ -213,18 +213,30 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
 
     private string FormatAiProfileAnalysis(AiProfileAnalysisData notification)
     {
-        var reasonText = notification.Reason.Length > 500 ? 
-            notification.Reason.Substring(0, 497) + "..." : 
+        var reasonText = notification.Reason.Length > 400 ? 
+            notification.Reason.Substring(0, 397) + "..." : 
             notification.Reason;
             
-        return $"🤖 <b>AI анализ профиля</b>\n\n" +
-               $"👤 Пользователь: {FormatUser(notification.User)}\n" +
-               $"💬 Чат: {FormatChat(notification.Chat)}\n" +
-               $"📊 Вероятность спама: {notification.SpamProbability * 100:F1}%\n" +
-               $"📝 Причина: {reasonText}\n" +
-               $"📋 Профиль: {notification.NameBio}\n" +
-               $"💬 Сообщение: {notification.MessageText}\n" +
-               $"🔗 Ссылка: {FormatMessageLink(notification.Chat, notification.MessageId)}";
+        var messageText = notification.MessageText.Length > 150 ? 
+            notification.MessageText.Substring(0, 147) + "..." : 
+            notification.MessageText;
+            
+        var result = $"🤖 <b>AI анализ профиля</b>\n\n" +
+                     $"👤 <b>Пользователь:</b> {FormatUser(notification.User)}\n" +
+                     $"💬 <b>Чат:</b> {FormatChat(notification.Chat)}\n\n" +
+                     $"📊 <b>Вероятность спама:</b> {notification.SpamProbability * 100:F1}%\n\n" +
+                     $"🔍 <b>Причина:</b>\n<i>{reasonText}</i>\n\n" +
+                     $"📋 <b>Профиль:</b> {notification.NameBio}\n\n" +
+                     $"💬 <b>Сообщение:</b> {messageText}\n\n";
+                     
+        if (!string.IsNullOrEmpty(notification.AutomaticAction))
+        {
+            result += $"⚡ <b>Автоматическое действие:</b>\n{notification.AutomaticAction}\n\n";
+        }
+        
+        result += $"🔗 <b>Ссылка:</b> {FormatMessageLink(notification.Chat, notification.MessageId)}";
+        
+        return result;
     }
 
     private async Task SendAiProfileAnalysisWithPhoto(AiProfileAnalysisData data, CancellationToken cancellationToken)
