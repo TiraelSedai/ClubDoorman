@@ -103,7 +103,17 @@ public class IntroFlowService
 
         // Создаем капчу через сервис
         var captchaInfo = await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
-        _globalStatsManager.IncCaptcha(chatId, chat.Title ?? "");
+        
+        // Если капча отключена для этой группы, отправляем приветствие сразу
+        if (captchaInfo == null)
+        {
+            _logger.LogInformation("[NO_CAPTCHA] Капча отключена для чата {ChatId} - отправляем приветствие сразу после проверок", chat.Id);
+            await _messageService.SendWelcomeMessageAsync(user, chat, "приветствие без капчи");
+        }
+        else
+        {
+            _globalStatsManager.IncCaptcha(chatId, chat.Title ?? "");
+        }
     }
 
     private async Task BanUserForLongName(
