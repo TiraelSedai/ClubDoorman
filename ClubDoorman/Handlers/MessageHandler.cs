@@ -1274,23 +1274,32 @@ public class MessageHandler : IUpdateHandler
             _logger.LogInformation("🤖 AI анализ профиля: пользователь {UserId}, вероятность={Probability}, причина={Reason}", 
                 user.Id, result.SpamProbability.Probability, result.SpamProbability.Reason);
 
-            // Если высокая вероятность спама в профиле - даем ридонли
-            if (result.SpamProbability.Probability > 0.7) // Порог можно настроить
+            // Проверяем пороги вероятности спама
+            if (result.SpamProbability.Probability >= Consts.LlmLowProbability) // >= 0.75
             {
                 _logger.LogWarning("🚫 AI определил подозрительный профиль: пользователь {UserId}, вероятность={Probability}", 
                     user.Id, result.SpamProbability.Probability);
 
-                // Удаляем сообщение пользователя
-                try
+                // Удаляем сообщение только при высокой вероятности
+                var shouldDeleteMessage = result.SpamProbability.Probability >= Consts.LlmHighProbability; // >= 0.9
+                if (shouldDeleteMessage)
                 {
-                    await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
+                    try
+                    {
+                        await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
+                        _logger.LogInformation("🗑️ Сообщение удалено из-за высокой вероятности спама: {Probability:F2}", result.SpamProbability.Probability);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Не удалось удалить сообщение при AI анализе");
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogWarning(ex, "Не удалось удалить сообщение при AI анализе");
+                    _logger.LogInformation("💬 Сообщение НЕ удалено (средняя вероятность): {Probability:F2}", result.SpamProbability.Probability);
                 }
 
-                // Даем ридонли на 10 минут
+                // Даем ридонли на 10 минут в любом случае
                 try
                 {
                     var untilDate = DateTime.UtcNow.AddMinutes(10);
@@ -1324,6 +1333,10 @@ public class MessageHandler : IUpdateHandler
                 }
 
                 // Отправляем красивое уведомление в админ-чат
+                var automaticAction = shouldDeleteMessage 
+                    ? "🗑️ Сообщение удалено + 🔇 Read-Only на 10 минут" 
+                    : "🔇 Read-Only на 10 минут (сообщение оставлено)";
+                    
                 var aiProfileData = new AiProfileAnalysisData(
             user, 
             chat, 
@@ -1332,7 +1345,8 @@ public class MessageHandler : IUpdateHandler
             result.NameBio, 
             message.Text ?? message.Caption ?? "[медиа]", 
             result.Photo, 
-            message.MessageId
+            message.MessageId,
+            automaticAction
         );
         await _messageService.SendAiProfileAnalysisAsync(aiProfileData, cancellationToken);
 
