@@ -300,9 +300,20 @@ public class MessageHandler : IUpdateHandler
         _logger.LogInformation("🔥 Обрабатываем команду /spam для текста: '{Text}'", text);
         await _classifier.AddSpam(text);
         await _badMessageManager.MarkAsBad(text);
+        
+        // Уведомление пользователю
         await _messageService.SendUserNotificationAsync(message.From!, message.Chat, UserNotificationType.Success, 
             new SimpleNotificationData(message.From!, message.Chat, "Сообщение добавлено как пример спама"), 
             cancellationToken);
+            
+        // Уведомление в админку о добавлении спам примера
+        var adminData = new SimpleNotificationData(
+            message.From!, 
+            message.Chat, 
+            $"Администратор {Utils.FullName(message.From!)} добавил сообщение как пример СПАМА:\n\n`{text.Substring(0, Math.Min(text.Length, 200))}{(text.Length > 200 ? "..." : "")}`"
+        );
+        await _messageService.SendAdminNotificationAsync(AdminNotificationType.SystemInfo, adminData, cancellationToken);
+        
         _logger.LogInformation("✅ Команда /spam успешно выполнена");
     }
 
@@ -310,9 +321,20 @@ public class MessageHandler : IUpdateHandler
     {
         _logger.LogInformation("✅ Обрабатываем команду /ham для текста: '{Text}'", text);
         await _classifier.AddHam(text);
+        
+        // Уведомление пользователю (исправляем Markdown ошибку)
         await _messageService.SendUserNotificationAsync(message.From!, message.Chat, UserNotificationType.Success, 
-            new SimpleNotificationData(message.From!, message.Chat, "Сообщение добавлено как пример НЕ-спама"), 
+            new SimpleNotificationData(message.From!, message.Chat, "Сообщение добавлено как пример НЕ\\-спама"), 
             cancellationToken);
+            
+        // Уведомление в админку о добавлении НЕ-спам примера
+        var adminData = new SimpleNotificationData(
+            message.From!, 
+            message.Chat, 
+            $"Администратор {Utils.FullName(message.From!)} добавил сообщение как пример НЕ-спама:\n\n`{text.Substring(0, Math.Min(text.Length, 200))}{(text.Length > 200 ? "..." : "")}`"
+        );
+        await _messageService.SendAdminNotificationAsync(AdminNotificationType.SystemInfo, adminData, cancellationToken);
+        
         _logger.LogInformation("✅ Команда /ham успешно выполнена");
     }
 
@@ -1050,13 +1072,6 @@ public class MessageHandler : IUpdateHandler
     {
         try
         {
-            var forward = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: cancellationToken
-            );
-            
             var suspiciousData = new SuspiciousMessageNotificationData(
                 user, 
                 message.Chat, 
@@ -1064,7 +1079,7 @@ public class MessageHandler : IUpdateHandler
                 message.MessageId
             );
             
-            // Отправляем уведомление с кнопками для подозрительного сообщения
+            // Отправляем уведомление с кнопками для подозрительного сообщения (форвард делается внутри)
             await SendSuspiciousMessageWithButtons(message, user, suspiciousData, isSilentMode, cancellationToken);
         }
         catch (Exception e)
