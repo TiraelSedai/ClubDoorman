@@ -5,7 +5,7 @@ namespace ClubDoorman.Services;
 /// <summary>
 /// Классификатор для анализа первых сообщений пользователя на предмет мимикрии (имитации нормального поведения)
 /// </summary>
-public class MimicryClassifier
+public class MimicryClassifier : IMimicryClassifier
 {
     private readonly ILogger<MimicryClassifier> _logger;
     

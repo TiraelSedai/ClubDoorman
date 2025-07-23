@@ -2,31 +2,93 @@
 
 namespace ClubDoorman.Infrastructure
 {
+    /// <summary>
+    /// Статический класс для управления конфигурацией приложения.
+    /// Содержит настройки, загружаемые из переменных окружения.
+    /// </summary>
     internal static class Config
     {
+        /// <summary>
+        /// Автоматически банить пользователей из черного списка
+        /// </summary>
         public static bool BlacklistAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BLACKLIST_AUTOBAN_DISABLE");
-        public static bool ChannelAutoBan { get; } = !GetEnvironmentBool("DOORMAN_CHANNELS_AUTOBAN_DISABLE");
-        public static bool LookAlikeAutoBan { get; } = !GetEnvironmentBool("DOORMAN_LOOKALIKE_AUTOBAN_DISABLE");
-        public static bool LowConfidenceHamForward { get; } = GetEnvironmentBool("DOORMAN_LOW_CONFIDENCE_HAM_ENABLE");
-        public static bool ApproveButtonEnabled { get; } = GetEnvironmentBool("DOORMAN_APPROVE_BUTTON");
-        public static string BotApi { get; } =
-            Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new Exception("DOORMAN_BOT_API variable not set");
-        public static long AdminChatId { get; } =
-            long.Parse(
-                Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set")
-            );
         
-        // Чат для логирования спама (если не указан - используется AdminChatId)
+        /// <summary>
+        /// Автоматически банить каналы
+        /// </summary>
+        public static bool ChannelAutoBan { get; } = !GetEnvironmentBool("DOORMAN_CHANNELS_AUTOBAN_DISABLE");
+        
+        /// <summary>
+        /// Автоматически банить пользователей с похожими именами
+        /// </summary>
+        public static bool LookAlikeAutoBan { get; } = !GetEnvironmentBool("DOORMAN_LOOKALIKE_AUTOBAN_DISABLE");
+        
+        /// <summary>
+        /// Пересылать сообщения с низкой уверенностью в ham
+        /// </summary>
+        public static bool LowConfidenceHamForward { get; } = GetEnvironmentBool("DOORMAN_LOW_CONFIDENCE_HAM_ENABLE");
+        
+        /// <summary>
+        /// Включить кнопку одобрения
+        /// </summary>
+        public static bool ApproveButtonEnabled { get; } = GetEnvironmentBool("DOORMAN_APPROVE_BUTTON");
+        
+        /// <summary>
+        /// API токен бота Telegram
+        /// Если не настроен или равен "test-bot-token", бот не запустится
+        /// </summary>
+        public static string BotApi { get; } = GetBotApi();
+
+        private static string GetBotApi()
+        {
+            var botToken = Environment.GetEnvironmentVariable("DOORMAN_BOT_API");
+            
+            // Если переменная не установлена или равна "test-bot-token", возвращаем пустую строку
+            if (string.IsNullOrEmpty(botToken) || botToken == "test-bot-token")
+            {
+                return string.Empty;
+            }
+            
+            return botToken;
+        }
+        
+        /// <summary>
+        /// ID админского чата
+        /// </summary>
+        public static long AdminChatId { get; } =
+            long.TryParse(Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT"), out var chatId) 
+                ? chatId 
+                : 123456789; // Тестовое значение по умолчанию
+        
+        /// <summary>
+        /// Чат для логирования спама (если не указан - используется AdminChatId)
+        /// </summary>
         public static long LogAdminChatId { get; } = GetLogAdminChatId();
+        
+        /// <summary>
+        /// Токен сервиса клуба
+        /// </summary>
         public static string? ClubServiceToken { get; } = Environment.GetEnvironmentVariable("DOORMAN_CLUB_SERVICE_TOKEN");
+        
+        /// <summary>
+        /// URL клуба
+        /// </summary>
         public static string ClubUrl { get; } = GetClubUrlOrDefault();
+        
+        /// <summary>
+        /// Отключенные чаты
+        /// </summary>
         public static HashSet<long> DisabledChats { get; } =
             (Environment.GetEnvironmentVariable("DOORMAN_DISABLED_CHATS") ?? "")
             .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => long.Parse(x.Trim()))
+            .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value)
             .ToHashSet();
 
-        // Whitelist групп - если указан, бот работает только в этих группах
+        /// <summary>
+        /// Whitelist групп - если указан, бот работает только в этих группах
+        /// </summary>
         public static HashSet<long> WhitelistChats { get; } =
             (Environment.GetEnvironmentVariable("DOORMAN_WHITELIST") ?? "")
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -35,7 +97,9 @@ namespace ClubDoorman.Infrastructure
             .Select(x => x.Value)
             .ToHashSet();
 
-        // Группы, где не показывать рекламу
+        /// <summary>
+        /// Группы, где не показывать рекламу
+        /// </summary>
         public static HashSet<long> NoVpnAdGroups { get; } =
             (Environment.GetEnvironmentVariable("NO_VPN_AD_GROUPS") ?? "")
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -44,7 +108,27 @@ namespace ClubDoorman.Infrastructure
             .Select(x => x.Value)
             .ToHashSet();
 
-        // Проверяет, разрешен ли бот в данном чате
+        /// <summary>
+        /// Группы, в которых отключена капча
+        /// </summary>
+        public static HashSet<long> NoCaptchaGroups { get; } =
+            (Environment.GetEnvironmentVariable("DOORMAN_NO_CAPTCHA_GROUPS") ?? "")
+            .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => long.TryParse(x.Trim(), out var id) ? id : (long?)null)
+            .Where(x => x.HasValue)
+            .Select(x => x.Value)
+            .ToHashSet();
+
+        /// <summary>
+        /// Удаление пересланных сообщений от новичков (из .env DOORMAN_DELETE_FORWARDED_MESSAGES)
+        /// </summary>
+        public static bool DeleteForwardedMessages { get; } = GetEnvironmentBool("DOORMAN_DELETE_FORWARDED_MESSAGES");
+
+        /// <summary>
+        /// Проверяет, разрешен ли бот в данном чате
+        /// </summary>
+        /// <param name="chatId">ID чата</param>
+        /// <returns>true, если чат разрешен</returns>
         public static bool IsChatAllowed(long chatId)
         {
             // Если whitelist пуст - разрешены все чаты (кроме disabled)
@@ -52,21 +136,66 @@ namespace ClubDoorman.Infrastructure
             return WhitelistChats.Count == 0 || WhitelistChats.Contains(chatId);
         }
 
-        // Проверяет, разрешена ли команда /start в личке
+        /// <summary>
+        /// Проверяет, разрешена ли команда /start в личке
+        /// </summary>
+        /// <returns>true, если команда /start разрешена в личке</returns>
         public static bool IsPrivateStartAllowed()
         {
             // Если whitelist не пуст - команда /start в личке отключена
             return WhitelistChats.Count == 0;
         }
 
-        // AI проверки профилей
-        public static string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
+        /// <summary>
+        /// API ключ для OpenRouter (AI анализ)
+        /// Если не настроен или равен "test-api-key", AI анализ отключен
+        /// </summary>
+        public static string? OpenRouterApi { get; } = GetOpenRouterApi();
+
+        private static string? GetOpenRouterApi()
+        {
+            var apiKey = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
+            
+            // Если переменная не установлена или равна "test-api-key", возвращаем null
+            if (string.IsNullOrEmpty(apiKey) || apiKey == "test-api-key")
+            {
+                return null;
+            }
+            
+            return apiKey;
+        }
+        
+        /// <summary>
+        /// Автоматически банить по кнопкам
+        /// </summary>
         public static bool ButtonAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BUTTON_AUTOBAN_DISABLE");
+        
+        /// <summary>
+        /// Автоматически банить при высокой уверенности
+        /// </summary>
         public static bool HighConfidenceAutoBan { get; } = !GetEnvironmentBool("DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE");
         
-        // Чаты для которых включены AI проверки профилей (если не указано - для всех)
+        /// <summary>
+        /// Чаты для которых включены AI проверки профилей (если не указано - для всех)
+        /// </summary>
         public static HashSet<long> AiEnabledChats { get; } = GetAiEnabledChats();
 
+        /// <summary>
+        /// Проверяет, включены ли AI проверки для данного чата
+        /// </summary>
+        /// <param name="chatId">ID чата</param>
+        /// <returns>true, если AI проверки включены для чата</returns>
+        public static bool IsAiEnabledForChat(long chatId)
+        {
+            // Если список пуст - AI включен для всех чатов
+            // Если список не пуст - AI включен только для указанных чатов
+            return AiEnabledChats.Count == 0 || AiEnabledChats.Contains(chatId);
+        }
+
+        /// <summary>
+        /// Получает список чатов с включенными AI проверками
+        /// </summary>
+        /// <returns>Множество ID чатов с AI проверками</returns>
         private static HashSet<long> GetAiEnabledChats()
         {
             var chatsStr = Environment.GetEnvironmentVariable("DOORMAN_AI_ENABLED_CHATS");
@@ -79,14 +208,6 @@ namespace ClubDoorman.Infrastructure
                 .Where(x => x.HasValue)
                 .Select(x => x.Value)
                 .ToHashSet();
-        }
-
-        // Проверяет, включены ли AI проверки для данного чата
-        public static bool IsAiEnabledForChat(long chatId)
-        {
-            // Если список пуст - AI включен для всех чатов
-            // Если список не пуст - AI включен только для указанных чатов
-            return AiEnabledChats.Count == 0 || AiEnabledChats.Contains(chatId);
         }
 
         // ==== НАСТРОЙКИ АВТООДОБРЕНИЯ ====
@@ -118,7 +239,7 @@ namespace ClubDoorman.Infrastructure
         /// Порог для определения подозрительности (0.0 - 1.0)
         /// Если ML анализ превышает этот порог, пользователь помечается как подозрительный
         /// </summary>
-        public static double MimicryThreshold { get; } = GetEnvironmentDouble("DOORMAN_MIMICRY_THRESHOLD", 0.7);
+        public static double MimicryThreshold { get => GetEnvironmentDouble("DOORMAN_MIMICRY_THRESHOLD", 0.7); }
 
         /// <summary>
         /// Количество сообщений для перехода из подозрительных в одобренные
@@ -193,7 +314,8 @@ namespace ClubDoorman.Infrastructure
             var env = Environment.GetEnvironmentVariable(envName);
             if (env == null)
                 return defaultValue;
-            if (double.TryParse(env, out var num))
+            // Используем InvariantCulture для парсинга чисел с точкой
+            if (double.TryParse(env, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
                 return num;
             return defaultValue;
         }
@@ -206,7 +328,7 @@ namespace ClubDoorman.Infrastructure
             if (!url.EndsWith('/'))
                 url += '/';
             if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
-                throw new Exception("DOORMAN_CLUB_URL variable is set to invalid URL");
+                return "https://vas3k.club/"; // Возвращаем значение по умолчанию при неверном URL
             return url;
         }
 
@@ -219,7 +341,8 @@ namespace ClubDoorman.Infrastructure
             if (long.TryParse(logChatVar, out var logChatId))
                 return logChatId;
             
-            throw new Exception("DOORMAN_LOG_ADMIN_CHAT variable is set to invalid chat ID");
+            // Если не удалось распарсить, используем основной админский чат
+            return AdminChatId;
         }
     }
 

@@ -12,13 +12,15 @@ namespace ClubDoorman.Services;
 public class StatisticsService : IStatisticsService
 {
     private readonly ConcurrentDictionary<long, ChatStats> _stats = new();
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<StatisticsService> _logger;
+    private readonly IChatLinkFormatter _chatLinkFormatter;
 
-    public StatisticsService(TelegramBotClient bot, ILogger<StatisticsService> logger)
+    public StatisticsService(ITelegramBotClientWrapper bot, ILogger<StatisticsService> logger, IChatLinkFormatter chatLinkFormatter)
     {
         _bot = bot;
         _logger = logger;
+        _chatLinkFormatter = chatLinkFormatter;
     }
 
     public void IncrementCaptcha(long chatId)
@@ -73,7 +75,7 @@ public class StatisticsService : IStatisticsService
             try
             {
                 var chat = await _bot.GetChat(chatId);
-                var chatLink = GetChatLink(chat);
+                var chatLink = _chatLinkFormatter.GetChatLink(chat);
                 var chatType = ChatSettingsManager.GetChatType(chat.Id);
                 
                 sb.AppendLine();
@@ -103,36 +105,5 @@ public class StatisticsService : IStatisticsService
         return sb.ToString();
     }
 
-    private static string GetChatLink(Telegram.Bot.Types.Chat chat)
-    {
-        var escapedTitle = EscapeMarkdown(chat.Title ?? "Неизвестный чат");
-        if (!string.IsNullOrEmpty(chat.Username))
-        {
-            return $"[{escapedTitle}](https://t.me/{chat.Username})";
-        }
-        var formattedId = chat.Id.ToString();
-        if (formattedId.StartsWith("-100"))
-        {
-            formattedId = formattedId.Substring(4);
-            return $"[{escapedTitle}](https://t.me/c/{formattedId})";
-        }
-        else if (formattedId.StartsWith("-"))
-        {
-            return $"*{escapedTitle}*";
-        }
-        else
-        {
-            return $"*{escapedTitle}*";
-        }
-    }
 
-    private static string EscapeMarkdown(string text)
-    {
-        return text.Replace("*", "\\*")
-                   .Replace("_", "\\_")
-                   .Replace("[", "\\[")
-                   .Replace("]", "\\]")
-                   .Replace("(", "\\(")
-                   .Replace(")", "\\)");
-    }
 } 

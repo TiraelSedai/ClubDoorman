@@ -24,7 +24,7 @@ internal class MessagePrediction : MessageData
     public bool PredictedLabel { get; set; }
 }
 
-public class SpamHamClassifier
+public class SpamHamClassifier : ISpamHamClassifier
 {
     public SpamHamClassifier(ILogger<SpamHamClassifier> logger)
     {
@@ -74,10 +74,26 @@ public class SpamHamClassifier
         
         if (_engine == null)
         {
-            _logger.LogWarning("ML движок не инициализирован! Жду инициализации...");
-        while (_engine == null)
-            await Task.Delay(100);
-            _logger.LogInformation("ML движок инициализирован");
+            // PERFORMANCE OPTIMIZATION - Consider using LoggerMessage delegate for better performance
+            _logger.LogWarning("ML движок не инициализирован! Жду инициализации с таймаутом...");
+            
+            // Ждем инициализации с таймаутом 10 секунд
+            var timeout = TimeSpan.FromSeconds(10);
+            var sw = Stopwatch.StartNew();
+            
+            while (_engine == null && sw.Elapsed < timeout)
+            {
+                await Task.Delay(100);
+            }
+            
+            if (_engine == null)
+            {
+                _logger.LogError("ML движок не инициализирован за {Timeout}ms! Возвращаем fallback результат", timeout.TotalMilliseconds);
+                // BUSINESS LOGIC - Fallback assumes 'not spam' for safety, consider configurable behavior
+                return (false, 0.0f); // Fallback: считаем не спамом
+            }
+            
+            _logger.LogInformation("ML движок инициализирован за {Elapsed}ms", sw.ElapsedMilliseconds);
         }
         
         var predict = _engine.Predict(msg);

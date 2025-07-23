@@ -1,0 +1,14 @@
+services:
+  doorman:
+    build: .
+    container_name: doorman
+    environment:
+      - TZ=Europe/Moscow
+      - DOORMAN_CLUB_SERVICE_TOKEN=${DOORMAN_CLUB_SERVICE_TOKEN:-test_token}
+      - DOORMAN_BOT_API=${DOORMAN_BOT_API:-test_bot_api}
+      - DOORMAN_ADMIN_CHAT=${DOORMAN_ADMIN_CHAT:-123456789}
+      - DOORMAN_BLACKLIST_AUTOBAN_DISABLE=${DOORMAN_BLACKLIST_AUTOBAN_DISABLE:-true}
+      - DOORMAN_LOW_CONFIDENCE_HAM_ENABLE=${DOORMAN_LOW_CONFIDENCE_HAM_ENABLE:-false}
+    volumes:
+      - ./ClubDoorman/data:/app/data
+    restart: unless-stopped

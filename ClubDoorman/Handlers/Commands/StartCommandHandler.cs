@@ -1,4 +1,6 @@
 using ClubDoorman.Infrastructure;
+using ClubDoorman.Services;
+using ClubDoorman.Models.Notifications;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -10,15 +12,17 @@ namespace ClubDoorman.Handlers.Commands;
 /// </summary>
 public class StartCommandHandler : ICommandHandler
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<StartCommandHandler> _logger;
+    private readonly IMessageService _messageService;
 
     public string CommandName => "start";
 
-    public StartCommandHandler(TelegramBotClient bot, ILogger<StartCommandHandler> logger)
+    public StartCommandHandler(ITelegramBotClientWrapper bot, ILogger<StartCommandHandler> logger, IMessageService messageService)
     {
         _bot = bot;
         _logger = logger;
+        _messageService = messageService;
     }
 
     public async Task HandleAsync(Message message, CancellationToken cancellationToken = default)
@@ -34,7 +38,13 @@ public class StartCommandHandler : ICommandHandler
         }
 
         var about = GetStartMessage();
-        await _bot.SendMessage(message.Chat.Id, about, parseMode: ParseMode.Html, cancellationToken: cancellationToken);
+        await _messageService.SendUserNotificationAsync(
+            message.From!, 
+            message.Chat, 
+            UserNotificationType.Welcome, 
+            new SimpleNotificationData(message.From!, message.Chat, about), 
+            cancellationToken
+        );
     }
 
     private static string GetStartMessage()

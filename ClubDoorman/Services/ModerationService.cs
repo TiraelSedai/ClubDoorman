@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.Caching;
 using ClubDoorman.Models;
+using ClubDoorman.Models.Notifications;
 using ClubDoorman.Infrastructure;
 using Telegram.Bot.Types;
 using Telegram.Bot;
@@ -12,13 +13,14 @@ namespace ClubDoorman.Services;
 /// </summary>
 public class ModerationService : IModerationService
 {
-    private readonly SpamHamClassifier _classifier;
-    private readonly MimicryClassifier _mimicryClassifier;
-    private readonly BadMessageManager _badMessageManager;
+    private readonly ISpamHamClassifier _classifier;
+    private readonly IMimicryClassifier _mimicryClassifier;
+    private readonly IBadMessageManager _badMessageManager;
     private readonly IUserManager _userManager;
-    private readonly AiChecks _aiChecks;
-    private readonly SuspiciousUsersStorage _suspiciousUsersStorage;
+    private readonly IAiChecks _aiChecks;
+    private readonly ISuspiciousUsersStorage _suspiciousUsersStorage;
     private readonly ITelegramBotClient _botClient;
+    private readonly IMessageService _messageService;
     private readonly ILogger<ModerationService> _logger;
 
     // Счетчики хороших сообщений для новой системы
@@ -35,13 +37,14 @@ public class ModerationService : IModerationService
     private readonly ConcurrentDictionary<string, int> _groupSuspiciousUserMessages = new();
 
     public ModerationService(
-        SpamHamClassifier classifier,
-        MimicryClassifier mimicryClassifier,
-        BadMessageManager badMessageManager,
+        ISpamHamClassifier classifier,
+        IMimicryClassifier mimicryClassifier,
+        IBadMessageManager badMessageManager,
         IUserManager userManager,
-        AiChecks aiChecks,
-        SuspiciousUsersStorage suspiciousUsersStorage,
+        IAiChecks aiChecks,
+        ISuspiciousUsersStorage suspiciousUsersStorage,
         ITelegramBotClient botClient,
+        IMessageService messageService,
         ILogger<ModerationService> logger)
     {
         _classifier = classifier;
@@ -51,12 +54,37 @@ public class ModerationService : IModerationService
         _aiChecks = aiChecks;
         _suspiciousUsersStorage = suspiciousUsersStorage;
         _botClient = botClient;
+        _messageService = messageService;
         _logger = logger;
+        
+        // Логируем статус системы мимикрии
+        if (Config.SuspiciousDetectionEnabled)
+        {
+            _logger.LogInformation("🎭 Система мимикрии ВКЛЮЧЕНА: порог={Threshold:F1}, сообщений для одобрения={Count}", 
+                Config.MimicryThreshold, Config.SuspiciousToApprovedMessageCount);
+        }
+        else
+        {
+            _logger.LogWarning("🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения");
+        }
     }
 
+    /// <summary>
+    /// Проверяет сообщение на соответствие правилам модерации
+    /// </summary>
+    /// <param name="message">Сообщение для проверки</param>
+    /// <returns>Результат модерации с рекомендуемым действием и причиной</returns>
+    /// <exception cref="ModerationException">Выбрасывается при ошибках во время модерации</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если message равен null</exception>
     public async Task<ModerationResult> CheckMessageAsync(Message message)
     {
-        var user = message.From!;
+        if (message == null)
+            throw new ArgumentNullException(nameof(message), "Сообщение не может быть null");
+
+        if (message.From == null)
+            throw new ModerationException("Сообщение должно содержать информацию о пользователе");
+
+        var user = message.From;
         var text = message.Text ?? message.Caption;
         var chat = message.Chat;
 
@@ -115,8 +143,21 @@ public class ModerationService : IModerationService
         return await CheckTextContentAsync(text, message);
     }
 
+    /// <summary>
+    /// Проверяет имя пользователя на соответствие правилам
+    /// </summary>
+    /// <param name="user">Пользователь для проверки</param>
+    /// <returns>Результат проверки имени пользователя</returns>
+    /// <exception cref="ModerationException">Выбрасывается при ошибках во время проверки</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если user равен null</exception>
     public async Task<ModerationResult> CheckUserNameAsync(User user)
     {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user), "Пользователь не может быть null");
+
+        if (string.IsNullOrWhiteSpace(user.FirstName))
+            throw new ModerationException("Имя пользователя не может быть пустым");
+
         var fullName = Utils.FullName(user);
         
         // Проверяем длину имени
@@ -151,8 +192,25 @@ public class ModerationService : IModerationService
         }
     }
 
+    /// <summary>
+    /// Увеличивает счетчик хороших сообщений пользователя и обрабатывает логику одобрения
+    /// </summary>
+    /// <param name="user">Пользователь, отправивший сообщение</param>
+    /// <param name="chat">Чат, в котором было отправлено сообщение</param>
+    /// <param name="messageText">Текст сообщения</param>
+    /// <exception cref="ModerationException">Выбрасывается при ошибках во время обработки</exception>
+    /// <exception cref="ArgumentNullException">Выбрасывается если user или chat равен null</exception>
     public async Task IncrementGoodMessageCountAsync(User user, Chat chat, string messageText)
     {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user), "Пользователь не может быть null");
+
+        if (chat == null)
+            throw new ArgumentNullException(nameof(chat), "Чат не может быть null");
+
+        if (string.IsNullOrWhiteSpace(messageText))
+            throw new ArgumentException("Текст сообщения не может быть пустым", nameof(messageText));
+
         // Проверяем, является ли пользователь подозрительным
         if (_suspiciousUsersStorage.IsSuspicious(user.Id, chat.Id))
         {
@@ -425,14 +483,21 @@ public class ModerationService : IModerationService
                 firstMessages = _userFirstMessages.GetValueOrDefault(user.Id, new List<string>());
             }
             
+            _logger.LogDebug("🎭 Анализ мимикрии для {User}: собрано {Count} сообщений", 
+                Utils.FullName(user), firstMessages.Count);
+            
             if (firstMessages.Count < 3)
             {
-                _logger.LogWarning("Недостаточно сообщений для анализа мимикрии: {Count}", firstMessages.Count);
+                _logger.LogDebug("🎭 Недостаточно сообщений для анализа мимикрии: {Count}/3 для {User}", 
+                    firstMessages.Count, Utils.FullName(user));
                 return false;
             }
             
             // Анализируем мимикрию
             var mimicryScore = _mimicryClassifier.AnalyzeMessages(firstMessages);
+            
+            _logger.LogDebug("🎭 Результат анализа мимикрии для {User}: скор={Score:F2}, порог={Threshold:F2}", 
+                Utils.FullName(user), mimicryScore, Config.MimicryThreshold);
             
             if (mimicryScore >= Config.MimicryThreshold)
             {
@@ -448,7 +513,7 @@ public class ModerationService : IModerationService
                 _suspiciousUsersStorage.AddSuspicious(user.Id, chat.Id, suspiciousInfo);
                 
                 _logger.LogWarning(
-                    "User {FullName} marked as suspicious in chat {ChatTitle} with mimicry score {Score:F2}. First messages: [{Messages}]",
+                    "🎭🚨 User {FullName} marked as suspicious in chat {ChatTitle} with mimicry score {Score:F2}. First messages: [{Messages}]",
                     Utils.FullName(user),
                     chat.Title ?? chat.Id.ToString(),
                     mimicryScore,
@@ -460,6 +525,9 @@ public class ModerationService : IModerationService
                 
                 return true;
             }
+            
+            _logger.LogDebug("🎭✅ Пользователь {User} прошел проверку мимикрии: скор={Score:F2} < порог={Threshold:F2}", 
+                Utils.FullName(user), mimicryScore, Config.MimicryThreshold);
             
             return false;
         }
@@ -603,7 +671,7 @@ public class ModerationService : IModerationService
         }
 
         // 9. ML классификация спама
-        var (spam, score) = await _classifier.IsSpam(normalized);
+        var (spam, score) = await _classifier.IsSpam(normalized).WaitAsync(TimeSpan.FromSeconds(15));
         _logger.LogDebug("ML анализ: текст='{Text}', спам={Spam}, скор={Score}", normalized, spam, score);
         
         if (spam)
@@ -714,8 +782,9 @@ public class ModerationService : IModerationService
             _suspiciousUsersStorage.SetAiDetectEnabled(user.Id, chat.Id, false);
 
             // Запускаем СПЕЦИАЛЬНЫЙ AI анализ для подозрительных пользователей
-            var aiResult = await _aiChecks.GetSuspiciousUserSpamProbability(message, user, firstMessages, mimicryScore);
-            var (isSpamByMl, mlScore) = await _classifier.IsSpam(messageText);
+            var aiResult = await _aiChecks.GetSuspiciousUserSpamProbability(message, user, firstMessages, mimicryScore)
+                .AsTask().WaitAsync(TimeSpan.FromSeconds(30));
+            var (isSpamByMl, mlScore) = await _classifier.IsSpam(messageText).WaitAsync(TimeSpan.FromSeconds(15));
             var spamProbability = aiResult.Probability; // получаем double из SpamProbability
             
             var aiReason = aiResult.Reason ?? "Нет объяснения";
@@ -728,30 +797,13 @@ public class ModerationService : IModerationService
                 await _botClient.DeleteMessage(chat.Id, message.MessageId);
                 await RestrictUserToReadOnly(user, chat, TimeSpan.FromHours(2));
                 
-                var deleteNotification = $"🔍🤖🚫 *Специальный AI детект: автоудаление спама*\n\n" +
-                                       $"👤 Пользователь: [{userName}](tg://user?id={user.Id})\n" +
-                                       $"🏠 Чат: *{chatName}*\n" +
-                                       $"📨 Сообщение: `{messageText.Substring(0, Math.Min(messageText.Length, 200))}`\n" +
-                                       $"🎭 Скор мимикрии: *{mimicryScore:F2}*\n" +
-                                       $"🤖 AI анализ: *{spamProbability:F2}* - {aiReason}\n" +
-                                       $"🔬 ML скор: *{mlScore:F2}*\n" +
-                                       $"⚡ Действие: **Автоматически удалено + ограничение на 2 часа**";
+                var aiDetectData = new AiDetectNotificationData(
+                    user, chat, "Автоудаление спама", mimicryScore, spamProbability, mlScore, aiReason, messageText, true, message.MessageId);
 
-                var keyboard = new Telegram.Bot.Types.ReplyMarkups.InlineKeyboardMarkup(new[]
-                {
-                    new[]
-                    {
-                        Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton.WithCallbackData("✅ Разблокировать", $"suspicious_approve_{user.Id}_{chat.Id}"),
-                        Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton.WithCallbackData("🚫 Забанить навсегда", $"suspicious_ban_{user.Id}_{chat.Id}")
-                    }
-                });
-
-                await _botClient.SendMessage(
-                    chatId: Config.AdminChatId,
-                    text: deleteNotification,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                    replyMarkup: keyboard,
-                    cancellationToken: default
+                await _messageService.SendAdminNotificationAsync(
+                    AdminNotificationType.AiDetectAutoDelete,
+                    aiDetectData,
+                    default
                 );
 
                 _logger.LogInformation("🔍🤖🚫 Специальный AI детект: автоудаление спама от {User}, мимикрия={MimicryScore}, AI={AiScore}, ML={MlScore}", 
@@ -764,38 +816,13 @@ public class ModerationService : IModerationService
                 // Ограничение пользователя на 2 часа + уведомление с кнопками
                 await RestrictUserToReadOnly(user, chat, TimeSpan.FromHours(2));
                 
-                var uncertainNotification = $"🔍🤖❓ *Специальный AI детект: подозрительное сообщение*\n\n" +
-                                          $"👤 Пользователь: [{userName}](tg://user?id={user.Id})\n" +
-                                          $"🏠 Чат: *{chatName}*\n" +
-                                          $"📨 Сообщение: `{messageText.Substring(0, Math.Min(messageText.Length, 200))}`\n" +
-                                          $"🎭 Скор мимикрии: *{mimicryScore:F2}*\n" +
-                                          $"🤖 AI анализ: *{spamProbability:F2}* - {aiReason}\n" +
-                                          $"🔬 ML скор: *{mlScore:F2}*\n" +
-                                          $"🔒 Пользователь ограничен на 2 часа. Требуется решение.";
+                var aiDetectData = new AiDetectNotificationData(
+                    user, chat, "Подозрительное сообщение", mimicryScore, spamProbability, mlScore, aiReason, messageText, false, message.MessageId);
 
-                var keyboard = new Telegram.Bot.Types.ReplyMarkups.InlineKeyboardMarkup(new[]
-                {
-                    new[]
-                    {
-                        Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton.WithCallbackData("✅ Разблокировать", $"suspicious_approve_{user.Id}_{chat.Id}"),
-                        Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton.WithCallbackData("🗑 Удалить + бан", $"suspicious_ban_{user.Id}_{chat.Id}")
-                    }
-                });
-
-                // Пересылаем оригинальное сообщение
-                await _botClient.ForwardMessage(
-                    chatId: Config.AdminChatId,
-                    fromChatId: chat.Id,
-                    messageId: message.MessageId,
-                    cancellationToken: default
-                );
-
-                await _botClient.SendMessage(
-                    chatId: Config.AdminChatId,
-                    text: uncertainNotification,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                    replyMarkup: keyboard,
-                    cancellationToken: default
+                await _messageService.SendAdminNotificationAsync(
+                    AdminNotificationType.AiDetectSuspicious,
+                    aiDetectData,
+                    default
                 );
 
                 _logger.LogInformation("🔍🤖❓ Специальный AI детект: ограничение пользователя {User}, мимикрия={MimicryScore}, AI={AiScore}, ML={MlScore}", 

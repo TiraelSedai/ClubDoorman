@@ -3,6 +3,9 @@ using System.Text.Json;
 
 namespace ClubDoorman.Services;
 
+/// <summary>
+/// Хранилище одобренных пользователей с поддержкой атомарной сериализации и потокобезопасности.
+/// </summary>
 public class ApprovedUsersStorage
 {
     private readonly string _filePath;
@@ -10,6 +13,10 @@ public class ApprovedUsersStorage
     private readonly ILogger<ApprovedUsersStorage> _logger;
     private readonly object _lock = new object();
 
+    /// <summary>
+    /// Создает экземпляр хранилища одобренных пользователей.
+    /// </summary>
+    /// <param name="logger">Логгер для записи ошибок и событий</param>
     public ApprovedUsersStorage(ILogger<ApprovedUsersStorage> logger)
     {
         _logger = logger;
@@ -17,6 +24,10 @@ public class ApprovedUsersStorage
         _approvedUsers = LoadFromFile();
     }
 
+    /// <summary>
+    /// Загружает список одобренных пользователей из файла.
+    /// </summary>
+    /// <returns>Множество ID одобренных пользователей</returns>
     private HashSet<long> LoadFromFile()
     {
         try
@@ -56,6 +67,9 @@ public class ApprovedUsersStorage
         }
     }
 
+    /// <summary>
+    /// Сохраняет список одобренных пользователей в файл атомарно.
+    /// </summary>
     private void SaveToFile()
     {
         try
@@ -84,6 +98,11 @@ public class ApprovedUsersStorage
         }
     }
 
+    /// <summary>
+    /// Проверяет, одобрен ли пользователь.
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <returns>true, если пользователь одобрен</returns>
     public bool IsApproved(long userId)
     {
         lock (_lock)
@@ -92,6 +111,11 @@ public class ApprovedUsersStorage
         }
     }
 
+    /// <summary>
+    /// Добавляет пользователя в список одобренных и сохраняет изменения.
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <exception cref="Exception">В случае ошибки сериализации или записи</exception>
     public void ApproveUser(long userId)
     {
         try
@@ -115,6 +139,12 @@ public class ApprovedUsersStorage
         }
     }
 
+    /// <summary>
+    /// Удаляет пользователя из списка одобренных и сохраняет изменения.
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <returns>true, если пользователь был удалён</returns>
+    /// <exception cref="Exception">В случае ошибки сериализации или записи</exception>
     public bool RemoveApproval(long userId)
     {
         try

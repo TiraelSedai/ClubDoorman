@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
+using ClubDoorman.Models.Notifications;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
@@ -13,24 +14,26 @@ namespace ClubDoorman.Services;
 /// </summary>
 public class IntroFlowService
 {
-    private readonly TelegramBotClient _bot;
+    private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<IntroFlowService> _logger;
     private readonly ICaptchaService _captchaService;
     private readonly IUserManager _userManager;
-    private readonly AiChecks _aiChecks;
+    private readonly IAiChecks _aiChecks;
     private readonly IStatisticsService _statisticsService;
     private readonly GlobalStatsManager _globalStatsManager;
     private readonly IModerationService _moderationService;
+    private readonly IMessageService _messageService;
 
     public IntroFlowService(
-        TelegramBotClient bot,
+        ITelegramBotClientWrapper bot,
         ILogger<IntroFlowService> logger,
         ICaptchaService captchaService,
         IUserManager userManager,
-        AiChecks aiChecks,
+        IAiChecks aiChecks,
         IStatisticsService statisticsService,
         GlobalStatsManager globalStatsManager,
-        IModerationService moderationService)
+        IModerationService moderationService,
+        IMessageService messageService)
     {
         _bot = bot;
         _logger = logger;
@@ -40,6 +43,7 @@ public class IntroFlowService
         _statisticsService = statisticsService;
         _globalStatsManager = globalStatsManager;
         _moderationService = moderationService;
+        _messageService = messageService;
     }
 
     public async Task ProcessNewUserAsync(Message? userJoinMessage, User user, Chat? chat = default)
@@ -141,10 +145,9 @@ public class IntroFlowService
             _statisticsService.IncrementLongNameBan(chat.Id);
 
             // Уведомляем админов
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"{banType} в чате *{chat.Title}* за {nameDescription} длинное имя пользователя ({fullName.Length} символов):\n`{Markdown.Escape(fullName)}`",
-                parseMode: ParseMode.Markdown
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.AutoBan,
+                new AutoBanNotificationData(user, chat, banType, $"{nameDescription} длинное имя пользователя ({fullName.Length} символов): {fullName}")
             );
             _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
         }
@@ -184,10 +187,9 @@ public class IntroFlowService
             // Удаляем из списка одобренных
             if (_userManager.RemoveApproval(user.Id, chat.Id, removeAll: true))
             {
-                await _bot.SendMessage(
-                    Config.AdminChatId,
-                    $"⚠️ Пользователь [{Markdown.Escape(FullName(user.FirstName, user.LastName))}](tg://user?id={user.Id}) удален из списка одобренных после бана по блеклисту",
-                    parseMode: ParseMode.Markdown
+                await _messageService.SendAdminNotificationAsync(
+                    AdminNotificationType.UserCleanup,
+                    new UserCleanupNotificationData(user, chat, $"Пользователь {FullName(user.FirstName, user.LastName)} удален из списка одобренных после бана по блеклисту")
                 );
             }
             
@@ -198,10 +200,9 @@ public class IntroFlowService
         catch (Exception e)
         {
             _logger.LogWarning(e, "Unable to ban");
-            await _bot.SendMessage(
-                Config.AdminChatId,
-                $"⚠️ Не могу забанить юзера из блеклиста в чате *{chat.Title}*. Не хватает могущества? Сходите забаньте руками.",
-                parseMode: ParseMode.Markdown
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.Warning,
+                new SimpleNotificationData(new User { Id = 0, FirstName = "System" }, chat, $"Не могу забанить юзера из блеклиста в чате {chat.Title}. Не хватает могущества? Сходите забаньте руками.")
             );
         }
 

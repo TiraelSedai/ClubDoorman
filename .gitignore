@@ -6,3 +6,34 @@
 /.idea/**
 /ClubDoorman.sln.DotSettings.user
 ClubDoorman/ClubDoorman.csproj.user
+/tmp/
+/plans/
+
+# Test artifacts
+ClubDoorman.Test/TestResults/
+ClubDoorman.Test/StrykerOutput/
+ClubDoorman.Test/coverage/
+ClubDoorman.Test/TestData/temp/
+ClubDoorman.Test/Performance/results/
+ClubDoorman.Test/Mutation/results/
+
+# Test logs
+*.test.log
+test-results.xml
+coverage.xml
+mutation-report.html
+
+# Application logs
+ClubDoorman/logs/
+*.log
+
+# Temporary test files
+*.tmp
+*.temp
+test-*.jsonscripts/test_factory_generator/__pycache__/
+
+# Security - never commit real tokens
+test_bot.sh
+*.env
+secrets.*
+tokens.*
