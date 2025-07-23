@@ -1,0 +1,95 @@
+name: Deploy - Build and Push Docker
+
+on:
+  push:
+    branches: [ next-dev ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Extract version number
+      id: vars
+      run: echo "version=2.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+    - name: Set lowercase repo name
+      run: echo "repo_name=${{ github.repository }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build application
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish application
+      run: dotnet publish ClubDoorman/ClubDoorman.csproj -c Release -o publish
+
+    - name: Build Docker image
+      run: |
+        docker build -t ghcr.io/${{ env.repo_name }}:dev \
+                     -t ghcr.io/${{ env.repo_name }}:dev-2.0.${{ github.run_number }} \
+                     ./ClubDoorman
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Docker image
+      run: |
+        docker push ghcr.io/${{ env.repo_name }}:dev
+        docker push ghcr.io/${{ env.repo_name }}:dev-2.0.${{ github.run_number }}
+
+    - name: SSH and Update Container
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -t rsa $SERVER_IP >> ~/.ssh/known_hosts
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
+          docker-compose -f /root/Spampyre/docker-compose.yml pull &&
+          docker-compose -f /root/Spampyre/docker-compose.yml down &&
+          docker-compose -f /root/Spampyre/docker-compose.yml up -d
+        "
+      env:
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Get Docker logs from server
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -t rsa $SERVER_IP >> ~/.ssh/known_hosts
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "docker logs --tail 100 spampyre" > spampyre_logs.txt
+      env:
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Upload logs as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: spampyre-logs
+        path: spampyre_logs.txt
+
+    - name: Add logs to summary
+      run: |
+        echo '### Последние логи контейнера spampyre' >> $GITHUB_STEP_SUMMARY
+        echo '<details><summary>Показать логи</summary>' >> $GITHUB_STEP_SUMMARY
+        echo '' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat spampyre_logs.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo '</details>' >> $GITHUB_STEP_SUMMARY
