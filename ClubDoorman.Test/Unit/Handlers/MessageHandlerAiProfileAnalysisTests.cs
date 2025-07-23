@@ -36,7 +36,7 @@ public class MessageHandlerAiProfileAnalysisTests
             mock.Setup(x => x.CheckUserNameAsync(It.IsAny<User>()))
                 .ReturnsAsync(new Models.ModerationResult(Models.ModerationAction.Allow, "Test name"));
             mock.Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
-                .Returns(false);
+                .Returns(false); // Пользователь НЕ одобрен - нужен AI анализ
         });
         
         _factory.WithUserManagerSetup(mock =>
@@ -54,7 +54,7 @@ public class MessageHandlerAiProfileAnalysisTests
             mock.Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
                 .Returns("test_key");
             mock.Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
-                .Returns((Models.CaptchaInfo?)null);
+                .Returns((Models.CaptchaInfo?)null); // Пользователь НЕ проходит капчу
         });
         
         _factory.WithBotSetup(mock =>
@@ -214,6 +214,39 @@ public class MessageHandlerAiProfileAnalysisTests
                 data.AutomaticAction == "🗑️ Сообщение удалено + 🔇 Read-Only на 10 минут"),
             It.IsAny<CancellationToken>()), 
             Times.Once, "Должно быть отправлено уведомление с правильным описанием действия");
+    }
+
+    [Test]
+    public async Task PerformAiProfileAnalysis_HighProbability_DeleteMessageCalled_DebugTest()
+    {
+        // Arrange - упрощенный тест для отладки
+        var user = CreateTestUser();
+        var chat = CreateTestChat();
+        var message = CreateTestMessage("Спам сообщение", user, chat);
+        
+        _factory.WithAiChecksSetup(mock =>
+        {
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = 0.95f, Reason = "Test high probability" },
+                    new byte[0],
+                    "Test User"
+                ));
+        });
+
+        // Act
+        await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
+
+        // Assert - проверим просто что DeleteMessage был вызван хотя бы раз
+        _factory.BotMock.Verify(x => x.DeleteMessage(
+            It.IsAny<ChatId>(),
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), 
+            Times.AtLeastOnce, "DeleteMessage должен был быть вызван хотя бы раз");
+            
+        // Также проверим что AI анализ был вызван
+        _factory.AiChecksMock.Verify(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null), 
+            Times.Once, "AI анализ должен был быть вызван");
     }
 
     [Test]
