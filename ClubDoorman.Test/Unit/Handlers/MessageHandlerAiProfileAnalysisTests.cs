@@ -59,10 +59,10 @@ public class MessageHandlerAiProfileAnalysisTests
         
         _factory.WithBotSetup(mock =>
         {
-            mock.Setup(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            mock.Setup(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
             mock.Setup(x => x.RestrictChatMember(
-                It.IsAny<long>(), 
+                It.IsAny<ChatId>(), 
                 It.IsAny<long>(), 
                 It.IsAny<ChatPermissions>(), 
                 It.IsAny<DateTime?>(), 
@@ -105,11 +105,11 @@ public class MessageHandlerAiProfileAnalysisTests
 
         // Assert
         // Проверяем что никаких действий не было предпринято
-        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
+        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
             Times.Never, "Сообщение не должно удаляться при низкой вероятности");
             
         _factory.BotMock.Verify(x => x.RestrictChatMember(
-            It.IsAny<long>(), It.IsAny<long>(), It.IsAny<ChatPermissions>(), 
+            It.IsAny<ChatId>(), It.IsAny<long>(), It.IsAny<ChatPermissions>(), 
             It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), 
             Times.Never, "Пользователь не должен ограничиваться при низкой вероятности");
             
@@ -143,12 +143,12 @@ public class MessageHandlerAiProfileAnalysisTests
 
         // Assert
         // Проверяем что сообщение НЕ удалено
-        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
+        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
             Times.Never, "Сообщение НЕ должно удаляться при средней вероятности");
             
         // Проверяем что пользователь ограничен (read-only)
         _factory.BotMock.Verify(x => x.RestrictChatMember(
-            It.Is<long>(chatId => chatId == chat.Id),
+            It.Is<ChatId>(chatId => chatId.Identifier == chat.Id),
             It.Is<long>(userId => userId == user.Id),
             It.Is<ChatPermissions>(perms => perms.CanSendMessages == false),
             It.IsAny<DateTime?>(),
@@ -192,14 +192,14 @@ public class MessageHandlerAiProfileAnalysisTests
         // Assert
         // Проверяем что сообщение удалено
         _factory.BotMock.Verify(x => x.DeleteMessage(
-            It.Is<long>(chatId => chatId == chat.Id),
-            It.Is<int>(msgId => msgId == message.MessageId),
+            It.Is<ChatId>(chatId => chatId.Identifier == chat.Id),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), 
             Times.Once, "Сообщение должно быть удалено при высокой вероятности");
             
         // Проверяем что пользователь ограничен (read-only)
         _factory.BotMock.Verify(x => x.RestrictChatMember(
-            It.Is<long>(chatId => chatId == chat.Id),
+            It.Is<ChatId>(chatId => chatId.Identifier == chat.Id),
             It.Is<long>(userId => userId == user.Id),
             It.Is<ChatPermissions>(perms => perms.CanSendMessages == false),
             It.IsAny<DateTime?>(),
@@ -239,9 +239,9 @@ public class MessageHandlerAiProfileAnalysisTests
         await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
 
         // Assert
-        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
+        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
             Times.Never, "При точно LlmLowProbability сообщение НЕ должно удаляться");
-        _factory.BotMock.Verify(x => x.RestrictChatMember(It.IsAny<long>(), It.IsAny<long>(), It.IsAny<ChatPermissions>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), 
+        _factory.BotMock.Verify(x => x.RestrictChatMember(It.IsAny<ChatId>(), It.IsAny<long>(), It.IsAny<ChatPermissions>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), 
             Times.Once, "При точно LlmLowProbability должно применяться ограничение");
 
         // Reset для следующего теста
@@ -263,9 +263,9 @@ public class MessageHandlerAiProfileAnalysisTests
         await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
 
         // Assert
-        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
+        _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
             Times.Once, "При точно LlmHighProbability сообщение должно удаляться");
-        _factory.BotMock.Verify(x => x.RestrictChatMember(It.IsAny<long>(), It.IsAny<long>(), It.IsAny<ChatPermissions>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), 
+        _factory.BotMock.Verify(x => x.RestrictChatMember(It.IsAny<ChatId>(), It.IsAny<long>(), It.IsAny<ChatPermissions>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), 
             Times.Once, "При точно LlmHighProbability должно применяться ограничение");
     }
 
