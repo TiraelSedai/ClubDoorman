@@ -13,7 +13,7 @@ namespace ClubDoorman.Test.Integration;
 [Category("ai-photo")]
 public class AiChecksPhotoLoggingTest
 {
-    private string FindEnvFile()
+    private string? FindEnvFile()
     {
         var baseDir = AppContext.BaseDirectory;
         var currentDir = Directory.GetCurrentDirectory();
@@ -46,7 +46,7 @@ public class AiChecksPhotoLoggingTest
             }
         }
         
-        throw new FileNotFoundException("Could not find .env file in any of the expected locations");
+        return null; // Файл не найден
     }
     private ILogger<AiChecks> _logger = null!;
     private FakeTelegramClient _fakeBot = null!;
@@ -60,6 +60,10 @@ public class AiChecksPhotoLoggingTest
         
         // Загружаем .env файл
         var envPath = FindEnvFile();
+        if (envPath == null)
+        {
+            Assert.Ignore("Файл .env не найден, пропускаем интеграционный тест");
+        }
         DotNetEnv.Env.Load(envPath);
         
         // Загружаем переменные в Environment для Config.cs

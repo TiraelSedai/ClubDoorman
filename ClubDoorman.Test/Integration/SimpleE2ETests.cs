@@ -19,7 +19,7 @@ public class SimpleE2ETests
     private SpamHamClassifier _spamHamClassifier = null!;
     private MimicryClassifier _mimicryClassifier = null!;
 
-    private string FindEnvFile()
+    private string? FindEnvFile()
     {
         var baseDir = AppContext.BaseDirectory;
         
@@ -46,7 +46,7 @@ public class SimpleE2ETests
             }
         }
         
-        throw new FileNotFoundException("Could not find .env file");
+        return null; // Файл не найден
     }
 
     [SetUp]
@@ -57,6 +57,10 @@ public class SimpleE2ETests
         
         // Загружаем .env файл
         var envPath = FindEnvFile();
+        if (envPath == null)
+        {
+            Assert.Ignore("Файл .env не найден, пропускаем E2E тесты");
+        }
         DotNetEnv.Env.Load(envPath);
         
         // Загружаем переменные в Environment для Config.cs
