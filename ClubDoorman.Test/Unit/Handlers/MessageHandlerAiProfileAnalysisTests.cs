@@ -3,6 +3,7 @@ using ClubDoorman.TestInfrastructure;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Services;
 using NUnit.Framework;
 using Moq;
 using System;
@@ -91,20 +92,18 @@ public class MessageHandlerAiProfileAnalysisTests
         
         _factory.WithAiChecksSetup(mock =>
         {
-            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>()))
-                .ReturnsAsync(new AttentionBaitProbabilityResult(
-                    new SpamProbability(probability, reason),
-                    "Test User",
-                    new byte[0]
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = (float)probability, Reason = reason },
+                    new byte[0],
+                    "Test User"
                 ));
         });
 
         // Act
-        var result = await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
+        await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
 
         // Assert
-        Assert.That(result, Is.True, "Обработчик должен принять сообщение");
-        
         // Проверяем что никаких действий не было предпринято
         _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
             Times.Never, "Сообщение не должно удаляться при низкой вероятности");
@@ -131,20 +130,18 @@ public class MessageHandlerAiProfileAnalysisTests
         
         _factory.WithAiChecksSetup(mock =>
         {
-            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>()))
-                .ReturnsAsync(new AttentionBaitProbabilityResult(
-                    new SpamProbability(probability, reason),
-                    "Test User",
-                    new byte[0]
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = (float)probability, Reason = reason },
+                    new byte[0],
+                    "Test User"
                 ));
         });
 
         // Act
-        var result = await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
+        await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
 
         // Assert
-        Assert.That(result, Is.True, "Обработчик должен принять сообщение");
-        
         // Проверяем что сообщение НЕ удалено
         _factory.BotMock.Verify(x => x.DeleteMessage(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), 
             Times.Never, "Сообщение НЕ должно удаляться при средней вероятности");
@@ -181,20 +178,18 @@ public class MessageHandlerAiProfileAnalysisTests
         
         _factory.WithAiChecksSetup(mock =>
         {
-            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>()))
-                .ReturnsAsync(new AttentionBaitProbabilityResult(
-                    new SpamProbability(probability, reason),
-                    "Spam User",
-                    new byte[100] // Имитируем фото профиля
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = (float)probability, Reason = reason },
+                    new byte[100], // Имитируем фото профиля
+                    "Spam User"
                 ));
         });
 
         // Act
-        var result = await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
+        await _handler.HandleAsync(CreateUpdate(message), CancellationToken.None);
 
         // Assert
-        Assert.That(result, Is.True, "Обработчик должен принять сообщение");
-        
         // Проверяем что сообщение удалено
         _factory.BotMock.Verify(x => x.DeleteMessage(
             It.Is<long>(chatId => chatId == chat.Id),
@@ -232,11 +227,11 @@ public class MessageHandlerAiProfileAnalysisTests
         // Test: точно 0.75 - должно ограничивать, но не удалять
         _factory.WithAiChecksSetup(mock =>
         {
-            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>()))
-                .ReturnsAsync(new AttentionBaitProbabilityResult(
-                    new SpamProbability(Consts.LlmLowProbability, "Точно пороговое значение"),
-                    "Test User",
-                    new byte[0]
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = (float)Consts.LlmLowProbability, Reason = "Точно пороговое значение" },
+                    new byte[0],
+                    "Test User"
                 ));
         });
 
@@ -256,11 +251,11 @@ public class MessageHandlerAiProfileAnalysisTests
         // Test: точно 0.9 - должно удалять И ограничивать
         _factory.WithAiChecksSetup(mock =>
         {
-            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>()))
-                .ReturnsAsync(new AttentionBaitProbabilityResult(
-                    new SpamProbability(Consts.LlmHighProbability, "Точно высокое пороговое значение"),
-                    "Test User",
-                    new byte[0]
+            mock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+                .ReturnsAsync(new SpamPhotoBio(
+                    new SpamProbability { Probability = (float)Consts.LlmHighProbability, Reason = "Точно высокое пороговое значение" },
+                    new byte[0],
+                    "Test User"
                 ));
         });
 
@@ -301,7 +296,6 @@ public class MessageHandlerAiProfileAnalysisTests
     {
         return new Message
         {
-            MessageId = 12345,
             Date = DateTime.UtcNow,
             Chat = chat,
             From = user,
