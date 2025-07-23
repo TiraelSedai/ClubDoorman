@@ -213,28 +213,39 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
 
     private string FormatAiProfileAnalysis(AiProfileAnalysisData notification)
     {
-        var reasonText = notification.Reason.Length > 400 ? 
-            notification.Reason.Substring(0, 397) + "..." : 
+        var reasonText = notification.Reason.Length > 350 ? 
+            notification.Reason.Substring(0, 347) + "..." : 
             notification.Reason;
             
-        var messageText = notification.MessageText.Length > 150 ? 
-            notification.MessageText.Substring(0, 147) + "..." : 
+        var messageText = notification.MessageText.Length > 120 ? 
+            notification.MessageText.Substring(0, 117) + "..." : 
             notification.MessageText;
             
+        // Экранируем HTML символы
+        var escapedUser = System.Net.WebUtility.HtmlEncode(FormatUser(notification.User));
+        var escapedChat = System.Net.WebUtility.HtmlEncode(FormatChat(notification.Chat));
+        var escapedReason = System.Net.WebUtility.HtmlEncode(reasonText);
+        var escapedNameBio = System.Net.WebUtility.HtmlEncode(notification.NameBio);
+        var escapedMessageText = System.Net.WebUtility.HtmlEncode(messageText);
+            
         var result = $"🤖 <b>AI анализ профиля</b>\n\n" +
-                     $"👤 <b>Пользователь:</b> {FormatUser(notification.User)}\n" +
-                     $"💬 <b>Чат:</b> {FormatChat(notification.Chat)}\n\n" +
-                     $"📊 <b>Вероятность спама:</b> {notification.SpamProbability * 100:F1}%\n\n" +
-                     $"🔍 <b>Причина:</b>\n<i>{reasonText}</i>\n\n" +
-                     $"📋 <b>Профиль:</b> {notification.NameBio}\n\n" +
-                     $"💬 <b>Сообщение:</b> {messageText}\n\n";
+                     $"👤 <b>Пользователь</b>: {escapedUser}\n" +
+                     $"💬 <b>Чат</b>: {escapedChat}\n\n" +
+                     $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                     $"📊 <b>Вероятность спама</b>: {notification.SpamProbability * 100:F1}%\n\n" +
+                     $"🔍 <b>Причина</b>:\n<i>{escapedReason}</i>\n\n" +
+                     $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                     $"📋 <b>Профиль</b>:\n<code>{escapedNameBio}</code>\n\n" +
+                     $"💬 <b>Сообщение</b>:\n<code>{escapedMessageText}</code>\n\n";
                      
         if (!string.IsNullOrEmpty(notification.AutomaticAction))
         {
-            result += $"⚡ <b>Автоматическое действие:</b>\n{notification.AutomaticAction}\n\n";
+            // Автоматическое действие не экранируем - мы его формируем сами и знаем что там безопасно
+            result += $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                      $"⚡ <b>Автоматическое действие</b>:\n<b>{notification.AutomaticAction}</b>\n\n";
         }
         
-        result += $"🔗 <b>Ссылка:</b> {FormatMessageLink(notification.Chat, notification.MessageId)}";
+        result += $"🔗 <b>Ссылка</b>: {FormatMessageLink(notification.Chat, notification.MessageId)}";
         
         return result;
     }
