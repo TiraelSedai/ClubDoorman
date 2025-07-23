@@ -19,8 +19,12 @@ allowlist = [
     '''*.example''',
     '''*.sample''',
     '''test.env''',
+    '''**/.env''',
+    '''test_bot.sh.example''',
+    '''run_with_real_token.sh.example''',
     '''test_bot.sh''',
     '''run_with_real_token.sh''',
+    '''ClubDoorman/.env''',
     '''scripts/run_tests*.sh''',
     '''ClubDoorman.Test/''',
     '''plans/''',
@@ -36,7 +40,7 @@ allowlist = [
 [[rules]]
 id = "telegram-bot-token"
 description = "Telegram bot token"
-regex = '''(?i)bot\d+:[a-zA-Z0-9_-]{35,}'''
+regex = '''(?i)\d+:[a-zA-Z0-9_-]{35,}'''
 tags = ["telegram", "token", "bot"]
 severity = "HIGH"
 

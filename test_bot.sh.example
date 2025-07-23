@@ -7,10 +7,9 @@ echo "🚀 Запуск ClubDoorman с реальным токеном бота.
 cd ClubDoorman
 
 # Устанавливаем переменные окружения
-# ⚠️  ВАЖНО: Замените на ваши реальные значения!
 export DOORMAN_BOT_API="YOUR_BOT_TOKEN_HERE"
-export DOORMAN_ADMIN_CHAT="YOUR_ADMIN_CHAT_ID_HERE"  # ID админ-чата
-export DOORMAN_LOG_ADMIN_CHAT="YOUR_LOG_CHAT_ID_HERE"  # ID чата для логов
+export DOORMAN_ADMIN_CHAT="-1001234567890"  # Тестовый ID чата
+export DOORMAN_LOG_ADMIN_CHAT="-1001234567890"  # Тестовый ID чата для логов
 
 echo "📋 Переменные окружения:"
 echo "DOORMAN_BOT_API: $DOORMAN_BOT_API"
