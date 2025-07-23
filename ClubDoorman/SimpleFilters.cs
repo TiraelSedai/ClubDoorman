@@ -7,7 +7,15 @@ public static class SimpleFilters
     public static bool HasStopWords(string message) =>
         StopWords.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
 
-    public static bool TooManyEmojis(string message) => message.Where(IsEmoji).Count() / message.Length >= 0.5;
+    public static bool TooManyEmojis(string message)
+    {
+        var emojiCount = message.Where(IsEmoji).Count();
+        if (emojiCount / message.Length >= 0.5)
+            return true;
+        if (message.Length > 20 && emojiCount > 10)
+            return true;
+        return false;
+    }
 
     private static bool IsEmoji(char character) => character is >= '\uD800' and <= '\uDFFF' or >= '\u2600' and <= '\u27BF';
 
