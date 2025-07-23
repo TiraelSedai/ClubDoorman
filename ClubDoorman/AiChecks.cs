@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -363,6 +363,8 @@ internal class AiChecks
             return ValueTask.FromResult(probability);
 
         var text = message.Caption ?? message.Text;
+        if (message.Quote?.Text != null)
+            text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
         var cacheKey = $"llm_spam_prob:{text}";
 
         return _hybridCache.GetOrCreateAsync(
