@@ -1,0 +1,69 @@
+# GitLeaks конфигурация для ClubDoorman
+# Обнаруживает только реальные токены и ключи
+
+[global]
+# Игнорируем все тестовые файлы и примеры
+allowlist = [
+    '''bin/''',
+    '''obj/''',
+    '''*.user''',
+    '''.vscode/''',
+    '''*.suo''',
+    '''*.dll''',
+    '''*.exe''',
+    '''*.pdb''',
+    '''*.cache''',
+    '''coverage/''',
+    '''TestResults/''',
+    '''tmp/''',
+    '''*.example''',
+    '''*.sample''',
+    '''test.env''',
+    '''**/.env''',
+    '''test_bot.sh.example''',
+    '''run_with_real_token.sh.example''',
+    '''test_bot.sh''',
+    '''run_with_real_token.sh''',
+    '''ClubDoorman/.env''',
+    '''.gitleaks.baseline.json''',
+    '''scripts/run_tests*.sh''',
+    '''ClubDoorman.Test/''',
+    '''plans/''',
+    '''AI_PROFILE_CHECKS.md''',
+    '''.env.sample''',
+    '''docker-compose.yml.example''',
+    '''.github/workflows/''',
+    '''env.example''',
+    '''test_bot.sh.example'''
+]
+
+# Правила для Telegram токенов (только реальные)
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram bot token"
+regex = '''(?i)\d+:[a-zA-Z0-9_-]{35,}'''
+tags = ["telegram", "token", "bot"]
+severity = "HIGH"
+
+# Правила для OpenAI/OpenRouter ключей (только реальные)
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key"
+regex = '''sk-[a-zA-Z0-9]{48}'''
+tags = ["openai", "api", "key"]
+severity = "HIGH"
+
+[[rules]]
+id = "openrouter-api-key"
+description = "OpenRouter API key"
+regex = '''sk-or-v1-[a-zA-Z0-9]{48}'''
+tags = ["openrouter", "api", "key"]
+severity = "HIGH"
+
+# Правила для общих API ключей (только реальные)
+[[rules]]
+id = "api-key-generic"
+description = "Generic API key"
+regex = '''(?i)(?:api[_-]?key|token|secret)[_-]?=.*[a-zA-Z0-9_-]{32,}'''
+tags = ["api", "key", "token"]
+severity = "MEDIUM" 

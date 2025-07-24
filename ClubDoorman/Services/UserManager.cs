@@ -1,8 +1,6 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Globalization;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.Json;
 using ClubDoorman.Infrastructure;
 
 namespace ClubDoorman.Services;
@@ -11,6 +9,27 @@ internal sealed class UserManager : IUserManager
 {
     private readonly ILogger<UserManager> _logger;
     private readonly ApprovedUsersStorage _approvedUsersStorage;
+    private readonly ConcurrentDictionary<long, byte> _banlist = [];
+    private readonly SemaphoreSlim _semaphore = new(1);
+    private readonly HttpClient _clubHttpClient = new();
+    private readonly HttpClient _httpClient = new();
+    
+    // Тестовый блэклист из переменной окружения DOORMAN_TEST_BLACKLIST_IDS
+    private static readonly HashSet<long> _testBlacklist = LoadTestBlacklist();
+
+    public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage)
+    {
+        _logger = logger;
+        _approvedUsersStorage = approvedUsersStorage;
+        
+        // Логируем состояние тестового блэклиста при создании UserManager
+        Console.WriteLine($"[DEBUG] UserManager создан: тестовый блэклист содержит {_testBlacklist.Count} ID(s): [{string.Join(", ", _testBlacklist)}]");
+        
+        if (Config.ClubServiceToken == null)
+            _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
+        else
+            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+    }
 
     public async Task RefreshBanlist()
     {
@@ -20,7 +39,7 @@ internal sealed class UserManager : IUserManager
             try
             {
                 var httpClient = new HttpClient();
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)); // Таймаут 15 сек
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var banlist = await httpClient.GetFromJsonAsync<long[]>("https://lols.bot/spam/banlist.json", cts.Token);
                 
                 if (banlist != null && banlist.Length > 0)
@@ -31,9 +50,9 @@ internal sealed class UserManager : IUserManager
                     foreach (var key in _banlist.Keys.ToArray())
                         _banlist.TryRemove(key, out _);
                     
-                    // Заполняем его новыми значениями
+                    // Заполняем его новыми значениями: 1 = banned
                     foreach (var id in banlist)
-                        _banlist.TryAdd(id, 0);
+                        _banlist.TryAdd(id, 1);
                     
                     _logger.LogInformation("Обновлен банлист из lols.bot: было {OldCount}, стало {NewCount} записей", oldCount, _banlist.Count);
                 }
@@ -53,69 +72,108 @@ internal sealed class UserManager : IUserManager
         }
     }
 
-    public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage)
+    /// <summary>
+    /// Проверяет, одобрен ли пользователь
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="groupId">ID группы (для проверки группового одобрения)</param>
+    /// <returns>true, если пользователь одобрен</returns>
+    public bool Approved(long userId, long? groupId = null)
     {
-        _logger = logger;
-        _approvedUsersStorage = approvedUsersStorage;
-        
-        // Логируем состояние тестового блэклиста при создании UserManager
-        Console.WriteLine($"[DEBUG] UserManager создан: тестовый блэклист содержит {_testBlacklist.Count} ID(s): [{string.Join(", ", _testBlacklist)}]");
-        
-        if (Config.ClubServiceToken == null)
-            _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
-        else
-            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+        return _approvedUsersStorage.IsApproved(userId, groupId);
     }
 
-    private const string Path = "data/approved-users.txt";
-    private readonly ConcurrentDictionary<long, byte> _banlist = [];
-    private readonly SemaphoreSlim _semaphore = new(1);
-    private readonly HashSet<long> _approved = File.ReadAllLines(Path).Select(long.Parse).ToHashSet();
-    private readonly HttpClient _clubHttpClient = new();
-    private readonly HttpClient _httpClient = new();
-    
-    // Тестовый блэклист из переменной окружения DOORMAN_TEST_BLACKLIST_IDS
-    private static readonly HashSet<long> _testBlacklist = LoadTestBlacklist();
-
-    public bool Approved(long userId, long? groupId = null) => _approvedUsersStorage.IsApproved(userId);
-
+    /// <summary>
+    /// Одобряет пользователя в зависимости от настроек
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="groupId">ID группы (для группового одобрения)</param>
     public async ValueTask Approve(long userId, long? groupId = null)
     {
-        _approvedUsersStorage.ApproveUser(userId);
+        if (Config.GlobalApprovalMode)
+        {
+            // Глобальный режим: одобряем глобально
+            _approvedUsersStorage.ApproveUserGlobally(userId);
+        }
+        else
+        {
+            // Групповой режим: одобряем в конкретной группе
+            if (groupId.HasValue)
+            {
+                _approvedUsersStorage.ApproveUserInGroup(userId, groupId.Value);
+            }
+            else
+            {
+                // Если группа не указана, одобряем глобально как fallback
+                _approvedUsersStorage.ApproveUserGlobally(userId);
+            }
+        }
     }
 
+    /// <summary>
+    /// Удаляет одобрение пользователя
+    /// </summary>
+    /// <param name="userId">ID пользователя</param>
+    /// <param name="groupId">ID группы (для удаления группового одобрения)</param>
+    /// <param name="removeAll">Удалить все одобрения пользователя</param>
+    /// <returns>true, если одобрение было удалено</returns>
     public bool RemoveApproval(long userId, long? groupId = null, bool removeAll = false)
     {
         try
         {
-            return _approvedUsersStorage.RemoveApproval(userId);
+            if (removeAll)
+            {
+                return _approvedUsersStorage.RemoveAllApprovals(userId);
+            }
+            
+            if (groupId.HasValue)
+            {
+                // Удаляем одобрение в конкретной группе
+                return _approvedUsersStorage.RemoveGroupApproval(userId, groupId.Value);
+            }
+            else
+            {
+                // Удаляем глобальное одобрение
+                return _approvedUsersStorage.RemoveGlobalApproval(userId);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Не удалось удалить пользователя {UserId} из списка одобренных", userId);
+            _logger.LogError(ex, "Не удалось удалить одобрение пользователя {UserId}", userId);
             return false;
         }
     }
 
     /// <summary>
-    /// Проверяет, находится ли пользователь в банлисте
+    /// Получает информацию об одобрении пользователя
+    /// </summary>
+    public (bool isGlobal, Dictionary<long, GroupApprovalInfo> groupApprovals) GetApprovalInfo(long userId)
+    {
+        var isGlobal = _approvedUsersStorage.IsGloballyApproved(userId);
+        var groupApprovals = _approvedUsersStorage.GetUserGroupApprovals(userId);
+        return (isGlobal, groupApprovals);
+    }
+
+    /// <summary>
+    /// Получает статистику одобрений
+    /// </summary>
+    public (int globalCount, int groupCount, int totalGroupApprovals) GetApprovalStats()
+    {
+        return _approvedUsersStorage.GetApprovalStats();
+    }
+
+    /// <summary>
+    /// Проверяет, находится ли пользователь в банлисте спамеров.
+    /// Использует только кэшированный статический банлист из lols.bot без дополнительных HTTP запросов.
     /// </summary>
     /// <param name="userId">ID пользователя для проверки</param>
-    /// <returns>true, если пользователь находится в банлисте</returns>
-    /// <exception cref="UserManagementException">Выбрасывается при критических ошибках проверки</exception>
+    /// <returns>true если пользователь в банлисте, false если нет</returns>
     public async ValueTask<bool> InBanlist(long userId)
     {
-        // CODE QUALITY - Consider extracting userId validation to avoid duplication
-        if (userId <= 0)
-        {
-            _logger.LogWarning("Попытка проверить некорректный ID пользователя: {UserId}", userId);
-            return false;
-        }
-
-        Console.WriteLine($"[DEBUG] InBanlist: проверяем пользователя {userId} (тестовых ID: {_testBlacklist.Count})");
+        Console.WriteLine($"[DEBUG] UserManager.InBanlist: проверяем пользователя {userId} (тестовых ID: {_testBlacklist.Count})");
         _logger.LogDebug("InBanlist: проверяем пользователя {UserId} (тестовых ID: {TestCount})", userId, _testBlacklist.Count);
         
-        // Сначала проверяем тестовый блэклист
+        // 1. Сначала проверяем тестовый блэклист
         if (_testBlacklist.Contains(userId))
         {
             Console.WriteLine($"[DEBUG] 🎯 НАЙДЕН в тестовом блэклисте: {userId}");
@@ -123,57 +181,18 @@ internal sealed class UserManager : IUserManager
             return true;
         }
         
-        // Проверяем локальный кэш
-        if (_banlist.ContainsKey(userId))
+        // 2. Проверяем кэшированный результат из статического банлиста
+        if (_banlist.TryGetValue(userId, out var cachedResult))
         {
-            _logger.LogDebug("Пользователь {UserId} найден в локальном кэше банлиста", userId);
-            return true;
+            var isBanned = cachedResult == 1;
+            _logger.LogDebug("✅ Пользователь {UserId} найден в кэше: {Status}", userId, isBanned ? "ЗАБЛОКИРОВАН" : "НЕ заблокирован");
+            return isBanned; // 1 = banned, 0 = not banned
         }
-
-        // Проверяем через API
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var result = await _httpClient.GetFromJsonAsync<LolsBotApiResponse>(
-                $"https://api.lols.bot/account?id={userId}", 
-                cts.Token
-            );
-            
-            if (result == null)
-            {
-                _logger.LogWarning("Получен null ответ от LolsBot API для пользователя {UserId}", userId);
-                return false;
-            }
-
-            if (result.banned)
-            {
-                _logger.LogInformation("Пользователь {UserId} найден в банлисте LolsBot", userId);
-                _banlist.TryAdd(userId, 0);
-                return true;
-            }
-
-            return false;
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogWarning("Таймаут при проверке пользователя {UserId} в LolsBot API", userId);
-            return false;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogWarning(ex, "Ошибка сети при проверке пользователя {UserId} в LolsBot API", userId);
-            return false;
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Ошибка парсинга JSON при проверке пользователя {UserId} в LolsBot API", userId);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Неожиданная ошибка при проверке пользователя {UserId} в LolsBot API", userId);
-            return false;
-        }
+        
+        // 3. Если пользователя нет в статическом банлисте - считаем НЕ заблокированным и кэшируем
+        _banlist.TryAdd(userId, 0); // 0 = not banned
+        _logger.LogDebug("✅ Пользователь {UserId} НЕ в банлисте lols.bot, кэшируем как незаблокированного", userId);
+        return false;
     }
 
     public async ValueTask<string?> GetClubUsername(long userId)
@@ -185,12 +204,11 @@ internal sealed class UserManager : IUserManager
         {
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(5));
-            // cannot use _clubHttpClient.GetFromJsonAsync here because the response is not 200 OK at the time of writing for when user is not found
             var get = await _clubHttpClient.GetAsync(url, cts.Token);
             var response = await get.Content.ReadFromJsonAsync<ClubByTgIdResponse>(cancellationToken: cts.Token);
             var fullName = response?.user?.full_name;
             if (!string.IsNullOrEmpty(fullName))
-                await Approve(userId);
+                await Approve(userId); // Одобряем глобально, так как это клубный пользователь
             return fullName;
         }
         catch (Exception e)
@@ -275,4 +293,4 @@ internal sealed class UserManager : IUserManager
 
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning restore IDE1006 // Naming Styles
-}
+} 
