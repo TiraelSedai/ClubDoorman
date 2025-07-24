@@ -174,10 +174,19 @@ public class Program
                 services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
                 services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
                 
-                // Регистрация системы одобрения
-                services.AddSingleton<ApprovedUsersStorage>();
-                services.AddSingleton<UserManager>();
-                services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
+                // Условная регистрация системы одобрения
+                if (Config.UseNewApprovalSystem)
+                {
+                    services.AddSingleton<ApprovedUsersStorageV2>();
+                    services.AddSingleton<UserManagerV2>();
+                    services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManagerV2>());
+                }
+                else
+                {
+                    services.AddSingleton<ApprovedUsersStorage>();
+                    services.AddSingleton<UserManager>();
+                    services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
+                }
                 
                 // Логируем статус AI и Mimicry систем после полной инициализации
                 if (Config.OpenRouterApi != null)
@@ -207,6 +216,7 @@ public class Program
                 Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {Config.SuspiciousDetectionEnabled}");
                 Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {Config.MimicryThreshold:F1}");
                 Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {Config.SuspiciousToApprovedMessageCount}");
+                Console.WriteLine($"   • DOORMAN_USE_NEW_APPROVAL_SYSTEM: {Config.UseNewApprovalSystem}");
                 Console.WriteLine($"   • DOORMAN_GLOBAL_APPROVAL_MODE: {Config.GlobalApprovalMode}");
                 Console.WriteLine($"   • DOORMAN_BLACKLIST_AUTOBAN_DISABLE: {!Config.BlacklistAutoBan}");
                 Console.WriteLine($"   • DOORMAN_CHANNELS_AUTOBAN_DISABLE: {!Config.ChannelAutoBan}");

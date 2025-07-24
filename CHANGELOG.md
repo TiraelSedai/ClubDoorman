@@ -1,25 +1,5 @@
 # Changelog
 
-## [2024-01-XX] - GitLeaks Security Fix
-
-### Security
-- **КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ**: Исправлена конфигурация GitLeaks для предотвращения утечек токенов
-- Удалены файлы с реальными токенами из git tracking (`test_bot.sh`, `run_with_real_token.sh`)
-- Созданы примеры файлов с placeholder'ами (`test_bot.sh.example`, `run_with_real_token.sh.example`)
-- Исправлен regex для Telegram токенов (убрано требование `bot` в начале)
-- Добавлен baseline для известных токенов в git истории
-- Обновлен pre-commit hook для использования baseline
-
-### Fixed
-- GitLeaks теперь правильно обнаруживает Telegram и OpenRouter токены
-- Локальные файлы `.env` исключены из проверки GitLeaks
-- Pre-commit hook больше не блокирует коммиты из-за известных токенов в истории
-
-### Documentation
-- Создана документация по исправлению GitLeaks (`docs/GITLEAKS_FIX.md`)
-- Добавлены рекомендации по безопасной работе с токенами
-- Описаны команды для проверки и обновления baseline
-
 ## [2024-01-XX] - DX Tool Improvements
 
 ### Added
