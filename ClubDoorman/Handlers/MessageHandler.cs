@@ -1281,24 +1281,9 @@ public class MessageHandler : IUpdateHandler
                 _logger.LogWarning("🚫 AI определил подозрительный профиль: пользователь {UserId}, вероятность={Probability}", 
                     user.Id, result.SpamProbability.Probability);
 
-                // Удаляем сообщение только при высокой вероятности
+                // РЕФАКТОРИНГ: Определяем нужно ли удалять сообщение, но НЕ удаляем его сразу
+                // Сначала отправляем AI анализ с пересылкой, потом удаляем
                 var shouldDeleteMessage = result.SpamProbability.Probability >= Consts.LlmHighProbability; // >= 0.9
-                if (shouldDeleteMessage)
-                {
-                    try
-                    {
-                        await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
-                        _logger.LogInformation("🗑️ Сообщение удалено из-за высокой вероятности спама: {Probability:F2}", result.SpamProbability.Probability);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Не удалось удалить сообщение при AI анализе");
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation("💬 Сообщение НЕ удалено (средняя вероятность): {Probability:F2}", result.SpamProbability.Probability);
-                }
 
                 // Даем ридонли на 10 минут в любом случае
                 try
@@ -1350,6 +1335,24 @@ public class MessageHandler : IUpdateHandler
             automaticAction
         );
         await _messageService.SendAiProfileAnalysisAsync(aiProfileData, cancellationToken);
+
+                // РЕФАКТОРИНГ: Теперь удаляем сообщение ПОСЛЕ отправки AI анализа (чтобы пересылка работала)
+                if (shouldDeleteMessage)
+                {
+                    try
+                    {
+                        await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
+                        _logger.LogInformation("🗑️ Сообщение удалено из-за высокой вероятности спама: {Probability:F2}", result.SpamProbability.Probability);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Не удалось удалить сообщение при AI анализе");
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("💬 Сообщение НЕ удалено (средняя вероятность): {Probability:F2}", result.SpamProbability.Probability);
+                }
 
                 _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
                 _userFlowLogger.LogUserRestricted(user, chat, $"AI анализ профиля: {result.SpamProbability.Reason}", TimeSpan.FromMinutes(10));
