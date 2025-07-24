@@ -16,13 +16,7 @@ public interface ICaptchaService
     /// <returns>Информация о созданной капче или null, если капча отключена для чата</returns>
     Task<CaptchaInfo?> CreateCaptchaAsync(CreateCaptchaRequest request);
 
-    /// <summary>
-    /// Проверяет ответ на капчу
-    /// </summary>
-    /// <param name="callbackData">Данные callback'а</param>
-    /// <param name="userId">ID пользователя</param>
-    /// <returns>Результат проверки капчи</returns>
-    Task<CaptchaResult> CheckCaptchaAsync(string callbackData, long userId);
+
 
     /// <summary>
     /// Генерирует ключ для пользователя в чате

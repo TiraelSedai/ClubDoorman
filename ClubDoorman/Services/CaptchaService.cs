@@ -184,32 +184,7 @@ public class CaptchaService : ICaptchaService
         return captchaInfo;
     }
 
-    /// <summary>
-    /// Проверяет ответ на капчу
-    /// </summary>
-    /// <param name="callbackData">Данные callback'а</param>
-    /// <param name="userId">ID пользователя</param>
-    /// <returns>Результат проверки капчи</returns>
-    public async Task<CaptchaResult> CheckCaptchaAsync(string callbackData, long userId)
-    {
-        if (string.IsNullOrEmpty(callbackData))
-            return CaptchaResult.Fail("Пустые данные callback");
 
-        var parts = callbackData.Split('_');
-        if (parts.Length != 3 || parts[0] != "cap")
-            return CaptchaResult.Fail("Неверный формат callback данных");
-
-        if (!long.TryParse(parts[1], out var callbackUserId) || callbackUserId != userId)
-            return CaptchaResult.Fail("Неверный пользователь");
-
-        if (!int.TryParse(parts[2], out var answer))
-            return CaptchaResult.Fail("Неверный формат ответа");
-
-        var key = GenerateKey(0, userId); // TODO: получить chatId из контекста
-        var isValid = await ValidateCaptchaAsync(key, answer);
-        
-        return isValid ? CaptchaResult.Ok() : CaptchaResult.Fail("Неверный ответ");
-    }
 
     /// <summary>
     /// Проверяет ответ пользователя на капчу.

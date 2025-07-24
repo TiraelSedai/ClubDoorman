@@ -610,6 +610,8 @@ public class CaptchaServiceExtendedTests
 
     #endregion
 
+
+
     #region Helper Methods
 
     private static Chat CreateTestChat(long id = 123456, string title = "Test Chat")
