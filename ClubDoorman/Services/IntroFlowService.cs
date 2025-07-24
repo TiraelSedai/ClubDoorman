@@ -103,14 +103,15 @@ public class IntroFlowService
         }
 
         // Создаем капчу через сервис
-        var captchaInfo = await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
+        var captchaRequest = new CreateCaptchaRequest(chat, user, userJoinMessage);
+        var captchaInfo = await _captchaService.CreateCaptchaAsync(captchaRequest);
         
         // Если капча отключена для этой группы, отправляем приветствие сразу
         if (captchaInfo == null)
         {
             _logger.LogInformation("[NO_CAPTCHA] Капча отключена для чата {ChatId} - отправляем приветствие сразу после проверок", chat.Id);
-            var request = new SendWelcomeMessageRequest(user, chat, "приветствие без капчи", cancellationToken);
-            await _messageService.SendWelcomeMessageAsync(request);
+            var welcomeRequest = new SendWelcomeMessageRequest(user, chat, "приветствие без капчи", cancellationToken);
+            await _messageService.SendWelcomeMessageAsync(welcomeRequest);
         }
         else
         {

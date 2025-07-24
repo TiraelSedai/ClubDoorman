@@ -36,11 +36,6 @@ public interface IMessageService
     Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
 
     /// <summary>
-    /// Отправляет сообщение капчи с кнопками
-    /// </summary>
-    Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default);
-    
-    /// <summary>
     /// Отправляет сообщение капчи используя Request объект
     /// </summary>
     Task<Message> SendCaptchaMessageAsync(SendCaptchaMessageRequest request);
@@ -54,11 +49,6 @@ public interface IMessageService
     /// Переслать сообщение в лог-чат с уведомлением
     /// </summary>
     Task<Message?> ForwardToLogWithNotificationAsync(Message originalMessage, LogNotificationType type, NotificationData data, CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Отправить уведомление об ошибке
-    /// </summary>
-    Task SendErrorNotificationAsync(Exception ex, string context, User? user = null, Chat? chat = null, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Отправить уведомление об ошибке используя Request объект

@@ -10,6 +10,7 @@ using Telegram.Bot;
 using Moq;
 using Microsoft.Extensions.Logging;
 using ClubDoorman.Models;
+using ClubDoorman.Models.Requests;
 using ClubDoorman.Handlers.Commands;
 
 namespace ClubDoorman.Test.Unit.Handlers;
@@ -114,7 +115,7 @@ public class MessageHandlerFakeTests
         // Assert
         // Проверяем, что была вызвана отправка капчи
         _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()),
+            x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()),
             Times.Once);
     }
 
@@ -171,7 +172,7 @@ public class MessageHandlerFakeTests
         // Assert
         // Сервисные сообщения обрабатываются как новые участники
         _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()),
+            x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()),
             Times.Once);
     }
 

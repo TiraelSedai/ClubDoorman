@@ -268,16 +268,7 @@ public class MessageService : IMessageService
         }
     }
     
-    /// <summary>
-    /// Отправить уведомление об ошибке
-    /// </summary>
-    public async Task SendErrorNotificationAsync(Exception ex, string context, User? user = null, Chat? chat = null, CancellationToken cancellationToken = default)
-    {
-        var request = new SendErrorNotificationRequest(ex, context, user, chat, cancellationToken);
-        await SendErrorNotificationAsync(request);
-    }
-    
-    /// <summary>
+        /// <summary>
     /// Отправить уведомление об ошибке используя Request объект
     /// </summary>
     public async Task SendErrorNotificationAsync(SendErrorNotificationRequest request)
@@ -319,15 +310,6 @@ public class MessageService : IMessageService
             _logger.LogError(ex, "Ошибка при отправке уведомления о AI анализе профиля");
             throw;
         }
-    }
-    
-    /// <summary>
-    /// Отправляет сообщение капчи с кнопками
-    /// </summary>
-    public async Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default)
-    {
-        var request = new SendCaptchaMessageRequest(chat, message, replyParameters, replyMarkup, cancellationToken);
-        return await SendCaptchaMessageAsync(request);
     }
     
     /// <summary>

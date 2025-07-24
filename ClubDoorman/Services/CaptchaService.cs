@@ -42,12 +42,6 @@ public class CaptchaService : ICaptchaService
     /// <param name="userJoinMessage">Сообщение о присоединении пользователя (опционально)</param>
     /// <returns>Информация о созданной капче или null, если капча отключена для чата</returns>
     /// <exception cref="ArgumentNullException">Если chat или user равны null</exception>
-    public async Task<CaptchaInfo?> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null)
-    {
-        var request = new CreateCaptchaRequest(chat, user, userJoinMessage);
-        return await CreateCaptchaAsync(request);
-    }
-
     /// <summary>
     /// Создает капчу используя Request объект
     /// </summary>
@@ -110,13 +104,14 @@ public class CaptchaService : ICaptchaService
         Message captchaMessage;
         try
         {
-            captchaMessage = await _messageService.SendCaptchaMessageAsync(
+            var captchaRequest = new SendCaptchaMessageRequest(
                 request.Chat,
                 welcomeMessage,
                 replyParams,
                 new InlineKeyboardMarkup(keyboard),
-                cancellationToken: default
+                default
             );
+            captchaMessage = await _messageService.SendCaptchaMessageAsync(captchaRequest);
         }
         catch (Exception ex)
         {

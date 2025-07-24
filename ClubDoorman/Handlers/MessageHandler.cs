@@ -5,6 +5,7 @@ using ClubDoorman.Handlers.Commands;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using ClubDoorman.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
@@ -546,7 +547,8 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Создаем капчу
-        var captchaInfo = await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
+        var request = new CreateCaptchaRequest(chat, user, userJoinMessage);
+        var captchaInfo = await _captchaService.CreateCaptchaAsync(request);
         if (captchaInfo == null)
         {
             _logger.LogInformation($"[NO_CAPTCHA] Капча не требуется для чата {chat.Id}");
