@@ -2,6 +2,7 @@ using NUnit.Framework;
 using TechTalk.SpecFlow;
 using ClubDoorman.Models;
 using ClubDoorman.Services;
+using ClubDoorman.Test.TestInfrastructure;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
@@ -41,7 +42,7 @@ namespace ClubDoorman.Test.StepDefinitions
             
             // Create a real TelegramBotClient with a test token for testing
             var realBotClient = new TelegramBotClient("1234567890:TEST_TOKEN_FOR_TESTS");
-            var realAiChecks = new AiChecks(new TelegramBotClientWrapper(realBotClient), mockAiLogger.Object);
+            var realAiChecks = new AiChecks(new TelegramBotClientWrapper(realBotClient), mockAiLogger.Object, AppConfigTestFactory.CreateDefault());
 
             // Create ModerationService with correct constructor
             _moderationService = new ModerationService(

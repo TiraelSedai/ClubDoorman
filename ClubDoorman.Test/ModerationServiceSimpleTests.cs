@@ -1,6 +1,7 @@
 using ClubDoorman.Services;
 using ClubDoorman.Models;
 using ClubDoorman.Infrastructure;
+using ClubDoorman.Test.TestInfrastructure;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot;
@@ -43,7 +44,7 @@ public class ModerationServiceSimpleTests : TestBase
         // Создаем реальный AiChecks с TelegramBotClient и логгером
         var bot = new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"); // Тестовый токен
         var mockAiLogger = new Mock<ILogger<AiChecks>>();
-        _mockAiChecks = new AiChecks(new TelegramBotClientWrapper(bot), mockAiLogger.Object);
+        _mockAiChecks = new AiChecks(new TelegramBotClientWrapper(bot), mockAiLogger.Object, AppConfigTestFactory.CreateDefault());
         
         _mockBotClient = new Mock<ITelegramBotClient>();
 

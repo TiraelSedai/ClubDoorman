@@ -16,6 +16,7 @@ public class AiChecks : IAiChecks
 {
     private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<AiChecks> _logger;
+    private readonly IAppConfig _appConfig;
     private readonly OpenAiClient? _api;
     private readonly JsonSerializerOptions _jsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
     
@@ -27,11 +28,12 @@ public class AiChecks : IAiChecks
     
     const string Model = "google/gemini-2.5-flash";
     
-    public AiChecks(ITelegramBotClientWrapper bot, ILogger<AiChecks> logger)
+    public AiChecks(ITelegramBotClientWrapper bot, ILogger<AiChecks> logger, IAppConfig appConfig)
     {
         _bot = bot;
         _logger = logger;
-        _api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
+        _appConfig = appConfig;
+        _api = _appConfig.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_appConfig.OpenRouterApi);
         
         if (_api == null)
         {
@@ -69,6 +71,12 @@ public class AiChecks : IAiChecks
     /// </summary>
     public async ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user, string? messageText, Func<string, Task>? ifChanged = default)
     {
+        if (user == null)
+        {
+            _logger.LogDebug("Пользователь null, возвращаем пустой результат");
+            return new SpamPhotoBio(new SpamProbability(), [], "");
+        }
+
         if (_api == null)
         {
             _logger.LogDebug("OpenAI API не настроен, пропускаем AI проверку профиля");

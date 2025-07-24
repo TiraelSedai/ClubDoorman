@@ -1,6 +1,7 @@
 using ClubDoorman.Handlers;
 using ClubDoorman.Handlers.Commands;
 using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Test.TestInfrastructure;
 using NUnit.Framework;
 using Moq;
 using System;
@@ -64,7 +65,8 @@ public class MessageHandlerExtendedTests
                 new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
                 _factory.ModerationServiceMock.Object,
                 new Mock<IMessageService>().Object,
-                NullLogger<SuspiciousCommandHandler>.Instance
+                NullLogger<SuspiciousCommandHandler>.Instance,
+                AppConfigTestFactory.CreateDefault()
             );
             
             // Возвращаем реальные экземпляры для командных обработчиков через GetService

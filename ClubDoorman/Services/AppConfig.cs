@@ -1,0 +1,60 @@
+using ClubDoorman.Infrastructure;
+
+namespace ClubDoorman.Services;
+
+/// <summary>
+/// Реализация конфигурации приложения
+/// Переносит логику из статического класса Config.cs для лучшей тестируемости
+/// </summary>
+public class AppConfig : IAppConfig
+{
+    /// <summary>
+    /// API токен для OpenRouter
+    /// </summary>
+    public string? OpenRouterApi => Config.OpenRouterApi;
+    
+    /// <summary>
+    /// Включено ли обнаружение подозрительных пользователей
+    /// </summary>
+    public bool SuspiciousDetectionEnabled => Config.SuspiciousDetectionEnabled;
+    
+    /// <summary>
+    /// Порог мимикрии для обнаружения подозрительных пользователей
+    /// </summary>
+    public double MimicryThreshold => Config.MimicryThreshold;
+    
+    /// <summary>
+    /// Количество сообщений для перехода из подозрительных в одобренные
+    /// </summary>
+    public int SuspiciousToApprovedMessageCount => Config.SuspiciousToApprovedMessageCount;
+    
+    /// <summary>
+    /// ID админского чата
+    /// </summary>
+    public long AdminChatId => Config.AdminChatId;
+    
+    /// <summary>
+    /// ID чата для логирования
+    /// </summary>
+    public long LogAdminChatId => Config.LogAdminChatId;
+    
+    /// <summary>
+    /// Список чатов с включенным AI
+    /// </summary>
+    public HashSet<long> AiEnabledChats => Config.AiEnabledChats;
+    
+    /// <summary>
+    /// Включен ли AI для конкретного чата
+    /// </summary>
+    public bool IsAiEnabledForChat(long chatId) => Config.IsAiEnabledForChat(chatId);
+    
+    /// <summary>
+    /// Разрешён ли чат для работы бота
+    /// </summary>
+    public bool IsChatAllowed(long chatId) => Config.IsChatAllowed(chatId);
+    
+    /// <summary>
+    /// Разрешён ли приватный старт
+    /// </summary>
+    public bool IsPrivateStartAllowed() => Config.IsPrivateStartAllowed();
+} 
