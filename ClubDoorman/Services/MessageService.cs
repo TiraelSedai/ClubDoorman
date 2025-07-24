@@ -19,19 +19,22 @@ public class MessageService : IMessageService
     private readonly MessageTemplates _templates;
     private readonly ILoggingConfigurationService _configService;
     private readonly IServiceChatDispatcher _serviceChatDispatcher;
+    private readonly IAppConfig _appConfig;
     
     public MessageService(
         ITelegramBotClientWrapper bot,
         ILogger<MessageService> logger,
         MessageTemplates templates,
         ILoggingConfigurationService configService,
-        IServiceChatDispatcher serviceChatDispatcher)
+        IServiceChatDispatcher serviceChatDispatcher,
+        IAppConfig appConfig)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _templates = templates ?? throw new ArgumentNullException(nameof(templates));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _serviceChatDispatcher = serviceChatDispatcher ?? throw new ArgumentNullException(nameof(serviceChatDispatcher));
+        _appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
     }
     
     /// <summary>
@@ -195,9 +198,9 @@ public class MessageService : IMessageService
     /// <summary>
     /// Проверяет, является ли группа исключением для рекламы VPN
     /// </summary>
-    private static bool IsNoAdGroup(long chatId)
+    private bool IsNoAdGroup(long chatId)
     {
-        return Config.NoVpnAdGroups.Contains(chatId);
+        return _appConfig.NoVpnAdGroups.Contains(chatId);
     }
     
     public async Task<Message?> ForwardToAdminWithNotificationAsync(Message originalMessage, AdminNotificationType type, NotificationData data, CancellationToken cancellationToken = default)
@@ -206,7 +209,7 @@ public class MessageService : IMessageService
         {
             // Пересылаем оригинальное сообщение
             var forward = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
+                new ChatId(_appConfig.AdminChatId),
                 originalMessage.Chat.Id,
                 originalMessage.MessageId,
                 cancellationToken: cancellationToken
@@ -217,7 +220,7 @@ public class MessageService : IMessageService
             var message = _templates.FormatNotificationTemplate(template, data);
             
             var notification = await _bot.SendMessage(
-                Config.AdminChatId,
+                _appConfig.AdminChatId,
                 message,
                 parseMode: ParseMode.Markdown,
                 replyParameters: forward,
@@ -240,7 +243,7 @@ public class MessageService : IMessageService
         {
             // Пересылаем оригинальное сообщение
             var forward = await _bot.ForwardMessage(
-                new ChatId(Config.LogAdminChatId),
+                new ChatId(_appConfig.LogAdminChatId),
                 originalMessage.Chat.Id,
                 originalMessage.MessageId,
                 cancellationToken: cancellationToken
@@ -251,7 +254,7 @@ public class MessageService : IMessageService
             var message = _templates.FormatNotificationTemplate(template, data);
             
             var notification = await _bot.SendMessage(
-                Config.LogAdminChatId,
+                _appConfig.LogAdminChatId,
                 message,
                 parseMode: ParseMode.Markdown,
                 replyParameters: forward,

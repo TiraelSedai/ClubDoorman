@@ -103,19 +103,20 @@ public class Program
                     return new TelegramBotClient(appConfig.BotApi);
                 });
                 
-                services.AddHostedService<Worker>(provider => new Worker(
-                    provider.GetRequiredService<ILogger<Worker>>(),
-                    provider.GetRequiredService<IUpdateDispatcher>(),
-                    provider.GetRequiredService<ICaptchaService>(),
-                    provider.GetRequiredService<IStatisticsService>(),
-                    provider.GetRequiredService<ISpamHamClassifier>(),
-                    provider.GetRequiredService<IUserManager>(),
-                    provider.GetRequiredService<IBadMessageManager>(),
-                    provider.GetRequiredService<IAiChecks>(),
-                    provider.GetRequiredService<IChatLinkFormatter>(),
-                    provider.GetRequiredService<ITelegramBotClientWrapper>(),
-                    provider.GetRequiredService<IMessageService>()
-                ));
+                                                   services.AddHostedService<Worker>(provider => new Worker(
+                                       provider.GetRequiredService<ILogger<Worker>>(),
+                                       provider.GetRequiredService<IUpdateDispatcher>(),
+                                       provider.GetRequiredService<ICaptchaService>(),
+                                       provider.GetRequiredService<IStatisticsService>(),
+                                       provider.GetRequiredService<ISpamHamClassifier>(),
+                                       provider.GetRequiredService<IUserManager>(),
+                                       provider.GetRequiredService<IBadMessageManager>(),
+                                       provider.GetRequiredService<IAiChecks>(),
+                                       provider.GetRequiredService<IChatLinkFormatter>(),
+                                       provider.GetRequiredService<ITelegramBotClientWrapper>(),
+                                       provider.GetRequiredService<IMessageService>(),
+                                       provider.GetRequiredService<IAppConfig>()
+                                   ));
                 
                 // Telegram Bot Client интерфейсы
                 services.AddSingleton<ITelegramBotClient>(provider => provider.GetRequiredService<TelegramBotClient>());
@@ -135,7 +136,8 @@ public class Program
                 services.AddSingleton<ICaptchaService>(provider => new CaptchaService(
                     provider.GetRequiredService<ITelegramBotClientWrapper>(),
                     provider.GetRequiredService<ILogger<CaptchaService>>(),
-                    provider.GetRequiredService<IMessageService>()));
+                    provider.GetRequiredService<IMessageService>(),
+                    provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<IModerationService>(provider => new ModerationService(
                     provider.GetRequiredService<ISpamHamClassifier>(),
                     provider.GetRequiredService<IMimicryClassifier>(),
@@ -146,7 +148,7 @@ public class Program
                     provider.GetRequiredService<ITelegramBotClient>(),
                     provider.GetRequiredService<IMessageService>(),
                     provider.GetRequiredService<ILogger<ModerationService>>()));
-                services.AddSingleton<IntroFlowService>(provider => new IntroFlowService(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<IntroFlowService>>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<GlobalStatsManager>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>()));
+                services.AddSingleton<IntroFlowService>(provider => new IntroFlowService(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<IntroFlowService>>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<GlobalStatsManager>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<IChatLinkFormatter, ChatLinkFormatter>();
                 services.AddSingleton<IUserFlowLogger, UserFlowLogger>();
                 services.AddSingleton<IBotPermissionsService, BotPermissionsService>();
@@ -156,7 +158,14 @@ public class Program
                 services.Configure<LoggingConfiguration>(options => {});
                 services.AddSingleton<ILoggingConfigurationService, LoggingConfigurationService>();
                 services.AddSingleton<IServiceChatDispatcher, ServiceChatDispatcher>();
-                services.AddSingleton<IMessageService, MessageService>();
+                services.AddSingleton<IMessageService>(provider => new MessageService(
+                    provider.GetRequiredService<ITelegramBotClientWrapper>(),
+                    provider.GetRequiredService<ILogger<MessageService>>(),
+                    provider.GetRequiredService<MessageTemplates>(),
+                    provider.GetRequiredService<ILoggingConfigurationService>(),
+                    provider.GetRequiredService<IServiceChatDispatcher>(),
+                    provider.GetRequiredService<IAppConfig>()
+                ));
                 
                 // Обработчики обновлений
                 services.AddSingleton<IUpdateHandler>(provider => new MessageHandler(
@@ -174,13 +183,14 @@ public class Program
                     provider.GetRequiredService<IMessageService>(),
                     provider.GetRequiredService<IChatLinkFormatter>(),
                     provider.GetRequiredService<IBotPermissionsService>(),
+                    provider.GetRequiredService<IAppConfig>(),
                     provider.GetRequiredService<ILogger<MessageHandler>>()));
                 services.AddSingleton<IUpdateHandler>(provider => new CallbackQueryHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IBadMessageManager>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<CallbackQueryHandler>>()));
-                services.AddSingleton<IUpdateHandler>(provider => new ChatMemberHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<ILogger<ChatMemberHandler>>(), provider.GetRequiredService<IntroFlowService>(), provider.GetRequiredService<IMessageService>()));
+                services.AddSingleton<IUpdateHandler>(provider => new ChatMemberHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<ILogger<ChatMemberHandler>>(), provider.GetRequiredService<IntroFlowService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
                 
                 // Обработчики команд
-                services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
-                services.AddSingleton<StartCommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
+                services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
+                services.AddSingleton<StartCommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
                 
@@ -233,12 +243,12 @@ public class Program
                 Console.WriteLine($"   • DOORMAN_APPROVE_BUTTON: {Config.ApproveButtonEnabled}");
                 Console.WriteLine($"   • DOORMAN_DISABLE_MEDIA_FILTERING: {Config.DisableMediaFiltering}");
                 Console.WriteLine($"   • DOORMAN_DELETE_FORWARDED_MESSAGES: {Config.DeleteForwardedMessages}");
-                Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!Config.IsPrivateStartAllowed()}");
-                Console.WriteLine($"   • Отключенные чаты: {Config.DisabledChats.Count}");
-                Console.WriteLine($"   • Белый список чатов: {Config.WhitelistChats.Count}");
+                Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!appConfig.IsPrivateStartAllowed()}");
+                Console.WriteLine($"   • Отключенные чаты: {appConfig.DisabledChats.Count}");
+                Console.WriteLine($"   • Белый список чатов: {appConfig.WhitelistChats.Count}");
                 Console.WriteLine($"   • AI-включенные чаты: {appConfig.AiEnabledChats.Count}");
-                Console.WriteLine($"   • Группы без VPN-рекламы: {Config.NoVpnAdGroups.Count}");
-                Console.WriteLine($"   • Группы с отключенной капчей: {Config.NoCaptchaGroups.Count}");
+                Console.WriteLine($"   • Группы без VPN-рекламы: {appConfig.NoVpnAdGroups.Count}");
+                Console.WriteLine($"   • Группы с отключенной капчей: {appConfig.NoCaptchaGroups.Count}");
                 Console.WriteLine($"   • Чаты с отключенной фильтрацией медиа: {Config.MediaFilteringDisabledChats.Count}");
             })
             .Build();

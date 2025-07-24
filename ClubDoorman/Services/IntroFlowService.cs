@@ -24,6 +24,7 @@ public class IntroFlowService
     private readonly GlobalStatsManager _globalStatsManager;
     private readonly IModerationService _moderationService;
     private readonly IMessageService _messageService;
+    private readonly IAppConfig _appConfig;
 
     public IntroFlowService(
         ITelegramBotClientWrapper bot,
@@ -34,7 +35,8 @@ public class IntroFlowService
         IStatisticsService statisticsService,
         GlobalStatsManager globalStatsManager,
         IModerationService moderationService,
-        IMessageService messageService)
+        IMessageService messageService,
+        IAppConfig appConfig)
     {
         _bot = bot;
         _logger = logger;
@@ -45,6 +47,7 @@ public class IntroFlowService
         _globalStatsManager = globalStatsManager;
         _moderationService = moderationService;
         _messageService = messageService;
+        _appConfig = appConfig;
     }
 
     public async Task ProcessNewUserAsync(Message? userJoinMessage, User user, Chat? chat = default, CancellationToken cancellationToken = default)
@@ -53,7 +56,7 @@ public class IntroFlowService
         Debug.Assert(chat != null);
         
         // Проверка whitelist - если активен, работаем только в разрешённых чатах
-        if (!Config.IsChatAllowed(chat.Id))
+        if (!_appConfig.IsChatAllowed(chat.Id))
         {
             _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем IntroFlow", chat.Id, chat.Title);
             return;

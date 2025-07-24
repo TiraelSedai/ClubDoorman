@@ -70,4 +70,25 @@ public interface IAppConfig
     /// URL клуба
     /// </summary>
     string ClubUrl { get; }
+    
+    /// <summary>
+    /// Отключенные чаты
+    /// </summary>
+    HashSet<long> DisabledChats { get; }
+    
+    /// <summary>
+    /// Whitelist групп - если указан, бот работает только в этих группах
+    /// </summary>
+    HashSet<long> WhitelistChats { get; }
+    
+    /// <summary>
+    /// Группы, где не показывать рекламу
+    /// </summary>
+    HashSet<long> NoVpnAdGroups { get; }
+    
+    /// <summary>
+    /// Группы, в которых отключена капча
+    /// </summary>
+    HashSet<long> NoCaptchaGroups { get; }
+    
 } 

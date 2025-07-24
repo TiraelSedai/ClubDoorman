@@ -18,6 +18,7 @@ public class CaptchaService : ICaptchaService
     private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<CaptchaService> _logger;
     private readonly IMessageService _messageService;
+    private readonly IAppConfig _appConfig;
 
     // Черный список имен для отображения
     private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "bot"];
@@ -27,11 +28,12 @@ public class CaptchaService : ICaptchaService
     /// </summary>
     /// <param name="bot">Клиент Telegram бота</param>
     /// <param name="logger">Логгер для записи событий</param>
-    public CaptchaService(ITelegramBotClientWrapper bot, ILogger<CaptchaService> logger, IMessageService messageService)
+    public CaptchaService(ITelegramBotClientWrapper bot, ILogger<CaptchaService> logger, IMessageService messageService, IAppConfig appConfig)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
+        _appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
     }
 
     /// <summary>
@@ -53,7 +55,7 @@ public class CaptchaService : ICaptchaService
         if (request.User == null) throw new ArgumentNullException(nameof(request.User));
 
         // Отключение капчи для определённых групп
-        if (Config.NoCaptchaGroups.Contains(request.Chat.Id))
+        if (_appConfig.NoCaptchaGroups.Contains(request.Chat.Id))
         {
             _logger.LogInformation($"[NO_CAPTCHA] Капча отключена для чата {request.Chat.Id}");
             return null;
@@ -331,8 +333,8 @@ public class CaptchaService : ICaptchaService
     /// </summary>
     /// <param name="chatId">ID чата</param>
     /// <returns>true, если группа без рекламы VPN</returns>
-    private static bool IsNoAdGroup(long chatId)
+    private bool IsNoAdGroup(long chatId)
     {
-        return Config.NoVpnAdGroups.Contains(chatId);
+        return _appConfig.NoVpnAdGroups.Contains(chatId);
     }
 } 

@@ -72,4 +72,25 @@ public class AppConfig : IAppConfig
     /// URL клуба
     /// </summary>
     public string ClubUrl => Config.ClubUrl;
+    
+    /// <summary>
+    /// Отключенные чаты
+    /// </summary>
+    public HashSet<long> DisabledChats => Config.DisabledChats;
+    
+    /// <summary>
+    /// Whitelist групп - если указан, бот работает только в этих группах
+    /// </summary>
+    public HashSet<long> WhitelistChats => Config.WhitelistChats;
+    
+    /// <summary>
+    /// Группы, где не показывать рекламу
+    /// </summary>
+    public HashSet<long> NoVpnAdGroups => Config.NoVpnAdGroups;
+    
+    /// <summary>
+    /// Группы, в которых отключена капча
+    /// </summary>
+    public HashSet<long> NoCaptchaGroups => Config.NoCaptchaGroups;
+    
 } 

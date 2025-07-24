@@ -21,19 +21,22 @@ public class ChatMemberHandler : IUpdateHandler
     private readonly ILogger<ChatMemberHandler> _logger;
     private readonly IntroFlowService _introFlowService;
     private readonly IMessageService _messageService;
+    private readonly IAppConfig _appConfig;
 
     public ChatMemberHandler(
         ITelegramBotClientWrapper bot,
         IUserManager userManager,
         ILogger<ChatMemberHandler> logger,
         IntroFlowService introFlowService,
-        IMessageService messageService)
+        IMessageService messageService,
+        IAppConfig appConfig)
     {
         _bot = bot;
         _userManager = userManager;
         _logger = logger;
         _introFlowService = introFlowService;
         _messageService = messageService;
+        _appConfig = appConfig;
     }
 
     public bool CanHandle(Update update) => update.Type == UpdateType.ChatMember;
@@ -46,7 +49,7 @@ public class ChatMemberHandler : IUpdateHandler
         ChatSettingsManager.EnsureChatInConfig(chatMember.Chat.Id, chatMember.Chat.Title);
         
         // Проверка whitelist - если активен, работаем только в разрешённых чатах
-        if (!Config.IsChatAllowed(chatMember.Chat.Id))
+        if (!_appConfig.IsChatAllowed(chatMember.Chat.Id))
         {
             _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем изменение участника", chatMember.Chat.Id, chatMember.Chat.Title);
             return;
