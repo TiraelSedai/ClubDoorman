@@ -1,5 +1,6 @@
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Test.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Reflection;
@@ -102,7 +103,7 @@ public class AiChecksPhotoLoggingTest
             Assert.Ignore("Config.OpenRouterApi пустой - проблема инициализации статических свойств при запуске всех тестов");
         }
         
-        _aiChecks = new AiChecks(_fakeBot, _logger);
+        _aiChecks = new AiChecks(_fakeBot, _logger, AppConfigTestFactory.CreateDefault());
     }
 
     [Test]

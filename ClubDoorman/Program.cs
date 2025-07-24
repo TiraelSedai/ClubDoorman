@@ -81,6 +81,9 @@ public class Program
             )
             .ConfigureServices(services =>
             {
+                // Регистрация конфигурации приложения
+                services.AddSingleton<IAppConfig, AppConfig>();
+                
                 // Проверяем конфигурацию бота
                 if (string.IsNullOrEmpty(Config.BotApi))
                 {
@@ -115,7 +118,7 @@ public class Program
                 services.AddSingleton<ISpamHamClassifier, SpamHamClassifier>();
                 services.AddSingleton<IMimicryClassifier, MimicryClassifier>();
                 services.AddSingleton<IBadMessageManager, BadMessageManager>();
-                services.AddSingleton<IAiChecks>(provider => new AiChecks(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<AiChecks>>()));
+                services.AddSingleton<IAiChecks>(provider => new AiChecks(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<AiChecks>>(), provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<GlobalStatsManager>();
                 services.AddSingleton<ISuspiciousUsersStorage, SuspiciousUsersStorage>();
                 
@@ -171,8 +174,8 @@ public class Program
                 // Обработчики команд
                 services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
                 services.AddSingleton<StartCommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
-                services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
-                services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
+                services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
+                services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
                 
                 // Регистрация системы одобрения
                 services.AddSingleton<ApprovedUsersStorage>();
@@ -180,7 +183,9 @@ public class Program
                 services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
                 
                 // Логируем статус AI и Mimicry систем после полной инициализации
-                if (Config.OpenRouterApi != null)
+                var appConfig = services.BuildServiceProvider().GetRequiredService<IAppConfig>();
+                
+                if (appConfig.OpenRouterApi != null)
                 {
                     Console.WriteLine("🤖 AI анализ: ВКЛЮЧЕН");
                 }
@@ -189,9 +194,9 @@ public class Program
                     Console.WriteLine("🤖 AI анализ: ОТКЛЮЧЕН (DOORMAN_OPENROUTER_API не настроен)");
                 }
                 
-                if (Config.SuspiciousDetectionEnabled)
+                if (appConfig.SuspiciousDetectionEnabled)
                 {
-                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {Config.MimicryThreshold:F1})");
+                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {appConfig.MimicryThreshold:F1})");
                 }
                 else
                 {

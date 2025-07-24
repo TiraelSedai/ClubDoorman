@@ -17,12 +17,14 @@ public class AiChecksTestFactory
 {
     public Mock<ITelegramBotClientWrapper> BotMock { get; } = new();
     public Mock<ILogger<AiChecks>> LoggerMock { get; } = new();
+    public Mock<IAppConfig> AppConfigMock { get; } = new();
 
     public AiChecks CreateAiChecks()
     {
         return new AiChecks(
             BotMock.Object,
-            LoggerMock.Object
+            LoggerMock.Object,
+            AppConfigMock.Object
         );
     }
 
@@ -37,6 +39,12 @@ public class AiChecksTestFactory
     public AiChecksTestFactory WithLoggerSetup(Action<Mock<ILogger<AiChecks>>> setup)
     {
         setup(LoggerMock);
+        return this;
+    }
+
+    public AiChecksTestFactory WithAppConfigSetup(Action<Mock<IAppConfig>> setup)
+    {
+        setup(AppConfigMock);
         return this;
     }
 

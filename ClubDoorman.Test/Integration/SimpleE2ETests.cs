@@ -1,5 +1,6 @@
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Test.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Reflection;
@@ -95,7 +96,7 @@ public class SimpleE2ETests
         }
         
         // Инициализируем сервисы с правильными логгерами
-        _aiChecks = new AiChecks(_fakeBot, _logger);
+        _aiChecks = new AiChecks(_fakeBot, _logger, AppConfigTestFactory.CreateDefault());
         _spamHamClassifier = new SpamHamClassifier(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<SpamHamClassifier>());
         _mimicryClassifier = new MimicryClassifier(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<MimicryClassifier>());
     }

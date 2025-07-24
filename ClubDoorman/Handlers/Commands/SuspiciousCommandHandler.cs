@@ -16,6 +16,7 @@ public class SuspiciousCommandHandler : ICommandHandler
     private readonly IModerationService _moderationService;
     private readonly IMessageService _messageService;
     private readonly ILogger<SuspiciousCommandHandler> _logger;
+    private readonly IAppConfig _appConfig;
 
     public string CommandName => "suspicious";
 
@@ -23,18 +24,20 @@ public class SuspiciousCommandHandler : ICommandHandler
         ITelegramBotClientWrapper bot, 
         IModerationService moderationService,
         IMessageService messageService,
-        ILogger<SuspiciousCommandHandler> logger)
+        ILogger<SuspiciousCommandHandler> logger,
+        IAppConfig appConfig)
     {
         _bot = bot;
         _moderationService = moderationService;
         _messageService = messageService;
         _logger = logger;
+        _appConfig = appConfig;
     }
 
     public async Task HandleAsync(Message message, CancellationToken cancellationToken = default)
     {
         // Проверяем, что команда пришла из админ-чата
-        if (message.Chat.Id != Config.AdminChatId && message.Chat.Id != Config.LogAdminChatId)
+        if (message.Chat.Id != _appConfig.AdminChatId && message.Chat.Id != _appConfig.LogAdminChatId)
             return;
 
         var commandParts = message.Text?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
@@ -84,16 +87,16 @@ public class SuspiciousCommandHandler : ICommandHandler
         
         var statusMessage = 
             $"*Статус системы подозрительных пользователей:*\n\n" +
-            $"• Система включена: {(Config.SuspiciousDetectionEnabled ? "✅" : "❌")}\n" +
-            $"• Порог мимикрии: *{Config.MimicryThreshold:F1}*\n" +
-            $"• Сообщений для одобрения: *{Config.SuspiciousToApprovedMessageCount}*\n\n" +
+            $"• Система включена: {(_appConfig.SuspiciousDetectionEnabled ? "✅" : "❌")}\n" +
+            $"• Порог мимикрии: *{_appConfig.MimicryThreshold:F1}*\n" +
+            $"• Сообщений для одобрения: *{_appConfig.SuspiciousToApprovedMessageCount}*\n\n" +
             $"*Статистика:*\n" +
             $"• Всего подозрительных: *{stats.TotalSuspicious}*\n" +
             $"• С AI детектом: *{stats.WithAiDetect}*\n" +
             $"• Групп: *{stats.GroupsCount}*\n\n" +
             $"*AI анализ:*\n" +
-            $"• API настроен: {(Config.OpenRouterApi != null ? "✅" : "❌")}\n" +
-            $"• AI чаты включены: *{Config.AiEnabledChats.Count}*\n\n" +
+            $"• API настроен: {(_appConfig.OpenRouterApi != null ? "✅" : "❌")}\n" +
+            $"• AI чаты включены: *{_appConfig.AiEnabledChats.Count}*\n\n" +
             $"*Команды:*\n" +
             $"• `/suspicious list` - список подозрительных\n" +
             $"• `/suspicious ai <on|off> <userId> <chatId>` - включить/выключить AI детект\n" +
