@@ -1,4 +1,5 @@
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -35,9 +36,19 @@ public interface IMessageService
     Task<Message> SendWelcomeMessageAsync(User user, Chat chat, string reason = "приветствие", CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Отправляет приветственное сообщение используя Request объект
+    /// </summary>
+    Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
+
+    /// <summary>
     /// Отправляет сообщение капчи с кнопками
     /// </summary>
     Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Отправляет сообщение капчи используя Request объект
+    /// </summary>
+    Task<Message> SendCaptchaMessageAsync(SendCaptchaMessageRequest request);
     
     /// <summary>
     /// Переслать сообщение в админский чат с уведомлением
@@ -53,6 +64,11 @@ public interface IMessageService
     /// Отправить уведомление об ошибке
     /// </summary>
     Task SendErrorNotificationAsync(Exception ex, string context, User? user = null, Chat? chat = null, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Отправить уведомление об ошибке используя Request объект
+    /// </summary>
+    Task SendErrorNotificationAsync(SendErrorNotificationRequest request);
     
     /// <summary>
     /// Отправить уведомление о AI анализе профиля с фото

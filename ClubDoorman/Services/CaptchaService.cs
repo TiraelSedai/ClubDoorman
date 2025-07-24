@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using ClubDoorman.Models;
 using ClubDoorman.Infrastructure;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -43,13 +44,24 @@ public class CaptchaService : ICaptchaService
     /// <exception cref="ArgumentNullException">Если chat или user равны null</exception>
     public async Task<CaptchaInfo?> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null)
     {
-        if (chat == null) throw new ArgumentNullException(nameof(chat));
-        if (user == null) throw new ArgumentNullException(nameof(user));
+        var request = new CreateCaptchaRequest(chat, user, userJoinMessage);
+        return await CreateCaptchaAsync(request);
+    }
+
+    /// <summary>
+    /// Создает капчу используя Request объект
+    /// </summary>
+    /// <param name="request">Запрос на создание капчи</param>
+    /// <returns>Информация о созданной капче или null, если капча отключена для чата</returns>
+    public async Task<CaptchaInfo?> CreateCaptchaAsync(CreateCaptchaRequest request)
+    {
+        if (request.Chat == null) throw new ArgumentNullException(nameof(request.Chat));
+        if (request.User == null) throw new ArgumentNullException(nameof(request.User));
 
         // Отключение капчи для определённых групп
-        if (Config.NoCaptchaGroups.Contains(chat.Id))
+        if (Config.NoCaptchaGroups.Contains(request.Chat.Id))
         {
-            _logger.LogInformation($"[NO_CAPTCHA] Капча отключена для чата {chat.Id}");
+            _logger.LogInformation($"[NO_CAPTCHA] Капча отключена для чата {request.Chat.Id}");
             return null;
         }
 
@@ -68,17 +80,17 @@ public class CaptchaService : ICaptchaService
         var keyboard = challenge
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) 
             { 
-                CallbackData = $"cap_{user.Id}_{x}" 
+                CallbackData = $"cap_{request.User.Id}_{x}" 
             })
             .ToList();
 
         ReplyParameters? replyParams = null;
-        if (userJoinMessage != null)
-            replyParams = userJoinMessage;
+        if (request.UserJoinMessage != null)
+            replyParams = request.UserJoinMessage;
 
-        var fullNameForDisplay = Utils.FullName(user);
+        var fullNameForDisplay = Utils.FullName(request.User);
         var fullNameLower = fullNameForDisplay.ToLowerInvariant();
-        var username = user.Username?.ToLower();
+        var username = request.User.Username?.ToLower();
         
         if (_namesBlacklist.Any(fullNameLower.Contains) || 
             username?.Contains("porn") == true || 
@@ -87,11 +99,11 @@ public class CaptchaService : ICaptchaService
             fullNameForDisplay = "новый участник чата";
         }
 
-        var welcomeMessage = $"Привет, <a href=\"tg://user?id={user.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! " +
+        var welcomeMessage = $"Привет, <a href=\"tg://user?id={request.User.Id}\">{System.Net.WebUtility.HtmlEncode(fullNameForDisplay)}</a>! " +
                             $"Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?";
 
         // Добавляем заглушку для рекламы если нужно
-        var isNoAdGroup = IsNoAdGroup(chat.Id);
+        var isNoAdGroup = IsNoAdGroup(request.Chat.Id);
         var vpnAdHtml = isNoAdGroup ? "" : "\n\n 📍 Место для рекламы\n<i>...</i>";
         welcomeMessage += vpnAdHtml;
 
@@ -99,7 +111,7 @@ public class CaptchaService : ICaptchaService
         try
         {
             captchaMessage = await _messageService.SendCaptchaMessageAsync(
-                chat,
+                request.Chat,
                 welcomeMessage,
                 replyParams,
                 new InlineKeyboardMarkup(keyboard),
@@ -108,14 +120,14 @@ public class CaptchaService : ICaptchaService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отправке капчи для пользователя {UserId} в чате {ChatId}", user.Id, chat.Id);
+            _logger.LogError(ex, "Ошибка при отправке капчи для пользователя {UserId} в чате {ChatId}", request.User.Id, request.Chat.Id);
             throw;
         }
 
         var cts = new CancellationTokenSource();
-        var captchaInfo = new CaptchaInfo(chat.Id, chat.Title, DateTime.UtcNow, user, correctAnswer, cts, userJoinMessage);
+        var captchaInfo = new CaptchaInfo(request.Chat.Id, request.Chat.Title, DateTime.UtcNow, request.User, correctAnswer, cts, request.UserJoinMessage);
         
-        var key = GenerateKey(chat.Id, user.Id);
+        var key = GenerateKey(request.Chat.Id, request.User.Id);
         _captchaNeededUsers.TryAdd(key, captchaInfo);
 
         // Автоматическое удаление капчи и бан через 1.2 минуты
@@ -138,9 +150,9 @@ public class CaptchaService : ICaptchaService
                             untilDate: DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
                         
                         // Удаляем сообщения
-                        await _bot.DeleteMessageAsync(chat.Id, captchaMessage.MessageId);
-                        if (userJoinMessage != null)
-                            await _bot.DeleteMessageAsync(chat.Id, userJoinMessage.MessageId);
+                        await _bot.DeleteMessageAsync(request.Chat.Id, captchaMessage.MessageId);
+                        if (request.UserJoinMessage != null)
+                            await _bot.DeleteMessageAsync(request.Chat.Id, request.UserJoinMessage.MessageId);
                     }
                     catch (Exception ex)
                     {
@@ -173,6 +185,33 @@ public class CaptchaService : ICaptchaService
         });
 
         return captchaInfo;
+    }
+
+    /// <summary>
+    /// Проверяет ответ на капчу
+    /// </summary>
+    /// <param name="callbackData">Данные callback'а</param>
+    /// <param name="userId">ID пользователя</param>
+    /// <returns>Результат проверки капчи</returns>
+    public async Task<CaptchaResult> CheckCaptchaAsync(string callbackData, long userId)
+    {
+        if (string.IsNullOrEmpty(callbackData))
+            return CaptchaResult.Fail("Пустые данные callback");
+
+        var parts = callbackData.Split('_');
+        if (parts.Length != 3 || parts[0] != "cap")
+            return CaptchaResult.Fail("Неверный формат callback данных");
+
+        if (!long.TryParse(parts[1], out var callbackUserId) || callbackUserId != userId)
+            return CaptchaResult.Fail("Неверный пользователь");
+
+        if (!int.TryParse(parts[2], out var answer))
+            return CaptchaResult.Fail("Неверный формат ответа");
+
+        var key = GenerateKey(0, userId); // TODO: получить chatId из контекста
+        var isValid = await ValidateCaptchaAsync(key, answer);
+        
+        return isValid ? CaptchaResult.Ok() : CaptchaResult.Fail("Неверный ответ");
     }
 
     /// <summary>
