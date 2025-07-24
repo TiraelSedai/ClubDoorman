@@ -208,7 +208,7 @@ public class Program
                 Console.WriteLine($"   • DOORMAN_BOT_API: {(string.IsNullOrEmpty(Config.BotApi) ? "не найдено" : "найдено")}");
                 Console.WriteLine($"   • DOORMAN_ADMIN_CHAT: {Config.AdminChatId}");
                 Console.WriteLine($"   • DOORMAN_LOG_ADMIN_CHAT: {Config.LogAdminChatId}");
-                Console.WriteLine($"   • DOORMAN_OPENROUTER_API: {(Config.OpenRouterApi != null ? "найдено" : "не найдено")}");
+                Console.WriteLine($"   • DOORMAN_OPENROUTER_API: {(appConfig.OpenRouterApi != null ? "найдено" : "не найдено")}");
                 Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {Config.SuspiciousDetectionEnabled}");
                 Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {Config.MimicryThreshold:F1}");
                 Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {Config.SuspiciousToApprovedMessageCount}");

@@ -79,28 +79,11 @@ public class AiChecksPhotoLoggingTest
         // Отладочная информация
         Console.WriteLine($"DotNetEnv API Key: {apiKey}");
         Console.WriteLine($"Environment API Key: {Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API")}");
-        Console.WriteLine($"Config.OpenRouterApi: {ClubDoorman.Infrastructure.Config.OpenRouterApi}");
         
         // Проверяем наличие API ключа
         if (string.IsNullOrEmpty(apiKey))
         {
             Assert.Ignore("DOORMAN_OPENROUTER_API не установлен, пропускаем интеграционный тест");
-        }
-        
-        // Принудительно переустанавливаем переменную для Config
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", null);
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
-        
-        // ПРИМЕЧАНИЕ: Проблема с Config.OpenRouterApi при запуске всех тестов
-        // При запуске одного теста - Config.OpenRouterApi содержит правильный ключ
-        // При запуске всех тестов - Config.OpenRouterApi пустой (проблема инициализации статических свойств)
-        // Временное решение: пропускаем тест если Config.OpenRouterApi пустой
-        
-        // Проверяем Config.OpenRouterApi после всех попыток установки
-        var configApiKey = ClubDoorman.Infrastructure.Config.OpenRouterApi;
-        if (string.IsNullOrEmpty(configApiKey))
-        {
-            Assert.Ignore("Config.OpenRouterApi пустой - проблема инициализации статических свойств при запуске всех тестов");
         }
         
         _aiChecks = new AiChecks(_fakeBot, _logger, AppConfigTestFactory.CreateDefault());
