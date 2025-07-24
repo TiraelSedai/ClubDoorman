@@ -84,16 +84,24 @@ public class Program
                 // Регистрация конфигурации приложения
                 services.AddSingleton<IAppConfig, AppConfig>();
                 
-                // Проверяем конфигурацию бота
-                if (string.IsNullOrEmpty(Config.BotApi))
+                // Telegram Bot Client - создаем после регистрации IAppConfig
+                services.AddSingleton<TelegramBotClient>(provider => 
                 {
-                    throw new InvalidOperationException(
-                        "❌ Бот не может запуститься: DOORMAN_BOT_API не настроен или равен 'test-bot-token'. " +
-                        "Установите переменную окружения DOORMAN_BOT_API с валидным токеном бота."
-                    );
-                }
+                    var appConfig = provider.GetRequiredService<IAppConfig>();
+                    
+                    // Проверяем конфигурацию бота
+                    if (string.IsNullOrEmpty(appConfig.BotApi))
+                    {
+                        throw new InvalidOperationException(
+                            "❌ Бот не может запуститься: DOORMAN_BOT_API не настроен или равен 'test-bot-token'. " +
+                            "Установите переменную окружения DOORMAN_BOT_API с валидным токеном бота."
+                        );
+                    }
 
-                Console.WriteLine($"🤖 Запуск бота с токеном: {Config.BotApi.Substring(0, Math.Min(Config.BotApi.Length, 10))}...");
+                    Console.WriteLine($"🤖 Запуск бота с токеном: {appConfig.BotApi.Substring(0, Math.Min(appConfig.BotApi.Length, 10))}...");
+                    
+                    return new TelegramBotClient(appConfig.BotApi);
+                });
                 
                 services.AddHostedService<Worker>(provider => new Worker(
                     provider.GetRequiredService<ILogger<Worker>>(),
@@ -109,8 +117,7 @@ public class Program
                     provider.GetRequiredService<IMessageService>()
                 ));
                 
-                // Telegram Bot Client
-                services.AddSingleton<TelegramBotClient>(provider => new TelegramBotClient(Config.BotApi));
+                // Telegram Bot Client интерфейсы
                 services.AddSingleton<ITelegramBotClient>(provider => provider.GetRequiredService<TelegramBotClient>());
                 services.AddSingleton<ITelegramBotClientWrapper>(provider => new TelegramBotClientWrapper(provider.GetRequiredService<TelegramBotClient>()));
                 
@@ -179,7 +186,11 @@ public class Program
                 
                 // Регистрация системы одобрения
                 services.AddSingleton<ApprovedUsersStorage>();
-                services.AddSingleton<UserManager>();
+                services.AddSingleton<UserManager>(provider => new UserManager(
+                    provider.GetRequiredService<ILogger<UserManager>>(),
+                    provider.GetRequiredService<ApprovedUsersStorage>(),
+                    provider.GetRequiredService<IAppConfig>()
+                ));
                 services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
                 
                 // Логируем статус AI и Mimicry систем после полной инициализации
@@ -205,13 +216,14 @@ public class Program
                 
                 // Информация о загруженных переменных окружения
                 Console.WriteLine("📋 Загруженные переменные окружения:");
-                Console.WriteLine($"   • DOORMAN_BOT_API: {(string.IsNullOrEmpty(Config.BotApi) ? "не найдено" : "найдено")}");
-                Console.WriteLine($"   • DOORMAN_ADMIN_CHAT: {Config.AdminChatId}");
-                Console.WriteLine($"   • DOORMAN_LOG_ADMIN_CHAT: {Config.LogAdminChatId}");
+                Console.WriteLine($"   • DOORMAN_BOT_API: {(string.IsNullOrEmpty(appConfig.BotApi) ? "не найдено" : "найдено")}");
+                Console.WriteLine($"   • DOORMAN_ADMIN_CHAT: {appConfig.AdminChatId}");
+                Console.WriteLine($"   • DOORMAN_LOG_ADMIN_CHAT: {appConfig.LogAdminChatId}");
                 Console.WriteLine($"   • DOORMAN_OPENROUTER_API: {(appConfig.OpenRouterApi != null ? "найдено" : "не найдено")}");
-                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {Config.SuspiciousDetectionEnabled}");
-                Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {Config.MimicryThreshold:F1}");
-                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {Config.SuspiciousToApprovedMessageCount}");
+                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {appConfig.SuspiciousDetectionEnabled}");
+                Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {appConfig.MimicryThreshold:F1}");
+                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {appConfig.SuspiciousToApprovedMessageCount}");
+                // Остальные свойства пока остаются в Config, будут перенесены в следующих группах
                 Console.WriteLine($"   • DOORMAN_GLOBAL_APPROVAL_MODE: {Config.GlobalApprovalMode}");
                 Console.WriteLine($"   • DOORMAN_BLACKLIST_AUTOBAN_DISABLE: {!Config.BlacklistAutoBan}");
                 Console.WriteLine($"   • DOORMAN_CHANNELS_AUTOBAN_DISABLE: {!Config.ChannelAutoBan}");
@@ -224,7 +236,7 @@ public class Program
                 Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!Config.IsPrivateStartAllowed()}");
                 Console.WriteLine($"   • Отключенные чаты: {Config.DisabledChats.Count}");
                 Console.WriteLine($"   • Белый список чатов: {Config.WhitelistChats.Count}");
-                Console.WriteLine($"   • AI-включенные чаты: {Config.AiEnabledChats.Count}");
+                Console.WriteLine($"   • AI-включенные чаты: {appConfig.AiEnabledChats.Count}");
                 Console.WriteLine($"   • Группы без VPN-рекламы: {Config.NoVpnAdGroups.Count}");
                 Console.WriteLine($"   • Группы с отключенной капчей: {Config.NoCaptchaGroups.Count}");
                 Console.WriteLine($"   • Чаты с отключенной фильтрацией медиа: {Config.MediaFilteringDisabledChats.Count}");

@@ -9,6 +9,7 @@ internal sealed class UserManager : IUserManager
 {
     private readonly ILogger<UserManager> _logger;
     private readonly ApprovedUsersStorage _approvedUsersStorage;
+    private readonly IAppConfig _appConfig;
     private readonly ConcurrentDictionary<long, byte> _banlist = [];
     private readonly SemaphoreSlim _semaphore = new(1);
     private readonly HttpClient _clubHttpClient = new();
@@ -17,18 +18,19 @@ internal sealed class UserManager : IUserManager
     // Тестовый блэклист из переменной окружения DOORMAN_TEST_BLACKLIST_IDS
     private static readonly HashSet<long> _testBlacklist = LoadTestBlacklist();
 
-    public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage)
+    public UserManager(ILogger<UserManager> logger, ApprovedUsersStorage approvedUsersStorage, IAppConfig appConfig)
     {
         _logger = logger;
         _approvedUsersStorage = approvedUsersStorage;
+        _appConfig = appConfig;
         
         // Логируем состояние тестового блэклиста при создании UserManager
         Console.WriteLine($"[DEBUG] UserManager создан: тестовый блэклист содержит {_testBlacklist.Count} ID(s): [{string.Join(", ", _testBlacklist)}]");
         
-        if (Config.ClubServiceToken == null)
+        if (appConfig.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
         else
-            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", Config.ClubServiceToken);
+            _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", appConfig.ClubServiceToken);
     }
 
     public async Task RefreshBanlist()
@@ -197,9 +199,9 @@ internal sealed class UserManager : IUserManager
 
     public async ValueTask<string?> GetClubUsername(long userId)
     {
-        if (Config.ClubServiceToken == null)
+        if (_appConfig.ClubServiceToken == null)
             return null;
-        var url = $"{Config.ClubUrl}user/by_telegram_id/{userId}.json";
+        var url = $"{_appConfig.ClubUrl}user/by_telegram_id/{userId}.json";
         try
         {
             using var cts = new CancellationTokenSource();
