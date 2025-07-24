@@ -50,6 +50,12 @@ public class CaptchaServiceTestFactory
         return this;
     }
 
+    public CaptchaServiceTestFactory WithAppConfigSetup(Action<Mock<IAppConfig>> setup)
+    {
+        setup(AppConfigMock);
+        return this;
+    }
+
     #endregion
 
     #region Smart Methods Based on Business Logic

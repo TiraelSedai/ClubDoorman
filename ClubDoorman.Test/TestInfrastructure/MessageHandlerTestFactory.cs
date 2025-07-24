@@ -134,6 +134,18 @@ public class MessageHandlerTestFactory
         return this;
     }
 
+    public MessageHandlerTestFactory WithAppConfigSetup(Action<Mock<IAppConfig>> setup)
+    {
+        setup(AppConfigMock);
+        return this;
+    }
+
+    public MessageHandlerTestFactory WithBotPermissionsServiceSetup(Action<Mock<IBotPermissionsService>> setup)
+    {
+        setup(BotPermissionsServiceMock);
+        return this;
+    }
+
     #endregion
 
     #region Smart Methods Based on Business Logic

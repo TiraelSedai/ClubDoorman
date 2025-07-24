@@ -7,6 +7,8 @@ using Moq;
 using NUnit.Framework;
 using Telegram.Bot.Types;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace ClubDoorman.Test.Handlers;
 
@@ -21,6 +23,46 @@ public class MessageHandlerTests
     public void Setup()
     {
         _factory = new MessageHandlerTestFactory();
+        
+        // Настройка моков для AppConfig - чаты разрешены и не отключены
+        _factory.WithAppConfigSetup(mock => 
+        {
+            mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(true);
+            mock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
+            mock.Setup(x => x.AdminChatId).Returns(123456789);
+            mock.Setup(x => x.LogAdminChatId).Returns(987654321);
+        });
+        
+        // Настройка моков для BotPermissionsService
+        _factory.WithBotSetup(mock =>
+        {
+            mock.Setup(x => x.BotId).Returns(123456789);
+        });
+        
+        _factory.WithBotPermissionsServiceSetup(mock =>
+        {
+            mock.Setup(x => x.IsSilentModeAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+        });
+        
+        // Настройка моков для CaptchaService
+        _factory.WithCaptchaServiceSetup(mock =>
+        {
+            mock.Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
+                .Returns("test-key");
+            mock.Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
+                .Returns((CaptchaInfo?)null);
+        });
+        
+        // Настройка моков для UserManager
+        _factory.WithUserManagerSetup(mock =>
+        {
+            mock.Setup(x => x.InBanlist(It.IsAny<long>()))
+                .ReturnsAsync(false);
+            mock.Setup(x => x.GetClubUsername(It.IsAny<long>()))
+                .ReturnsAsync((string?)null);
+        });
+        
         _handler = _factory.CreateMessageHandler();
     }
 

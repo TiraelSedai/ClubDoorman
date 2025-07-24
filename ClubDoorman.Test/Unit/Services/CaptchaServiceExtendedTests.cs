@@ -28,7 +28,21 @@ public class CaptchaServiceExtendedTests
     [SetUp]
     public void Setup()
     {
-        _factory = new CaptchaServiceTestFactory();
+        _factory = new CaptchaServiceTestFactory()
+            .WithAppConfigSetup(mock => 
+            {
+                mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
+                mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
+            })
+            .WithMessageServiceSetup(mock =>
+            {
+                mock.Setup(x => x.SendCaptchaMessageAsync(It.IsAny<SendCaptchaMessageRequest>()))
+                    .ReturnsAsync(new Message 
+                    { 
+                        Chat = new Chat { Id = 123456 },
+                        Date = DateTime.UtcNow
+                    });
+            });
     }
 
     #region CreateCaptchaAsync Tests
