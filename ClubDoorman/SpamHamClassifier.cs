@@ -59,7 +59,7 @@ public class SpamHamClassifier
     {
         var msg = new MessageData { Text = message.ReplaceLineEndings(" ") };
         while (_engine == null)
-            await Task.Delay(10);
+            await Task.Delay(50);
         lock (_predictionLock)
         {
             var predict = _engine.Predict(msg);
@@ -108,7 +108,7 @@ public class SpamHamClassifier
                         WordFeatureExtractor = new WordBagEstimator.Options
                         {
                             Weighting = NgramExtractingEstimator.WeightingCriteria.TfIdf,
-                            NgramLength = 2,
+                            NgramLength = 3,
                             UseAllLengths = true,
                         },
                         KeepPunctuations = false,

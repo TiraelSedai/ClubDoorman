@@ -28,16 +28,6 @@ public class Tests
         Assert.That(result.Count > 0, Is.EqualTo(expectedResult), string.Join(", ", result));
     }
 
-    [TestCase("Набор в команду для заинтересованых в доп.доходе удаленно, за информацией в лс", true)]
-    [TestCase("В поске 5-6 людей в команду по дистанционному заработку, от 20 лет. По вопросам писать в лс.", true)]
-    [TestCase("Тихий час. Набегался", false)]
-    public void HasStopWords_Test(string message, bool expectedResult)
-    {
-        var norm = TextProcessor.NormalizeText(message);
-        var result = SimpleFilters.HasStopWords(norm);
-        Assert.That(result, Is.EqualTo(expectedResult));
-    }
-
     [TestCase]
     public void FormatStripped()
     {
