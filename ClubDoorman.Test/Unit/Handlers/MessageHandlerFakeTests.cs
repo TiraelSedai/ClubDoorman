@@ -297,7 +297,7 @@ public class MessageHandlerFakeTests
         // Assert
         // Капча не отправляется для одобренных пользователей
         _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()),
+            x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()),
             Times.Never);
     }
 

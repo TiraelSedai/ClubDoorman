@@ -2,6 +2,7 @@ using ClubDoorman.Handlers;
 using ClubDoorman.TestInfrastructure;
 using ClubDoorman.Services;
 using ClubDoorman.Models;
+using ClubDoorman.Models.Requests;
 using NUnit.Framework;
 using Moq;
 using Telegram.Bot.Types;
@@ -116,7 +117,7 @@ public class MessageHandlerTestFactoryTests
         _factory.WithCaptchaServiceSetup(mock =>
         {
             wasCalled = true;
-            mock.Setup(x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()))
+            mock.Setup(x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()))
                 .ReturnsAsync(new Models.CaptchaInfo(123, "Test", DateTime.UtcNow, new User(), 0, new CancellationTokenSource(), null));
         });
 
