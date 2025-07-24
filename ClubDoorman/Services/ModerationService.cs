@@ -182,7 +182,14 @@ public class ModerationService : IModerationService
 
     public bool IsUserApproved(long userId, long? chatId = null)
     {
-        return _userManager.Approved(userId, chatId);
+        if (Config.UseNewApprovalSystem)
+        {
+            return _userManager.Approved(userId, chatId);
+        }
+        else
+        {
+            return _userManager.Approved(userId);
+        }
     }
 
     /// <summary>
@@ -212,18 +219,18 @@ public class ModerationService : IModerationService
             return;
         }
 
-        _logger.LogDebug("📊 Система одобрения: GlobalMode={GlobalMode}, User={User}", 
-            Config.GlobalApprovalMode, Utils.FullName(user));
+        _logger.LogDebug("📊 Система одобрения: UseNew={UseNew}, GlobalMode={GlobalMode}, User={User}", 
+            Config.UseNewApprovalSystem, Config.GlobalApprovalMode, Utils.FullName(user));
 
-        if (!Config.GlobalApprovalMode)
+        if (Config.UseNewApprovalSystem && !Config.GlobalApprovalMode)
         {
-            // Групповой режим
+            // Новая система, групповой режим
             _logger.LogDebug("➡️ Направляем в групповой режим для {User}", Utils.FullName(user));
             await HandleGroupModeMessage(user, chat, messageText);
         }
         else
         {
-            // Глобальный режим
+            // Старая система или новая система в глобальном режиме
             _logger.LogDebug("➡️ Направляем в глобальный режим для {User}", Utils.FullName(user));
             await HandleGlobalModeMessage(user, chat, messageText);
         }

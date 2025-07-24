@@ -2,7 +2,6 @@ using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System.Reflection;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -13,41 +12,6 @@ namespace ClubDoorman.Test.Integration;
 [Category("ai-photo")]
 public class AiChecksPhotoLoggingTest
 {
-    private string? FindEnvFile()
-    {
-        var baseDir = AppContext.BaseDirectory;
-        var currentDir = Directory.GetCurrentDirectory();
-        Console.WriteLine($"AppContext.BaseDirectory: {baseDir}");
-        Console.WriteLine($"Current directory: {currentDir}");
-        
-        // Пробуем разные пути относительно AppContext.BaseDirectory
-        var possiblePaths = new[]
-        {
-            Path.Combine(baseDir, "../../../../ClubDoorman/.env"),
-            Path.Combine(baseDir, "../../../ClubDoorman/.env"),
-            Path.Combine(baseDir, "../../ClubDoorman/.env"),
-            Path.Combine(baseDir, "../ClubDoorman/.env"),
-            Path.Combine(baseDir, "ClubDoorman/.env"),
-            Path.Combine(baseDir, "../../../../ClubDoorman/ClubDoorman/.env"),
-            Path.Combine(baseDir, "../../../ClubDoorman/ClubDoorman/.env"),
-            Path.Combine(baseDir, "../../ClubDoorman/ClubDoorman/.env"),
-            Path.Combine(baseDir, "../ClubDoorman/ClubDoorman/.env"),
-            Path.Combine(baseDir, "ClubDoorman/ClubDoorman/.env")
-        };
-        
-        foreach (var path in possiblePaths)
-        {
-            var fullPath = Path.GetFullPath(path);
-            Console.WriteLine($"Checking path: {path} -> {fullPath}");
-            if (File.Exists(path))
-            {
-                Console.WriteLine($"Found .env file at: {path}");
-                return path;
-            }
-        }
-        
-        return null; // Файл не найден
-    }
     private ILogger<AiChecks> _logger = null!;
     private FakeTelegramClient _fakeBot = null!;
     private AiChecks _aiChecks = null!;
@@ -59,47 +23,13 @@ public class AiChecksPhotoLoggingTest
         _fakeBot = new FakeTelegramClient();
         
         // Загружаем .env файл
-        var envPath = FindEnvFile();
-        if (envPath == null)
-        {
-            Assert.Ignore("Файл .env не найден, пропускаем интеграционный тест");
-        }
-        DotNetEnv.Env.Load(envPath);
-        
-        // Загружаем переменные в Environment для Config.cs
-        var apiKey = DotNetEnv.Env.GetString("DOORMAN_OPENROUTER_API");
-        var botToken = DotNetEnv.Env.GetString("DOORMAN_BOT_API");
-        var adminChat = DotNetEnv.Env.GetString("DOORMAN_ADMIN_CHAT");
-        
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
-        Environment.SetEnvironmentVariable("DOORMAN_BOT_API", botToken);
-        Environment.SetEnvironmentVariable("DOORMAN_ADMIN_CHAT", adminChat);
-        
-        // Отладочная информация
-        Console.WriteLine($"DotNetEnv API Key: {apiKey}");
-        Console.WriteLine($"Environment API Key: {Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API")}");
-        Console.WriteLine($"Config.OpenRouterApi: {ClubDoorman.Infrastructure.Config.OpenRouterApi}");
+        DotNetEnv.Env.Load("ClubDoorman/.env");
         
         // Проверяем наличие API ключа
+        var apiKey = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
         if (string.IsNullOrEmpty(apiKey))
         {
             Assert.Ignore("DOORMAN_OPENROUTER_API не установлен, пропускаем интеграционный тест");
-        }
-        
-        // Принудительно переустанавливаем переменную для Config
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", null);
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
-        
-        // ПРИМЕЧАНИЕ: Проблема с Config.OpenRouterApi при запуске всех тестов
-        // При запуске одного теста - Config.OpenRouterApi содержит правильный ключ
-        // При запуске всех тестов - Config.OpenRouterApi пустой (проблема инициализации статических свойств)
-        // Временное решение: пропускаем тест если Config.OpenRouterApi пустой
-        
-        // Проверяем Config.OpenRouterApi после всех попыток установки
-        var configApiKey = ClubDoorman.Infrastructure.Config.OpenRouterApi;
-        if (string.IsNullOrEmpty(configApiKey))
-        {
-            Assert.Ignore("Config.OpenRouterApi пустой - проблема инициализации статических свойств при запуске всех тестов");
         }
         
         _aiChecks = new AiChecks(_fakeBot, _logger);

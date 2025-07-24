@@ -7,35 +7,35 @@ using NUnit.Framework;
 namespace ClubDoorman.TestInfrastructure;
 
 /// <summary>
-/// Тесты для ApprovedUsersStorageTestFactory
+/// Тесты для ApprovedUsersStorageV2TestFactory
 /// Автоматически сгенерировано
 /// </summary>
 [TestFixture]
 [Category("test-infrastructure")]
-public class ApprovedUsersStorageTestFactoryTests
+public class ApprovedUsersStorageV2TestFactoryTests
 {
     [Test]
-    public void CreateApprovedUsersStorage_ReturnsWorkingInstance()
+    public void CreateApprovedUsersStorageV2_ReturnsWorkingInstance()
     {
         // Arrange
-        var factory = new ApprovedUsersStorageTestFactory();
+        var factory = new ApprovedUsersStorageV2TestFactory();
 
         // Act
-        var instance = factory.CreateApprovedUsersStorage();
+        var instance = factory.CreateApprovedUsersStorageV2();
 
         // Assert
         Assert.That(instance, Is.Not.Null);
-        Assert.That(instance, Is.InstanceOf<ApprovedUsersStorage>());
+        Assert.That(instance, Is.InstanceOf<ApprovedUsersStorageV2>());
     }
 
     [Test]
-    public void CreateApprovedUsersStorage_ConfiguresAllDependencies()
+    public void CreateApprovedUsersStorageV2_ConfiguresAllDependencies()
     {
         // Arrange
-        var factory = new ApprovedUsersStorageTestFactory();
+        var factory = new ApprovedUsersStorageV2TestFactory();
 
         // Act
-        var instance = factory.CreateApprovedUsersStorage();
+        var instance = factory.CreateApprovedUsersStorageV2();
 
         // Assert
         // Проверяем что все зависимости настроены
@@ -43,14 +43,14 @@ public class ApprovedUsersStorageTestFactoryTests
     }
 
     [Test]
-    public void CreateApprovedUsersStorage_CreatesFreshInstanceEachTime()
+    public void CreateApprovedUsersStorageV2_CreatesFreshInstanceEachTime()
     {
         // Arrange
-        var factory = new ApprovedUsersStorageTestFactory();
+        var factory = new ApprovedUsersStorageV2TestFactory();
 
         // Act
-        var instance1 = factory.CreateApprovedUsersStorage();
-        var instance2 = factory.CreateApprovedUsersStorage();
+        var instance1 = factory.CreateApprovedUsersStorageV2();
+        var instance2 = factory.CreateApprovedUsersStorageV2();
 
         // Assert
         Assert.That(instance1, Is.Not.SameAs(instance2));
@@ -60,7 +60,7 @@ public class ApprovedUsersStorageTestFactoryTests
     public void LoggerMock_IsProperlyConfigured()
     {
         // Arrange
-        var factory = new ApprovedUsersStorageTestFactory();
+        var factory = new ApprovedUsersStorageV2TestFactory();
 
         // Act & Assert
         Assert.That(factory.LoggerMock, Is.Not.Null);
