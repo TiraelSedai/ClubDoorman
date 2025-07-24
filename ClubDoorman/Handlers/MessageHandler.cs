@@ -1269,7 +1269,8 @@ public class MessageHandler : IUpdateHandler
         
         try
         {
-            var result = await _aiChecks.GetAttentionBaitProbability(user);
+            var messageText = message.Text ?? message.Caption ?? "";
+            var result = await _aiChecks.GetAttentionBaitProbability(user, messageText);
             _logger.LogDebug("🔍 TRACE: AiChecks.GetAttentionBaitProbability завершен для пользователя {UserId}", user.Id);
             _logger.LogInformation("🤖 AI анализ профиля: пользователь {UserId}, вероятность={Probability}, причина={Reason}", 
                 user.Id, result.SpamProbability.Probability, result.SpamProbability.Reason);
