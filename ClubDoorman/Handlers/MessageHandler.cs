@@ -1283,7 +1283,10 @@ public class MessageHandler : IUpdateHandler
 
                 // РЕФАКТОРИНГ: Определяем нужно ли удалять сообщение, но НЕ удаляем его сразу
                 // Сначала отправляем AI анализ с пересылкой, потом удаляем
-                var shouldDeleteMessage = result.SpamProbability.Probability >= Consts.LlmHighProbability; // >= 0.9
+                // НОВАЯ ЛОГИКА: удаляем при высокой вероятности ИЛИ при средней вероятности + банальное приветствие
+                var isBoringGreeting = AiChecks.IsBoringGreeting(message.Text ?? message.Caption);
+                var shouldDeleteMessage = result.SpamProbability.Probability >= Consts.LlmHighProbability || // >= 0.9
+                                         (result.SpamProbability.Probability >= Consts.LlmLowProbability && isBoringGreeting); // >= 0.75 + банальное приветствие
 
                 // Даем ридонли на 10 минут в любом случае
                 try
@@ -1320,7 +1323,9 @@ public class MessageHandler : IUpdateHandler
 
                 // Отправляем красивое уведомление в админ-чат
                 var automaticAction = shouldDeleteMessage 
-                    ? "🗑️ Сообщение удалено + 🔇 Read-Only на 10 минут" 
+                    ? (result.SpamProbability.Probability >= Consts.LlmHighProbability 
+                        ? "🗑️ Сообщение удалено (высокая вероятность спама) + 🔇 Read-Only на 10 минут"
+                        : "🗑️ Сообщение удалено (банальное приветствие от подозрительного профиля) + 🔇 Read-Only на 10 минут")
                     : "🔇 Read-Only на 10 минут (сообщение оставлено)";
                     
                 var aiProfileData = new AiProfileAnalysisData(
@@ -1342,7 +1347,15 @@ public class MessageHandler : IUpdateHandler
                     try
                     {
                         await _bot.DeleteMessage(chat.Id, message.MessageId, cancellationToken);
-                        _logger.LogInformation("🗑️ Сообщение удалено из-за высокой вероятности спама: {Probability:F2}", result.SpamProbability.Probability);
+                        if (result.SpamProbability.Probability >= Consts.LlmHighProbability)
+                        {
+                            _logger.LogInformation("🗑️ Сообщение удалено из-за высокой вероятности спама: {Probability:F2}", result.SpamProbability.Probability);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🗑️ Сообщение удалено: банальное приветствие от подозрительного профиля (вероятность: {Probability:F2}, приветствие: '{Message}')", 
+                                result.SpamProbability.Probability, message.Text ?? message.Caption ?? "[медиа]");
+                        }
                     }
                     catch (Exception ex)
                     {
