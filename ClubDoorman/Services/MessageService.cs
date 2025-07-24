@@ -142,15 +142,6 @@ public class MessageService : IMessageService
     }
 
     /// <summary>
-    /// Отправляет приветственное сообщение и автоматически удаляет его через 20 секунд
-    /// </summary>
-    public async Task<Message> SendWelcomeMessageAsync(User user, Chat chat, string reason = "приветствие", CancellationToken cancellationToken = default)
-    {
-        var request = new SendWelcomeMessageRequest(user, chat, reason, cancellationToken);
-        return await SendWelcomeMessageAsync(request);
-    }
-
-    /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
     public async Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request)

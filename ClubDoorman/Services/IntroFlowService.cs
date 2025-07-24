@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
@@ -108,7 +109,8 @@ public class IntroFlowService
         if (captchaInfo == null)
         {
             _logger.LogInformation("[NO_CAPTCHA] Капча отключена для чата {ChatId} - отправляем приветствие сразу после проверок", chat.Id);
-            await _messageService.SendWelcomeMessageAsync(user, chat, "приветствие без капчи", cancellationToken);
+            var request = new SendWelcomeMessageRequest(user, chat, "приветствие без капчи", cancellationToken);
+            await _messageService.SendWelcomeMessageAsync(request);
         }
         else
         {

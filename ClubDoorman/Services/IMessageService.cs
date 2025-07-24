@@ -31,11 +31,6 @@ public interface IMessageService
     Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Отправляет приветственное сообщение и автоматически удаляет его через 20 секунд
-    /// </summary>
-    Task<Message> SendWelcomeMessageAsync(User user, Chat chat, string reason = "приветствие", CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
     Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
