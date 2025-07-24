@@ -350,7 +350,7 @@ public class CallbackQueryHandler : IUpdateHandler
     private async Task HandleBanUserByProfile(CallbackQuery callbackQuery, long chatId, long userId, CancellationToken cancellationToken)
     {
         var callbackDataBan = $"banprofile_{chatId}_{userId}";
-        var userMessage = MemoryCache.Default.Remove(callbackDataBan) as Message;
+        var aiProfileData = MemoryCache.Default.Remove(callbackDataBan) as AiProfileAnalysisData;
         var adminName = GetAdminDisplayName(callbackQuery.From);
         
         // При бане по профилю НЕ добавляем сообщение в автобан - проблема в профиле, а не в сообщении
@@ -366,12 +366,12 @@ public class CallbackQueryHandler : IUpdateHandler
             
             // НЕ пересылаем фото профиля повторно - оно уже было отправлено
             // При бане по профилю пересылаем только сообщение пользователя из кэша
-            if (userMessage != null)
+            if (aiProfileData?.MessageId != null)
             {
                 await _bot.ForwardMessage(
                     chatId: Config.AdminChatId,
-                    fromChatId: userMessage.Chat.Id,
-                    messageId: userMessage.MessageId,
+                    fromChatId: aiProfileData.Chat.Id,
+                    messageId: (int)aiProfileData.MessageId.Value,
                     cancellationToken: cancellationToken
                 );
             }
@@ -408,8 +408,8 @@ public class CallbackQueryHandler : IUpdateHandler
         // Удаляем оригинальное сообщение пользователя
         try
         {
-            if (userMessage != null)
-                await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId, cancellationToken);
+            if (aiProfileData?.MessageId != null)
+                await _bot.DeleteMessage(aiProfileData.Chat.Id, (int)aiProfileData.MessageId.Value, cancellationToken);
         }
         catch (Exception ex)
         {
