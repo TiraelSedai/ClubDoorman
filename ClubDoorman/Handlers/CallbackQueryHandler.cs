@@ -366,14 +366,23 @@ public class CallbackQueryHandler : IUpdateHandler
             
             // НЕ пересылаем фото профиля повторно - оно уже было отправлено
             // При бане по профилю пересылаем только сообщение пользователя из кэша
-            if (aiProfileData?.MessageId != null)
+            // НО только если сообщение не было удалено автоматически
+            if (aiProfileData?.MessageId != null && 
+                (aiProfileData.AutomaticAction == null || !aiProfileData.AutomaticAction.Contains("удалено")))
             {
-                await _bot.ForwardMessage(
-                    chatId: Config.AdminChatId,
-                    fromChatId: aiProfileData.Chat.Id,
-                    messageId: (int)aiProfileData.MessageId.Value,
-                    cancellationToken: cancellationToken
-                );
+                try
+                {
+                    await _bot.ForwardMessage(
+                        chatId: Config.AdminChatId,
+                        fromChatId: aiProfileData.Chat.Id,
+                        messageId: (int)aiProfileData.MessageId.Value,
+                        cancellationToken: cancellationToken
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Не удалось переслать сообщение пользователя {UserId} - вероятно, уже удалено", userId);
+                }
             }
             
             // Обновляем сообщение с результатом действия
