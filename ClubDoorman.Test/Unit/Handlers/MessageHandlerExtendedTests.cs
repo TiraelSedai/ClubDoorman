@@ -58,7 +58,8 @@ public class MessageHandlerExtendedTests
             var startCommandHandler = new StartCommandHandler(
                 new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
                 NullLogger<StartCommandHandler>.Instance,
-                new Mock<IMessageService>().Object
+                new Mock<IMessageService>().Object,
+                AppConfigTestFactory.CreateDefault()
             );
             
             var suspiciousCommandHandler = new SuspiciousCommandHandler(

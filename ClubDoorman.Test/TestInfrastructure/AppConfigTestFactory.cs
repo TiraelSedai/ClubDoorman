@@ -24,6 +24,15 @@ public static class AppConfigTestFactory
         mock.Setup(x => x.LogAdminChatId).Returns(123456789);
         mock.Setup(x => x.AiEnabledChats).Returns(new HashSet<long> { 123456789 });
         
+        // Группа 2: Настройки чатов и разрешений
+        mock.Setup(x => x.BotApi).Returns("test-bot-api");
+        mock.Setup(x => x.ClubServiceToken).Returns("test-club-token");
+        mock.Setup(x => x.ClubUrl).Returns("https://test.club/");
+        mock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
+        mock.Setup(x => x.WhitelistChats).Returns(new HashSet<long>());
+        mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
+        mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
+        
         // Методы
         mock.Setup(x => x.IsAiEnabledForChat(It.IsAny<long>())).Returns(true);
         mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(true);
@@ -47,6 +56,15 @@ public static class AppConfigTestFactory
         mock.Setup(x => x.AdminChatId).Returns(123456789);
         mock.Setup(x => x.LogAdminChatId).Returns(123456789);
         mock.Setup(x => x.AiEnabledChats).Returns(new HashSet<long>());
+        
+        // Группа 2: Настройки чатов и разрешений
+        mock.Setup(x => x.BotApi).Returns("test-bot-api");
+        mock.Setup(x => x.ClubServiceToken).Returns("test-club-token");
+        mock.Setup(x => x.ClubUrl).Returns("https://test.club/");
+        mock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
+        mock.Setup(x => x.WhitelistChats).Returns(new HashSet<long>());
+        mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
+        mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
         
         // Методы
         mock.Setup(x => x.IsAiEnabledForChat(It.IsAny<long>())).Returns(false);
@@ -80,6 +98,15 @@ public static class AppConfigTestFactory
         mock.Setup(x => x.AdminChatId).Returns(adminChatId);
         mock.Setup(x => x.LogAdminChatId).Returns(logAdminChatId);
         mock.Setup(x => x.AiEnabledChats).Returns(aiEnabledChats ?? new HashSet<long> { adminChatId });
+        
+        // Группа 2: Настройки чатов и разрешений
+        mock.Setup(x => x.BotApi).Returns("test-bot-api");
+        mock.Setup(x => x.ClubServiceToken).Returns("test-club-token");
+        mock.Setup(x => x.ClubUrl).Returns("https://test.club/");
+        mock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
+        mock.Setup(x => x.WhitelistChats).Returns(new HashSet<long>());
+        mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
+        mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
         
         mock.Setup(x => x.IsAiEnabledForChat(It.IsAny<long>())).Returns(isAiEnabledForChat);
         mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(isChatAllowed);

@@ -10,6 +10,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Reflection;
 using Moq;
 using ClubDoorman.Models;
+using ClubDoorman.Test.TestInfrastructure;
 
 namespace ClubDoorman.Test.Unit.Services;
 
@@ -40,7 +41,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -67,7 +69,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -91,7 +94,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -118,7 +122,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -145,7 +150,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -186,7 +192,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -211,7 +218,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -252,7 +260,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -279,7 +288,8 @@ public class CaptchaServiceFakeTests
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
