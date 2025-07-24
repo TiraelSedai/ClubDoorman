@@ -325,6 +325,7 @@ internal class MessageProcessor
             await DeleteAndReportMessage(message, reason, stoppingToken);
             return;
         }
+        _logger.LogDebug("Normalized:\n {Norm}", normalized);
         var (spam, score) = await _classifier.IsSpam(normalized);
         if (spam)
         {
