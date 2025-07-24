@@ -57,4 +57,19 @@ public class AppConfig : IAppConfig
     /// Разрешён ли приватный старт
     /// </summary>
     public bool IsPrivateStartAllowed() => Config.IsPrivateStartAllowed();
+    
+    /// <summary>
+    /// API токен бота Telegram
+    /// </summary>
+    public string BotApi => Config.BotApi;
+    
+    /// <summary>
+    /// Токен сервиса клуба
+    /// </summary>
+    public string? ClubServiceToken => Config.ClubServiceToken;
+    
+    /// <summary>
+    /// URL клуба
+    /// </summary>
+    public string ClubUrl => Config.ClubUrl;
 } 

@@ -55,4 +55,19 @@ public interface IAppConfig
     /// Разрешён ли приватный старт
     /// </summary>
     bool IsPrivateStartAllowed();
+    
+    /// <summary>
+    /// API токен бота Telegram
+    /// </summary>
+    string BotApi { get; }
+    
+    /// <summary>
+    /// Токен сервиса клуба
+    /// </summary>
+    string? ClubServiceToken { get; }
+    
+    /// <summary>
+    /// URL клуба
+    /// </summary>
+    string ClubUrl { get; }
 } 
