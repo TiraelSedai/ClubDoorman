@@ -219,12 +219,7 @@ namespace ClubDoorman.Infrastructure
         /// </summary>
         public static bool GlobalApprovalMode { get; } = !GetEnvironmentBool("DOORMAN_GROUP_APPROVAL_MODE");
 
-        /// <summary>
-        /// Использовать новую систему одобрения (ApprovedUsersStorageV2)
-        /// - true: использовать новую систему с поддержкой глобальных и групповых одобрений
-        /// - false: использовать старую систему (ApprovedUsersStorage)
-        /// </summary>
-        public static bool UseNewApprovalSystem { get; } = GetEnvironmentBool("DOORMAN_USE_NEW_APPROVAL_SYSTEM");
+
 
         // ==== НАСТРОЙКИ СИСТЕМЫ ПОДОЗРИТЕЛЬНЫХ ПОЛЬЗОВАТЕЛЕЙ ====
 

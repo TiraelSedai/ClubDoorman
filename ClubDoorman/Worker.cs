@@ -388,20 +388,11 @@ internal sealed class Worker(
     private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
     
     /// <summary>
-    /// Проверяет, одобрен ли пользователь с учетом текущей системы одобрения
+    /// Проверяет, одобрен ли пользователь
     /// </summary>
     private bool IsUserApproved(long userId, long? chatId = null)
     {
-        if (Config.UseNewApprovalSystem)
-        {
-            // Новая система: проверяем с учетом режима (глобального или группового)
-            return _userManager.Approved(userId, chatId);
-        }
-        else
-        {
-            // Старая система: проверяем только глобально
-            return _userManager.Approved(userId);
-        }
+        return _userManager.Approved(userId, chatId);
     }
 
     /// <summary>
