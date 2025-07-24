@@ -16,6 +16,11 @@ public interface IAiChecks
     /// Получает вероятность того, что профиль создан для привлечения внимания/спама
     /// </summary>
     ValueTask<SpamPhotoBio> GetAttentionBaitProbability(User user, Func<string, Task>? ifChanged = default);
+    
+    /// <summary>
+    /// Получает вероятность того, что профиль создан для привлечения внимания/спама (с учетом первого сообщения)
+    /// </summary>
+    ValueTask<SpamPhotoBio> GetAttentionBaitProbability(User user, string? messageText, Func<string, Task>? ifChanged = default);
 
     /// <summary>
     /// Получает вероятность того, что сообщение является спамом
