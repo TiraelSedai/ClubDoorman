@@ -228,15 +228,10 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
         var escapedNameBio = System.Net.WebUtility.HtmlEncode(notification.NameBio);
         var escapedMessageText = System.Net.WebUtility.HtmlEncode(messageText);
             
+        // РЕФАКТОРИНГ: Убираем информацию о пользователе, чате и профиле - она уже в фото
         var result = $"🤖 <b>AI анализ профиля</b>\n\n" +
-                     $"👤 <b>Пользователь</b>: {escapedUser}\n" +
-                     $"💬 <b>Чат</b>: {escapedChat}\n\n" +
-                     $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
                      $"📊 <b>Вероятность спама</b>: {notification.SpamProbability * 100:F1}%\n\n" +
-                     $"🔍 <b>Причина</b>:\n<i>{escapedReason}</i>\n\n" +
-                     $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                     $"📋 <b>Профиль</b>:\n<code>{escapedNameBio}</code>\n\n" +
-                     $"💬 <b>Сообщение</b>:\n<code>{escapedMessageText}</code>\n\n";
+                     $"🔍 <b>Причина</b>:\n<i>{escapedReason}</i>\n\n";
                      
         if (!string.IsNullOrEmpty(notification.AutomaticAction))
         {
@@ -268,8 +263,19 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
         {
             _logger.LogDebug("🤖 AI анализ профиля: отправляем фото для пользователя {UserId}", data.User.Id);
             
-            var photoCaption = $"{data.NameBio}\nСообщение:\n{data.MessageText}";
-            // Обрезаем caption если слишком длинный
+            // РЕФАКТОРИНГ: Новый формат caption - добавляем информацию о чате, убираем лишнее
+            var escapedUser = System.Net.WebUtility.HtmlEncode(FormatUser(data.User));
+            var escapedChat = System.Net.WebUtility.HtmlEncode(FormatChat(data.Chat)); 
+            var escapedNameBio = System.Net.WebUtility.HtmlEncode(data.NameBio);
+            var escapedMessageText = System.Net.WebUtility.HtmlEncode(data.MessageText.Length > 120 ?
+                data.MessageText.Substring(0, 117) + "..." : data.MessageText);
+            
+            var photoCaption = $"<b>👤 Пользователь:</b> {escapedUser}\n" +
+                              $"<b>💬 Чат:</b> {escapedChat}\n\n" +
+                              $"<b>📋 Профиль:</b>\n{escapedNameBio}\n\n" +
+                              $"<b>💬 Сообщение:</b>\n{escapedMessageText}";
+                              
+            // Обрезаем caption если слишком длинный (лимит Telegram 1024 символа)
             if (photoCaption.Length > 1024)
             {
                 photoCaption = photoCaption.Substring(0, 1021) + "...";
@@ -282,6 +288,7 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                 Config.AdminChatId,
                 inputFile,
                 caption: photoCaption,
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                 cancellationToken: cancellationToken
             );
             replyParams = new ReplyParameters { MessageId = photoMsg.MessageId };
@@ -293,7 +300,33 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
             _logger.LogDebug("🤖 AI анализ профиля: фото отсутствует для пользователя {UserId}", data.User.Id);
         }
         
-        // 2. Основное сообщение с анализом
+        // 2. РЕФАКТОРИНГ: ВСЕГДА пересылаем сообщение пользователя между фото и AI анализом
+        // Сообщение удаляется ПОСЛЕ отправки AI анализа, поэтому сейчас оно ещё доступно
+        if (data.MessageId.HasValue)
+        {
+            try
+            {
+                var forwardedMsg = await _bot.ForwardMessage(
+                    chatId: Config.AdminChatId,
+                    fromChatId: data.Chat.Id,
+                    messageId: (int)data.MessageId.Value,
+                    cancellationToken: cancellationToken
+                );
+                // Если пересылка удалась, используем её как основу для ответа на AI анализ
+                replyParams = new ReplyParameters { MessageId = forwardedMsg.MessageId };
+                _logger.LogDebug("🤖 AI анализ профиля: сообщение пользователя переслано для пользователя {UserId}", data.User.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "🤖 AI анализ профиля: не удалось переслать сообщение пользователя {UserId}", data.User.Id);
+            }
+        }
+        else
+        {
+            _logger.LogDebug("🤖 AI анализ профиля: сообщение пользователя не пересылается - MessageId отсутствует для пользователя {UserId}", data.User.Id);
+        }
+        
+        // 3. Основное сообщение с анализом
         var message = FormatAiProfileAnalysis(data);
         
         var mainMessage = await _bot.SendMessageAsync(

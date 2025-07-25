@@ -356,20 +356,30 @@ public class MessageService : IMessageService
         }
     }
     
-    /// <summary>
-    /// Отправить уведомление о AI анализе профиля с фото
-    /// </summary>
     public async Task SendAiProfileAnalysisAsync(AiProfileAnalysisData data, CancellationToken cancellationToken = default)
     {
         try
         {
-            await SendAdminNotificationAsync(AdminNotificationType.AiProfileAnalysis, data, cancellationToken);
-            _logger.LogDebug("Отправлено уведомление о AI анализе профиля");
+            _logger.LogDebug("🤖 MessageService.SendAiProfileAnalysisAsync: начало обработки для пользователя {UserId}, PhotoBytes: {PhotoBytesLength}",
+                data.User.Id, data.PhotoBytes?.Length ?? 0);
+            
+            // Используем диспетчер для определения типа чата
+            if (_serviceChatDispatcher.ShouldSendToAdminChat(data))
+            {
+                _logger.LogDebug("🤖 MessageService: отправляем в админ-чат");
+                await _serviceChatDispatcher.SendToAdminChatAsync(data, cancellationToken);
+            }
+            else
+            {
+                _logger.LogDebug("🤖 MessageService: отправляем в лог-чат");
+                await _serviceChatDispatcher.SendToLogChatAsync(data, cancellationToken);
+            }
+            
+            _logger.LogDebug("Отправлено AI уведомление о профиле для пользователя {User} через диспетчер", Utils.FullName(data.User));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при отправке уведомления о AI анализе профиля");
-            throw;
+            _logger.LogError(ex, "Ошибка при отправке AI уведомления о профиле для пользователя {User}", Utils.FullName(data.User));
         }
     }
     
