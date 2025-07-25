@@ -131,8 +131,24 @@ public class AiChecks : IAiChecks
         {
             _logger.LogDebug("🤖 AI анализ профиля: получаем GetChatFullInfo для пользователя {UserId}", user.Id);
             var userChat = await _bot.GetChatFullInfo(user.Id);
+            
+            // Попробуем также получить базовую информацию о пользователе
+            try
+            {
+                var basicChat = await _bot.GetChat(user.Id);
+                _logger.LogDebug("🤖 AI анализ профиля: GetChat получен для пользователя {UserId}: Type={Type}, Id={Id}, Title={Title}, Username={Username}", 
+                    user.Id, basicChat.Type, basicChat.Id, basicChat.Title ?? "null", basicChat.Username ?? "null");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "🤖 AI анализ профиля: не удалось получить GetChat для пользователя {UserId}", user.Id);
+            }
             _logger.LogDebug("🤖 AI анализ профиля: GetChatFullInfo получен для пользователя {UserId}, Bio: {Bio}, LinkedChatId: {LinkedChatId}, Photo: {Photo}", 
                 user.Id, userChat.Bio ?? "null", userChat.LinkedChatId?.ToString() ?? "null", userChat.Photo?.ToString() ?? "null");
+            
+            // Дополнительное логирование для отладки
+            _logger.LogDebug("🤖 AI анализ профиля: полная информация о userChat для пользователя {UserId}: Type={Type}, Id={Id}, Title={Title}, Username={Username}", 
+                user.Id, userChat.Type, userChat.Id, userChat.Title ?? "null", userChat.Username ?? "null");
             
             // ФИКС: Если у пользователя нет био и нет связанного канала, но есть первое сообщение - анализируем фото + сообщение
             if (userChat.Bio == null && userChat.LinkedChatId == null)
