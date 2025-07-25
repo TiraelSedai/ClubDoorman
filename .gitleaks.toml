@@ -26,6 +26,8 @@ allowlist = [
     '''run_with_real_token.sh''',
     '''**/test_bot.sh''',
     '''**/run_with_real_token.sh''',
+    '''./test_bot.sh''',
+    '''./run_with_real_token.sh''',
     '''ClubDoorman/.env''',
     '''.gitleaks.baseline.json''',
     '''scripts/run_tests*.sh''',
