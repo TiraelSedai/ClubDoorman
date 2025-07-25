@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Test.TestInfrastructure;
 using Telegram.Bot.Types;
 using Moq;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ public class AiChecksTests
         _mockLogger = new Mock<ILogger<AiChecks>>();
         
         // Создаем реальный AiChecks с моками
-        _aiChecks = new AiChecks(_mockBot.Object, _mockLogger.Object);
+        _aiChecks = new AiChecks(_mockBot.Object, _mockLogger.Object, AppConfigTestFactory.CreateDefault());
     }
 
     [Test]

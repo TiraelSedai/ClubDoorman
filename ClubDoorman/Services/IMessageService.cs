@@ -1,4 +1,5 @@
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -30,14 +31,14 @@ public interface IMessageService
     Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Отправляет приветственное сообщение и автоматически удаляет его через 20 секунд
+    /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
-    Task<Message> SendWelcomeMessageAsync(User user, Chat chat, string reason = "приветствие", CancellationToken cancellationToken = default);
+    Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
 
     /// <summary>
-    /// Отправляет сообщение капчи с кнопками
+    /// Отправляет сообщение капчи используя Request объект
     /// </summary>
-    Task<Message> SendCaptchaMessageAsync(Chat chat, string message, ReplyParameters? replyParameters, InlineKeyboardMarkup replyMarkup, CancellationToken cancellationToken = default);
+    Task<Message> SendCaptchaMessageAsync(SendCaptchaMessageRequest request);
     
     /// <summary>
     /// Переслать сообщение в админский чат с уведомлением
@@ -50,9 +51,9 @@ public interface IMessageService
     Task<Message?> ForwardToLogWithNotificationAsync(Message originalMessage, LogNotificationType type, NotificationData data, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Отправить уведомление об ошибке
+    /// Отправить уведомление об ошибке используя Request объект
     /// </summary>
-    Task SendErrorNotificationAsync(Exception ex, string context, User? user = null, Chat? chat = null, CancellationToken cancellationToken = default);
+    Task SendErrorNotificationAsync(SendErrorNotificationRequest request);
     
     /// <summary>
     /// Отправить уведомление о AI анализе профиля с фото

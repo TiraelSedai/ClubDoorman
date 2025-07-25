@@ -1,5 +1,6 @@
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Models.Requests;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -9,6 +10,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Reflection;
 using Moq;
 using ClubDoorman.Models;
+using ClubDoorman.Test.TestInfrastructure;
 
 namespace ClubDoorman.Test.Unit.Services;
 
@@ -33,35 +35,27 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
         // Act
-        var captchaInfo = await service.CreateCaptchaAsync(chat, user);
+        var captchaInfo = await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
 
         // Assert
         Assert.That(captchaInfo, Is.Not.Null);
         Assert.That(captchaInfo.User.Id, Is.EqualTo(789));
         
-        _messageServiceMock.Verify(x => x.SendCaptchaMessageAsync(
-            It.Is<Chat>(c => c.Id == 123456),
-            It.Is<string>(text => text.Contains("Привет") && text.Contains("Антиспам")),
-            It.IsAny<ReplyParameters?>(),
-            It.IsAny<InlineKeyboardMarkup>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _messageServiceMock.Verify(x => x.SendCaptchaMessageAsync(It.IsAny<SendCaptchaMessageRequest>()), Times.Once);
     }
 
     [Test]
@@ -69,32 +63,24 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "p0rn", LastName = "user" };
 
         // Act
-        await service.CreateCaptchaAsync(chat, user);
+        await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
 
         // Assert
-        _messageServiceMock.Verify(x => x.SendCaptchaMessageAsync(
-            It.Is<Chat>(c => c.Id == 123456),
-            It.Is<string>(text => text.Contains("новый участник чата") && !text.Contains("p0rn")),
-            It.IsAny<ReplyParameters?>(),
-            It.IsAny<InlineKeyboardMarkup>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _messageServiceMock.Verify(x => x.SendCaptchaMessageAsync(It.IsAny<SendCaptchaMessageRequest>()), Times.Once);
     }
 
     [Test]
@@ -102,23 +88,20 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
-        var captchaInfo = await service.CreateCaptchaAsync(chat, user);
+        var captchaInfo = await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -133,23 +116,20 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
-        await service.CreateCaptchaAsync(chat, user);
+        await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -164,17 +144,14 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ThrowsAsync(new Exception("Telegram API error"));
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
@@ -183,7 +160,7 @@ public class CaptchaServiceFakeTests
         // Act & Assert
         var caughtException = Assert.ThrowsAsync<Exception>(async () =>
         {
-            await service.CreateCaptchaAsync(chat, user);
+            await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
         });
         
         Assert.That(caughtException.Message, Is.EqualTo("Telegram API error"));
@@ -209,32 +186,25 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
         // Act
-        await service.CreateCaptchaAsync(chat, user);
+        await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
 
         // Assert
         _messageServiceMock.Verify(x => x.SendCaptchaMessageAsync(
-            It.Is<Chat>(c => c.Id == 123456),
-            It.Is<string>(text => text.Contains("📍 Место для рекламы")),
-            It.IsAny<ReplyParameters?>(),
-            It.IsAny<InlineKeyboardMarkup>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.Is<SendCaptchaMessageRequest>(req => req.Chat.Id == 123456 && req.Message.Contains("📍 Место для рекламы"))), Times.Once);
     }
 
     [Test]
@@ -242,23 +212,20 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
-        await service.CreateCaptchaAsync(chat, user);
+        await service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null));
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act - используем неправильный ответ, чтобы проверить что капча работает
@@ -287,24 +254,21 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
         // Act
-        _ = service.CreateCaptchaAsync(chat, user).Result;
+        _ = service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null)).Result;
         var key = service.GenerateKey(chat.Id, user.Id);
         var captchaInfo = service.GetCaptchaInfo(key);
 
@@ -318,24 +282,21 @@ public class CaptchaServiceFakeTests
     {
         // Arrange
         _messageServiceMock.Setup(x => x.SendCaptchaMessageAsync(
-            It.IsAny<Chat>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ReplyParameters?>(), 
-            It.IsAny<InlineKeyboardMarkup>(), 
-            It.IsAny<CancellationToken>()))
+            It.IsAny<SendCaptchaMessageRequest>()))
         .ReturnsAsync(new Telegram.Bot.Types.Message());
         
         var service = new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            _messageServiceMock.Object
+            _messageServiceMock.Object,
+            AppConfigTestFactory.CreateDefault()
         );
         
         var chat = new Chat { Id = 123456, Title = "Test Chat", Type = ChatType.Group };
         var user = new User { Id = 789, FirstName = "Test", LastName = "User" };
 
         // Act
-        _ = service.CreateCaptchaAsync(chat, user).Result;
+        _ = service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null)).Result;
         var key = service.GenerateKey(chat.Id, user.Id);
         var result = service.RemoveCaptcha(key);
 

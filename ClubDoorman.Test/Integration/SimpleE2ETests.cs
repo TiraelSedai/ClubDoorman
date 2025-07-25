@@ -1,5 +1,6 @@
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
+using ClubDoorman.Test.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Reflection;
@@ -78,24 +79,10 @@ public class SimpleE2ETests
             Assert.Ignore("API ключи не настроены, пропускаем E2E тесты");
         }
         
-        // Принудительно переустанавливаем переменную для Config
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", null);
-        Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
-        
-        // ПРИМЕЧАНИЕ: Проблема с Config.OpenRouterApi при запуске всех тестов
-        // При запуске одного теста - Config.OpenRouterApi содержит правильный ключ
-        // При запуске всех тестов - Config.OpenRouterApi пустой (проблема инициализации статических свойств)
-        // Временное решение: пропускаем тест если Config.OpenRouterApi пустой
-        
-        // Проверяем Config.OpenRouterApi после всех попыток установки
-        var configApiKey = ClubDoorman.Infrastructure.Config.OpenRouterApi;
-        if (string.IsNullOrEmpty(configApiKey))
-        {
-            Assert.Ignore("Config.OpenRouterApi пустой - проблема инициализации статических свойств при запуске всех тестов");
-        }
+
         
         // Инициализируем сервисы с правильными логгерами
-        _aiChecks = new AiChecks(_fakeBot, _logger);
+        _aiChecks = new AiChecks(_fakeBot, _logger, AppConfigTestFactory.CreateDefault());
         _spamHamClassifier = new SpamHamClassifier(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<SpamHamClassifier>());
         _mimicryClassifier = new MimicryClassifier(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<MimicryClassifier>());
     }

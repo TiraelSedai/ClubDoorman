@@ -1,4 +1,5 @@
 using ClubDoorman.Models;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot.Types;
 
 namespace ClubDoorman.Services;
@@ -9,33 +10,43 @@ namespace ClubDoorman.Services;
 public interface ICaptchaService
 {
     /// <summary>
-    /// Создает капчу для нового пользователя в чате, либо возвращает null, если капча отключена для чата.
+    /// Создает капчу используя Request объект
     /// </summary>
-    /// <param name="chat">Чат, в котором создается капча</param>
-    /// <param name="user">Пользователь, для которого создается капча</param>
-    /// <param name="userJoinMessage">Сообщение о присоединении пользователя (опционально)</param>
+    /// <param name="request">Запрос на создание капчи</param>
     /// <returns>Информация о созданной капче или null, если капча отключена для чата</returns>
-    Task<CaptchaInfo?> CreateCaptchaAsync(Chat chat, User user, Message? userJoinMessage = null);
+    Task<CaptchaInfo?> CreateCaptchaAsync(CreateCaptchaRequest request);
 
-    /// <summary>
-    /// Проверяет ответ на капчу
-    /// </summary>
-    Task<bool> ValidateCaptchaAsync(string key, int answer);
 
-    /// <summary>
-    /// Получает информацию о капче по ключу
-    /// </summary>
-    CaptchaInfo? GetCaptchaInfo(string key);
-
-    /// <summary>
-    /// Удаляет капчу
-    /// </summary>
-    bool RemoveCaptcha(string key);
 
     /// <summary>
     /// Генерирует ключ для пользователя в чате
     /// </summary>
+    /// <param name="chatId">ID чата</param>
+    /// <param name="userId">ID пользователя</param>
+    /// <returns>Уникальный ключ капчи</returns>
     string GenerateKey(long chatId, long userId);
+
+    /// <summary>
+    /// Получает информацию о капче по ключу
+    /// </summary>
+    /// <param name="key">Ключ капчи</param>
+    /// <returns>Информация о капче или null, если не найдена</returns>
+    CaptchaInfo? GetCaptchaInfo(string key);
+
+    /// <summary>
+    /// Удаляет капчу по ключу
+    /// </summary>
+    /// <param name="key">Ключ капчи</param>
+    /// <returns>true, если капча была удалена</returns>
+    bool RemoveCaptcha(string key);
+
+    /// <summary>
+    /// Проверяет ответ на капчу (старый метод для совместимости)
+    /// </summary>
+    /// <param name="key">Ключ капчи</param>
+    /// <param name="answer">Ответ пользователя</param>
+    /// <returns>true, если ответ правильный</returns>
+    Task<bool> ValidateCaptchaAsync(string key, int answer);
 
     /// <summary>
     /// Банит пользователей, которые не прошли капчу вовремя

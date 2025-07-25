@@ -81,33 +81,44 @@ public class Program
             )
             .ConfigureServices(services =>
             {
-                // Проверяем конфигурацию бота
-                if (string.IsNullOrEmpty(Config.BotApi))
+                // Регистрация конфигурации приложения
+                services.AddSingleton<IAppConfig, AppConfig>();
+                
+                // Telegram Bot Client - создаем после регистрации IAppConfig
+                services.AddSingleton<TelegramBotClient>(provider => 
                 {
-                    throw new InvalidOperationException(
-                        "❌ Бот не может запуститься: DOORMAN_BOT_API не настроен или равен 'test-bot-token'. " +
-                        "Установите переменную окружения DOORMAN_BOT_API с валидным токеном бота."
-                    );
-                }
+                    var appConfig = provider.GetRequiredService<IAppConfig>();
+                    
+                    // Проверяем конфигурацию бота
+                    if (string.IsNullOrEmpty(appConfig.BotApi))
+                    {
+                        throw new InvalidOperationException(
+                            "❌ Бот не может запуститься: DOORMAN_BOT_API не настроен или равен 'test-bot-token'. " +
+                            "Установите переменную окружения DOORMAN_BOT_API с валидным токеном бота."
+                        );
+                    }
 
-                Console.WriteLine($"🤖 Запуск бота с токеном: {Config.BotApi.Substring(0, Math.Min(Config.BotApi.Length, 10))}...");
+                    Console.WriteLine($"🤖 Запуск бота с токеном: {appConfig.BotApi.Substring(0, Math.Min(appConfig.BotApi.Length, 10))}...");
+                    
+                    return new TelegramBotClient(appConfig.BotApi);
+                });
                 
-                services.AddHostedService<Worker>(provider => new Worker(
-                    provider.GetRequiredService<ILogger<Worker>>(),
-                    provider.GetRequiredService<IUpdateDispatcher>(),
-                    provider.GetRequiredService<ICaptchaService>(),
-                    provider.GetRequiredService<IStatisticsService>(),
-                    provider.GetRequiredService<ISpamHamClassifier>(),
-                    provider.GetRequiredService<IUserManager>(),
-                    provider.GetRequiredService<IBadMessageManager>(),
-                    provider.GetRequiredService<IAiChecks>(),
-                    provider.GetRequiredService<IChatLinkFormatter>(),
-                    provider.GetRequiredService<ITelegramBotClientWrapper>(),
-                    provider.GetRequiredService<IMessageService>()
-                ));
+                                                   services.AddHostedService<Worker>(provider => new Worker(
+                                       provider.GetRequiredService<ILogger<Worker>>(),
+                                       provider.GetRequiredService<IUpdateDispatcher>(),
+                                       provider.GetRequiredService<ICaptchaService>(),
+                                       provider.GetRequiredService<IStatisticsService>(),
+                                       provider.GetRequiredService<ISpamHamClassifier>(),
+                                       provider.GetRequiredService<IUserManager>(),
+                                       provider.GetRequiredService<IBadMessageManager>(),
+                                       provider.GetRequiredService<IAiChecks>(),
+                                       provider.GetRequiredService<IChatLinkFormatter>(),
+                                       provider.GetRequiredService<ITelegramBotClientWrapper>(),
+                                       provider.GetRequiredService<IMessageService>(),
+                                       provider.GetRequiredService<IAppConfig>()
+                                   ));
                 
-                // Telegram Bot Client
-                services.AddSingleton<TelegramBotClient>(provider => new TelegramBotClient(Config.BotApi));
+                // Telegram Bot Client интерфейсы
                 services.AddSingleton<ITelegramBotClient>(provider => provider.GetRequiredService<TelegramBotClient>());
                 services.AddSingleton<ITelegramBotClientWrapper>(provider => new TelegramBotClientWrapper(provider.GetRequiredService<TelegramBotClient>()));
                 
@@ -115,7 +126,7 @@ public class Program
                 services.AddSingleton<ISpamHamClassifier, SpamHamClassifier>();
                 services.AddSingleton<IMimicryClassifier, MimicryClassifier>();
                 services.AddSingleton<IBadMessageManager, BadMessageManager>();
-                services.AddSingleton<IAiChecks>(provider => new AiChecks(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<AiChecks>>()));
+                services.AddSingleton<IAiChecks>(provider => new AiChecks(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<AiChecks>>(), provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<GlobalStatsManager>();
                 services.AddSingleton<ISuspiciousUsersStorage, SuspiciousUsersStorage>();
                 
@@ -125,7 +136,8 @@ public class Program
                 services.AddSingleton<ICaptchaService>(provider => new CaptchaService(
                     provider.GetRequiredService<ITelegramBotClientWrapper>(),
                     provider.GetRequiredService<ILogger<CaptchaService>>(),
-                    provider.GetRequiredService<IMessageService>()));
+                    provider.GetRequiredService<IMessageService>(),
+                    provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<IModerationService>(provider => new ModerationService(
                     provider.GetRequiredService<ISpamHamClassifier>(),
                     provider.GetRequiredService<IMimicryClassifier>(),
@@ -136,7 +148,7 @@ public class Program
                     provider.GetRequiredService<ITelegramBotClient>(),
                     provider.GetRequiredService<IMessageService>(),
                     provider.GetRequiredService<ILogger<ModerationService>>()));
-                services.AddSingleton<IntroFlowService>(provider => new IntroFlowService(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<IntroFlowService>>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<GlobalStatsManager>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>()));
+                services.AddSingleton<IntroFlowService>(provider => new IntroFlowService(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<IntroFlowService>>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<GlobalStatsManager>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
                 services.AddSingleton<IChatLinkFormatter, ChatLinkFormatter>();
                 services.AddSingleton<IUserFlowLogger, UserFlowLogger>();
                 services.AddSingleton<IBotPermissionsService, BotPermissionsService>();
@@ -146,7 +158,14 @@ public class Program
                 services.Configure<LoggingConfiguration>(options => {});
                 services.AddSingleton<ILoggingConfigurationService, LoggingConfigurationService>();
                 services.AddSingleton<IServiceChatDispatcher, ServiceChatDispatcher>();
-                services.AddSingleton<IMessageService, MessageService>();
+                services.AddSingleton<IMessageService>(provider => new MessageService(
+                    provider.GetRequiredService<ITelegramBotClientWrapper>(),
+                    provider.GetRequiredService<ILogger<MessageService>>(),
+                    provider.GetRequiredService<MessageTemplates>(),
+                    provider.GetRequiredService<ILoggingConfigurationService>(),
+                    provider.GetRequiredService<IServiceChatDispatcher>(),
+                    provider.GetRequiredService<IAppConfig>()
+                ));
                 
                 // Обработчики обновлений
                 services.AddSingleton<IUpdateHandler>(provider => new MessageHandler(
@@ -164,23 +183,30 @@ public class Program
                     provider.GetRequiredService<IMessageService>(),
                     provider.GetRequiredService<IChatLinkFormatter>(),
                     provider.GetRequiredService<IBotPermissionsService>(),
+                    provider.GetRequiredService<IAppConfig>(),
                     provider.GetRequiredService<ILogger<MessageHandler>>()));
                 services.AddSingleton<IUpdateHandler>(provider => new CallbackQueryHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IBadMessageManager>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<CallbackQueryHandler>>()));
-                services.AddSingleton<IUpdateHandler>(provider => new ChatMemberHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<ILogger<ChatMemberHandler>>(), provider.GetRequiredService<IntroFlowService>(), provider.GetRequiredService<IMessageService>()));
+                services.AddSingleton<IUpdateHandler>(provider => new ChatMemberHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<ILogger<ChatMemberHandler>>(), provider.GetRequiredService<IntroFlowService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
                 
                 // Обработчики команд
-                services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
-                services.AddSingleton<StartCommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
-                services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
-                services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
+                services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
+                services.AddSingleton<StartCommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
+                services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
+                services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
                 
                 // Регистрация системы одобрения
                 services.AddSingleton<ApprovedUsersStorage>();
-                services.AddSingleton<UserManager>();
+                services.AddSingleton<UserManager>(provider => new UserManager(
+                    provider.GetRequiredService<ILogger<UserManager>>(),
+                    provider.GetRequiredService<ApprovedUsersStorage>(),
+                    provider.GetRequiredService<IAppConfig>()
+                ));
                 services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
                 
                 // Логируем статус AI и Mimicry систем после полной инициализации
-                if (Config.OpenRouterApi != null)
+                var appConfig = services.BuildServiceProvider().GetRequiredService<IAppConfig>();
+                
+                if (appConfig.OpenRouterApi != null)
                 {
                     Console.WriteLine("🤖 AI анализ: ВКЛЮЧЕН");
                 }
@@ -189,9 +215,9 @@ public class Program
                     Console.WriteLine("🤖 AI анализ: ОТКЛЮЧЕН (DOORMAN_OPENROUTER_API не настроен)");
                 }
                 
-                if (Config.SuspiciousDetectionEnabled)
+                if (appConfig.SuspiciousDetectionEnabled)
                 {
-                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {Config.MimicryThreshold:F1})");
+                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {appConfig.MimicryThreshold:F1})");
                 }
                 else
                 {
@@ -200,13 +226,14 @@ public class Program
                 
                 // Информация о загруженных переменных окружения
                 Console.WriteLine("📋 Загруженные переменные окружения:");
-                Console.WriteLine($"   • DOORMAN_BOT_API: {(string.IsNullOrEmpty(Config.BotApi) ? "не найдено" : "найдено")}");
-                Console.WriteLine($"   • DOORMAN_ADMIN_CHAT: {Config.AdminChatId}");
-                Console.WriteLine($"   • DOORMAN_LOG_ADMIN_CHAT: {Config.LogAdminChatId}");
-                Console.WriteLine($"   • DOORMAN_OPENROUTER_API: {(Config.OpenRouterApi != null ? "найдено" : "не найдено")}");
-                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {Config.SuspiciousDetectionEnabled}");
-                Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {Config.MimicryThreshold:F1}");
-                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {Config.SuspiciousToApprovedMessageCount}");
+                Console.WriteLine($"   • DOORMAN_BOT_API: {(string.IsNullOrEmpty(appConfig.BotApi) ? "не найдено" : "найдено")}");
+                Console.WriteLine($"   • DOORMAN_ADMIN_CHAT: {appConfig.AdminChatId}");
+                Console.WriteLine($"   • DOORMAN_LOG_ADMIN_CHAT: {appConfig.LogAdminChatId}");
+                Console.WriteLine($"   • DOORMAN_OPENROUTER_API: {(appConfig.OpenRouterApi != null ? "найдено" : "не найдено")}");
+                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_DETECTION_ENABLE: {appConfig.SuspiciousDetectionEnabled}");
+                Console.WriteLine($"   • DOORMAN_MIMICRY_THRESHOLD: {appConfig.MimicryThreshold:F1}");
+                Console.WriteLine($"   • DOORMAN_SUSPICIOUS_TO_APPROVED_COUNT: {appConfig.SuspiciousToApprovedMessageCount}");
+                // Остальные свойства пока остаются в Config, будут перенесены в следующих группах
                 Console.WriteLine($"   • DOORMAN_GLOBAL_APPROVAL_MODE: {Config.GlobalApprovalMode}");
                 Console.WriteLine($"   • DOORMAN_BLACKLIST_AUTOBAN_DISABLE: {!Config.BlacklistAutoBan}");
                 Console.WriteLine($"   • DOORMAN_CHANNELS_AUTOBAN_DISABLE: {!Config.ChannelAutoBan}");
@@ -216,12 +243,12 @@ public class Program
                 Console.WriteLine($"   • DOORMAN_APPROVE_BUTTON: {Config.ApproveButtonEnabled}");
                 Console.WriteLine($"   • DOORMAN_DISABLE_MEDIA_FILTERING: {Config.DisableMediaFiltering}");
                 Console.WriteLine($"   • DOORMAN_DELETE_FORWARDED_MESSAGES: {Config.DeleteForwardedMessages}");
-                Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!Config.IsPrivateStartAllowed()}");
-                Console.WriteLine($"   • Отключенные чаты: {Config.DisabledChats.Count}");
-                Console.WriteLine($"   • Белый список чатов: {Config.WhitelistChats.Count}");
-                Console.WriteLine($"   • AI-включенные чаты: {Config.AiEnabledChats.Count}");
-                Console.WriteLine($"   • Группы без VPN-рекламы: {Config.NoVpnAdGroups.Count}");
-                Console.WriteLine($"   • Группы с отключенной капчей: {Config.NoCaptchaGroups.Count}");
+                Console.WriteLine($"   • DOORMAN_PRIVATE_START_DISABLE: {!appConfig.IsPrivateStartAllowed()}");
+                Console.WriteLine($"   • Отключенные чаты: {appConfig.DisabledChats.Count}");
+                Console.WriteLine($"   • Белый список чатов: {appConfig.WhitelistChats.Count}");
+                Console.WriteLine($"   • AI-включенные чаты: {appConfig.AiEnabledChats.Count}");
+                Console.WriteLine($"   • Группы без VPN-рекламы: {appConfig.NoVpnAdGroups.Count}");
+                Console.WriteLine($"   • Группы с отключенной капчей: {appConfig.NoCaptchaGroups.Count}");
                 Console.WriteLine($"   • Чаты с отключенной фильтрацией медиа: {Config.MediaFilteringDisabledChats.Count}");
             })
             .Build();

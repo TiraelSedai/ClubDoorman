@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
@@ -23,6 +24,7 @@ public class IntroFlowService
     private readonly GlobalStatsManager _globalStatsManager;
     private readonly IModerationService _moderationService;
     private readonly IMessageService _messageService;
+    private readonly IAppConfig _appConfig;
 
     public IntroFlowService(
         ITelegramBotClientWrapper bot,
@@ -33,7 +35,8 @@ public class IntroFlowService
         IStatisticsService statisticsService,
         GlobalStatsManager globalStatsManager,
         IModerationService moderationService,
-        IMessageService messageService)
+        IMessageService messageService,
+        IAppConfig appConfig)
     {
         _bot = bot;
         _logger = logger;
@@ -44,6 +47,7 @@ public class IntroFlowService
         _globalStatsManager = globalStatsManager;
         _moderationService = moderationService;
         _messageService = messageService;
+        _appConfig = appConfig;
     }
 
     public async Task ProcessNewUserAsync(Message? userJoinMessage, User user, Chat? chat = default, CancellationToken cancellationToken = default)
@@ -52,7 +56,7 @@ public class IntroFlowService
         Debug.Assert(chat != null);
         
         // Проверка whitelist - если активен, работаем только в разрешённых чатах
-        if (!Config.IsChatAllowed(chat.Id))
+        if (!_appConfig.IsChatAllowed(chat.Id))
         {
             _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем IntroFlow", chat.Id, chat.Title);
             return;
@@ -102,13 +106,15 @@ public class IntroFlowService
         }
 
         // Создаем капчу через сервис
-        var captchaInfo = await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
+        var captchaRequest = new CreateCaptchaRequest(chat, user, userJoinMessage);
+        var captchaInfo = await _captchaService.CreateCaptchaAsync(captchaRequest);
         
         // Если капча отключена для этой группы, отправляем приветствие сразу
         if (captchaInfo == null)
         {
             _logger.LogInformation("[NO_CAPTCHA] Капча отключена для чата {ChatId} - отправляем приветствие сразу после проверок", chat.Id);
-            await _messageService.SendWelcomeMessageAsync(user, chat, "приветствие без капчи", cancellationToken);
+            var welcomeRequest = new SendWelcomeMessageRequest(user, chat, "приветствие без капчи", cancellationToken);
+            await _messageService.SendWelcomeMessageAsync(welcomeRequest);
         }
         else
         {

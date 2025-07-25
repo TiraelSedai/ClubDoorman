@@ -1,6 +1,7 @@
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
 using ClubDoorman.Models;
+using ClubDoorman.Models.Requests;
 using NUnit.Framework;
 using Moq;
 using System;
@@ -27,7 +28,21 @@ public class CaptchaServiceExtendedTests
     [SetUp]
     public void Setup()
     {
-        _factory = new CaptchaServiceTestFactory();
+        _factory = new CaptchaServiceTestFactory()
+            .WithAppConfigSetup(mock => 
+            {
+                mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
+                mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
+            })
+            .WithMessageServiceSetup(mock =>
+            {
+                mock.Setup(x => x.SendCaptchaMessageAsync(It.IsAny<SendCaptchaMessageRequest>()))
+                    .ReturnsAsync(new Message 
+                    { 
+                        Chat = new Chat { Id = 123456 },
+                        Date = DateTime.UtcNow
+                    });
+            });
     }
 
     #region CreateCaptchaAsync Tests
@@ -42,7 +57,8 @@ public class CaptchaServiceExtendedTests
         var joinMessage = CreateTestMessage();
 
         // Act
-        var result = await service.CreateCaptchaAsync(chat, user, joinMessage);
+        var request = new CreateCaptchaRequest(chat, user, joinMessage);
+        var result = await service.CreateCaptchaAsync(request);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -63,7 +79,10 @@ public class CaptchaServiceExtendedTests
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentNullException>(() =>
-            service.CreateCaptchaAsync(null!, user));
+        {
+            var request = new CreateCaptchaRequest(null!, user, null);
+            return service.CreateCaptchaAsync(request);
+        });
         Assert.That(ex.ParamName, Is.EqualTo("chat"));
     }
 
@@ -76,7 +95,10 @@ public class CaptchaServiceExtendedTests
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentNullException>(() =>
-            service.CreateCaptchaAsync(chat, null!));
+        {
+            var request = new CreateCaptchaRequest(chat, null!, null);
+            return service.CreateCaptchaAsync(request);
+        });
         Assert.That(ex.ParamName, Is.EqualTo("user"));
     }
 
@@ -89,7 +111,8 @@ public class CaptchaServiceExtendedTests
         var user = CreateTestUser(firstName: "p0rn", lastName: "user");
 
         // Act
-        var result = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var result = await service.CreateCaptchaAsync(request);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -106,7 +129,8 @@ public class CaptchaServiceExtendedTests
         var user = CreateTestUser(username: "porn_user");
 
         // Act
-        var result = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var result = await service.CreateCaptchaAsync(request);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -122,7 +146,8 @@ public class CaptchaServiceExtendedTests
         var user = CreateTestUser();
 
         // Act
-        var result = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var result = await service.CreateCaptchaAsync(request);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -139,8 +164,10 @@ public class CaptchaServiceExtendedTests
         var user2 = CreateTestUser(id: 2);
 
         // Act
-        var result1 = await service.CreateCaptchaAsync(chat, user1);
-        var result2 = await service.CreateCaptchaAsync(chat, user2);
+        var request1 = new CreateCaptchaRequest(chat, user1, null);
+        var request2 = new CreateCaptchaRequest(chat, user2, null);
+        var result1 = await service.CreateCaptchaAsync(request1);
+        var result2 = await service.CreateCaptchaAsync(request2);
 
         // Assert
         Assert.That(result1, Is.Not.Null);
@@ -161,7 +188,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        var captchaInfo = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var captchaInfo = await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -178,7 +206,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        var captchaInfo = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var captchaInfo = await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
         var wrongAnswer = (captchaInfo.CorrectAnswer + 1) % 8;
 
@@ -235,7 +264,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -257,7 +287,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        var originalCaptcha = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var originalCaptcha = await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -290,7 +321,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
         await service.ValidateCaptchaAsync(key, 0);
 
@@ -312,7 +344,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -342,7 +375,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -426,7 +460,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        await service.CreateCaptchaAsync(request);
 
         // Act & Assert
         Assert.DoesNotThrowAsync(() => service.BanExpiredCaptchaUsersAsync());
@@ -447,7 +482,10 @@ public class CaptchaServiceExtendedTests
         // Act & Assert
         // Этот тест может падать из-за реальных вызовов Telegram API
         // В реальном проекте нужно мокировать TelegramBotClient
-        Assert.DoesNotThrowAsync(() => service.CreateCaptchaAsync(chat, user));
+        Assert.DoesNotThrowAsync(() => {
+            var request = new CreateCaptchaRequest(chat, user, null);
+            return service.CreateCaptchaAsync(request);
+        });
     }
 
     [Test]
@@ -457,7 +495,8 @@ public class CaptchaServiceExtendedTests
         var service = _factory.CreateCaptchaService();
         var chat = CreateTestChat();
         var user = CreateTestUser();
-        var captchaInfo = await service.CreateCaptchaAsync(chat, user);
+        var request = new CreateCaptchaRequest(chat, user, null);
+        var captchaInfo = await service.CreateCaptchaAsync(request);
         var key = service.GenerateKey(chat.Id, user.Id);
 
         // Act
@@ -483,8 +522,10 @@ public class CaptchaServiceExtendedTests
         var user = CreateTestUser();
 
         // Act
-        var captcha1 = await service.CreateCaptchaAsync(chat, user);
-        var captcha2 = await service.CreateCaptchaAsync(chat, user);
+        var request1 = new CreateCaptchaRequest(chat, user, null);
+        var captcha1 = await service.CreateCaptchaAsync(request1);
+        var request2 = new CreateCaptchaRequest(chat, user, null);
+        var captcha2 = await service.CreateCaptchaAsync(request2);
 
         // Assert
         Assert.That(captcha1, Is.Not.Null);
@@ -506,7 +547,10 @@ public class CaptchaServiceExtendedTests
         cts.Cancel();
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(() => service.CreateCaptchaAsync(chat, user));
+        Assert.DoesNotThrowAsync(() => {
+            var request = new CreateCaptchaRequest(chat, user, null);
+            return service.CreateCaptchaAsync(request);
+        });
         // Примечание: CaptchaService не принимает CancellationToken в CreateCaptchaAsync
         // но внутренние операции могут быть отменены
     }
@@ -527,7 +571,7 @@ public class CaptchaServiceExtendedTests
         for (int i = 0; i < 100; i++)
         {
             var user = CreateTestUser(id: i);
-            tasks.Add(service.CreateCaptchaAsync(chat, user));
+            tasks.Add(service.CreateCaptchaAsync(new CreateCaptchaRequest(chat, user, null)));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -549,7 +593,8 @@ public class CaptchaServiceExtendedTests
         for (int i = 0; i < 50; i++)
         {
             var user = CreateTestUser(id: i);
-            var captchaInfo = await service.CreateCaptchaAsync(chat, user);
+            var request = new CreateCaptchaRequest(chat, user, null);
+            var captchaInfo = await service.CreateCaptchaAsync(request);
             var key = service.GenerateKey(chat.Id, user.Id);
             captchas.Add((key, captchaInfo.CorrectAnswer));
         }
@@ -564,6 +609,8 @@ public class CaptchaServiceExtendedTests
     }
 
     #endregion
+
+
 
     #region Helper Methods
 

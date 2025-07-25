@@ -10,6 +10,7 @@ using Telegram.Bot;
 using Moq;
 using Microsoft.Extensions.Logging;
 using ClubDoorman.Models;
+using ClubDoorman.Models.Requests;
 using ClubDoorman.Handlers.Commands;
 
 namespace ClubDoorman.Test.Unit.Handlers;
@@ -26,7 +27,36 @@ public class MessageHandlerFakeTests
     [SetUp]
     public void Setup()
     {
-        _factory = new MessageHandlerTestFactory();
+        _factory = new MessageHandlerTestFactory()
+            .WithAppConfigSetup(mock => 
+            {
+                mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
+                mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
+                mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(true);
+                mock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
+                mock.Setup(x => x.AdminChatId).Returns(123456789);
+                mock.Setup(x => x.LogAdminChatId).Returns(987654321);
+            })
+            .WithMessageServiceSetup(mock =>
+            {
+                mock.Setup(x => x.SendCaptchaMessageAsync(It.IsAny<SendCaptchaMessageRequest>()))
+                    .ReturnsAsync(new Message 
+                    { 
+                        Chat = new Chat { Id = 123456 },
+                        Date = DateTime.UtcNow
+                    });
+            });
+        
+        // Настройка моков для UserManager
+        _factory.UserManagerMock
+            .Setup(x => x.InBanlist(It.IsAny<long>()))
+            .ReturnsAsync(false);
+
+        // Настройка моков для BotPermissionsService
+        _factory.BotPermissionsServiceMock
+            .Setup(x => x.IsSilentModeAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         _fakeClient = new FakeTelegramClient();
     }
 
@@ -37,14 +67,14 @@ public class MessageHandlerFakeTests
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
         var message = MessageTestData.ValidMessage();
 
-        // Настройка моков
+        // Настройка моков - пользователь НЕ одобрен, чтобы дойти до модерации
         _factory.ModerationServiceMock
             .Setup(x => x.CheckMessageAsync(It.IsAny<Message>()))
             .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Valid message"));
 
         _factory.ModerationServiceMock
             .Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
-            .Returns(true);
+            .Returns(false);
 
         // Act
         var update = new Update { Message = message };
@@ -70,6 +100,20 @@ public class MessageHandlerFakeTests
         _factory.ModerationServiceMock
             .Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
             .Returns(false);
+
+        // Настройка моков для CaptchaService
+        _factory.CaptchaServiceMock
+            .Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
+            .Returns("test-key");
+
+        _factory.CaptchaServiceMock
+            .Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
+            .Returns((CaptchaInfo?)null);
+
+        // Настройка моков для UserManager
+        _factory.UserManagerMock
+            .Setup(x => x.GetClubUsername(It.IsAny<long>()))
+            .ReturnsAsync((string?)null);
 
         // Act
         var update = new Update { Message = message };
@@ -114,7 +158,7 @@ public class MessageHandlerFakeTests
         // Assert
         // Проверяем, что была вызвана отправка капчи
         _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()),
+            x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()),
             Times.Once);
     }
 
@@ -171,7 +215,7 @@ public class MessageHandlerFakeTests
         // Assert
         // Сервисные сообщения обрабатываются как новые участники
         _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()),
+            x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()),
             Times.Once);
     }
 
@@ -201,6 +245,20 @@ public class MessageHandlerFakeTests
         _factory.ModerationServiceMock
             .Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
             .Returns(false); // Пользователь не одобрен, чтобы дойти до модерации
+
+        // Настройка моков для CaptchaService
+        _factory.CaptchaServiceMock
+            .Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
+            .Returns("test-key");
+
+        _factory.CaptchaServiceMock
+            .Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
+            .Returns((CaptchaInfo?)null);
+
+        // Настройка моков для UserManager
+        _factory.UserManagerMock
+            .Setup(x => x.GetClubUsername(It.IsAny<long>()))
+            .ReturnsAsync((string?)null);
 
         // Act & Assert
         // Ошибка должна быть проброшена, так как нет обработки исключений
@@ -258,7 +316,8 @@ public class MessageHandlerFakeTests
             MockBehavior.Loose, 
             new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
             NullLogger<StartCommandHandler>.Instance,
-            new Mock<IMessageService>().Object
+            new Mock<IMessageService>().Object,
+            new Mock<IAppConfig>().Object
         );
         _factory.ServiceProviderMock
             .Setup(x => x.GetService(typeof(StartCommandHandler)))
@@ -296,7 +355,7 @@ public class MessageHandlerFakeTests
         // Assert
         // Капча не отправляется для одобренных пользователей
         _factory.CaptchaServiceMock.Verify(
-            x => x.CreateCaptchaAsync(It.IsAny<Chat>(), It.IsAny<User>(), It.IsAny<Message>()),
+            x => x.CreateCaptchaAsync(It.IsAny<CreateCaptchaRequest>()),
             Times.Never);
     }
 
@@ -315,6 +374,20 @@ public class MessageHandlerFakeTests
         _factory.ModerationServiceMock
             .Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
             .Returns(false);
+
+        // Настройка моков для CaptchaService
+        _factory.CaptchaServiceMock
+            .Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
+            .Returns("test-key");
+
+        _factory.CaptchaServiceMock
+            .Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
+            .Returns((CaptchaInfo?)null);
+
+        // Настройка моков для UserManager
+        _factory.UserManagerMock
+            .Setup(x => x.GetClubUsername(It.IsAny<long>()))
+            .ReturnsAsync((string?)null);
 
         // Act
         var update = new Update { Message = message };

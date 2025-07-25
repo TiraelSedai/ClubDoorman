@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
 using Telegram.Bot;
+using ClubDoorman.Test.TestInfrastructure;
 
 namespace ClubDoorman.TestInfrastructure;
 
@@ -76,7 +77,8 @@ public class StatisticsServiceTestFactory
         return new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            new Mock<IMessageService>().Object
+            new Mock<IMessageService>().Object,
+            AppConfigTestFactory.CreateDefault()
         );
     }
 

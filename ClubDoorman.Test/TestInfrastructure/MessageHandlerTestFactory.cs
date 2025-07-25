@@ -29,6 +29,7 @@ public class MessageHandlerTestFactory
     public Mock<IMessageService> MessageServiceMock { get; } = new();
     public Mock<IChatLinkFormatter> ChatLinkFormatterMock { get; } = new();
     public Mock<IBotPermissionsService> BotPermissionsServiceMock { get; } = new();
+    public Mock<IAppConfig> AppConfigMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
 
     public MessageHandler CreateMessageHandler()
@@ -48,6 +49,7 @@ public class MessageHandlerTestFactory
             MessageServiceMock.Object,
             ChatLinkFormatterMock.Object,
             BotPermissionsServiceMock.Object,
+            AppConfigMock.Object,
             LoggerMock.Object
         );
     }
@@ -132,6 +134,18 @@ public class MessageHandlerTestFactory
         return this;
     }
 
+    public MessageHandlerTestFactory WithAppConfigSetup(Action<Mock<IAppConfig>> setup)
+    {
+        setup(AppConfigMock);
+        return this;
+    }
+
+    public MessageHandlerTestFactory WithBotPermissionsServiceSetup(Action<Mock<IBotPermissionsService>> setup)
+    {
+        setup(BotPermissionsServiceMock);
+        return this;
+    }
+
     #endregion
 
     #region Smart Methods Based on Business Logic
@@ -160,7 +174,8 @@ public class MessageHandlerTestFactory
         return new CaptchaService(
             new Mock<ITelegramBotClientWrapper>().Object,
             new Mock<ILogger<CaptchaService>>().Object,
-            new Mock<IMessageService>().Object
+            new Mock<IMessageService>().Object,
+            AppConfigMock.Object
         );
     }
 
@@ -203,6 +218,7 @@ public class MessageHandlerTestFactory
             MessageServiceMock.Object,
             ChatLinkFormatterMock.Object,
             BotPermissionsServiceMock.Object,
+            AppConfigMock.Object,
             LoggerMock.Object
         );
     }

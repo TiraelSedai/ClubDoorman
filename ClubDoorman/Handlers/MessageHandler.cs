@@ -5,6 +5,7 @@ using ClubDoorman.Handlers.Commands;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Models;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using ClubDoorman.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
@@ -35,6 +36,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IMessageService _messageService;
     private readonly IChatLinkFormatter _chatLinkFormatter;
     private readonly IBotPermissionsService _botPermissionsService;
+    private readonly IAppConfig _appConfig;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -56,6 +58,7 @@ public class MessageHandler : IUpdateHandler
     /// <param name="messageService">Сервис уведомлений</param>
     /// <param name="chatLinkFormatter">Форматтер ссылок на чаты</param>
     /// <param name="botPermissionsService">Сервис проверки прав бота</param>
+    /// <param name="appConfig">Конфигурация приложения</param>
     /// <param name="logger">Логгер</param>
     /// <exception cref="ArgumentNullException">Если любой из параметров равен null</exception>
     public MessageHandler(
@@ -73,6 +76,7 @@ public class MessageHandler : IUpdateHandler
         IMessageService messageService,
         IChatLinkFormatter chatLinkFormatter,
         IBotPermissionsService botPermissionsService,
+        IAppConfig appConfig,
         ILogger<MessageHandler> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
@@ -89,6 +93,7 @@ public class MessageHandler : IUpdateHandler
         _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
         _chatLinkFormatter = chatLinkFormatter ?? throw new ArgumentNullException(nameof(chatLinkFormatter));
         _botPermissionsService = botPermissionsService ?? throw new ArgumentNullException(nameof(botPermissionsService));
+        _appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -122,16 +127,16 @@ public class MessageHandler : IUpdateHandler
 
         // Проверка whitelist - если активен, работаем только в разрешённых чатах
         // ИСКЛЮЧЕНИЕ: админ-чаты всегда обрабатываются (для команд /spam, /ham и т.д.)
-        var isAdminChat = chat.Id == Config.AdminChatId || chat.Id == Config.LogAdminChatId;
+        var isAdminChat = chat.Id == _appConfig.AdminChatId || chat.Id == _appConfig.LogAdminChatId;
         
-        if (!Config.IsChatAllowed(chat.Id) && !isAdminChat)
+        if (!_appConfig.IsChatAllowed(chat.Id) && !isAdminChat)
         {
             _logger.LogDebug("Чат {ChatId} ({ChatTitle}) не в whitelist - игнорируем", chat.Id, chat.Title);
             return;
         }
 
         // Игнорировать полностью отключённые чаты
-        if (Config.DisabledChats.Contains(chat.Id))
+        if (_appConfig.DisabledChats.Contains(chat.Id))
             return;
 
         // Проверяем тихий режим (бот без прав администратора)
@@ -159,7 +164,7 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Обработка новых участников
-        if (message.NewChatMembers != null && chat.Id != Config.AdminChatId)
+        if (message.NewChatMembers != null && chat.Id != _appConfig.AdminChatId)
         {
             await HandleNewMembersAsync(message, cancellationToken);
             return;
@@ -215,7 +220,7 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Админские команды (/spam, /ham, /check) - только в админ-чатах
-        var isAdminChat = message.Chat.Id == Config.AdminChatId || message.Chat.Id == Config.LogAdminChatId;
+        var isAdminChat = message.Chat.Id == _appConfig.AdminChatId || message.Chat.Id == _appConfig.LogAdminChatId;
         if (isAdminChat && message.ReplyToMessage != null && (command == "spam" || command == "ham" || command == "check"))
         {
             await HandleAdminCommandAsync(message, command, cancellationToken);
@@ -546,7 +551,8 @@ public class MessageHandler : IUpdateHandler
         }
 
         // Создаем капчу
-        var captchaInfo = await _captchaService.CreateCaptchaAsync(chat, user, userJoinMessage);
+        var request = new CreateCaptchaRequest(chat, user, userJoinMessage);
+        var captchaInfo = await _captchaService.CreateCaptchaAsync(request);
         if (captchaInfo == null)
         {
             _logger.LogInformation($"[NO_CAPTCHA] Капча не требуется для чата {chat.Id}");

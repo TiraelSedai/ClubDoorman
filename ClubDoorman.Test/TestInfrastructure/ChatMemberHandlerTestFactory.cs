@@ -5,6 +5,7 @@ using Moq;
 using NUnit.Framework;
 using Telegram.Bot;
 using ClubDoorman.Services;
+using ClubDoorman.Test.TestInfrastructure;
 
 namespace ClubDoorman.TestInfrastructure;
 
@@ -19,6 +20,7 @@ public class ChatMemberHandlerTestFactory
     public Mock<ITelegramBotClientWrapper> BotMock { get; } = new();
     public Mock<IUserManager> UserManagerMock { get; } = new();
     public Mock<ILogger<ChatMemberHandler>> LoggerMock { get; } = new();
+    public Mock<IAppConfig> AppConfigMock { get; } = new();
 
     public Mock<IMessageService> MessageServiceMock { get; } = new();
 
@@ -28,8 +30,9 @@ public class ChatMemberHandlerTestFactory
             BotMock.Object,
             UserManagerMock.Object,
             LoggerMock.Object,
-            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object),
-            MessageServiceMock.Object
+            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object, AppConfigTestFactory.CreateDefault()), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object, AppConfigMock.Object),
+            MessageServiceMock.Object,
+            AppConfigMock.Object
         );
     }
 

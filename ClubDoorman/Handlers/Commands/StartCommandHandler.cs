@@ -15,14 +15,16 @@ public class StartCommandHandler : ICommandHandler
     private readonly ITelegramBotClientWrapper _bot;
     private readonly ILogger<StartCommandHandler> _logger;
     private readonly IMessageService _messageService;
+    private readonly IAppConfig _appConfig;
 
     public string CommandName => "start";
 
-    public StartCommandHandler(ITelegramBotClientWrapper bot, ILogger<StartCommandHandler> logger, IMessageService messageService)
+    public StartCommandHandler(ITelegramBotClientWrapper bot, ILogger<StartCommandHandler> logger, IMessageService messageService, IAppConfig appConfig)
     {
         _bot = bot;
         _logger = logger;
         _messageService = messageService;
+        _appConfig = appConfig;
     }
 
     public async Task HandleAsync(Message message, CancellationToken cancellationToken = default)
@@ -31,7 +33,7 @@ public class StartCommandHandler : ICommandHandler
             return;
 
         // Если whitelist активен - не отвечаем в личке
-        if (!Config.IsPrivateStartAllowed())
+        if (!_appConfig.IsPrivateStartAllowed())
         {
             _logger.LogDebug("Команда /start в личке отключена - активен whitelist");
             return;

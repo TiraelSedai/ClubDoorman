@@ -2,6 +2,7 @@ using System.Runtime.Caching;
 using ClubDoorman.Infrastructure;
 using ClubDoorman.Services;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Models.Requests;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -193,7 +194,8 @@ public class CallbackQueryHandler : IUpdateHandler
             Utils.FullName(user), user.Id, chat.Title ?? "-", chat.Id);
 
         // Используем новый метод для отправки приветствия
-        await _messageService.SendWelcomeMessageAsync(user, chat, "приветствие после капчи", cancellationToken);
+        var request = new SendWelcomeMessageRequest(user, chat, "приветствие после капчи", cancellationToken);
+        await _messageService.SendWelcomeMessageAsync(request);
     }
 
     private async Task HandleAdminCallback(CallbackQuery callbackQuery, CancellationToken cancellationToken)
