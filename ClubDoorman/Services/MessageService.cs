@@ -196,6 +196,64 @@ public class MessageService : IMessageService
     }
 
     /// <summary>
+    /// Отправляет приветственное сообщение (новая версия без Request объекта)
+    /// </summary>
+    public async Task<Message?> SendWelcomeMessageAsync(User user, Chat chat, string reason = "приветствие", CancellationToken cancellationToken = default)
+    {
+        // Проверяем, отключены ли приветствия
+        if (Config.DisableWelcome)
+        {
+            _logger.LogDebug("Приветственные сообщения отключены (DOORMAN_DISABLE_WELCOME=true)");
+            return null;
+        }
+
+        // Создаем приветственное сообщение (логика перенесена из CallbackQueryHandler)
+        var displayName = !string.IsNullOrEmpty(user.FirstName)
+            ? System.Net.WebUtility.HtmlEncode(Utils.FullName(user))
+            : (!string.IsNullOrEmpty(user.Username) ? "@" + user.Username : "гость");
+        
+        var mention = $"<a href=\"tg://user?id={user.Id}\">{displayName}</a>";
+        
+        // Заглушка для рекламы (если группа не в исключениях)
+        var isNoAdGroup = IsNoAdGroup(chat.Id);
+        var vpnAd = isNoAdGroup ? "" : "\n\n\n📍 <b>Место для рекламы</b> \n <i>...</i>";
+        
+        string greetMsg;
+        string mediaWarning;
+        if (ChatSettingsManager.GetChatType(chat.Id) == "announcement")
+        {
+            mediaWarning = "";
+            greetMsg = $"👋 {mention}\n\n<b>Внимание:</b> первые три сообщения проходят антиспам-проверку, сообщения со стоп-словами и спамом будут удалены.\n\n⚠️ <b>Важно:</b> банальные приветствия без цели удаляются автоматически. Пишите конкретные вопросы!\n\nНе просите писать в ЛС!{vpnAd}";
+        }
+        else
+        {
+            mediaWarning = Config.IsMediaFilteringDisabledForChat(chat.Id) ? ", стикеры, документы" : ", изображения, стикеры, документы";
+            greetMsg = $"👋 {mention}\n\n<b>Внимание!</b> первые три сообщения проходят антиспам-проверку, эмодзи{mediaWarning} и реклама запрещены — они могут удаляться автоматически.\n\n⚠️ <b>Важно:</b> банальные приветствия без цели удаляются автоматически. Пишите конкретные вопросы!\n\nНе просите писать в ЛС!{vpnAd}";
+        }
+
+        var captchaWelcomeData = new CaptchaWelcomeNotificationData(
+            user, chat, reason, 0, mediaWarning, vpnAd);
+        var sent = await SendUserNotificationWithReplyAsync(
+            user, chat, UserNotificationType.CaptchaWelcome, captchaWelcomeData, cancellationToken);
+        
+        // Удаляем приветствие через 20 секунд
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
+                await _bot.DeleteMessage(chat.Id, sent.MessageId, cancellationToken: cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Не удалось удалить приветственное сообщение");
+            }
+        }, cancellationToken);
+
+        return sent;
+    }
+
+    /// <summary>
     /// Проверяет, является ли группа исключением для рекламы VPN
     /// </summary>
     private bool IsNoAdGroup(long chatId)

@@ -36,6 +36,11 @@ public interface IMessageService
     Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
 
     /// <summary>
+    /// Отправляет приветственное сообщение (новая версия без Request объекта)
+    /// </summary>
+    Task<Message?> SendWelcomeMessageAsync(User user, Chat chat, string reason = "приветствие", CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Отправляет сообщение капчи используя Request объект
     /// </summary>
     Task<Message> SendCaptchaMessageAsync(SendCaptchaMessageRequest request);

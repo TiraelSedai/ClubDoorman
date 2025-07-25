@@ -176,6 +176,11 @@ namespace ClubDoorman.Infrastructure
         public static bool HighConfidenceAutoBan { get; } = !GetEnvironmentBool("DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE");
         
         /// <summary>
+        /// Отключить приветственные сообщения
+        /// </summary>
+        public static bool DisableWelcome { get; } = GetEnvironmentBool("DOORMAN_DISABLE_WELCOME");
+        
+        /// <summary>
         /// Чаты для которых включены AI проверки профилей (если не указано - для всех)
         /// </summary>
         public static HashSet<long> AiEnabledChats { get; } = GetAiEnabledChats();
