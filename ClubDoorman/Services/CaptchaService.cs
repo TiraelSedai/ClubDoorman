@@ -144,7 +144,7 @@ public class CaptchaService : ICaptchaService
                     {
                         // Баним пользователя на 20 минут
                         await _bot.BanChatMemberAsync(expiredCaptcha.ChatId, expiredCaptcha.User.Id, 
-                            untilDate: DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: false);
+                            untilDate: DateTime.UtcNow + TimeSpan.FromMinutes(20), revokeMessages: true);
                         
                         // Удаляем сообщения
                         await _bot.DeleteMessageAsync(request.Chat.Id, captchaMessage.MessageId);
@@ -276,7 +276,7 @@ public class CaptchaService : ICaptchaService
                 try
                 {
                     await _bot.BanChatMemberAsync(captchaInfo.ChatId, captchaInfo.User.Id, 
-                        untilDate: now + TimeSpan.FromMinutes(20), revokeMessages: false);
+                        untilDate: now + TimeSpan.FromMinutes(20), revokeMessages: true);
                     
                     if (captchaInfo.UserJoinedMessage != null)
                         await _bot.DeleteMessageAsync(captchaInfo.ChatId, captchaInfo.UserJoinedMessage.MessageId);
@@ -308,8 +308,8 @@ public class CaptchaService : ICaptchaService
     /// </summary>
     /// <param name="chatId">ID чата</param>
     /// <returns>true, если группа без рекламы VPN</returns>
-    private bool IsNoAdGroup(long chatId)
+    private static bool IsNoAdGroup(long chatId)
     {
-        return _appConfig.NoVpnAdGroups.Contains(chatId);
+        return Config.NoVpnAdGroups.Contains(chatId);
     }
 } 
