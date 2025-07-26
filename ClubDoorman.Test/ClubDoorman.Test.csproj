@@ -12,23 +12,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Bogus" Version="35.6.3" />
         <PackageReference Include="coverlet.collector" Version="6.0.4">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FluentAssertions" Version="6.12.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-        <PackageReference Include="NUnit" Version="4.3.2" />
-        <PackageReference Include="NUnit.Analyzers" Version="4.7.0">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+        <PackageReference Include="DotNetEnv" Version="3.0.0" />
+        <PackageReference Include="FluentAssertions" Version="6.12.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
         <PackageReference Include="Moq" Version="4.20.70" />
+        <PackageReference Include="NUnit" Version="4.0.1" />
+        <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
         <PackageReference Include="SpecFlow" Version="3.9.74" />
         <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
+        <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
         <PackageReference Include="Telegram.Bot" Version="22.4.4" />
     </ItemGroup>
 
@@ -44,6 +40,12 @@
         <None Update="test-timeouts.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="TestData\Images\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
     <!-- Конфигурация для разделения быстрых и медленных тестов -->

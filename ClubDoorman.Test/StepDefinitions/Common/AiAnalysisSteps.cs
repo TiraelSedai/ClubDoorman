@@ -133,6 +133,16 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             ScenarioContext.Current["AdminNotification"] = adminMessage;
         }
 
+        [When(@"a notification is sent to admin chat")]
+        public void WhenNotificationIsSentToAdminChat()
+        {
+            // Проверяем, что уведомление было отправлено в админский чат
+            var wasNotificationSent = _fakeBot.SentMessages.Any(m => 
+                m.Text.Contains("AI анализ профиля"));
+            
+            wasNotificationSent.Should().BeTrue("Уведомление должно быть отправлено в админский чат");
+        }
+
         [When(@"the button ""(.*)"" is clicked")]
         public void WhenButtonIsClicked(string buttonText)
         {

@@ -96,13 +96,7 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             // isBanned.Should().BeTrue();
         }
 
-        [Then(@"the user gets restricted for 10 minutes")]
-        public void ThenUserGetsRestrictedFor10Minutes()
-        {
-            // Проверяем ограничение пользователя
-            // В реальной реализации здесь была бы проверка ограничений
-            _thrownException.Should().BeNull();
-        }
+        // Удален дублирующий метод - используется ThenTheUserGetsRestrictedForMinutes из AiAnalysisSteps
 
         [Then(@"the restriction is removed")]
         public void ThenRestrictionIsRemoved()
