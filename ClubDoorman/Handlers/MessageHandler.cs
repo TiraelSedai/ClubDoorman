@@ -995,7 +995,7 @@ public class MessageHandler : IUpdateHandler
             // Добавляем префикс тихого режима если нужно
             if (isSilentMode)
             {
-                messageText = $"🔇 **Тихий режим**\n\n{messageText}";
+                messageText = $"🔇 <b>Тихий режим</b>\n\n{messageText}";
             }
             
             // Пересылаем сообщение
@@ -1010,7 +1010,7 @@ public class MessageHandler : IUpdateHandler
             await _bot.SendMessage(
                 Config.AdminChatId,
                 messageText,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken
             );
@@ -1140,7 +1140,7 @@ public class MessageHandler : IUpdateHandler
             await _bot.SendMessage(
                 Config.AdminChatId,
                 messageText,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: forward,
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken

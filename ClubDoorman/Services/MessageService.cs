@@ -94,7 +94,7 @@ public class MessageService : IMessageService
             await _bot.SendMessage(
                 chat.Id,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken
             );
             
@@ -130,7 +130,7 @@ public class MessageService : IMessageService
             var sent = await _bot.SendMessage(
                 chat.Id,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken
             );
             
@@ -280,7 +280,7 @@ public class MessageService : IMessageService
             var notification = await _bot.SendMessage(
                 _appConfig.AdminChatId,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: forward,
                 cancellationToken: cancellationToken
             );
@@ -314,7 +314,7 @@ public class MessageService : IMessageService
             var notification = await _bot.SendMessage(
                 _appConfig.LogAdminChatId,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: forward,
                 cancellationToken: cancellationToken
             );
@@ -393,7 +393,7 @@ public class MessageService : IMessageService
             var sent = await _bot.SendMessage(
                 request.Chat.Id,
                 request.Message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: request.ReplyParameters,
                 replyMarkup: request.ReplyMarkup,
                 cancellationToken: request.CancellationToken
