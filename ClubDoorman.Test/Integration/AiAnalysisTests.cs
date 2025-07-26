@@ -32,6 +32,7 @@ public class AiAnalysisTests
     private string? FindEnvFile()
     {
         var baseDir = AppContext.BaseDirectory;
+        var currentDir = Directory.GetCurrentDirectory();
         
         // Пробуем разные пути относительно AppContext.BaseDirectory
         var possiblePaths = new[]
@@ -45,7 +46,13 @@ public class AiAnalysisTests
             Path.Combine(baseDir, "../../../ClubDoorman/ClubDoorman/.env"),
             Path.Combine(baseDir, "../../ClubDoorman/ClubDoorman/.env"),
             Path.Combine(baseDir, "../ClubDoorman/ClubDoorman/.env"),
-            Path.Combine(baseDir, "ClubDoorman/ClubDoorman/.env")
+            Path.Combine(baseDir, "ClubDoorman/ClubDoorman/.env"),
+            // Добавляем пути относительно текущей директории
+            Path.Combine(currentDir, "ClubDoorman/.env"),
+            Path.Combine(currentDir, "../ClubDoorman/.env"),
+            Path.Combine(currentDir, "../../ClubDoorman/.env"),
+            Path.Combine(currentDir, "../../../ClubDoorman/.env"),
+            Path.Combine(currentDir, "../../../../ClubDoorman/.env")
         };
         
         foreach (var path in possiblePaths)
@@ -68,6 +75,7 @@ public class AiAnalysisTests
         
         // Загружаем .env файл для E2E тестов
         var envPath = FindEnvFile();
+        
         if (envPath != null)
         {
             DotNetEnv.Env.Load(envPath);
