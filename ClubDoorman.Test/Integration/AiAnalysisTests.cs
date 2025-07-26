@@ -176,6 +176,7 @@ public class AiAnalysisTests
     }
 
     [Test]
+    [Category("real-api")]
     public async Task E2E_AI_Analysis_WithRealApi_ShouldWork()
     {
         // Arrange - создаем AiChecks с реальной конфигурацией из .env файла
@@ -496,6 +497,7 @@ public class AiAnalysisTests
     }
 
     [Test]
+    [Category("real-api")]
     public async Task E2E_AI_Analysis_SpecificUserDnekxpb_ShouldDetectSuspiciousProfile()
     {
         // Arrange - создаем AiChecks с реальным API для анализа конкретного пользователя
@@ -528,10 +530,28 @@ public class AiAnalysisTests
     }
 
     [Test]
+    [Category("real-api")]
     public async Task E2E_AI_Analysis_VerySuspiciousUser_ShouldDetectHighSpamProbability()
     {
         // Arrange - создаем AiChecks с реальным API для анализа очень подозрительного пользователя
         var realAppConfig = new AppConfig(); // Используем реальную конфигурацию
+        
+        // Загружаем .env файл для реального API
+        var envPath = FindEnvFile();
+        if (envPath != null)
+        {
+            DotNetEnv.Env.Load(envPath);
+            
+            // Загружаем переменные в Environment для Config.cs
+            var apiKey = DotNetEnv.Env.GetString("DOORMAN_OPENROUTER_API");
+            var botToken = DotNetEnv.Env.GetString("DOORMAN_BOT_API");
+            var adminChat = DotNetEnv.Env.GetString("DOORMAN_ADMIN_CHAT");
+            
+            Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
+            Environment.SetEnvironmentVariable("DOORMAN_BOT_API", botToken);
+            Environment.SetEnvironmentVariable("DOORMAN_ADMIN_CHAT", adminChat);
+        }
+        
         var realAiChecks = new AiChecks(_fakeBot, _logger, realAppConfig);
         
         var verySuspiciousUser = TestData.MessageTestData.VerySuspiciousUser();
@@ -570,14 +590,57 @@ public class AiAnalysisTests
     }
 
     [Test]
+    [Category("real-api")]
     public async Task E2E_AI_Analysis_WithRealPhoto_ShouldDetectHighSpamProbability()
     {
         // Arrange - создаем AiChecks с реальной конфигурацией и настроенным фото
         var realAppConfig = new AppConfig(); // Используем реальную конфигурацию
+        
+        // Загружаем .env файл для реального API
+        var envPath = FindEnvFile();
+        if (envPath != null)
+        {
+            DotNetEnv.Env.Load(envPath);
+            
+            // Загружаем переменные в Environment для Config.cs
+            var apiKey = DotNetEnv.Env.GetString("DOORMAN_OPENROUTER_API");
+            var botToken = DotNetEnv.Env.GetString("DOORMAN_BOT_API");
+            var adminChat = DotNetEnv.Env.GetString("DOORMAN_ADMIN_CHAT");
+            
+            // Проверяем, что API ключ загружен
+            if (string.IsNullOrEmpty(apiKey) || apiKey == "test-api-key")
+            {
+                Assert.Ignore("DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'. Пропускаем тест с реальным API.");
+            }
+            
+            Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
+            Environment.SetEnvironmentVariable("DOORMAN_BOT_API", botToken);
+            Environment.SetEnvironmentVariable("DOORMAN_ADMIN_CHAT", adminChat);
+            
+            // Логируем для отладки
+            TestContext.WriteLine($"API Key loaded: {!string.IsNullOrEmpty(apiKey)}");
+            TestContext.WriteLine($"Bot Token loaded: {!string.IsNullOrEmpty(botToken)}");
+            TestContext.WriteLine($"Admin Chat loaded: {!string.IsNullOrEmpty(adminChat)}");
+        }
+        else
+        {
+            Assert.Ignore(".env файл не найден. Пропускаем тест с реальным API.");
+        }
+        
         var fakeBotWithPhoto = new FakeTelegramClient();
         
         // Настраиваем FakeTelegramClient для возврата реального фото профиля
         var photoPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Images", "dnekxpb_profile_photo.jpg");
+        
+        // Проверяем, что файл существует
+        if (!File.Exists(photoPath))
+        {
+            TestContext.WriteLine($"Файл фото не найден: {photoPath}");
+            TestContext.WriteLine($"Текущая директория: {TestContext.CurrentContext.TestDirectory}");
+            TestContext.WriteLine($"Содержимое TestData: {Directory.Exists(Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData"))}");
+            Assert.Ignore("Тестовое фото не найдено. Пропускаем тест с реальным API.");
+        }
+        
         fakeBotWithPhoto.SetupGetFile("fake_big_photo_id", photoPath);
         
         var realAiChecks = new AiChecks(fakeBotWithPhoto, _logger, realAppConfig);
@@ -603,6 +666,12 @@ public class AiAnalysisTests
         TestContext.WriteLine($"Размер фото: {result.Photo.Length} байт");
         TestContext.WriteLine($"Профиль: {result.NameBio}");
         TestContext.WriteLine($"========================================");
+        
+        // Проверяем, что API действительно работает
+        if (result.SpamProbability.Probability == 0.0 && string.IsNullOrEmpty(result.SpamProbability.Reason))
+        {
+            Assert.Fail("AI анализ вернул 0.0 вероятность без причины. Возможно, API не работает или фото не загружается.");
+        }
         
         // Ожидаем высокую вероятность спама (как в реальности - 80%)
         result.SpamProbability.Probability.Should().BeGreaterThan(0.5, "Профиль с привлекательным фото должен иметь высокую вероятность спама");
