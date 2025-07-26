@@ -10,6 +10,7 @@ using FluentAssertions;
 using ClubDoorman.Models;
 using ClubDoorman.Handlers;
 using Moq;
+using DotNetEnv;
 
 namespace ClubDoorman.Test.Integration;
 
@@ -28,12 +29,58 @@ public class AiAnalysisTests
     private ApprovedUsersStorage _approvedUsersStorage = null!;
     private IAppConfig _appConfig = null!;
 
+    private string? FindEnvFile()
+    {
+        var baseDir = AppContext.BaseDirectory;
+        
+        // Пробуем разные пути относительно AppContext.BaseDirectory
+        var possiblePaths = new[]
+        {
+            Path.Combine(baseDir, "../../../../ClubDoorman/.env"),
+            Path.Combine(baseDir, "../../../ClubDoorman/.env"),
+            Path.Combine(baseDir, "../../ClubDoorman/.env"),
+            Path.Combine(baseDir, "../ClubDoorman/.env"),
+            Path.Combine(baseDir, "ClubDoorman/.env"),
+            Path.Combine(baseDir, "../../../../ClubDoorman/ClubDoorman/.env"),
+            Path.Combine(baseDir, "../../../ClubDoorman/ClubDoorman/.env"),
+            Path.Combine(baseDir, "../../ClubDoorman/ClubDoorman/.env"),
+            Path.Combine(baseDir, "../ClubDoorman/ClubDoorman/.env"),
+            Path.Combine(baseDir, "ClubDoorman/ClubDoorman/.env")
+        };
+        
+        foreach (var path in possiblePaths)
+        {
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+        
+        return null; // Файл не найден
+    }
+
     [SetUp]
     public void Setup()
     {
         _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AiChecks>();
         _callbackLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<CallbackQueryHandler>();
         _fakeBot = new FakeTelegramClient();
+        
+        // Загружаем .env файл для E2E тестов
+        var envPath = FindEnvFile();
+        if (envPath != null)
+        {
+            DotNetEnv.Env.Load(envPath);
+            
+            // Загружаем переменные в Environment для Config.cs
+            var apiKey = DotNetEnv.Env.GetString("DOORMAN_OPENROUTER_API");
+            var botToken = DotNetEnv.Env.GetString("DOORMAN_BOT_API");
+            var adminChat = DotNetEnv.Env.GetString("DOORMAN_ADMIN_CHAT");
+            
+            Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
+            Environment.SetEnvironmentVariable("DOORMAN_BOT_API", botToken);
+            Environment.SetEnvironmentVariable("DOORMAN_ADMIN_CHAT", adminChat);
+        }
         
         // Используем тестовую конфигурацию
         _appConfig = AppConfigTestFactory.CreateDefault();

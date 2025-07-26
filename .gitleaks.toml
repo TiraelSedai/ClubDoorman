@@ -38,7 +38,8 @@ allowlist = [
     '''docker-compose.yml.example''',
     '''.github/workflows/''',
     '''env.example''',
-    '''test_bot.sh.example'''
+    '''test_bot.sh.example''',
+    '''2217e45fe88b6c20ea772da616db2b0b0bff8f38'''  # Старый коммит с тестовыми токенами
 ]
 
 # Правила для Telegram токенов (только реальные)

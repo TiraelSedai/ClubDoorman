@@ -1,0 +1,64 @@
+name: E2E Tests with Secrets
+
+on:
+  pull_request:
+    branches: [ "*" ]
+  push:
+    branches: [ "main", "develop" ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    # Запускаем только если есть изменения в тестах или основном коде
+    if: |
+      contains(github.event.head_commit.modified, 'ClubDoorman.Test/') ||
+      contains(github.event.head_commit.modified, 'ClubDoorman/') ||
+      contains(github.event.head_commit.added, 'ClubDoorman.Test/') ||
+      contains(github.event.head_commit.added, 'ClubDoorman/')
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Create .env file from secrets
+      run: |
+        cat > ClubDoorman/.env << EOF
+        DOORMAN_OPENROUTER_API=${{ secrets.DOORMAN_OPENROUTER_API }}
+        DOORMAN_BOT_API=${{ secrets.DOORMAN_BOT_API }}
+        DOORMAN_ADMIN_CHAT=${{ secrets.DOORMAN_ADMIN_CHAT }}
+        EOF
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build application
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run E2E tests
+      run: |
+        dotnet test ClubDoorman.Test/ClubDoorman.Test.csproj \
+          --filter "Category=e2e" \
+          --verbosity normal \
+          --logger "console;verbosity=detailed" \
+          --no-restore
+
+    - name: Run AI Analysis tests specifically
+      run: |
+        dotnet test ClubDoorman.Test/ClubDoorman.Test.csproj \
+          --filter "Category=ai-analysis" \
+          --verbosity normal \
+          --logger "console;verbosity=detailed" \
+          --no-restore
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: ClubDoorman.Test/TestResults/
+        retention-days: 7 
