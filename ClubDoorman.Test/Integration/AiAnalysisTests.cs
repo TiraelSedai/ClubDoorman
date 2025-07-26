@@ -537,6 +537,13 @@ public class AiAnalysisTests
         var verySuspiciousUser = TestData.MessageTestData.VerySuspiciousUser();
         var userChatInfo = TestData.MessageTestData.VerySuspiciousUserChatInfo();
 
+        // Настраиваем FakeTelegramClient для возврата фото для очень подозрительного пользователя
+        var photoPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Images", "dnekxpb_profile_photo.jpg");
+        _fakeBot.SetupGetFile("fake_suspicious_big_photo_id", photoPath);
+        
+        // Настраиваем FakeTelegramClient для возврата ChatFullInfo с фото
+        _fakeBot.SetupGetChatFullInfo(verySuspiciousUser.Id, userChatInfo);
+
         // Act - анализируем профиль очень подозрительного пользователя
         var result = await realAiChecks.GetAttentionBaitProbability(verySuspiciousUser);
 
