@@ -10,12 +10,8 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     
-    # Запускаем только если есть изменения в тестах или основном коде
-    if: |
-      contains(github.event.head_commit.modified, 'ClubDoorman.Test/') ||
-      contains(github.event.head_commit.modified, 'ClubDoorman/') ||
-      contains(github.event.head_commit.added, 'ClubDoorman.Test/') ||
-      contains(github.event.head_commit.added, 'ClubDoorman/')
+    # Запускаем для всех pull request'ов и push в основные ветки
+    # Убираем ограничение по измененным файлам, так как оно не работает для PR
 
     steps:
     - uses: actions/checkout@v3
