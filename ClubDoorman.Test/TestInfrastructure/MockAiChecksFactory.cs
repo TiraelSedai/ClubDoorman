@@ -133,6 +133,20 @@ public class MockAiChecks : IAiChecks
         return ValueTask.FromResult(new SpamPhotoBio(spamProbability, new byte[0], "Mock user bio"));
     }
 
+    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(User user, string? messageText, Func<string, Task>? ifChanged = default)
+    {
+        if (_shouldThrowException)
+            throw _exceptionToThrow ?? new AiServiceException("Mock error");
+
+        var spamProbability = new SpamProbability 
+        { 
+            Probability = _attentionBaitProbability, 
+            Reason = "Mock attention bait analysis with message" 
+        };
+        
+        return ValueTask.FromResult(new SpamPhotoBio(spamProbability, new byte[0], "Mock user bio"));
+    }
+
     public ValueTask<SpamProbability> GetSpamProbability(Message message)
     {
         if (_shouldThrowException)
