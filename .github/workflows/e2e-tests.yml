@@ -23,6 +23,27 @@ jobs:
 
     - name: Create .env file from secrets
       run: |
+        # Проверяем наличие секретов (без показа их значений)
+        echo "=== Проверка секретов ==="
+        if [ -n "${{ secrets.DOORMAN_OPENROUTER_API }}" ]; then
+          echo "DOORMAN_OPENROUTER_API: настроен"
+        else
+          echo "DOORMAN_OPENROUTER_API: НЕ НАСТРОЕН"
+        fi
+        
+        if [ -n "${{ secrets.DOORMAN_BOT_API }}" ]; then
+          echo "DOORMAN_BOT_API: настроен"
+        else
+          echo "DOORMAN_BOT_API: НЕ НАСТРОЕН"
+        fi
+        
+        if [ -n "${{ secrets.DOORMAN_ADMIN_CHAT }}" ]; then
+          echo "DOORMAN_ADMIN_CHAT: настроен"
+        else
+          echo "DOORMAN_ADMIN_CHAT: НЕ НАСТРОЕН"
+        fi
+        
+        # Создаем .env файл с fallback значениями
         cat > ClubDoorman/.env << EOF
         DOORMAN_OPENROUTER_API=${{ secrets.DOORMAN_OPENROUTER_API }}
         DOORMAN_BOT_API=${{ secrets.DOORMAN_BOT_API }}

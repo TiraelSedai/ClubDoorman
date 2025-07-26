@@ -608,6 +608,12 @@ public class AiAnalysisTests
             var adminChat = DotNetEnv.Env.GetString("DOORMAN_ADMIN_CHAT");
             
             // Проверяем, что API ключ загружен
+            TestContext.WriteLine($"=== ОТЛАДКА ПЕРЕМЕННЫХ ===");
+            TestContext.WriteLine($"DOORMAN_OPENROUTER_API: {(string.IsNullOrEmpty(apiKey) ? "НЕ НАСТРОЕН" : apiKey == "test-api-key" ? "test-api-key" : "НАСТРОЕН")} (длина: {apiKey?.Length ?? 0})");
+            TestContext.WriteLine($"DOORMAN_BOT_API: {(string.IsNullOrEmpty(botToken) ? "НЕ НАСТРОЕН" : botToken == "test-bot-token" ? "test-bot-token" : "НАСТРОЕН")} (длина: {botToken?.Length ?? 0})");
+            TestContext.WriteLine($"DOORMAN_ADMIN_CHAT: {(string.IsNullOrEmpty(adminChat) ? "НЕ НАСТРОЕН" : "НАСТРОЕН")} (длина: {adminChat?.Length ?? 0})");
+            TestContext.WriteLine($"================================");
+            
             if (string.IsNullOrEmpty(apiKey) || apiKey == "test-api-key")
             {
                 Assert.Ignore("DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'. Пропускаем тест с реальным API.");
