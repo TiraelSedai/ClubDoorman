@@ -110,13 +110,13 @@ public class AiChecksPhotoLoggingTest
             Photo = new ChatPhoto
             {
                 SmallFileId = "fake_small_file_id",
-                BigFileId = "fake_big_file_id"
+                BigFileId = "fake_big_photo_id"
             }
         });
 
         // Настраиваем GetFileAsync чтобы возвращать реальное фото
         var photoPath = "/home/kpblc/projects/ClubDoorman/tmp/big.png";
-        _fakeBot.SetupGetFile("fake_big_file_id", photoPath);
+        _fakeBot.SetupGetFile("fake_big_photo_id", photoPath);
 
         // Act
         var result = await _aiChecks.GetAttentionBaitProbability(user);
