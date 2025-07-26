@@ -320,6 +320,7 @@ public static class TestDataFactory
         };
     }
 
+    #region Расширенные сценарии для полного воркфлоу
 
     public static Message CreateNewUserJoinMessage(long userId = 12345)
     {
@@ -330,12 +331,16 @@ public static class TestDataFactory
             Chat = CreateGroupChat(),
             NewChatMembers = new[]
             {
-                new User
+                new ChatMemberUpdated
                 {
-                    Id = userId,
-                    FirstName = "NewUser",
-                    Username = $"user{userId}",
-                    IsBot = false
+                    User = new User
+                    {
+                        Id = userId,
+                        FirstName = "NewUser",
+                        Username = $"user{userId}",
+                        IsBot = false
+                    },
+                    Status = ChatMemberStatus.Member
                 }
             }
         };
@@ -461,29 +466,38 @@ public static class TestDataFactory
 
     public static CaptchaInfo CreateBaitCaptchaInfo()
     {
-        var user = CreateValidUser();
-        var chat = CreateGroupChat();
-        var cts = new CancellationTokenSource();
-        
-        return new CaptchaInfo(
-            chat.Id,
-            chat.Title,
-            DateTime.UtcNow,
-            user,
-            0,
-            cts,
-            null
-        );
+        return new CaptchaInfo
+        {
+            UserId = 12345,
+            ChatId = -1001234567890,
+            Question = "Выберите правильный ответ:",
+            CorrectAnswer = "правильный ответ",
+            Options = new[] { "правильный ответ", "неправильный ответ 1", "неправильный ответ 2" },
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            CreatedAt = DateTime.UtcNow
+        };
     }
 
-    public static bool CreateCorrectCaptchaResult()
+    public static CaptchaResult CreateCorrectCaptchaResult()
     {
-        return true;
+        return new CaptchaResult
+        {
+            IsCorrect = true,
+            UserId = 12345,
+            ChatId = -1001234567890,
+            AnsweredAt = DateTime.UtcNow
+        };
     }
 
-    public static bool CreateIncorrectCaptchaResult()
+    public static CaptchaResult CreateIncorrectCaptchaResult()
     {
-        return false;
+        return new CaptchaResult
+        {
+            IsCorrect = false,
+            UserId = 12345,
+            ChatId = -1001234567890,
+            AnsweredAt = DateTime.UtcNow
+        };
     }
 
     public static User CreateBaitUser()
