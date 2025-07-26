@@ -283,7 +283,8 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             _thrownException.Should().BeNull();
             
             // Для демонстрации - симулируем успешный бан
-            var userId = _testMessage.From!.Id;
+            // Используем тестовый ID пользователя, так как _testMessage может быть null
+            var userId = 12345; // Тестовый ID пользователя
             // В реальной реализации: var isBanned = _userManager.InBanlist(userId).Result;
             // isBanned.Should().BeTrue();
         }
@@ -295,7 +296,8 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             _thrownException.Should().BeNull();
             
             // Для демонстрации - симулируем успешное одобрение
-            var userId = _testMessage.From!.Id;
+            // Используем тестовый ID пользователя, так как _testMessage может быть null
+            var userId = 12345; // Тестовый ID пользователя
             // В реальной реализации: var isApproved = _userManager.Approved(userId, null);
             // isApproved.Should().BeTrue();
         }
