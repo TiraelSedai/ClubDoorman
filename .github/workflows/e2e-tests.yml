@@ -9,7 +9,7 @@ on:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    
+    environment: Spampyre-dotnet9
     # Запускаем для всех pull request'ов и push в основные ветки
     # Убираем ограничение по измененным файлам, так как оно не работает для PR
 
