@@ -1,0 +1,577 @@
+commit ac64b2246fbe0c32458d704026b5d43e3836c205
+Author: Mikhail Stepanov <kpblcaoo@gmail.com>
+Date:   Thu Jul 24 17:47:14 2025 +0300
+
+    feat: Phase 1 - Replace static Config with DI-based IAppConfig
+    
+    - Create IAppConfig interface and AppConfig implementation
+    - Replace Config.OpenRouterApi usage in AiChecks and SuspiciousCommandHandler
+    - Add AppConfigTestFactory for test mocking
+    - Improve null-safety in AiChecks.GetAttentionBaitProbability
+    - Update all tests to use DI-based configuration
+    - Clean up unused files (SendWelcomeMessageRequest.cs)
+    
+    All 593 tests pass. Phase 1 of testing quality improvement plan completed.
+
+diff --git a/ClubDoorman.Test/Integration/AiChecksPhotoLoggingTest.cs b/ClubDoorman.Test/Integration/AiChecksPhotoLoggingTest.cs
+index 95e25e6..71ac955 100644
+--- a/ClubDoorman.Test/Integration/AiChecksPhotoLoggingTest.cs
++++ b/ClubDoorman.Test/Integration/AiChecksPhotoLoggingTest.cs
+@@ -1,5 +1,6 @@
+ using ClubDoorman.Services;
+ using ClubDoorman.TestInfrastructure;
++using ClubDoorman.Test.TestInfrastructure;
+ using Microsoft.Extensions.Logging;
+ using NUnit.Framework;
+ using System.Reflection;
+@@ -102,7 +103,7 @@ public class AiChecksPhotoLoggingTest
+             Assert.Ignore("Config.OpenRouterApi пустой - проблема инициализации статических свойств при запуске всех тестов");
+         }
+         
+-        _aiChecks = new AiChecks(_fakeBot, _logger);
++        _aiChecks = new AiChecks(_fakeBot, _logger, AppConfigTestFactory.CreateDefault());
+     }
+ 
+     [Test]
+diff --git a/ClubDoorman.Test/Integration/SimpleE2ETests.cs b/ClubDoorman.Test/Integration/SimpleE2ETests.cs
+index 87ea97f..f465945 100644
+--- a/ClubDoorman.Test/Integration/SimpleE2ETests.cs
++++ b/ClubDoorman.Test/Integration/SimpleE2ETests.cs
+@@ -1,5 +1,6 @@
+ using ClubDoorman.Services;
+ using ClubDoorman.TestInfrastructure;
++using ClubDoorman.Test.TestInfrastructure;
+ using Microsoft.Extensions.Logging;
+ using NUnit.Framework;
+ using System.Reflection;
+@@ -95,7 +96,7 @@ public class SimpleE2ETests
+         }
+         
+         // Инициализируем сервисы с правильными логгерами
+-        _aiChecks = new AiChecks(_fakeBot, _logger);
++        _aiChecks = new AiChecks(_fakeBot, _logger, AppConfigTestFactory.CreateDefault());
+         _spamHamClassifier = new SpamHamClassifier(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<SpamHamClassifier>());
+         _mimicryClassifier = new MimicryClassifier(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<MimicryClassifier>());
+     }
+diff --git a/ClubDoorman.Test/ModerationServiceSimpleTests.cs b/ClubDoorman.Test/ModerationServiceSimpleTests.cs
+index 0c76e33..e6d0108 100644
+--- a/ClubDoorman.Test/ModerationServiceSimpleTests.cs
++++ b/ClubDoorman.Test/ModerationServiceSimpleTests.cs
+@@ -1,6 +1,7 @@
+ using ClubDoorman.Services;
+ using ClubDoorman.Models;
+ using ClubDoorman.Infrastructure;
++using ClubDoorman.Test.TestInfrastructure;
+ using Telegram.Bot.Types;
+ using Telegram.Bot.Types.Enums;
+ using Telegram.Bot;
+@@ -43,7 +44,7 @@ public class ModerationServiceSimpleTests : TestBase
+         // Создаем реальный AiChecks с TelegramBotClient и логгером
+         var bot = new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"); // Тестовый токен
+         var mockAiLogger = new Mock<ILogger<AiChecks>>();
+-        _mockAiChecks = new AiChecks(new TelegramBotClientWrapper(bot), mockAiLogger.Object);
++        _mockAiChecks = new AiChecks(new TelegramBotClientWrapper(bot), mockAiLogger.Object, AppConfigTestFactory.CreateDefault());
+         
+         _mockBotClient = new Mock<ITelegramBotClient>();
+ 
+diff --git a/ClubDoorman.Test/StepDefinitions/BasicModerationSteps.cs b/ClubDoorman.Test/StepDefinitions/BasicModerationSteps.cs
+index e5ac5bc..f597ee7 100644
+--- a/ClubDoorman.Test/StepDefinitions/BasicModerationSteps.cs
++++ b/ClubDoorman.Test/StepDefinitions/BasicModerationSteps.cs
+@@ -2,6 +2,7 @@ using NUnit.Framework;
+ using TechTalk.SpecFlow;
+ using ClubDoorman.Models;
+ using ClubDoorman.Services;
++using ClubDoorman.Test.TestInfrastructure;
+ using Telegram.Bot.Types;
+ using Telegram.Bot.Types.ReplyMarkups;
+ using Telegram.Bot;
+@@ -41,7 +42,7 @@ namespace ClubDoorman.Test.StepDefinitions
+             
+             // Create a real TelegramBotClient with a test token for testing
+             var realBotClient = new TelegramBotClient("1234567890:TEST_TOKEN_FOR_TESTS");
+-            var realAiChecks = new AiChecks(new TelegramBotClientWrapper(realBotClient), mockAiLogger.Object);
++            var realAiChecks = new AiChecks(new TelegramBotClientWrapper(realBotClient), mockAiLogger.Object, AppConfigTestFactory.CreateDefault());
+ 
+             // Create ModerationService with correct constructor
+             _moderationService = new ModerationService(
+diff --git a/ClubDoorman.Test/TestInfrastructure/AiChecksTestFactory.cs b/ClubDoorman.Test/TestInfrastructure/AiChecksTestFactory.cs
+index f502f22..ca8d1e5 100644
+--- a/ClubDoorman.Test/TestInfrastructure/AiChecksTestFactory.cs
++++ b/ClubDoorman.Test/TestInfrastructure/AiChecksTestFactory.cs
+@@ -17,12 +17,14 @@ public class AiChecksTestFactory
+ {
+     public Mock<ITelegramBotClientWrapper> BotMock { get; } = new();
+     public Mock<ILogger<AiChecks>> LoggerMock { get; } = new();
++    public Mock<IAppConfig> AppConfigMock { get; } = new();
+ 
+     public AiChecks CreateAiChecks()
+     {
+         return new AiChecks(
+             BotMock.Object,
+-            LoggerMock.Object
++            LoggerMock.Object,
++            AppConfigMock.Object
+         );
+     }
+ 
+@@ -40,6 +42,12 @@ public class AiChecksTestFactory
+         return this;
+     }
+ 
++    public AiChecksTestFactory WithAppConfigSetup(Action<Mock<IAppConfig>> setup)
++    {
++        setup(AppConfigMock);
++        return this;
++    }
++
+     #endregion
+ 
+     #region Smart Methods Based on Business Logic
+diff --git a/ClubDoorman.Test/TestInfrastructure/AppConfigTestFactory.cs b/ClubDoorman.Test/TestInfrastructure/AppConfigTestFactory.cs
+new file mode 100644
+index 0000000..e0514da
+--- /dev/null
++++ b/ClubDoorman.Test/TestInfrastructure/AppConfigTestFactory.cs
+@@ -0,0 +1,90 @@
++using ClubDoorman.Services;
++using Moq;
++
++namespace ClubDoorman.Test.TestInfrastructure;
++
++/// <summary>
++/// Фабрика для создания моков IAppConfig в тестах
++/// </summary>
++public static class AppConfigTestFactory
++{
++    /// <summary>
++    /// Создаёт мок IAppConfig с настройками по умолчанию для тестов
++    /// </summary>
++    public static IAppConfig CreateDefault()
++    {
++        var mock = new Mock<IAppConfig>();
++        
++        // Настройки по умолчанию для тестов
++        mock.Setup(x => x.OpenRouterApi).Returns("test-api-key");
++        mock.Setup(x => x.SuspiciousDetectionEnabled).Returns(true);
++        mock.Setup(x => x.MimicryThreshold).Returns(0.7);
++        mock.Setup(x => x.SuspiciousToApprovedMessageCount).Returns(3);
++        mock.Setup(x => x.AdminChatId).Returns(123456789);
++        mock.Setup(x => x.LogAdminChatId).Returns(123456789);
++        mock.Setup(x => x.AiEnabledChats).Returns(new HashSet<long> { 123456789 });
++        
++        // Методы
++        mock.Setup(x => x.IsAiEnabledForChat(It.IsAny<long>())).Returns(true);
++        mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(true);
++        mock.Setup(x => x.IsPrivateStartAllowed()).Returns(true);
++        
++        return mock.Object;
++    }
++    
++    /// <summary>
++    /// Создаёт мок IAppConfig с отключенным AI
++    /// </summary>
++    public static IAppConfig CreateWithoutAi()
++    {
++        var mock = new Mock<IAppConfig>();
++        
++        // Настройки без AI
++        mock.Setup(x => x.OpenRouterApi).Returns((string?)null);
++        mock.Setup(x => x.SuspiciousDetectionEnabled).Returns(false);
++        mock.Setup(x => x.MimicryThreshold).Returns(0.7);
++        mock.Setup(x => x.SuspiciousToApprovedMessageCount).Returns(3);
++        mock.Setup(x => x.AdminChatId).Returns(123456789);
++        mock.Setup(x => x.LogAdminChatId).Returns(123456789);
++        mock.Setup(x => x.AiEnabledChats).Returns(new HashSet<long>());
++        
++        // Методы
++        mock.Setup(x => x.IsAiEnabledForChat(It.IsAny<long>())).Returns(false);
++        mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(true);
++        mock.Setup(x => x.IsPrivateStartAllowed()).Returns(true);
++        
++        return mock.Object;
++    }
++    
++    /// <summary>
++    /// Создаёт мок IAppConfig с кастомными настройками
++    /// </summary>
++    public static IAppConfig CreateCustom(
++        string? openRouterApi = "test-api-key",
++        bool suspiciousDetectionEnabled = true,
++        double mimicryThreshold = 0.7,
++        int suspiciousToApprovedMessageCount = 3,
++        long adminChatId = 123456789,
++        long logAdminChatId = 123456789,
++        HashSet<long>? aiEnabledChats = null,
++        bool isAiEnabledForChat = true,
++        bool isChatAllowed = true,
++        bool isPrivateStartAllowed = true)
++    {
++        var mock = new Mock<IAppConfig>();
++        
++        mock.Setup(x => x.OpenRouterApi).Returns(openRouterApi);
++        mock.Setup(x => x.SuspiciousDetectionEnabled).Returns(suspiciousDetectionEnabled);
++        mock.Setup(x => x.MimicryThreshold).Returns(mimicryThreshold);
++        mock.Setup(x => x.SuspiciousToApprovedMessageCount).Returns(suspiciousToApprovedMessageCount);
++        mock.Setup(x => x.AdminChatId).Returns(adminChatId);
++        mock.Setup(x => x.LogAdminChatId).Returns(logAdminChatId);
++        mock.Setup(x => x.AiEnabledChats).Returns(aiEnabledChats ?? new HashSet<long> { adminChatId });
++        
++        mock.Setup(x => x.IsAiEnabledForChat(It.IsAny<long>())).Returns(isAiEnabledForChat);
++        mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(isChatAllowed);
++        mock.Setup(x => x.IsPrivateStartAllowed()).Returns(isPrivateStartAllowed);
++        
++        return mock.Object;
++    }
++} 
+\ No newline at end of file
+diff --git a/ClubDoorman.Test/TestInfrastructure/ChatMemberHandlerTestFactory.cs b/ClubDoorman.Test/TestInfrastructure/ChatMemberHandlerTestFactory.cs
+index 37ba6e8..35ab555 100644
+--- a/ClubDoorman.Test/TestInfrastructure/ChatMemberHandlerTestFactory.cs
++++ b/ClubDoorman.Test/TestInfrastructure/ChatMemberHandlerTestFactory.cs
+@@ -5,6 +5,7 @@ using Moq;
+ using NUnit.Framework;
+ using Telegram.Bot;
+ using ClubDoorman.Services;
++using ClubDoorman.Test.TestInfrastructure;
+ 
+ namespace ClubDoorman.TestInfrastructure;
+ 
+@@ -28,7 +29,7 @@ public class ChatMemberHandlerTestFactory
+             BotMock.Object,
+             UserManagerMock.Object,
+             LoggerMock.Object,
+-            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object),
++            new IntroFlowService(BotMock.Object, new Mock<ILogger<IntroFlowService>>().Object, new Mock<ICaptchaService>().Object, UserManagerMock.Object, new AiChecks(BotMock.Object, new Mock<ILogger<AiChecks>>().Object, AppConfigTestFactory.CreateDefault()), new Mock<IStatisticsService>().Object, new Mock<GlobalStatsManager>().Object, new Mock<IModerationService>().Object, new Mock<IMessageService>().Object),
+             MessageServiceMock.Object
+         );
+     }
+diff --git a/ClubDoorman.Test/Unit/Handlers/MessageHandlerExtendedTests.cs b/ClubDoorman.Test/Unit/Handlers/MessageHandlerExtendedTests.cs
+index b10655c..4e24ecb 100644
+--- a/ClubDoorman.Test/Unit/Handlers/MessageHandlerExtendedTests.cs
++++ b/ClubDoorman.Test/Unit/Handlers/MessageHandlerExtendedTests.cs
+@@ -1,6 +1,7 @@
+ using ClubDoorman.Handlers;
+ using ClubDoorman.Handlers.Commands;
+ using ClubDoorman.TestInfrastructure;
++using ClubDoorman.Test.TestInfrastructure;
+ using NUnit.Framework;
+ using Moq;
+ using System;
+@@ -64,7 +65,8 @@ public class MessageHandlerExtendedTests
+                 new TelegramBotClientWrapper(new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")),
+                 _factory.ModerationServiceMock.Object,
+                 new Mock<IMessageService>().Object,
+-                NullLogger<SuspiciousCommandHandler>.Instance
++                NullLogger<SuspiciousCommandHandler>.Instance,
++                AppConfigTestFactory.CreateDefault()
+             );
+             
+             // Возвращаем реальные экземпляры для командных обработчиков через GetService
+diff --git a/ClubDoorman.Test/Unit/Services/AiChecksTests.cs b/ClubDoorman.Test/Unit/Services/AiChecksTests.cs
+index ff77c42..26d6e4e 100644
+--- a/ClubDoorman.Test/Unit/Services/AiChecksTests.cs
++++ b/ClubDoorman.Test/Unit/Services/AiChecksTests.cs
+@@ -1,6 +1,7 @@
+ using NUnit.Framework;
+ using ClubDoorman.Services;
+ using ClubDoorman.TestInfrastructure;
++using ClubDoorman.Test.TestInfrastructure;
+ using Telegram.Bot.Types;
+ using Moq;
+ using Microsoft.Extensions.Logging;
+@@ -24,7 +25,7 @@ public class AiChecksTests
+         _mockLogger = new Mock<ILogger<AiChecks>>();
+         
+         // Создаем реальный AiChecks с моками
+-        _aiChecks = new AiChecks(_mockBot.Object, _mockLogger.Object);
++        _aiChecks = new AiChecks(_mockBot.Object, _mockLogger.Object, AppConfigTestFactory.CreateDefault());
+     }
+ 
+     [Test]
+diff --git a/ClubDoorman/Handlers/Commands/SuspiciousCommandHandler.cs b/ClubDoorman/Handlers/Commands/SuspiciousCommandHandler.cs
+index f011945..989bf22 100644
+--- a/ClubDoorman/Handlers/Commands/SuspiciousCommandHandler.cs
++++ b/ClubDoorman/Handlers/Commands/SuspiciousCommandHandler.cs
+@@ -16,6 +16,7 @@ public class SuspiciousCommandHandler : ICommandHandler
+     private readonly IModerationService _moderationService;
+     private readonly IMessageService _messageService;
+     private readonly ILogger<SuspiciousCommandHandler> _logger;
++    private readonly IAppConfig _appConfig;
+ 
+     public string CommandName => "suspicious";
+ 
+@@ -23,18 +24,20 @@ public class SuspiciousCommandHandler : ICommandHandler
+         ITelegramBotClientWrapper bot, 
+         IModerationService moderationService,
+         IMessageService messageService,
+-        ILogger<SuspiciousCommandHandler> logger)
++        ILogger<SuspiciousCommandHandler> logger,
++        IAppConfig appConfig)
+     {
+         _bot = bot;
+         _moderationService = moderationService;
+         _messageService = messageService;
+         _logger = logger;
++        _appConfig = appConfig;
+     }
+ 
+     public async Task HandleAsync(Message message, CancellationToken cancellationToken = default)
+     {
+         // Проверяем, что команда пришла из админ-чата
+-        if (message.Chat.Id != Config.AdminChatId && message.Chat.Id != Config.LogAdminChatId)
++        if (message.Chat.Id != _appConfig.AdminChatId && message.Chat.Id != _appConfig.LogAdminChatId)
+             return;
+ 
+         var commandParts = message.Text?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+@@ -84,16 +87,16 @@ public class SuspiciousCommandHandler : ICommandHandler
+         
+         var statusMessage = 
+             $"*Статус системы подозрительных пользователей:*\n\n" +
+-            $"• Система включена: {(Config.SuspiciousDetectionEnabled ? "✅" : "❌")}\n" +
+-            $"• Порог мимикрии: *{Config.MimicryThreshold:F1}*\n" +
+-            $"• Сообщений для одобрения: *{Config.SuspiciousToApprovedMessageCount}*\n\n" +
++            $"• Система включена: {(_appConfig.SuspiciousDetectionEnabled ? "✅" : "❌")}\n" +
++            $"• Порог мимикрии: *{_appConfig.MimicryThreshold:F1}*\n" +
++            $"• Сообщений для одобрения: *{_appConfig.SuspiciousToApprovedMessageCount}*\n\n" +
+             $"*Статистика:*\n" +
+             $"• Всего подозрительных: *{stats.TotalSuspicious}*\n" +
+             $"• С AI детектом: *{stats.WithAiDetect}*\n" +
+             $"• Групп: *{stats.GroupsCount}*\n\n" +
+             $"*AI анализ:*\n" +
+-            $"• API настроен: {(Config.OpenRouterApi != null ? "✅" : "❌")}\n" +
+-            $"• AI чаты включены: *{Config.AiEnabledChats.Count}*\n\n" +
++            $"• API настроен: {(_appConfig.OpenRouterApi != null ? "✅" : "❌")}\n" +
++            $"• AI чаты включены: *{_appConfig.AiEnabledChats.Count}*\n\n" +
+             $"*Команды:*\n" +
+             $"• `/suspicious list` - список подозрительных\n" +
+             $"• `/suspicious ai <on|off> <userId> <chatId>` - включить/выключить AI детект\n" +
+diff --git a/ClubDoorman/Program.cs b/ClubDoorman/Program.cs
+index 29d6e4f..1cad11c 100644
+--- a/ClubDoorman/Program.cs
++++ b/ClubDoorman/Program.cs
+@@ -81,6 +81,9 @@ public class Program
+             )
+             .ConfigureServices(services =>
+             {
++                // Регистрация конфигурации приложения
++                services.AddSingleton<IAppConfig, AppConfig>();
++                
+                 // Проверяем конфигурацию бота
+                 if (string.IsNullOrEmpty(Config.BotApi))
+                 {
+@@ -115,7 +118,7 @@ public class Program
+                 services.AddSingleton<ISpamHamClassifier, SpamHamClassifier>();
+                 services.AddSingleton<IMimicryClassifier, MimicryClassifier>();
+                 services.AddSingleton<IBadMessageManager, BadMessageManager>();
+-                services.AddSingleton<IAiChecks>(provider => new AiChecks(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<AiChecks>>()));
++                services.AddSingleton<IAiChecks>(provider => new AiChecks(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<AiChecks>>(), provider.GetRequiredService<IAppConfig>()));
+                 services.AddSingleton<GlobalStatsManager>();
+                 services.AddSingleton<ISuspiciousUsersStorage, SuspiciousUsersStorage>();
+                 
+@@ -171,8 +174,8 @@ public class Program
+                 // Обработчики команд
+                 services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
+                 services.AddSingleton<StartCommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>()));
+-                services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
+-                services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>()));
++                services.AddSingleton<ICommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
++                services.AddSingleton<SuspiciousCommandHandler>(provider => new SuspiciousCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<ILogger<SuspiciousCommandHandler>>(), provider.GetRequiredService<IAppConfig>()));
+                 
+                 // Регистрация системы одобрения
+                 services.AddSingleton<ApprovedUsersStorage>();
+@@ -180,7 +183,9 @@ public class Program
+                 services.AddSingleton<IUserManager>(provider => provider.GetRequiredService<UserManager>());
+                 
+                 // Логируем статус AI и Mimicry систем после полной инициализации
+-                if (Config.OpenRouterApi != null)
++                var appConfig = services.BuildServiceProvider().GetRequiredService<IAppConfig>();
++                
++                if (appConfig.OpenRouterApi != null)
+                 {
+                     Console.WriteLine("🤖 AI анализ: ВКЛЮЧЕН");
+                 }
+@@ -189,9 +194,9 @@ public class Program
+                     Console.WriteLine("🤖 AI анализ: ОТКЛЮЧЕН (DOORMAN_OPENROUTER_API не настроен)");
+                 }
+                 
+-                if (Config.SuspiciousDetectionEnabled)
++                if (appConfig.SuspiciousDetectionEnabled)
+                 {
+-                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {Config.MimicryThreshold:F1})");
++                    Console.WriteLine($"🎭 Система мимикрии: ВКЛЮЧЕНА (порог: {appConfig.MimicryThreshold:F1})");
+                 }
+                 else
+                 {
+diff --git a/ClubDoorman/Services/AiChecks.cs b/ClubDoorman/Services/AiChecks.cs
+index c0b0585..b4088ff 100644
+--- a/ClubDoorman/Services/AiChecks.cs
++++ b/ClubDoorman/Services/AiChecks.cs
+@@ -16,6 +16,7 @@ public class AiChecks : IAiChecks
+ {
+     private readonly ITelegramBotClientWrapper _bot;
+     private readonly ILogger<AiChecks> _logger;
++    private readonly IAppConfig _appConfig;
+     private readonly OpenAiClient? _api;
+     private readonly JsonSerializerOptions _jsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
+     
+@@ -27,11 +28,12 @@ public class AiChecks : IAiChecks
+     
+     const string Model = "google/gemini-2.5-flash";
+     
+-    public AiChecks(ITelegramBotClientWrapper bot, ILogger<AiChecks> logger)
++    public AiChecks(ITelegramBotClientWrapper bot, ILogger<AiChecks> logger, IAppConfig appConfig)
+     {
+         _bot = bot;
+         _logger = logger;
+-        _api = Config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(Config.OpenRouterApi);
++        _appConfig = appConfig;
++        _api = _appConfig.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_appConfig.OpenRouterApi);
+         
+         if (_api == null)
+         {
+@@ -61,6 +63,12 @@ public class AiChecks : IAiChecks
+     /// </summary>
+     public async ValueTask<SpamPhotoBio> GetAttentionBaitProbability(Telegram.Bot.Types.User user, Func<string, Task>? ifChanged = default)
+     {
++        if (user == null)
++        {
++            _logger.LogDebug("Пользователь null, возвращаем пустой результат");
++            return new SpamPhotoBio(new SpamProbability(), [], "");
++        }
++
+         if (_api == null)
+         {
+             _logger.LogDebug("OpenAI API не настроен, пропускаем AI проверку профиля");
+diff --git a/ClubDoorman/Services/AppConfig.cs b/ClubDoorman/Services/AppConfig.cs
+new file mode 100644
+index 0000000..a04e127
+--- /dev/null
++++ b/ClubDoorman/Services/AppConfig.cs
+@@ -0,0 +1,60 @@
++using ClubDoorman.Infrastructure;
++
++namespace ClubDoorman.Services;
++
++/// <summary>
++/// Реализация конфигурации приложения
++/// Переносит логику из статического класса Config.cs для лучшей тестируемости
++/// </summary>
++public class AppConfig : IAppConfig
++{
++    /// <summary>
++    /// API токен для OpenRouter
++    /// </summary>
++    public string? OpenRouterApi => Config.OpenRouterApi;
++    
++    /// <summary>
++    /// Включено ли обнаружение подозрительных пользователей
++    /// </summary>
++    public bool SuspiciousDetectionEnabled => Config.SuspiciousDetectionEnabled;
++    
++    /// <summary>
++    /// Порог мимикрии для обнаружения подозрительных пользователей
++    /// </summary>
++    public double MimicryThreshold => Config.MimicryThreshold;
++    
++    /// <summary>
++    /// Количество сообщений для перехода из подозрительных в одобренные
++    /// </summary>
++    public int SuspiciousToApprovedMessageCount => Config.SuspiciousToApprovedMessageCount;
++    
++    /// <summary>
++    /// ID админского чата
++    /// </summary>
++    public long AdminChatId => Config.AdminChatId;
++    
++    /// <summary>
++    /// ID чата для логирования
++    /// </summary>
++    public long LogAdminChatId => Config.LogAdminChatId;
++    
++    /// <summary>
++    /// Список чатов с включенным AI
++    /// </summary>
++    public HashSet<long> AiEnabledChats => Config.AiEnabledChats;
++    
++    /// <summary>
++    /// Включен ли AI для конкретного чата
++    /// </summary>
++    public bool IsAiEnabledForChat(long chatId) => Config.IsAiEnabledForChat(chatId);
++    
++    /// <summary>
++    /// Разрешён ли чат для работы бота
++    /// </summary>
++    public bool IsChatAllowed(long chatId) => Config.IsChatAllowed(chatId);
++    
++    /// <summary>
++    /// Разрешён ли приватный старт
++    /// </summary>
++    public bool IsPrivateStartAllowed() => Config.IsPrivateStartAllowed();
++} 
+\ No newline at end of file
+diff --git a/ClubDoorman/Services/IAppConfig.cs b/ClubDoorman/Services/IAppConfig.cs
+new file mode 100644
+index 0000000..47bd967
+--- /dev/null
++++ b/ClubDoorman/Services/IAppConfig.cs
+@@ -0,0 +1,58 @@
++namespace ClubDoorman.Services;
++
++/// <summary>
++/// Интерфейс для конфигурации приложения
++/// Заменяет статические свойства в Config.cs для лучшей тестируемости
++/// </summary>
++public interface IAppConfig
++{
++    /// <summary>
++    /// API токен для OpenRouter
++    /// </summary>
++    string? OpenRouterApi { get; }
++    
++    /// <summary>
++    /// Включено ли обнаружение подозрительных пользователей
++    /// </summary>
++    bool SuspiciousDetectionEnabled { get; }
++    
++    /// <summary>
++    /// Порог мимикрии для обнаружения подозрительных пользователей
++    /// </summary>
++    double MimicryThreshold { get; }
++    
++    /// <summary>
++    /// Количество сообщений для перехода из подозрительных в одобренные
++    /// </summary>
++    int SuspiciousToApprovedMessageCount { get; }
++    
++    /// <summary>
++    /// ID админского чата
++    /// </summary>
++    long AdminChatId { get; }
++    
++    /// <summary>
++    /// ID чата для логирования
++    /// </summary>
++    long LogAdminChatId { get; }
++    
++    /// <summary>
++    /// Список чатов с включенным AI
++    /// </summary>
++    HashSet<long> AiEnabledChats { get; }
++    
++    /// <summary>
++    /// Включен ли AI для конкретного чата
++    /// </summary>
++    bool IsAiEnabledForChat(long chatId);
++    
++    /// <summary>
++    /// Разрешён ли чат для работы бота
++    /// </summary>
++    bool IsChatAllowed(long chatId);
++    
++    /// <summary>
++    /// Разрешён ли приватный старт
++    /// </summary>
++    bool IsPrivateStartAllowed();
++} 
+\ No newline at end of file
