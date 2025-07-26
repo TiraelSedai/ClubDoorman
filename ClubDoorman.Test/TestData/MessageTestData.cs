@@ -150,7 +150,107 @@ public static class MessageTestData
             Date = DateTime.UtcNow,
             Chat = TestChat(),
             From = TestUser(),
-            Text = "Message with special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?"
+            Text = "Special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?"
+        };
+    }
+
+    /// <summary>
+    /// Тестовый пользователь @Dnekxpb с подозрительным профилем
+    /// </summary>
+    public static User SuspiciousUserDnekxpb()
+    {
+        return new User
+        {
+            Id = 987654321,
+            IsBot = false,
+            FirstName = "Manu",
+            LastName = "Чыфыс",
+            Username = "Dnekxpb"
+        };
+    }
+
+    /// <summary>
+    /// Сообщение от подозрительного пользователя @Dnekxpb
+    /// </summary>
+    public static Message SuspiciousUserMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = TestChat(),
+            From = SuspiciousUserDnekxpb(),
+            Text = "Продам слона пиши с лс"
+        };
+    }
+
+    /// <summary>
+    /// Полная информация о чате пользователя @Dnekxpb
+    /// </summary>
+    public static ChatFullInfo SuspiciousUserChatInfo()
+    {
+        return new ChatFullInfo
+        {
+            Id = 987654321,
+            Type = ChatType.Private,
+            Title = null,
+            Username = "Dnekxpb",
+            Bio = "Митиман\n\nManu Чыфыс:\nПродам слона пиши с лс",
+            LinkedChatId = null,
+            Photo = new ChatPhoto
+            {
+                SmallFileId = "fake_small_photo_id",
+                BigFileId = "fake_big_photo_id"
+            }
+        };
+    }
+
+    /// <summary>
+    /// Тестовый пользователь с явно подозрительным профилем
+    /// </summary>
+    public static User VerySuspiciousUser()
+    {
+        return new User
+        {
+            Id = 111222333,
+            IsBot = false,
+            FirstName = "🔥💰💎",
+            LastName = "ПРЕМИУМ",
+            Username = "premium_crypto_2024"
+        };
+    }
+
+    /// <summary>
+    /// Сообщение от очень подозрительного пользователя
+    /// </summary>
+    public static Message VerySuspiciousUserMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Chat = TestChat(),
+            From = VerySuspiciousUser(),
+            Text = "🔥 ЗАРАБОТАЙ 1000$ В ДЕНЬ! 💰 КРИПТОВАЛЮТА! 💎 НАЖМИ СЕЙЧАС!"
+        };
+    }
+
+    /// <summary>
+    /// Полная информация о чате очень подозрительного пользователя
+    /// </summary>
+    public static ChatFullInfo VerySuspiciousUserChatInfo()
+    {
+        return new ChatFullInfo
+        {
+            Id = 111222333,
+            Type = ChatType.Private,
+            Title = null,
+            Username = "premium_crypto_2024",
+            Bio = "🔥 ПРЕМИУМ КРИПТО ТРЕЙДИНГ 💰\n\n💎 ЗАРАБОТАЙ 1000$ В ДЕНЬ!\n🔥 НАЖМИ СЕЙЧАС!\n💰 БЕСПЛАТНО!\n\n📱 Telegram: @crypto_scam\n🌐 Сайт: scam.crypto",
+            LinkedChatId = null,
+            Photo = new ChatPhoto
+            {
+                SmallFileId = "fake_suspicious_small_photo_id",
+                BigFileId = "fake_suspicious_big_photo_id"
+            }
         };
     }
 } 

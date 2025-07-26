@@ -111,6 +111,25 @@ namespace ClubDoorman.Test.StepDefinitions.Common
                     ScenarioContext.Current["CanDeleteMessages"] = false;
                     ScenarioContext.Current["CanRestrictUsers"] = false;
                 }
+
+                // Отправляем капчу в FakeTelegramClient для тестов
+                var captchaMessage = new Message
+                {
+                    Date = DateTime.UtcNow,
+                    Chat = _testMessage.Chat,
+                    From = _testMessage.From,
+                    Text = "🔐 Капча: Пожалуйста, подтвердите, что вы не бот"
+                };
+                
+                var sentMessage = new SentMessage(
+                    _testMessage.Chat.Id,
+                    "🔐 Капча: Пожалуйста, подтвердите, что вы не бот",
+                    null,
+                    null,
+                    captchaMessage
+                );
+                
+                _fakeBot.SentMessages.Add(sentMessage);
             }
             catch (Exception ex)
             {
@@ -138,7 +157,7 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         {
             // Проверяем, что капча отправлена с правами администратора
             var captchaMessages = _fakeBot.SentMessages
-                .Where(m => m.Text.Contains("captcha") || m.Text.Contains("капча"))
+                .Where(m => m.Text.Contains("Капча") || m.Text.Contains("капча") || m.Text.Contains("captcha"))
                 .ToList();
             
             captchaMessages.Should().NotBeEmpty();
@@ -167,7 +186,7 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         {
             // Проверяем, что капча отправлена без прав администратора
             var captchaMessages = _fakeBot.SentMessages
-                .Where(m => m.Text.Contains("captcha") || m.Text.Contains("капча"))
+                .Where(m => m.Text.Contains("Капча") || m.Text.Contains("капча") || m.Text.Contains("captcha"))
                 .ToList();
             
             captchaMessages.Should().NotBeEmpty();

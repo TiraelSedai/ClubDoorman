@@ -292,7 +292,7 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             Photo = new ChatPhoto
             {
                 SmallFileId = "fake_small_file_id",
-                BigFileId = "fake_big_file_id"
+                BigFileId = "fake_big_photo_id"
             }
         };
 

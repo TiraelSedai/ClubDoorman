@@ -160,13 +160,13 @@ public class SimpleE2ETests
             Photo = new ChatPhoto
             {
                 SmallFileId = "fake_small_file_id",
-                BigFileId = "fake_big_file_id"
+                BigFileId = "fake_big_photo_id"
             }
         });
 
         // Настраиваем фото
         var photoPath = "/home/kpblc/projects/ClubDoorman/tmp/big.png";
-        _fakeBot.SetupGetFile("fake_big_file_id", photoPath);
+        _fakeBot.SetupGetFile("fake_big_photo_id", photoPath);
 
         // Act - AI анализ фото
         var photoResult = await _aiChecks.GetAttentionBaitProbability(user);
