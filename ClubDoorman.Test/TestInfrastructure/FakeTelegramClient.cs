@@ -18,6 +18,13 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     public List<BannedUser> BannedUsers { get; } = new();
     public List<UnbannedUser> UnbannedUsers { get; } = new();
     public List<CallbackQuery> CallbackQueries { get; } = new();
+    public List<AnsweredCallbackQuery> AnsweredCallbackQueries { get; } = new();
+    public List<EditedMessage> EditedMessages { get; } = new();
+    public List<SentPhoto> SentPhotos { get; } = new();
+    public List<RestrictedUser> RestrictedUsers { get; } = new();
+    
+    // Для проверки порядка операций
+    public List<string> OperationLog { get; } = new();
     
     public bool ShouldThrowException { get; set; } = false;
     public Exception? ExceptionToThrow { get; set; }
@@ -53,6 +60,8 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             replyMarkup,
             message
         ));
+        
+        OperationLog.Add($"SendMessageAsync: chatId={chatId.Identifier}, text={text}");
 
         return Task.FromResult(message);
     }
@@ -207,6 +216,15 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
+        RestrictedUsers.Add(new RestrictedUser(
+            chatId.Identifier ?? 0,
+            userId,
+            permissions,
+            untilDate
+        ));
+        
+        OperationLog.Add($"RestrictChatMember: chatId={chatId.Identifier}, userId={userId}, untilDate={untilDate}");
+
         return Task.CompletedTask;
     }
 
@@ -230,7 +248,22 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             Caption = caption
         };
         // MessageId устанавливается через рефлексию, так как это readonly свойство
-        typeof(Message).GetProperty("MessageId")?.SetValue(message, Random.Shared.Next(1, 10000));
+        var messageIdProperty = typeof(Message).GetProperty("MessageId");
+        if (messageIdProperty?.CanWrite == true)
+        {
+            messageIdProperty.SetValue(message, Random.Shared.Next(1, 10000));
+        }
+
+        SentPhotos.Add(new SentPhoto(
+            chatId.Identifier ?? 0,
+            photo,
+            caption,
+            parseMode,
+            replyMarkup,
+            message
+        ));
+        
+        OperationLog.Add($"SendPhoto: chatId={chatId.Identifier}, caption={caption}");
 
         return Task.FromResult(message);
     }
@@ -339,6 +372,16 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
+        AnsweredCallbackQueries.Add(new AnsweredCallbackQuery(
+            callbackQueryId,
+            text,
+            showAlert,
+            url,
+            cacheTime
+        ));
+        
+        OperationLog.Add($"AnswerCallbackQuery: {callbackQueryId}, text: {text}, showAlert: {showAlert}");
+
         return Task.CompletedTask;
     }
 
@@ -346,6 +389,15 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     {
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
+
+        EditedMessages.Add(new EditedMessage(
+            chatId.Identifier ?? 0,
+            messageId,
+            null, // text
+            replyMarkup
+        ));
+        
+        OperationLog.Add($"EditMessageReplyMarkup: chatId={chatId.Identifier}, messageId={messageId}");
 
         return Task.CompletedTask;
     }
@@ -362,6 +414,15 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" },
             Text = text
         };
+
+        EditedMessages.Add(new EditedMessage(
+            chatId.Identifier ?? 0,
+            messageId,
+            text,
+            replyMarkup
+        ));
+        
+        OperationLog.Add($"EditMessageText: chatId={chatId.Identifier}, messageId={messageId}, text={text}");
 
         return Task.FromResult(message);
     }
@@ -433,6 +494,11 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         BannedUsers.Clear();
         UnbannedUsers.Clear();
         CallbackQueries.Clear();
+        AnsweredCallbackQueries.Clear();
+        EditedMessages.Clear();
+        SentPhotos.Clear();
+        RestrictedUsers.Clear();
+        OperationLog.Clear();
         ShouldThrowException = false;
         ExceptionToThrow = null;
     }
@@ -452,6 +518,38 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     public bool WasMessageDeleted(long chatId, int messageId)
     {
         return DeletedMessages.Any(d => d.ChatId == chatId && d.MessageId == messageId);
+    }
+    
+    // Методы для проверки порядка операций
+    public bool WasCallbackQueryAnswered(string callbackQueryId)
+    {
+        return AnsweredCallbackQueries.Any(acq => acq.CallbackQueryId == callbackQueryId);
+    }
+    
+    public bool WasMessageEdited(long chatId, int messageId)
+    {
+        return EditedMessages.Any(em => em.ChatId == chatId && em.MessageId == messageId);
+    }
+    
+    public bool WasPhotoSent(long chatId, string? captionContains = null)
+    {
+        return SentPhotos.Any(sp => sp.ChatId == chatId && 
+            (captionContains == null || (sp.Caption?.Contains(captionContains) ?? false)));
+    }
+    
+    public bool WasUserRestricted(long chatId, long userId)
+    {
+        return RestrictedUsers.Any(ru => ru.ChatId == chatId && ru.UserId == userId);
+    }
+    
+    public List<string> GetOperationLog()
+    {
+        return new List<string>(OperationLog);
+    }
+    
+    public void ClearOperationLog()
+    {
+        OperationLog.Clear();
     }
 }
 
@@ -480,4 +578,35 @@ public record UnbannedUser(
     long ChatId,
     long UserId,
     bool OnlyIfBanned
+);
+
+public record AnsweredCallbackQuery(
+    string CallbackQueryId,
+    string? Text,
+    bool? ShowAlert,
+    string? Url,
+    int? CacheTime
+);
+
+public record EditedMessage(
+    long ChatId,
+    int MessageId,
+    string? Text,
+    ReplyMarkup? ReplyMarkup
+);
+
+public record SentPhoto(
+    long ChatId,
+    object Photo,
+    string? Caption,
+    ParseMode? ParseMode,
+    ReplyMarkup? ReplyMarkup,
+    Message Message
+);
+
+public record RestrictedUser(
+    long ChatId,
+    long UserId,
+    ChatPermissions Permissions,
+    DateTime? UntilDate
 ); 
