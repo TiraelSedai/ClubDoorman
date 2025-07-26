@@ -1,0 +1,2248 @@
+Сборка начата 26.07.2025 21:50:17.
+     1>Проект "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" в узле 1 (целевые объекты Restore).
+     1>ValidateSolutionConfiguration:
+         Создание конфигурации решения "Debug|Any CPU".
+       _GetAllRestoreProjectPathItems:
+         Определение проектов для восстановления...
+       Restore:
+         При проверке цепочки сертификатов X.509 будет использоваться резервная группа сертификатов в "/home/kpblc/.dotnet/sdk/9.0.303/trustedroots/codesignctl.pem".
+         При проверке цепочки сертификатов X.509 будет использоваться резервная группа сертификатов в "/home/kpblc/.dotnet/sdk/9.0.303/trustedroots/timestampctl.pem".
+     1>/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0. [/home/kpblc/projects/ClubDoorman/ClubDoorman.sln]
+     1>/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от DotNetEnv (>= 2.6.0), но версия DotNetEnv 2.6.0 не найдена. Использовалась версия DotNetEnv 3.0.0. [/home/kpblc/projects/ClubDoorman/ClubDoorman.sln]
+     1>/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0. [/home/kpblc/projects/ClubDoorman/ClubDoorman.sln]
+         Файл ресурсов не был изменен. Пропуск записи файла ресурсов. Путь: /home/kpblc/projects/ClubDoorman/ClubDoorman/obj/project.assets.json
+         Файл ресурсов не был изменен. Пропуск записи файла ресурсов. Путь: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/obj/project.assets.json
+         Восстановлен /home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj (за 92 мс).
+         Восстановлен /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj (за 92 мс).
+         
+         Использованные файлы конфигурации NuGet:
+             /home/kpblc/.nuget/NuGet/NuGet.Config
+         
+         Использованные веб-каналы:
+             https://api.nuget.org/v3/index.json
+         Все проекты обновлены для восстановления.
+     1>Сборка проекта "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" завершена (целевые объекты Restore).
+   1:2>Проект "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" в узле 1 (целевые объекты VSTest).
+     1>ValidateSolutionConfiguration:
+         Создание конфигурации решения "Debug|Any CPU".
+   1:2>Проект "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" (1:2) выполняет сборку "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (3:6) в узле 2 (целевые объекты VSTest).
+     3>BuildProject:
+         Сборка начата, подождите...
+   3:6>Проект "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (3:6) выполняет сборку "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (3:7) в узле 2 (целевые объекты по умолчанию).
+     3>GenerateSpecFlowAssemblyHooksFileTask:
+         Skipping unchanged file /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/obj/Debug/net9.0/NUnit.AssemblyHooks.cs
+       UpdateFeatureFilesInProject:
+         SpecFlowFeatureFiles: Features/AiAnalysis.feature;Features/CaptchaSystem.feature;Features/ModerationFlow.feature;Features/PermissionsAndQuietMode.feature;Features/StatisticsAndCommands.feature
+         [SpecFlow] process: dotnet, pid: 544632, CD: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test
+         [SpecFlow]   System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e
+         [SpecFlow]   MSBuild, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Runtime, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.Build.Framework, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Console, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Threading, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Collections, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.Build, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Threading.Thread, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Text.Encoding.CodePages, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Linq, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Diagnostics.Tracing, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Runtime.InteropServices, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Text.RegularExpressions, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.Win32.Primitives, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Memory, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51
+         [SpecFlow]   System.Collections.Concurrent, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Diagnostics.Process, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Diagnostics.TraceSource, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.ComponentModel.Primitives, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.IO.Pipes, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Net.Primitives, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Net.Sockets, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Threading.ThreadPool, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Diagnostics.DiagnosticSource, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51
+         [SpecFlow]   System.Diagnostics.FileVersionInfo, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Reflection.Metadata, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Collections.Immutable, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.IO.MemoryMappedFiles, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Text.Encoding.Extensions, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.NET.StringTools, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.Build.resources, Version=15.1.0.0, Culture=ru, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Runtime.Loader, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   dotnet, Version=9.0.303.0, Culture=neutral, PublicKeyToken=adb9793829ddae60
+         [SpecFlow]   Microsoft.DotNet.Configurer, Version=9.0.303.0, Culture=neutral, PublicKeyToken=adb9793829ddae60
+         [SpecFlow]   System.CommandLine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   Microsoft.TemplateEngine.Cli, Version=9.0.303.0, Culture=neutral, PublicKeyToken=adb9793829ddae60
+         [SpecFlow]   System.Threading.Tasks.Dataflow, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Xml.ReaderWriter, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Private.Xml, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51
+         [SpecFlow]   System.Private.Uri, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.Win32.Registry, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   NuGet.Frameworks, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   netstandard, Version=2.1.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51
+         [SpecFlow]   Microsoft.Build.Utilities.Core, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Threading.Tasks.Parallel, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Numerics.Vectors, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.Build.Tasks.Core, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.NET.Build.Tasks, Version=9.0.12.36511, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   NuGet.Frameworks, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   Microsoft.Deployment.DotNet.Releases, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   NuGet.Build.Tasks, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   NuGet.Common, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   NuGet.Commands, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   NuGet.ProjectModel, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   NuGet.Configuration, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+         [SpecFlow]   System.Xml.XDocument, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Private.Xml.Linq, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51
+         [SpecFlow]   System.Security.Cryptography, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.TestPlatform.Build, Version=15.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   Microsoft.TestPlatform.Build.resources, Version=15.0.0.0, Culture=ru, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   SpecFlow.Tools.MsBuild.Generation, Version=3.9.0.0, Culture=neutral, PublicKeyToken=0778194805d6db41
+         [SpecFlow]   TechTalk.SpecFlow, Version=3.9.0.0, Culture=neutral, PublicKeyToken=0778194805d6db41
+         [SpecFlow]   System.IO.FileSystem, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   System.Runtime.Extensions, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a
+         [SpecFlow]   BoDi, Version=1.5.0.0, Culture=neutral, PublicKeyToken=ff7cd5ea2744b496
+         [SpecFlow]   TechTalk.SpecFlow.Generator, Version=3.9.0.0, Culture=neutral, PublicKeyToken=0778194805d6db41
+         [SpecFlow]   TechTalk.SpecFlow.Utils, Version=3.9.0.0, Culture=neutral, PublicKeyToken=0778194805d6db41
+         [SpecFlow] Starting GenerateFeatureFileCodeBehind
+         -> Using default config
+         SpecFlowGeneratedFiles: Features/AiAnalysis.feature.cs
+         SpecFlowGeneratedFiles: Features/CaptchaSystem.feature.cs
+         SpecFlowGeneratedFiles: Features/ModerationFlow.feature.cs
+         SpecFlowGeneratedFiles: Features/PermissionsAndQuietMode.feature.cs
+         SpecFlowGeneratedFiles: Features/StatisticsAndCommands.feature.cs
+     3>/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0.
+   3:7>Проект "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (3:7) выполняет сборку "/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj" (2:9) в узле 1 (целевые объекты по умолчанию).
+     2>/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от DotNetEnv (>= 2.6.0), но версия DotNetEnv 2.6.0 не найдена. Использовалась версия DotNetEnv 3.0.0.
+     2>/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0.
+     2>GenerateTargetFrameworkMonikerAttribute:
+       Целевой объект "GenerateTargetFrameworkMonikerAttribute" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       CoreGenerateAssemblyInfo:
+       Целевой объект "CoreGenerateAssemblyInfo" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       _GenerateSourceLinkFile:
+         Файл Source Link "obj/Debug/net9.0/ClubDoorman.sourcelink.json" обновлен.
+       CoreCompile:
+       Целевой объект "CoreCompile" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       _CreateAppHost:
+       Целевой объект "_CreateAppHost" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       Целевой объект "_CopyOutOfDateSourceItemsToOutputDirectory" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       GenerateBuildDependencyFile:
+       Целевой объект "GenerateBuildDependencyFile" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       GenerateBuildRuntimeConfigurationFiles:
+       Целевой объект "GenerateBuildRuntimeConfigurationFiles" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       CopyFilesToOutputDirectory:
+         ClubDoorman -> /home/kpblc/projects/ClubDoorman/ClubDoorman/bin/Debug/net9.0/ClubDoorman.dll
+     2>Сборка проекта "/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj" завершена (целевые объекты по умолчанию).
+     3>GenerateTargetFrameworkMonikerAttribute:
+       Целевой объект "GenerateTargetFrameworkMonikerAttribute" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       CoreGenerateAssemblyInfo:
+       Целевой объект "CoreGenerateAssemblyInfo" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       _GenerateSourceLinkFile:
+         Файл Source Link "obj/Debug/net9.0/ClubDoorman.Test.sourcelink.json" обновлен.
+       CoreCompile:
+       Целевой объект "CoreCompile" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       Целевой объект "_CopyOutOfDateSourceItemsToOutputDirectory" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       GenerateBuildDependencyFile:
+       Целевой объект "GenerateBuildDependencyFile" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       GenerateBuildRuntimeConfigurationFiles:
+       Целевой объект "GenerateBuildRuntimeConfigurationFiles" пропускается, так как все выходные файлы актуальны по отношению к входным.
+       CopyFilesToOutputDirectory:
+         ClubDoorman.Test -> /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/ClubDoorman.Test.dll
+       PostBuild:
+         mkdir -p "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/data"
+         cp -n "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/../ClubDoorman/data/stop-words.txt" "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/data/stop-words.txt"
+     3>cp : warning : behavior of -n is non-portable and may change in future; use --update=none instead [/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj]
+         cp -n "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/test-timeouts.json" "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/test-timeouts.json"
+     3>cp : warning : behavior of -n is non-portable and may change in future; use --update=none instead [/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj]
+     3>Сборка проекта "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" завершена (целевые объекты по умолчанию).
+     3>BuildProject:
+         Сборка выполнена.
+         
+Тестовый запуск для /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/ClubDoorman.Test.dll (.NETCoreApp,Version=v9.0)
+Версия VSTest 17.14.1 (x64)
+
+Запуск выполнения тестов; подождите...
+Общее количество тестовых файлов (1), соответствующих указанному шаблону.
+NUnit Adapter 5.0.0.0: Test execution started
+Running all tests in /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/ClubDoorman.Test.dll
+   NUnit3TestExecutor discovered 643 of 643 NUnit test cases using Current Discovery mode, Non-Explicit run
+  Пройден CaptchaInfo_Properties_WorkCorrectly [12 ms]
+  Пройден ChatStats_Properties_WorkCorrectly [< 1 ms]
+  Пройден ModerationResult_Properties_WorkCorrectly [1 ms]
+  Пройден SimpleFilters_FindAllRussianWordsWithLookalikeSymbols_HandlesNullInput [5 ms]
+  Пройден SimpleFilters_FindAllRussianWordsWithLookalikeSymbols_ReturnsEmptyListForEmptyInput [1 ms]
+  Пройден SimpleFilters_HasStopWords_HandlesNullInput [< 1 ms]
+  Пройден SimpleFilters_HasStopWords_ReturnsFalseForEmptyInput [1 ms]
+  Пройден TextProcessor_NormalizeText_HandlesEmptyString [67 ms]
+  Пройден TextProcessor_NormalizeText_HandlesNullInput [< 1 ms]
+  Пройден TextProcessor_NormalizeText_RemovesFormatting [22 ms]
+  Пройден AiChecks_GetSpamProbability_WithNullMessage_ThrowsArgumentNullException [111 ms]
+  Пройден CustomExceptions_CanBeCreated [< 1 ms]
+  Пройден ModerationService_CheckMessageAsync_WithNullMessage_ThrowsArgumentNullException [50 ms]
+  Пройден ModerationService_CheckUserNameAsync_WithEmptyFirstName_ThrowsModerationException [3 ms]
+  Пройден ModerationService_CheckUserNameAsync_WithNullUser_ThrowsArgumentNullException [1 ms]
+  Пройден ModerationService_IncrementGoodMessageCountAsync_WithEmptyMessageText_ThrowsArgumentException [2 ms]
+  Пройден ModerationService_IncrementGoodMessageCountAsync_WithNullChat_ThrowsArgumentNullException [1 ms]
+  Пройден ModerationService_IncrementGoodMessageCountAsync_WithNullUser_ThrowsArgumentNullException [1 ms]
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] DOORMAN_TEST_BLACKLIST_IDS не задана - тестовый блэклист пустой
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given there is a notification with buttons in admin chat
+-> done: AiAnalysisSteps.GivenThereIsANotificationWithButtonsInAdminChat() (0,0s)
+When the button "🤖 ban" is clicked
+-> done: AiAnalysisSteps.WhenButtonIsClicked("🤖 ban") (0,0s)
+Then the user gets banned
+-> done: AiAnalysisSteps.ThenTheUserGetsBanned() (0,0s)
+And all user messages are deleted
+-> done: AiAnalysisSteps.ThenAllUserMessagesAreDeleted() (0,0s)
+And there is a log record about ban
+-> done: AiAnalysisSteps.ThenLogsContainBanRecord() (0,0s)
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given there is a notification with buttons in admin chat
+-> done: AiAnalysisSteps.GivenThereIsANotificationWithButtonsInAdminChat() (0,0s)
+When the button "🥰 own" is clicked
+-> done: AiAnalysisSteps.WhenButtonIsClicked("🥰 own") (0,0s)
+Then the user is added to global approved list
+-> done: AiAnalysisSteps.ThenTheUserIsAddedToGlobalApprovedList() (0,0s)
+And the restriction is removed
+-> done: AiAnalysisSteps.ThenTheRestrictionIsRemoved() (0,0s)
+And there is a log record about approval
+-> done: AiAnalysisSteps.ThenLogsContainApprovalRecord() (0,0s)
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user with bait profile joins the channel
+-> done: AiAnalysisSteps.GivenAUserWithBaitProfileJoinsTheChannel() (0,0s)
+When the user leaves a comment
+-> done: AiAnalysisSteps.WhenTheUserLeavesAComment() (0,0s)
+Then AI profile analysis is performed
+-> done: AiAnalysisSteps.ThenAIProfileAnalysisIsPerformed() (0,0s)
+And a notification is sent to admin chat
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"a notification is sent to admin chat")]
+        public void ThenANotificationIsSentToAdminChat()
+        {
+            _scenarioContext.Pending();
+        }
+
+And the captcha is NOT shown (channels don't support captcha)
+-> skipped because of previous errors
+
+AIAnalysisInChannels: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Then(@"a notification is sent to admin chat")]
+        public void ThenANotificationIsSentToAdminChat()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user with bait profile joins the group
+-> done: AiAnalysisSteps.GivenAUserWithBaitProfileJoinsTheGroup() (0,0s)
+When the user sends the first message
+-> done: AiAnalysisSteps.WhenTheUserSendsTheFirstMessage() (0,0s)
+Then AI profile analysis is performed
+-> done: AiAnalysisSteps.ThenAIProfileAnalysisIsPerformed() (0,0s)
+And a notification is sent to admin chat with profile photo
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"a notification is sent to admin chat with profile photo")]
+        public void ThenANotificationIsSentToAdminChatWithProfilePhoto()
+        {
+            _scenarioContext.Pending();
+        }
+
+And the user gets restricted for 10 minutes
+-> skipped because of previous errors
+And there is a log record about AI analysis
+-> skipped because of previous errors
+
+AIAnalysisOnFirstMessage: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Then(@"a notification is sent to admin chat with profile photo")]
+        public void ThenANotificationIsSentToAdminChatWithProfilePhoto()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given the bot works in silent mode
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"the bot works in silent mode")]
+        public void GivenTheBotWorksInSilentMode()
+        {
+            _scenarioContext.Pending();
+        }
+
+When a user joins the group
+-> skipped because of previous errors
+Then the captcha is sent without admin rights
+-> skipped because of previous errors
+And the user can pass the captcha
+-> skipped because of previous errors
+
+CaptchaInSilentMode: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"the bot works in silent mode")]
+        public void GivenTheBotWorksInSilentMode()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+  Пройден SpamHamClassifier_Timeout_ReturnsGracefulFallback [719 ms]
+  Пройден UserManager_InBanlist_WithInvalidUserId_ReturnsFalse [< 1 ms]
+  Пройден UserManager_InBanlist_WithZeroUserId_ReturnsFalse [< 1 ms]
+  Пройден AdminButtonBan [455 ms]
+  Пройден AdminButtonOwn [114 ms]
+  Пропущен AIAnalysisInChannels [81 ms]
+  Пропущен AIAnalysisOnFirstMessage [53 ms]
+  Пропущен CaptchaInSilentMode [44 ms]
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user joins the group
+[DEBUG] UserManagementSteps: Сохранил TestMessage в ScenarioContext, From.Id = 123456789
+-> done: UserManagementSteps.GivenUserJoinsGroup() (0,0s)
+When a captcha is sent
+-> done: CaptchaSteps.WhenCaptchaIsSent() (0,0s)
+And the user does not respond within timeout
+-> done: CaptchaSteps.WhenUserDoesNotRespondWithinTimeout() (0,1s)
+Then the user gets banned
+-> done: AiAnalysisSteps.ThenTheUserGetsBanned() (0,0s)
+And there is a log record about captcha timeout
+-> done: CaptchaSteps.ThenLogsContainCaptchaTimeoutRecord() (0,0s)
+And all user messages are deleted
+-> done: AiAnalysisSteps.ThenAllUserMessagesAreDeleted() (0,0s)
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user joins the group
+[DEBUG] UserManagementSteps: Сохранил TestMessage в ScenarioContext, From.Id = 123456789
+-> done: UserManagementSteps.GivenUserJoinsGroup() (0,0s)
+When a captcha is sent
+-> done: CaptchaSteps.WhenCaptchaIsSent() (0,0s)
+And the user clicks the correct button
+-> done: CaptchaSteps.WhenUserClicksCorrectButton() (0,0s)
+Then the captcha is removed
+-> done: CaptchaSteps.ThenCaptchaIsRemoved() (0,0s)
+And there is a log record about successful completion
+-> done: CaptchaSteps.ThenLogsContainSuccessfulPassRecord() (0,0s)
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user joins the group
+[DEBUG] UserManagementSteps: Сохранил TestMessage в ScenarioContext, From.Id = 123456789
+-> done: UserManagementSteps.GivenUserJoinsGroup() (0,0s)
+When a captcha is sent
+-> done: CaptchaSteps.WhenCaptchaIsSent() (0,0s)
+And the user clicks the wrong button
+-> done: CaptchaSteps.WhenUserClicksWrongButton() (0,0s)
+Then the user gets banned
+-> done: AiAnalysisSteps.ThenTheUserGetsBanned() (0,0s)
+And there is a log record about wrong answer
+-> done: CaptchaSteps.ThenLogsContainWrongAnswerRecord() (0,0s)
+And all user messages are deleted
+-> done: AiAnalysisSteps.ThenAllUserMessagesAreDeleted() (0,0s)
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user sends a message
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"a user sends a message")]
+        public void GivenAUserSendsAMessage()
+        {
+            _scenarioContext.Pending();
+        }
+
+Then the logs check strict order:
+  --- table step argument ---
+  | 1. lols.bot blacklist                   |
+  | 2. long names                           |
+  | 3. captcha                              |
+  | 4. stop words                           |
+  | 5. ML analysis                          |
+  | 6. AI analysis (only for first message) |
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"the logs check strict order:")]
+        public void ThenTheLogsCheckStrictOrder(Table table)
+        {
+            _scenarioContext.Pending();
+        }
+
+
+CheckOrderInLogs: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"a user sends a message")]
+        public void GivenAUserSendsAMessage()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"the logs check strict order:")]
+        public void ThenTheLogsCheckStrictOrder(Table table)
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user forwards a message
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"a user forwards a message")]
+        public void GivenAUserForwardsAMessage()
+        {
+            _scenarioContext.Pending();
+        }
+
+When the message passes checks
+-> No matching step definition found for the step. Use the following code to create one:
+        [When(@"the message passes checks")]
+        public void WhenTheMessagePassesChecks()
+        {
+            _scenarioContext.Pending();
+        }
+
+Then the forward is also deleted for spam
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"the forward is also deleted for spam")]
+        public void ThenTheForwardIsAlsoDeletedForSpam()
+        {
+            _scenarioContext.Pending();
+        }
+
+And there is a log record about forward
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"there is a log record about forward")]
+        public void ThenThereIsALogRecordAboutForward()
+        {
+            _scenarioContext.Pending();
+        }
+
+
+ForwardMessages: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"a user forwards a message")]
+        public void GivenAUserForwardsAMessage()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [When(@"the message passes checks")]
+        public void WhenTheMessagePassesChecks()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"the forward is also deleted for spam")]
+        public void ThenTheForwardIsAlsoDeletedForSpam()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"there is a log record about forward")]
+        public void ThenThereIsALogRecordAboutForward()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given there is a message in chat
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"there is a message in chat")]
+        public void GivenThereIsAMessageInChat()
+        {
+            _scenarioContext.Pending();
+        }
+
+When the /spam command is executed
+-> No matching step definition found for the step. Use the following code to create one:
+        [When(@"the /spam command is executed")]
+        public void WhenTheSpamCommandIsExecuted()
+        {
+            _scenarioContext.Pending();
+        }
+
+Then the message is added to dataset as spam
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"the message is added to dataset as spam")]
+        public void ThenTheMessageIsAddedToDatasetAsSpam()
+        {
+            _scenarioContext.Pending();
+        }
+
+And there is a log record about training
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"there is a log record about training")]
+        public void ThenThereIsALogRecordAboutTraining()
+        {
+            _scenarioContext.Pending();
+        }
+
+
+MLModelTraining: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"there is a message in chat")]
+        public void GivenThereIsAMessageInChat()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [When(@"the /spam command is executed")]
+        public void WhenTheSpamCommandIsExecuted()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"the message is added to dataset as spam")]
+        public void ThenTheMessageIsAddedToDatasetAsSpam()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"there is a log record about training")]
+        public void ThenThereIsALogRecordAboutTraining()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a user sends a spam message
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"a user sends a spam message")]
+        public void GivenAUserSendsASpamMessage()
+        {
+            _scenarioContext.Pending();
+        }
+
+When ML/stop words/known spam triggers
+-> No matching step definition found for the step. Use the following code to create one:
+        [When(@"ML/stop words/known spam triggers")]
+        public void WhenMLStopWordsKnownSpamTriggers()
+        {
+            _scenarioContext.Pending();
+        }
+
+Then the message is deleted
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"the message is deleted")]
+        public void ThenTheMessageIsDeleted()
+        {
+            _scenarioContext.Pending();
+        }
+
+And AI check is NOT performed in admin chat
+-> skipped because of previous errors
+And there is a log record about spam
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"there is a log record about spam")]
+        public void ThenThereIsALogRecordAboutSpam()
+        {
+            _scenarioContext.Pending();
+        }
+
+
+SpamMessage: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"a user sends a spam message")]
+        public void GivenAUserSendsASpamMessage()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [When(@"ML/stop words/known spam triggers")]
+        public void WhenMLStopWordsKnownSpamTriggers()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"the message is deleted")]
+        public void ThenTheMessageIsDeleted()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [Then(@"there is a log record about spam")]
+        public void ThenThereIsALogRecordAboutSpam()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given captcha is enabled in settings
+-> done: PermissionsSteps.GivenCaptchaIsEnabledInSettings() (0,0s)
+When captcha is disabled for specific chat by ID
+-> done: PermissionsSteps.WhenCaptchaIsDisabledForSpecificChatById() (0,0s)
+Then captcha is NOT sent in this chat
+-> done: PermissionsSteps.ThenCaptchaIsNotSentInThisChat() (0,0s)
+And users pass without verification
+-> done: PermissionsSteps.ThenUsersPassWithoutVerification() (0,0s)
+And there is a log record about disabling
+-> done: PermissionsSteps.ThenThereIsALogRecordAboutDisabling() (0,0s)
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given the bot works in quiet mode without admin rights
+-> done: PermissionsSteps.GivenTheBotWorksInQuietModeWithoutAdminRights() (0,0s)
+When a user joins the group
+-> done: PermissionsSteps.WhenAUserJoinsTheGroup() (0,0s)
+Then captcha is sent without admin rights
+-> done: PermissionsSteps.ThenCaptchaIsSentWithoutAdminRights() (0,0s)
+And the bot CANNOT delete messages directly
+-> done: PermissionsSteps.ThenTheBotCannotDeleteMessagesDirectly() (0,0s)
+And the bot uses alternative moderation methods
+-> done: PermissionsSteps.ThenTheBotUsesAlternativeModerationMethods() (0,0s)
+
+  Пройден CaptchaTimeout [175 ms]
+  Пройден CorrectCaptchaCompletion [60 ms]
+  Пройден WrongCaptchaButton [61 ms]
+  Пропущен CheckOrderInLogs [102 ms]
+  Пропущен ForwardMessages [69 ms]
+  Пропущен MLModelTraining [59 ms]
+  Пропущен SpamMessage [87 ms]
+  Пройден DisableCaptchaByChatID [67 ms]
+  Пройден QuietMode [75 ms]
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given the bot has admin rights in group
+-> done: PermissionsSteps.GivenTheBotHasAdminRightsInGroup() (0,0s)
+When a user joins the group
+-> done: PermissionsSteps.WhenAUserJoinsTheGroup() (0,0s)
+Then captcha is sent with admin rights
+-> done: PermissionsSteps.ThenCaptchaIsSentWithAdminRights() (0,0s)
+And the bot can delete messages
+-> done: PermissionsSteps.ThenTheBotCanDeleteMessages() (0,0s)
+And the bot can restrict users
+-> done: PermissionsSteps.ThenTheBotCanRestrictUsers() (0,0s)
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given the system works throughout the day
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"the system works throughout the day")]
+        public void GivenTheSystemWorksThroughoutTheDay()
+        {
+            _scenarioContext.Pending();
+        }
+
+When automatic statistics time comes
+-> skipped because of previous errors
+Then daily report is sent
+-> skipped because of previous errors
+And statistics include all metrics
+-> skipped because of previous errors
+And report is sent to correct chat
+-> skipped because of previous errors
+
+AutomaticStatistics: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"the system works throughout the day")]
+        public void GivenTheSystemWorksThroughoutTheDay()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given a regular user tries to execute /spam command
+-> No matching step definition found for the step. Use the following code to create one:
+        [Given(@"a regular user tries to execute /spam command")]
+        public void GivenARegularUserTriesToExecuteSpamCommand()
+        {
+            _scenarioContext.Pending();
+        }
+
+When the command is executed
+-> No matching step definition found for the step. Use the following code to create one:
+        [When(@"the command is executed")]
+        public void WhenTheCommandIsExecuted()
+        {
+            _scenarioContext.Pending();
+        }
+
+Then the command is ignored
+-> skipped because of previous errors
+And there is a log record about unauthorized access attempt
+-> skipped because of previous errors
+
+CommandAccessRights: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Given(@"a regular user tries to execute /spam command")]
+        public void GivenARegularUserTriesToExecuteSpamCommand()
+        {
+            _scenarioContext.Pending();
+        }
+        
+        [When(@"the command is executed")]
+        public void WhenTheCommandIsExecuted()
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] CaptchaSteps: TestMessage не найден в ScenarioContext
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Given there is activity in chat (messages, bans, approvals)
+-> done: StatisticsSteps.GivenThereIsActivityInChat() (0,0s)
+When the /stat command is executed
+-> done: StatisticsSteps.WhenTheStatCommandIsExecuted() (0,0s)
+Then correct statistics are displayed:
+  --- table step argument ---
+  | message count  |
+  | ban count      |
+  | approval count |
+  | AI analyses    |
+  | ML analyses    |
+-> No matching step definition found for the step. Use the following code to create one:
+        [Then(@"correct statistics are displayed:")]
+        public void ThenCorrectStatisticsAreDisplayed(Table table)
+        {
+            _scenarioContext.Pending();
+        }
+
+And statistics are formatted correctly
+-> skipped because of previous errors
+
+StatCommand: No matching step definition found for one or more steps.
+using System;
+using TechTalk.SpecFlow;
+
+namespace MyNamespace
+{
+    [Binding]
+    public class StepDefinitions
+    {
+        private readonly ScenarioContext _scenarioContext;
+
+        public StepDefinitions(ScenarioContext scenarioContext)
+        {
+            _scenarioContext = scenarioContext;
+        }
+        [Then(@"correct statistics are displayed:")]
+        public void ThenCorrectStatisticsAreDisplayed(Table table)
+        {
+            _scenarioContext.Pending();
+        }
+    }
+}
+
+  Пройден WorkingWithAdminRights [60 ms]
+  Пропущен AutomaticStatistics [52 ms]
+  Пропущен CommandAccessRights [62 ms]
+  Пропущен StatCommand [48 ms]
+  Пройден HandleMessageAsync_BotMessage_IgnoresMessage [51 ms]
+  Пройден HandleMessageAsync_EmptyMessage_ProcessesNormally [9 ms]
+  Пройден HandleMessageAsync_ExceptionInModeration_ThrowsException [7 ms]
+  Пройден HandleMessageAsync_RequireManualReview_ReportsMessage [5 ms]
+  Пройден HandleMessageAsync_SpamMessage_BlocksUser [17 ms]
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.TestInfrastructure.FakeCallbackQueryHandler[0]
+      FakeCallbackQueryHandler: забанен пользователь 12345
+info: ClubDoorman.TestInfrastructure.FakeCallbackQueryHandler[0]
+      FakeCallbackQueryHandler: обработан callback test_callback_id, данные: ban_user_12345, ответ: да
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.TestInfrastructure.FakeCallbackQueryHandler[0]
+      FakeCallbackQueryHandler: одобрен пользователь 12345
+info: ClubDoorman.TestInfrastructure.FakeCallbackQueryHandler[0]
+      FakeCallbackQueryHandler: обработан callback test_callback_id, данные: approve_user_12345, ответ: да
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+info: ClubDoorman.TestInfrastructure.FakeCallbackQueryHandler[0]
+      FakeCallbackQueryHandler: пропущен пользователь 12345
+info: ClubDoorman.TestInfrastructure.FakeCallbackQueryHandler[0]
+      FakeCallbackQueryHandler: обработан callback test_callback_id, данные: skip_user_12345, ответ: да
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+🔍 TRACE: [Mock] InBanlist вызван для userId=12345
+info: ClubDoorman.Handlers.MessageHandler[0]
+      ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+      новый участник: Test User (id=12345, username=-) в '-' (id=-100123456789)
+      Сообщение: Комментарий в канале
+      ================================================================
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🤖 AI анализ профиля: пользователь 12345, вероятность=0.9, причина=Test suspicious profile
+warn: ClubDoorman.Handlers.MessageHandler[0]
+      🚫 AI определил подозрительный профиль: пользователь 12345, вероятность=0.9
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🗑️ Сообщение удалено из-за высокой вероятности спама: 0.90
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+Обрабатываем сообщение от пользователя 12345 в чате -100123456789 (Supergroup)
+Текст сообщения: Привет всем!
+🔍 TRACE: [Mock] InBanlist вызван для userId=12345
+info: ClubDoorman.Handlers.MessageHandler[0]
+      ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+      новый участник: 🔥🔥🔥 💰💰💰 (id=12345, username=money_maker_2024) в '-' (id=-100123456789)
+      Сообщение: Привет всем!
+      ================================================================
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🤖 AI анализ профиля: пользователь 12345, вероятность=0.9, причина=Test suspicious profile
+warn: ClubDoorman.Handlers.MessageHandler[0]
+      🚫 AI определил подозрительный профиль: пользователь 12345, вероятность=0.9
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🗑️ Сообщение удалено из-за высокой вероятности спама: 0.90
+✅ HandleAsync завершился успешно
+FakeBot получил 1 сообщений:
+  - ChatId: 123456789, Text: AI анализ профиля пользователя 🔥🔥🔥 💰💰💰 (@money_maker_2024)
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+🔍 TRACE: [Mock] InBanlist вызван для userId=12345
+info: ClubDoorman.Handlers.MessageHandler[0]
+      ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+      новый участник: 🔥🔥🔥 💰💰💰 (id=12345, username=money_maker_2024) в '-' (id=-100123456789)
+      Сообщение: Привет всем!
+      ================================================================
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🤖 AI анализ профиля: пользователь 12345, вероятность=0.9, причина=Test suspicious profile
+warn: ClubDoorman.Handlers.MessageHandler[0]
+      🚫 AI определил подозрительный профиль: пользователь 12345, вероятность=0.9
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🗑️ Сообщение удалено из-за высокой вероятности спама: 0.90
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+🔍 TRACE: [Mock] InBanlist вызван для userId=12345
+info: ClubDoorman.Handlers.MessageHandler[0]
+      ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+      новый участник: 🔥🔥🔥 💰💰💰 (id=12345, username=money_maker_2024) в '-' (id=-100123456789)
+      Сообщение: Привет всем!
+      ================================================================
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🤖 AI анализ профиля: пользователь 12345, вероятность=0.9, причина=Test suspicious profile
+warn: ClubDoorman.Handlers.MessageHandler[0]
+      🚫 AI определил подозрительный профиль: пользователь 12345, вероятность=0.9
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🗑️ Сообщение удалено из-за высокой вероятности спама: 0.90
+
+  Пройден HandleMessageAsync_UnapprovedUser_IgnoresMessage [3 ms]
+  Пройден HandleMessageAsync_ValidMessage_ProcessesSuccessfully [5 ms]
+  Пройден E2E_AI_Analysis_AdminButton_Ban_ShouldBanUser [119 ms]
+  Пройден E2E_AI_Analysis_AdminButton_Own_ShouldApproveUser [111 ms]
+  Пройден E2E_AI_Analysis_AdminButton_Skip_ShouldSkipUser [130 ms]
+  Пройден E2E_AI_Analysis_Channel_ShouldNotShowCaptcha [34 ms]
+  Пройден E2E_AI_Analysis_FirstMessage_ShouldTriggerAnalysis [17 ms]
+  Пройден E2E_AI_Analysis_MessageHandler_ShouldSendNotification [10 ms]
+  Пройден E2E_AI_Analysis_OperationOrder_ShouldBeCorrect [12 ms]
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+🔍 TRACE: [Mock] InBanlist вызван для userId=12345
+info: ClubDoorman.Handlers.MessageHandler[0]
+      ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+      новый участник: 🔥🔥🔥 💰💰💰 (id=12345, username=money_maker_2024) в '-' (id=-100123456789)
+      Сообщение: Привет всем!
+      ================================================================
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🤖 AI анализ профиля: пользователь 12345, вероятность=0.9, причина=Test suspicious profile
+warn: ClubDoorman.Handlers.MessageHandler[0]
+      🚫 AI определил подозрительный профиль: пользователь 12345, вероятность=0.9
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🗑️ Сообщение удалено из-за высокой вероятности спама: 0.90
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+🔍 TRACE: [Mock] InBanlist вызван для userId=12345
+info: ClubDoorman.Handlers.MessageHandler[0]
+      ==================== СООБЩЕНИЕ ОТ НЕОДОБРЕННОГО ====================
+      новый участник: Test User (id=12345, username=-) в '-' (id=-100123456789)
+      Сообщение: Второе сообщение
+      ================================================================
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🤖 AI анализ профиля: пользователь 12345, вероятность=0.9, причина=Test suspicious profile
+warn: ClubDoorman.Handlers.MessageHandler[0]
+      🚫 AI определил подозрительный профиль: пользователь 12345, вероятность=0.9
+info: ClubDoorman.Handlers.MessageHandler[0]
+      🗑️ Сообщение удалено из-за высокой вероятности спама: 0.90
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+warn: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ОТКЛЮЧЕН: DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'
+=== АНАЛИЗ ПРОФИЛЯ @Dnekxpb ===
+Имя: Manu Чыфыс
+Био: Митиман
+
+Manu Чыфыс:
+Продам слона пиши с лс
+Вероятность спама: 0
+Причина: 
+Есть фото: True
+=====================================
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+warn: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ОТКЛЮЧЕН: DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'
+=== АНАЛИЗ ОЧЕНЬ ПОДОЗРИТЕЛЬНОГО ПРОФИЛЯ @premium_crypto_2024 ===
+Имя: 🔥💰💎 ПРЕМИУМ
+Био: 🔥 ПРЕМИУМ КРИПТО ТРЕЙДИНГ 💰
+
+💎 ЗАРАБОТАЙ 1000$ В ДЕНЬ!
+🔥 НАЖМИ СЕЙЧАС!
+💰 БЕСПЛАТНО!
+
+📱 Telegram: @crypto_scam
+🌐 Сайт: scam.crypto
+Вероятность спама: 0
+Причина: 
+Есть фото: True
+=====================================
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+warn: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ОТКЛЮЧЕН: DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+[DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+=== АНАЛИЗ ПРОФИЛЯ С РЕАЛЬНЫМ ФОТО ===
+Пользователь: Manu Чыфыс (@Dnekxpb)
+warn: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ОТКЛЮЧЕН: DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'
+Вероятность спама: 0,0 %
+Причина: 
+Размер фото: 0 байт
+Профиль: 
+========================================
+
+  Пройден E2E_AI_Analysis_PhotoWithCaption_ShouldIncludePhoto [10 ms]
+  Пройден E2E_AI_Analysis_RepeatedMessage_ShouldNotTriggerAnalysis [11 ms]
+  Пройден E2E_AI_Analysis_SpecificUserDnekxpb_ShouldDetectSuspiciousProfile [13 ms]
+  Пройден E2E_AI_Analysis_VerySuspiciousUser_ShouldDetectHighSpamProbability [11 ms]
+  Пройден E2E_AI_Analysis_WithRealApi_ShouldWork [5 ms]
+  Не пройден E2E_AI_Analysis_WithRealPhoto_ShouldDetectHighSpamProbability [32 ms]
+  Сообщение об ошибке:
+   Expected result.SpamProbability.Probability to be greater than 0.5 because Профиль с привлекательным фото должен иметь высокую вероятность спама, but found 0.0 (difference of -0.5).
+  Трассировка стека:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+   at FluentAssertions.Numeric.NumericAssertions`2.BeGreaterThan(T expected, String because, Object[] becauseArgs)
+   at ClubDoorman.Test.Integration.AiAnalysisTests.E2E_AI_Analysis_WithRealPhoto_ShouldDetectHighSpamProbability() in /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/Integration/AiAnalysisTests.cs:line 608
+   at NUnit.Framework.Internal.TaskAwaitAdapter.GenericAdapter`1.GetResult()
+   at NUnit.Framework.Internal.AsyncToSyncAdapter.Await[TResult](Func`1 invoke)
+   at NUnit.Framework.Internal.AsyncToSyncAdapter.Await(Func`1 invoke)
+   at NUnit.Framework.Internal.Commands.TestMethodCommand.RunTestMethod(TestExecutionContext context)
+   at NUnit.Framework.Internal.Commands.TestMethodCommand.Execute(TestExecutionContext context)
+   at NUnit.Framework.Internal.Commands.BeforeAndAfterTestCommand.<>c__DisplayClass1_0.<Execute>b__0()
+   at NUnit.Framework.Internal.Commands.DelegatingTestCommand.RunTestMethodInThreadAbortSafeZone(TestExecutionContext context, Action action)
+
+
+  Стандартные выходные сообщения:
+ info: ClubDoorman.Services.AiChecks[0]
+       🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+ [DEBUG] UserManager создан: тестовый блэклист содержит 0 ID(s): []
+ === АНАЛИЗ ПРОФИЛЯ С РЕАЛЬНЫМ ФОТО ===
+ Пользователь: Manu Чыфыс (@Dnekxpb)
+ warn: ClubDoorman.Services.AiChecks[0]
+       🤖 AI анализ ОТКЛЮЧЕН: DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'
+ Вероятность спама: 0,0 %
+ Причина: 
+ Размер фото: 0 байт
+ Профиль: 
+ ========================================
+
+
+AppContext.BaseDirectory: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/
+Current directory: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0
+Checking path: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/../../../../ClubDoorman/.env -> /home/kpblc/projects/ClubDoorman/ClubDoorman/.env
+Found .env file at: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/../../../../ClubDoorman/.env
+DotNetEnv API Key: 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
+Environment API Key: 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
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+FakeTelegramClient: Найден путь для fileId fake_big_photo_id: /home/kpblc/projects/ClubDoorman/tmp/big.png
+FakeTelegramClient: Файл найден, размер: 708300 байт
+warn: ClubDoorman.Services.AiChecks[0]
+      Ошибка при анализе фото профиля пользователя 12345
+      tryAGI.OpenAI.ApiException: Unauthorized
+       ---> System.Net.Http.HttpRequestException: Response status code does not indicate success: 401 (Unauthorized).
+         at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
+         at tryAGI.OpenAI.ChatClient.CreateChatCompletionAsync(CreateChatCompletionRequest request, CancellationToken cancellationToken) in /_/src/libs/tryAGI.OpenAI/Generated/tryAGI.OpenAI.ChatClient.CreateChatCompletion.g.cs:line 147
+         --- End of inner exception stack trace ---
+         at tryAGI.OpenAI.ChatClient.CreateChatCompletionAsync(CreateChatCompletionRequest request, CancellationToken cancellationToken) in /_/src/libs/tryAGI.OpenAI/Generated/tryAGI.OpenAI.ChatClient.CreateChatCompletion.g.cs:line 151
+         at tryAGI.OpenAI.ChatClient.CreateChatCompletionAsAsync[T](IList`1 messages, AnyOf`2 model, Nullable`1 store, Dictionary`2 metadata, Nullable`1 frequencyPenalty, Dictionary`2 logitBias, Nullable`1 logprobs, Nullable`1 topLogprobs, Nullable`1 maxCompletionTokens, Nullable`1 n, IList`1 modalities, CreateChatCompletionRequestAudio audio, Nullable`1 presencePenalty, Nullable`1 responseFormat, Nullable`1 seed, Nullable`1 serviceTier, Nullable`1 stop, Nullable`1 stream, ChatCompletionStreamOptions streamOptions, Nullable`1 temperature, Nullable`1 topP, IList`1 tools, Nullable`1 toolChoice, Nullable`1 parallelToolCalls, String user, Nullable`1 strict, JsonSerializerOptions jsonSerializerOptions, CancellationToken cancellationToken) in /_/src/libs/tryAGI.OpenAI/ChatClient.CreateChatCompletion.As.cs:line 112
+         at ClubDoorman.Services.AiChecks.<>c__DisplayClass13_0.<<GetEroticPhotoBaitProbability>b__0>d.MoveNext() in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/AiChecks.cs:line 348
+      --- End of stack trace from previous location ---
+         at Polly.ResiliencePipeline.<>c__10`1.<<ExecuteAsync>b__10_0>d.MoveNext()
+      --- End of stack trace from previous location ---
+         at Polly.Outcome`1.GetResultOrRethrow()
+         at Polly.ResiliencePipeline.ExecuteAsync[TResult](Func`2 callback, CancellationToken cancellationToken)
+         at ClubDoorman.Services.AiChecks.GetEroticPhotoBaitProbability(User user, ChatFullInfo userChat) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/AiChecks.cs:line 347
+Результат: вероятность=0, причина=
+Размер фото: 708300 байт
+
+AppContext.BaseDirectory: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/
+Current directory: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0
+Checking path: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/../../../../ClubDoorman/.env -> /home/kpblc/projects/ClubDoorman/ClubDoorman/.env
+Found .env file at: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/../../../../ClubDoorman/.env
+Environment API Key: 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
+Environment Bot Token: 8038252733:AAEESlLbmAJbvifv9n_ls7UQrt5WFsNWJy8
+Environment Admin Chat: -1002584726598
+
+AppContext.BaseDirectory: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/
+Current directory: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0
+Checking path: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/../../../../ClubDoorman/.env -> /home/kpblc/projects/ClubDoorman/ClubDoorman/.env
+Found .env file at: /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/bin/Debug/net9.0/../../../../ClubDoorman/.env
+API Key: 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
+Bot Token: 8038252733:AAEESlLbmAJbvifv9n_ls7UQrt5WFsNWJy8
+Admin Chat: -1002584726598
+
+  Пройден GetAttentionBaitProbability_WithRealPhoto_ShouldAnalyzePhotoInAPI [2 s]
+  Пройден EnvironmentVariables_ShouldBeAccessible [3 ms]
+  Пройден LoadEnvironmentVariables_ShouldLoadFromEnvFile [5 ms]
+  Пройден FakeTelegramClient_ShouldClearOperationLog [1 ms]
+  Пройден FakeTelegramClient_ShouldHandleExceptions [10 ms]
+  Пройден FakeTelegramClient_ShouldResetAllCollections [3 ms]
+  Пройден FakeTelegramClient_ShouldTrackCallbackQueryAnswers [1 ms]
+  Пройден FakeTelegramClient_ShouldTrackMessageEdits [1 ms]
+  Пройден FakeTelegramClient_ShouldTrackOperationLog [1 ms]
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='Test message 0', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='Test message 0', многовато=False, объявление=True
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='test message 0', найдены=False
+warn: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок не инициализирован! Жду инициализации с таймаутом...
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='Test message 1', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='Test message 1', многовато=False, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='test message 1', найдены=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='Test message 2', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='Test message 2', многовато=False, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='test message 2', найдены=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='Test message 3', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='Test message 3', многовато=False, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='test message 3', найдены=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='Test message 4', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='Test message 4', многовато=False, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='test message 4', найдены=False
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Создаем pipeline для обучения...
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Обучаем модель...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 1111ms! Движок готов к работе.
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок инициализирован за 1133ms
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='test message 0', предсказано=False, скор=-2.8606706
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='test message 0', спам=False, скор=-2.8606706
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='test message 1', предсказано=False, скор=-2.6670074
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='test message 1', спам=False, скор=-2.6670074
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='test message 2', предсказано=False, скор=-3.1926851
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='test message 2', спам=False, скор=-3.1926851
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='test message 3', предсказано=False, скор=-3.1500802
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='test message 3', спам=False, скор=-3.1500802
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='test message 4', предсказано=False, скор=-3.2095788
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='test message 4', спам=False, скор=-3.2095788
+
+  Пройден FakeTelegramClient_ShouldTrackPhotoSending [1 ms]
+  Пройден FakeTelegramClient_ShouldTrackReplyMarkupEdits [< 1 ms]
+  Пройден FakeTelegramClient_ShouldTrackUserRestrictions [1 ms]
+  Пройден E2E_FakeTelegramClient_ShouldSupportMessageDeletion [10 ms]
+  Пройден E2E_FakeTelegramClient_ShouldSupportUserBanning [6 ms]
+  Пройден E2E_FakeTelegramClient_ShouldTrackCallbackQueries [3 ms]
+  Пройден E2E_FakeTelegramClient_ShouldTrackSentMessages [3 ms]
+  Пройден E2E_Infrastructure_ShouldSupportAsyncOperations [1 s]
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='Hello, this is a valid message!', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='Hello, this is a valid message!', многовато=False, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='hello this is a valid message ', найдены=False
+warn: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок не инициализирован! Жду инициализации с таймаутом...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Создаем pipeline для обучения...
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Обучаем модель...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 354ms! Движок готов к работе.
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок инициализирован за 401ms
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='hello this is a valid message ', предсказано=False, скор=-1.8273264
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='hello this is a valid message ', спам=False, скор=-1.8273264
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='hi', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='hi', многовато=False, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст='hi', найдены=False
+warn: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок не инициализирован! Жду инициализации с таймаутом...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Создаем pipeline для обучения...
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Обучаем модель...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 420ms! Движок готов к работе.
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок инициализирован за 506ms
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст='hi', предсказано=False, скор=-2.8379529
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст='hi', спам=False, скор=-2.8379529
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка известных плохих сообщений: текст='🔥🔥🔥 СРОЧНО! ЗАРАБОТАЙ 1000000$ ЗА ДЕНЬ! 🔥🔥🔥 ...', известное=False
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка эмодзи: текст='🔥🔥🔥 СРОЧНО! ЗАРАБОТАЙ 1000000$ ЗА ДЕНЬ! 🔥🔥🔥 ...', многовато=True, объявление=True
+dbug: ClubDoorman.Services.ModerationService[0]
+      Проверка стоп-слов: текст=' срочно заработаи 1000000 за день переходи по ссылке https scam com', найдены=False
+warn: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок не инициализирован! Жду инициализации с таймаутом...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Создаем pipeline для обучения...
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Обучаем модель...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 283ms! Движок готов к работе.
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок инициализирован за 300ms
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      ML предсказание: текст=' срочно заработаи 1000000 за день переходи по ссыл...', предсказано=True, скор=3.8521276
+dbug: ClubDoorman.Services.ModerationService[0]
+      ML анализ: текст=' срочно заработаи 1000000 за день переходи по ссылке https scam com', спам=True, скор=3.8521276
+info: ClubDoorman.Services.ModerationService[0]
+      ML классификатор определил спам: ' срочно заработаи 1000000 за день переходи по ссылке https scam com', скор=3.8521276
+
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+info: ClubDoorman.Services.SuspiciousUsersStorage[0]
+      Загружено 0 подозрительных пользователей из файла
+dbug: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 279 стоп-слов
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+warn: ClubDoorman.Services.ModerationService[0]
+      🎭 Система мимикрии ОТКЛЮЧЕНА: установите DOORMAN_SUSPICIOUS_DETECTION_ENABLE=true для включения
+
+  Пройден E2E_ModerationFlow_ShouldProcessMessageWithCorrectOrder [407 ms]
+  Пройден E2E_ModerationResult_ShouldHaveCorrectProperties [3 ms]
+  Пройден E2E_ModerationService_ShouldHandleMimicryDetection [510 ms]
+  Пройден E2E_ModerationService_ShouldHandleSpamMessage [305 ms]
+  Пройден E2E_TestDataFactory_ShouldGenerateValidData [4 ms]
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+FakeTelegramClient: Найден путь для fileId fake_big_photo_id: /home/kpblc/projects/ClubDoorman/tmp/big.png
+FakeTelegramClient: Файл найден, размер: 708300 байт
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 418ms! Движок готов к работе.
+warn: ClubDoorman.Services.AiChecks[0]
+      Ошибка при анализе фото профиля пользователя 12345
+      tryAGI.OpenAI.ApiException: Unauthorized
+       ---> System.Net.Http.HttpRequestException: Response status code does not indicate success: 401 (Unauthorized).
+         at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
+         at tryAGI.OpenAI.ChatClient.CreateChatCompletionAsync(CreateChatCompletionRequest request, CancellationToken cancellationToken) in /_/src/libs/tryAGI.OpenAI/Generated/tryAGI.OpenAI.ChatClient.CreateChatCompletion.g.cs:line 147
+         --- End of inner exception stack trace ---
+         at tryAGI.OpenAI.ChatClient.CreateChatCompletionAsync(CreateChatCompletionRequest request, CancellationToken cancellationToken) in /_/src/libs/tryAGI.OpenAI/Generated/tryAGI.OpenAI.ChatClient.CreateChatCompletion.g.cs:line 151
+         at tryAGI.OpenAI.ChatClient.CreateChatCompletionAsAsync[T](IList`1 messages, AnyOf`2 model, Nullable`1 store, Dictionary`2 metadata, Nullable`1 frequencyPenalty, Dictionary`2 logitBias, Nullable`1 logprobs, Nullable`1 topLogprobs, Nullable`1 maxCompletionTokens, Nullable`1 n, IList`1 modalities, CreateChatCompletionRequestAudio audio, Nullable`1 presencePenalty, Nullable`1 responseFormat, Nullable`1 seed, Nullable`1 serviceTier, Nullable`1 stop, Nullable`1 stream, ChatCompletionStreamOptions streamOptions, Nullable`1 temperature, Nullable`1 topP, IList`1 tools, Nullable`1 toolChoice, Nullable`1 parallelToolCalls, String user, Nullable`1 strict, JsonSerializerOptions jsonSerializerOptions, CancellationToken cancellationToken) in /_/src/libs/tryAGI.OpenAI/ChatClient.CreateChatCompletion.As.cs:line 112
+         at ClubDoorman.Services.AiChecks.<>c__DisplayClass13_0.<<GetEroticPhotoBaitProbability>b__0>d.MoveNext() in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/AiChecks.cs:line 348
+      --- End of stack trace from previous location ---
+         at Polly.ResiliencePipeline.<>c__10`1.<<ExecuteAsync>b__10_0>d.MoveNext()
+      --- End of stack trace from previous location ---
+         at Polly.Outcome`1.GetResultOrRethrow()
+         at Polly.ResiliencePipeline.ExecuteAsync[TResult](Func`2 callback, CancellationToken cancellationToken)
+         at ClubDoorman.Services.AiChecks.GetEroticPhotoBaitProbability(User user, ChatFullInfo userChat) in /home/kpblc/projects/ClubDoorman/ClubDoorman/Services/AiChecks.cs:line 347
+E2E тест: Полный AI анализ завершен
+  - Фото: 708300 байт, вероятность спама: 0
+  - Текст: вероятность спама: -1,4384706
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+E2E тест: Mimicry анализ показал вероятность 0,5
+
+  Пройден E2E_CompleteAIAnalysis_ShouldWorkEndToEnd [2 s]
+  Пройден E2E_MimicryClassifier_ShouldDetectMimicry [7 ms]
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+warn: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок не инициализирован! Жду инициализации с таймаутом...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 622ms! Движок готов к работе.
+E2E тест: Нормальное сообщение классифицировано с вероятностью -1,2548923
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок инициализирован за 634ms
+
+info: ClubDoorman.Services.AiChecks[0]
+      🤖 AI анализ ВКЛЮЧЕН: OpenRouter API настроен
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Начинаем обучение ML модели...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      RetrainLoop запущен - переобучение каждые 5 минут при необходимости
+warn: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок не инициализирован! Жду инициализации с таймаутом...
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Загружено 822 записей из датасета
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      Спам: 281, НЕ спам: 541
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ✅ ML модель успешно обучена за 338ms! Движок готов к работе.
+info: ClubDoorman.Services.SpamHamClassifier[0]
+      ML движок инициализирован за 400ms
+E2E тест: Спам сообщение классифицировано с вероятностью 3,4635835
+
+Setting up test...
+Setup completed
+Starting CheckMessage_WithBannedUser_ReturnsBan
+Completed CheckMessage_WithBannedUser_ReturnsBan
+
+Setting up test...
+Setup completed
+Starting CheckMessage_WithNullMessage_ThrowsArgumentNullException
+Completed CheckMessage_WithNullMessage_ThrowsArgumentNullException
+
+Setting up test...
+Setup completed
+Starting CheckUserName_WithExtremelyLongName_ReturnsBan
+Completed CheckUserName_WithExtremelyLongName_ReturnsBan
+
+Setting up test...
+Setup completed
+Starting CheckUserName_WithLongName_ReturnsReport
+Completed CheckUserName_WithLongName_ReturnsReport
+
+Setting up test...
+Setup completed
+Starting CheckUserName_WithNormalName_ReturnsAllow
+Completed CheckUserName_WithNormalName_ReturnsAllow
+
+Setting up test...
+Setup completed
+Starting CheckUserName_WithNullUser_ThrowsArgumentNullException
+Completed CheckUserName_WithNullUser_ThrowsArgumentNullException
+
+  Пройден E2E_SpamHamClassifier_ShouldDetectHam [642 ms]
+  Пройден E2E_SpamHamClassifier_ShouldDetectSpam [405 ms]
+  Пройден CheckMessage_WithBannedUser_ReturnsBan [12 ms]
+  Пройден CheckMessage_WithNullMessage_ThrowsArgumentNullException [2 ms]
+  Пройден CheckUserName_WithExtremelyLongName_ReturnsBan [2 ms]
+  Пройден CheckUserName_WithLongName_ReturnsReport [1 ms]
+  Пройден CheckUserName_WithNormalName_ReturnsAllow [1 ms]
+  Пройден CheckUserName_WithNullUser_ThrowsArgumentNullException [4 ms]
+  Пройден BanAndCleanupUserAsync_TelegramApiError_ReturnsFalse [10 ms]
+  Пройден BanAndCleanupUserAsync_ValidUser_BansAndCleansUpSuccessfully [13 ms]
+  Пройден BanAndCleanupUserAsync_WithoutMessageId_OnlyBansUser [3 ms]
+  Пройден CheckMessageAsync_BadMessage_ReturnsBanAction [2 ms]
+  Пройден CheckMessageAsync_ClassifierThrowsException_ThrowsException [2 ms]
+  Пройден CheckMessageAsync_MimicryMessage_ReturnsAllowAction [1 ms]
+  Пройден CheckMessageAsync_SpamMessage_ReturnsDeleteAction [3 ms]
+  Пройден CheckMessageAsync_ValidMessage_ReturnsAllowAction [4 ms]
+  Пройден CheckUserNameAsync_InvalidUser_ReturnsBanAction [< 1 ms]
+  Пройден CheckUserNameAsync_ValidUser_ReturnsAllowAction [< 1 ms]
+  Пройден CreateModerationService_WithFactory_ReturnsValidInstance [7 ms]
+  Пройден Factory_ProvidesAllMocks [< 1 ms]
+  Пройден Factory_WithFluentApi_ConfiguresMocks [1 ms]
+  Пройден TestDataFactory_CreatesBotUser [< 1 ms]
+  Пройден TestDataFactory_CreatesGroupChat [< 1 ms]
+  Пройден TestDataFactory_CreatesSpamMessage [< 1 ms]
+  Пройден TestDataFactory_CreatesValidMessage [< 1 ms]
+  Пройден TestDataFactory_CreatesValidUser [< 1 ms]
+  Пройден CheckMessageAsync_BothClassifiersReturnSpam_ReturnsDelete [3 ms]
+  Пройден CheckMessageAsync_BotUser_ReturnsDelete [2 ms]
+  Пройден CheckMessageAsync_EmptyMessage_ReturnsReport [3 ms]
+  Пройден CheckMessageAsync_ExceptionInClassifier_ThrowsException [2 ms]
+  Пройден CheckMessageAsync_SpamMessage_ReturnsDelete [4 ms]
+  Пройден CheckMessageAsync_ValidMessage_ReturnsAllow [2 ms]
+  Пройден ShouldSendToAdminChat_AiDetectAutoDelete_ReturnsFalse [3 ms]
+  Пройден ShouldSendToAdminChat_AiDetectNotAutoDelete_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_AutoBan_ReturnsFalse [< 1 ms]
+  Пройден ShouldSendToAdminChat_ChannelMessage_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_ErrorNotification_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_PrivateChatBanAttempt_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_SuspiciousMessage_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_SuspiciousUser_ReturnsTrue [< 1 ms]
+  Пройден FindAllRussianWordsWithLookalikeSymbols_WithEmptyString_ReturnsEmptyList [< 1 ms]
+  Пройден FindAllRussianWordsWithLookalikeSymbols_WithNullInput_ThrowsArgumentNullException [< 1 ms]
+  Пройден FindAllRussianWordsWithLookalikeSymbolsInNormalizedText_WithEmptyString_ReturnsEmptyList [< 1 ms]
+  Пройден FindAllRussianWordsWithLookalikeSymbolsInNormalizedText_WithNullInput_ThrowsArgumentNullException [< 1 ms]
+  Пройден HasStopWords_WithEmptyString_ReturnsFalse [< 1 ms]
+  Пройден HasStopWords_WithNormalText_ReturnsFalse [< 1 ms]
+  Пройден HasStopWords_WithNullInput_ThrowsArgumentNullException [< 1 ms]
+  Пройден TooManyEmojis_WithEmptyString_ReturnsFalse [< 1 ms]
+  Пройден TooManyEmojis_WithNullInput_ThrowsArgumentNullException [< 1 ms]
+  Пройден FormatStripped() [< 1 ms]
+  Пройден CyrillicWord_NoLookAlikes [< 1 ms]
+  Пройден CyrillicWord_WithDigit [< 1 ms]
+  Пройден CyrillicWord_WithMixedLookAlikes [< 1 ms]
+  Пройден MostlyCyrillicWord_WithLookAlikes [< 1 ms]
+  Пройден MostlyCyrillicWord_WithLookAlikes2 [< 1 ms]
+  Пройден PartiallyCyrillicWord_WithLookAlikes [< 1 ms]
+  Пройден PurelyNonCyrillicWord [< 1 ms]
+  Пройден EmptyString [< 1 ms]
+  Пройден SingleCyrillicCharacter [< 1 ms]
+  Пройден SingleNonCyrillicCharacter [< 1 ms]
+  Пройден CyrillicWord_WithPunctuation [< 1 ms]
+  Пройден BigSentence [< 1 ms]
+  Пройден Greek [< 1 ms]
+  Пройден Cyrillic Small Letter Io [< 1 ms]
+  Пройден IKratkoe [< 1 ms]
+  Пройден Belarus [< 1 ms]
+  Пройден Ukrainian [< 1 ms]
+  Пройден Bulgarian [< 1 ms]
+  Пройден Serbian [< 1 ms]
+  Пройден HasStopWords_Test("Набор в команду для заинтересованых в доп.доходе удаленно, за информацией в лс",True) [< 1 ms]
+  Пройден HasStopWords_Test("В поске 5-6 людей в команду по дистанционному заработку, от 20 лет. По вопросам писать в лс.",True) [< 1 ms]
+  Пройден HasStopWords_Test("Тихий час. Набегался",False) [< 1 ms]
+  Пройден NormalizeText_WithEmptyString_ReturnsEmptyString [< 1 ms]
+  Пройден NormalizeText_WithMultipleLines_ReturnsSingleLine [< 1 ms]
+  Пройден NormalizeText_WithMultipleSpaces_ReturnsSingleSpaces [< 1 ms]
+  Пройден NormalizeText_WithNormalText_ReturnsNormalizedText [< 1 ms]
+  Пройден NormalizeText_WithNullInput_ThrowsArgumentNullException [< 1 ms]
+  Пройден NormalizeText_WithRussianText_ReturnsNormalizedText [< 1 ms]
+  Пройден CanHandle_WithCallbackQuery_ReturnsTrue [19 ms]
+  Пройден CanHandle_WithNullCallbackQuery_ReturnsFalse [1 ms]
+  Пройден CanHandle_WithoutCallbackQuery_ReturnsFalse [< 1 ms]
+  Пройден HandleAsync_WithAdminChatId_CallsHandleAdminCallback [50 ms]
+  Пройден HandleAsync_WithEmptyCallbackData_LogsWarningAndReturns [2 ms]
+  Пройден HandleAsync_WithException_LogsErrorAndAnswersCallback [15 ms]
+  Пройден HandleAsync_WithNullCallbackData_LogsWarningAndReturns [2 ms]
+  Пройден HandleAsync_WithNullMessage_LogsWarningAndReturns [2 ms]
+  Пройден HandleAsync_WithRegularChatId_CallsHandleCaptchaCallback [2 ms]
+  Пройден CanHandle_EditedMessage_ReturnsTrue [7 ms]
+  Пройден CanHandle_NullUpdate_ReturnsFalse [2 ms]
+  Пройден CanHandle_UpdateWithCallbackQuery_ReturnsFalse [1 ms]
+  Пройден CanHandle_UpdateWithoutMessage_ReturnsFalse [3 ms]
+  Пройден CanHandle_ValidMessage_ReturnsTrue [1 ms]
+  Пройден HandleAsync_CancellationToken_RespectsCancellation [3 ms]
+  Пройден HandleAsync_ChannelMessage_HandlesSuccessfully [6 ms]
+  Пройден HandleAsync_ChannelMessageWithPhoto_HandlesSuccessfully [3 ms]
+  Пройден HandleAsync_CheckCommand_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_ConcurrentMessages_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_DifferentChatTypes_HandlesSuccessfully [3 ms]
+  Пройден HandleAsync_EditedMessage_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_HamCommand_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_LargeBatch_HandlesSuccessfully [15 ms]
+  Пройден HandleAsync_LeftChatMemberFromBot_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_LeftChatMemberFromUser_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_MessageWithEmptyText_HandlesSuccessfully [3 ms]
+  Пройден HandleAsync_MessageWithoutFrom_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_MessageWithoutText_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_MessageWithSpecialCharacters_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_MessageWithVeryLongText_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_MessageWithWhitespaceText_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_MultipleMessageTypes_HandlesSuccessfully [3 ms]
+  Пройден HandleAsync_MultipleNewChatMembers_HandlesSuccessfully [7 ms]
+  Пройден HandleAsync_NewChatMembers_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_NewChatMembersInAdminChat_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_NullUpdate_ThrowsArgumentNullException [2 ms]
+  Пройден HandleAsync_SpamCommand_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_StartCommand_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_SuspiciousCommand_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_UnknownCommand_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_UserDocumentMessage_HandlesSuccessfully [14 ms]
+  Пройден HandleAsync_UserPhotoMessage_HandlesSuccessfully [43 ms]
+  Пройден HandleAsync_UserStickerMessage_HandlesSuccessfully [6 ms]
+  Пройден HandleAsync_UserTextMessage_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_UserVideoMessage_HandlesSuccessfully [2 ms]
+  Пройден HandleAsync_ValidMessage_HandlesSuccessfully [11 ms]
+  Пройден HandleAsync_ApprovedUser_ProcessesNormally [17 ms]
+  Пройден HandleAsync_BotMessage_Ignores [4 ms]
+HandleAsync_StartCommand_ProcessesCommand: Команда /start обработана успешно
+  Пройден HandleAsync_EmptyMessage_ProcessesCorrectly [3 ms]
+  Пройден HandleAsync_ModerationServiceError_LogsAndContinues [16 ms]
+  Пройден HandleAsync_NewUser_SendsCaptcha [8 ms]
+  Пройден HandleAsync_NullMessage_ThrowsArgumentNullException [1 ms]
+  Пройден HandleAsync_ServiceMessage_Ignores [3 ms]
+  Пройден HandleAsync_SpamMessage_DeletesAndReports [7 ms]
+  Пройден HandleAsync_StartCommand_ProcessesCommand [16 ms]
+  Пройден HandleAsync_TelegramError_HandlesGracefully [4 ms]
+  Пройден HandleAsync_ValidMessage_ProcessesSuccessfully [2 ms]
+  Пройден GetChatLink_ChannelWithoutUsername_ReturnsBoldTitle [< 1 ms]
+  Пройден GetChatLink_EmptyTitle_ReturnsEmptyBrackets [< 1 ms]
+  Пройден GetChatLink_NullTitle_UsesDefaultTitle [< 1 ms]
+  Пройден GetChatLink_PublicGroupWithUsername_ReturnsMarkdownLink [< 1 ms]
+  Пройден GetChatLink_RegularGroupWithoutUsername_ReturnsBoldTitle [< 1 ms]
+  Пройден GetChatLink_SupergroupWithoutUsername_ReturnsTelegramLink [< 1 ms]
+  Пройден GetChatLink_TitleWithMarkdownSymbols_EscapesCorrectly [< 1 ms]
+  Пройден TelegramBotClientWrapper_BotId_ReturnsCorrectId [< 1 ms]
+  Пройден TelegramBotClientWrapper_Constructor_AcceptsTelegramBotClient [< 1 ms]
+  Пройден TelegramBotClientWrapper_Constructor_ThrowsOnNullBot [< 1 ms]
+  Пройден TelegramBotClientWrapper_Constructor_ValidatesInput [< 1 ms]
+  Пройден TelegramBotClientWrapper_GetChatFullInfo_CopiesPhotoProperty [15 ms]
+  Пройден GetChatLink_ChannelWithoutUsername_ReturnsBoldTitle [< 1 ms]
+  Пройден GetChatLink_EmptyTitle_ReturnsEmptyBrackets [< 1 ms]
+  Пройден GetChatLink_NullTitle_UsesDefaultTitle [< 1 ms]
+  Пройден GetChatLink_PublicGroupWithUsername_ReturnsMarkdownLink [< 1 ms]
+  Пройден GetChatLink_RegularGroupWithoutUsername_ReturnsBoldTitle [< 1 ms]
+  Пройден GetChatLink_SupergroupWithoutUsername_ReturnsTelegramLink [< 1 ms]
+  Пройден GetChatLink_TitleWithMarkdownSymbols_EscapesCorrectly [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_Channel_ReturnsBoldTitle [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_EmptyTitle_ReturnsEmptyBold [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_NullTitle_UsesDefaultTitle [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_RegularGroup_ReturnsBoldTitle [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_Supergroup_ReturnsTelegramLink [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_TitleWithMarkdownSymbols_EscapesCorrectly [< 1 ms]
+  Пройден GetChatLink_WithChatIdAndTitle_UsernameStartsWithAt_ReturnsMarkdownLink [< 1 ms]
+  Пройден BanAndCleanupUserAsync_TelegramApiError_ReturnsFalse [1 ms]
+  Пройден BanAndCleanupUserAsync_ValidParameters_ReturnsTrue [2 ms]
+  Пройден BanAndCleanupUserAsync_WithoutMessageId_OnlyBansUser [1 ms]
+  Пройден CheckMessageAsync_ChatWithoutId_HandlesGracefully [1 ms]
+  Пройден CheckMessageAsync_ConcurrentCalls_HandlesCorrectly [6 ms]
+  Пройден CheckMessageAsync_UserWithoutFirstName_HandlesGracefully [1 ms]
+  Пройден CheckMessageAsync_WithBadMessageManager_ReturnsBan [1 ms]
+  Пройден CheckMessageAsync_WithMimicryDetection_ReturnsAllow [10 ms]
+  Пройден CheckUserNameAsync_EmptyFirstName_ThrowsModerationException [1 ms]
+  Пройден CheckUserNameAsync_LongFirstName_ReturnsReport [< 1 ms]
+IncrementGoodMessageCountAsync_ValidParameters_IncrementsCount: Method executed successfully
+  Пройден CheckUserNameAsync_NullUser_ThrowsArgumentNullException [< 1 ms]
+  Пройден CheckUserNameAsync_ValidFirstName_ReturnsAllow [< 1 ms]
+  Пройден GetAiDetectUsers_ReturnsNull [< 1 ms]
+  Пройден GetSuspiciousUsersStats_ReturnsDefaultStats [< 1 ms]
+  Пройден IncrementGoodMessageCountAsync_EmptyMessageText_ThrowsArgumentException [< 1 ms]
+  Пройден IncrementGoodMessageCountAsync_NullChat_ThrowsArgumentNullException [< 1 ms]
+  Пройден IncrementGoodMessageCountAsync_NullUser_ThrowsArgumentNullException [< 1 ms]
+  Пройден IncrementGoodMessageCountAsync_ValidParameters_IncrementsCount [3 ms]
+  Пройден IsUserApproved_ValidUserId_ReturnsFalse [1 ms]
+  Пройден IsUserApproved_WithChatId_ReturnsFalse [< 1 ms]
+  Пройден SetAiDetectForSuspiciousUser_DisableAiDetect_ReturnsFalse [< 1 ms]
+  Пройден SetAiDetectForSuspiciousUser_ValidParameters_ReturnsFalse [< 1 ms]
+  Пройден CheckMessageAsync_BannedUser_ReturnsBan [1 ms]
+  Пройден CheckMessageAsync_ClassifierException_ThrowsException [1 ms]
+  Пройден CheckMessageAsync_EmptyMessage_ReturnsReport [7 ms]
+  Пройден CheckMessageAsync_NullMessage_ThrowsArgumentNullException [1 ms]
+  Пройден CheckMessageAsync_SpamMessage_ReturnsDelete [1 ms]
+  Пройден CheckMessageAsync_ValidMessage_ReturnsAllow [1 ms]
+AddHam_ConcurrentCalls_HandlesCorrectly: Concurrent AddHam calls executed successfully
+AddHam_EmptyMessage_HandlesCorrectly: AddHam with empty message executed successfully
+AddHam_LongMessage_HandlesCorrectly: AddHam with long message executed successfully
+AddHam_SpecialCharacters_HandlesCorrectly: AddHam with special characters executed successfully
+AddHam_ValidMessage_AddsToDataset: AddHam executed successfully
+AddSpam_ConcurrentCalls_HandlesCorrectly: Concurrent AddSpam calls executed successfully
+  Пройден CreateModerationService_WithFactory_ReturnsWorkingService [< 1 ms]
+  Пройден ModerationTestFactory_ConfiguresAllDependencies [< 1 ms]
+  Пройден ModerationTestFactory_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден AddHam_ConcurrentCalls_HandlesCorrectly [1 ms]
+  Пройден AddHam_EmptyMessage_HandlesCorrectly [3 ms]
+  Пройден AddHam_LongMessage_HandlesCorrectly [2 ms]
+  Пройден AddHam_SpecialCharacters_HandlesCorrectly [1 ms]
+  Пройден AddHam_ValidMessage_AddsToDataset [1 ms]
+  Пройден AddSpam_ConcurrentCalls_HandlesCorrectly [1 ms]
+AddSpam_EmptyMessage_HandlesCorrectly: AddSpam with empty message executed successfully
+AddSpam_LongMessage_HandlesCorrectly: AddSpam with long message executed successfully
+AddSpam_SpecialCharacters_HandlesCorrectly: AddSpam with special characters executed successfully
+AddSpam_ValidMessage_AddsToDataset: AddSpam executed successfully
+  Пройден AddSpam_EmptyMessage_HandlesCorrectly [1 ms]
+  Пройден AddSpam_LongMessage_HandlesCorrectly [< 1 ms]
+  Пройден AddSpam_SpecialCharacters_HandlesCorrectly [< 1 ms]
+  Пройден AddSpam_ValidMessage_AddsToDataset [< 1 ms]
+  Пройден IsSpam_ConcurrentCalls_HandlesCorrectly [12 ms]
+  Пройден IsSpam_DifferentChatTypes_HandlesCorrectly [2 ms]
+  Пройден IsSpam_DifferentUserTypes_HandlesCorrectly [2 ms]
+  Пройден IsSpam_EmptyMessage_ReturnsNotSpam [1 ms]
+  Пройден IsSpam_LongMessage_HandlesCorrectly [1 ms]
+  Пройден IsSpam_NullText_ThrowsNullReferenceException [1 ms]
+  Пройден IsSpam_SpamMessage_ReturnsSpam [1 ms]
+  Пройден IsSpam_ValidMessage_ReturnsNotSpam [1 ms]
+  Пройден GetAttentionBaitProbability_NullUser_ReturnsDefaultResult [< 1 ms]
+  Пройден GetAttentionBaitProbability_UserWithNullLastName_ReturnsSpamPhotoBio [1 ms]
+  Пройден GetAttentionBaitProbability_UserWithoutUsername_ReturnsSpamPhotoBio [< 1 ms]
+  Пройден GetAttentionBaitProbability_ValidUser_ReturnsSpamPhotoBio [< 1 ms]
+  Пройден GetAttentionBaitProbability_WithCallback_ReturnsSpamPhotoBio [< 1 ms]
+  Пройден GetSpamProbability_ConcurrentCalls_HandlesCorrectly [8 ms]
+  Пройден GetSpamProbability_EmptyMessage_ReturnsSpamProbability [9 ms]
+  Пройден GetSpamProbability_LongMessage_ReturnsSpamProbability [1 ms]
+  Пройден GetSpamProbability_MessageWithoutFrom_ReturnsSpamProbability [< 1 ms]
+  Пройден GetSpamProbability_MessageWithoutText_ReturnsSpamProbability [< 1 ms]
+  Пройден GetSpamProbability_NullMessage_ThrowsArgumentNullException [1 ms]
+  Пройден GetSpamProbability_SpamMessage_ReturnsSpamProbability [< 1 ms]
+  Пройден GetSpamProbability_ValidMessage_ReturnsSpamProbability [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbability_EmptyFirstMessages_ReturnsSpamProbability [2 ms]
+  Пройден GetSuspiciousUserSpamProbability_HighMimicryScore_ReturnsSpamProbability [< 1 ms]
+MarkUserOkay_NegativeUserId_MarksUserAsOkay: Method executed successfully
+MarkUserOkay_ValidUserId_MarksUserAsOkay: Method executed successfully
+MarkUserOkay_ZeroUserId_MarksUserAsOkay: Method executed successfully
+  Пройден GetSuspiciousUserSpamProbability_LowMimicryScore_ReturnsSpamProbability [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbability_NullFirstMessages_ReturnsDefaultSpamProbability [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbability_NullMessage_ReturnsDefaultSpamProbability [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbability_NullUser_ReturnsDefaultSpamProbability [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbability_ValidParameters_ReturnsSpamProbability [< 1 ms]
+  Пройден MarkUserOkay_NegativeUserId_MarksUserAsOkay [< 1 ms]
+  Пройден MarkUserOkay_ThenGetAttentionBaitProbability_ReturnsCachedResult [< 1 ms]
+  Пройден MarkUserOkay_ValidUserId_MarksUserAsOkay [< 1 ms]
+  Пройден MarkUserOkay_ZeroUserId_MarksUserAsOkay [< 1 ms]
+  Пройден MultipleCalls_GetSpamProbability_ReturnsConsistentResults [4 ms]
+  Пройден Constructor_WithValidDependencies_CreatesInstance [1 ms]
+  Пройден GetAttentionBaitProbability_WithNullUser_ReturnsDefaultResult [1 ms]
+  Пройден GetAttentionBaitProbability_WithValidUser_ReturnsSpamPhotoBio [2 ms]
+  Пройден GetSpamProbability_WithEmptyMessage_ReturnsDefaultProbability [1 ms]
+  Пройден GetSpamProbability_WithLongMessage_ReturnsSpamProbability [991 ms]
+  Пройден GetSpamProbability_WithNullMessage_ThrowsArgumentNullException [1 ms]
+  Пройден GetSpamProbability_WithSpecialCharacters_ReturnsSpamProbability [970 ms]
+  Пройден GetSpamProbability_WithValidMessage_ReturnsSpamProbability [840 ms]
+  Пройден GetSuspiciousUserSpamProbability_WithEmptyMessages_ReturnsSpamProbability [1 ms]
+  Пройден GetSuspiciousUserSpamProbability_WithNullMessages_ReturnsSpamProbability [1 ms]
+  Пройден GetSuspiciousUserSpamProbability_WithValidInput_ReturnsSpamProbability [1 ms]
+  Пройден MarkUserOkay_DoesNotThrowException [1 ms]
+  Пройден MarkUserOkay_MultipleCalls_DoNotInterfere [< 1 ms]
+  Пройден Constructor_WithNullBot_ThrowsArgumentNullException [< 1 ms]
+  Пройден Constructor_WithNullLogger_ThrowsArgumentNullException [< 1 ms]
+  Пройден Constructor_WithValidParameters_CreatesInstance [< 1 ms]
+  Пройден GetBotChatMemberAsync_WhenCached_ReturnsFromCache [8 ms]
+  Пройден GetBotChatMemberAsync_WhenNotCached_ReturnsFromApiAndCaches [5 ms]
+  Пройден GetBotChatMemberAsync_WithCancellationToken_PassesTokenToApi [3 ms]
+  Пройден IsBotAdminAsync_WhenExceptionOccurs_ReturnsFalseAndLogsWarning [4 ms]
+  Пройден IsBotAdminAsync_WithDifferentStatuses_ReturnsExpectedResult(Administrator,True) [3 ms]
+  Пройден IsBotAdminAsync_WithDifferentStatuses_ReturnsExpectedResult(Member,False) [1 ms]
+  Пройден IsBotAdminAsync_WithDifferentStatuses_ReturnsExpectedResult(Left,False) [1 ms]
+  Пройден IsBotAdminAsync_WithDifferentStatuses_ReturnsExpectedResult(Kicked,False) [1 ms]
+  Пройден IsBotAdminAsync_WithDifferentStatuses_ReturnsExpectedResult(Creator,False) [1 ms]
+  Пройден IsSilentModeAsync_ForAdminChat_ReturnsFalse [2 ms]
+  Пройден IsSilentModeAsync_ForLogAdminChat_ReturnsFalse [1 ms]
+  Пройден IsSilentModeAsync_ForPrivateChat_ReturnsFalse [3 ms]
+  Пройден IsSilentModeAsync_ForRegularChats_ReturnsExpectedResult(3000L,True) [2 ms]
+  Пройден IsSilentModeAsync_ForRegularChats_ReturnsExpectedResult(3001L,True) [1 ms]
+  Пройден IsSilentModeAsync_WhenBotIsAdmin_ReturnsFalse [2 ms]
+  Пройден IsSilentModeAsync_WhenBotIsNotAdmin_ReturnsTrue [2 ms]
+  Пройден IsSilentModeAsync_WhenChatGetFails_ReturnsFalseAndLogsWarning [3 ms]
+  Пройден BanExpiredCaptchaUsersAsync_NoExpiredCaptchas_CompletesSuccessfully [3 ms]
+  Пройден BanExpiredCaptchaUsersAsync_WithActiveCaptchas_CompletesSuccessfully [1 ms]
+  Пройден CreateCaptchaAsync_CancellationToken_RespectsCancellation [< 1 ms]
+  Пройден CreateCaptchaAsync_LargeBatch_HandlesCorrectly [1 ms]
+  Пройден CreateCaptchaAsync_MultipleCaptchasSameUser_HandlesCorrectly [3 ms]
+  Пройден CreateCaptchaAsync_MultipleUsers_CreatesUniqueCaptchas [< 1 ms]
+  Пройден CreateCaptchaAsync_NullChat_ThrowsArgumentNullException [< 1 ms]
+  Пройден CreateCaptchaAsync_NullUser_ThrowsArgumentNullException [< 1 ms]
+  Пройден CreateCaptchaAsync_TelegramApiError_ThrowsException [< 1 ms]
+  Пройден CreateCaptchaAsync_UserWithInappropriateName_UsesGenericName [< 1 ms]
+  Пройден CreateCaptchaAsync_UserWithInappropriateUsername_UsesGenericName [< 1 ms]
+  Пройден CreateCaptchaAsync_ValidParameters_CreatesCaptchaSuccessfully [1 ms]
+  Пройден CreateCaptchaAsync_WithoutJoinMessage_CreatesCaptchaSuccessfully [< 1 ms]
+  Пройден GenerateKey_DifferentParameters_ReturnsDifferentKeys [< 1 ms]
+  Пройден GenerateKey_SameParameters_ReturnsSameKey [< 1 ms]
+  Пройден GenerateKey_ValidParameters_ReturnsExpectedKey [< 1 ms]
+  Пройден GetCaptchaInfo_AfterValidation_ReturnsNull [< 1 ms]
+  Пройден GetCaptchaInfo_ExistingCaptcha_ReturnsCaptchaInfo [< 1 ms]
+  Пройден GetCaptchaInfo_NonExistentCaptcha_ReturnsNull [< 1 ms]
+  Пройден RemoveCaptcha_AfterRemoval_CaptchaNotAccessible [< 1 ms]
+  Пройден RemoveCaptcha_ExistingCaptcha_ReturnsTrue [< 1 ms]
+  Пройден RemoveCaptcha_NonExistentCaptcha_ReturnsFalse [< 1 ms]
+  Пройден ValidateCaptchaAsync_AfterValidation_CaptchaRemoved [< 1 ms]
+  Пройден ValidateCaptchaAsync_ConcurrentValidation_HandlesCorrectly [1 ms]
+  Пройден ValidateCaptchaAsync_CorrectAnswer_ReturnsTrue [< 1 ms]
+  Пройден ValidateCaptchaAsync_EmptyKey_ReturnsFalse [< 1 ms]
+  Пройден ValidateCaptchaAsync_IncorrectAnswer_ReturnsFalse [< 1 ms]
+  Пройден ValidateCaptchaAsync_LargeBatch_HandlesCorrectly [3 ms]
+  Пройден ValidateCaptchaAsync_NonExistentKey_ReturnsFalse [< 1 ms]
+  Пройден ValidateCaptchaAsync_NullKey_ReturnsFalse [< 1 ms]
+  Пройден CreateCaptchaAsync_IncludesVpnAd_ByDefault [2 ms]
+  Пройден CreateCaptchaAsync_TelegramError_ThrowsException [1 ms]
+  Пройден CreateCaptchaAsync_UserWithInappropriateName_UsesGenericName [1 ms]
+  Пройден CreateCaptchaAsync_ValidUser_SendsWelcomeMessage [1 ms]
+  Пройден GenerateKey_ValidIds_ReturnsExpectedKey [< 1 ms]
+  Пройден GetCaptchaInfo_ValidKey_ReturnsCaptchaInfo [1 ms]
+EnsureChatAsync_ExistingChat_UpdatesTitle: Метод выполнился без исключений
+EnsureChatAsync_NewChat_AddsChatToStats: Метод выполнился без исключений
+  Пройден RemoveCaptcha_ValidKey_ReturnsTrue [< 1 ms]
+  Пройден ValidateCaptchaAsync_CorrectAnswer_ReturnsTrue [1 ms]
+  Пройден ValidateCaptchaAsync_ExpiredCaptcha_ReturnsFalse [1 ms]
+  Пройден ValidateCaptchaAsync_InvalidKey_ReturnsFalse [< 1 ms]
+  Пройден ValidateCaptchaAsync_WrongAnswer_ReturnsFalse [< 1 ms]
+  Пройден Constructor_CreatesDataDirectory_WhenNotExists [< 1 ms]
+  Пройден EnsureChatAsync_BotThrowsException_HandlesGracefully [9 ms]
+  Пройден EnsureChatAsync_ExistingChat_UpdatesTitle [4 ms]
+  Пройден EnsureChatAsync_NewChat_AddsChatToStats [1 ms]
+IncBan_ExistingChat_IncrementsBanCount: Метод выполнился без исключений
+IncBan_NewChat_IncrementsBanCount: Метод выполнился без исключений
+IncCaptcha_ExistingChat_IncrementsCaptchaCount: Метод выполнился без исключений
+IncCaptcha_NewChat_IncrementsCaptchaCount: Метод выполнился без исключений
+UpdateAllMembersAsync_ValidChats_UpdatesMemberCounts: Метод выполнился без исключений
+  Пройден GenerateGlobalJson_ValidData_GeneratesJsonFile [1 ms]
+  Пройден GenerateHtml_ValidData_GeneratesHtmlFile [< 1 ms]
+  Пройден IncBan_ExistingChat_IncrementsBanCount [< 1 ms]
+  Пройден IncBan_NewChat_IncrementsBanCount [< 1 ms]
+  Пройден IncCaptcha_ExistingChat_IncrementsCaptchaCount [5 ms]
+  Пройден IncCaptcha_NewChat_IncrementsCaptchaCount [< 1 ms]
+  Пройден UpdateAllMembersAsync_BotThrowsException_HandlesGracefully [4 ms]
+  Пройден UpdateAllMembersAsync_ValidChats_UpdatesMemberCounts [3 ms]
+  Пройден UpdateZeroMemberChatsAsync_BotThrowsException_HandlesGracefully [4 ms]
+UpdateZeroMemberChatsAsync_OnlyZeroChats_UpdatesOnlyZeroChats: Метод выполнился без исключений
+  Пройден UpdateZeroMemberChatsAsync_OnlyZeroChats_UpdatesOnlyZeroChats [2 ms]
+  Пройден AnalyzeMessages_ConsistentResults_ForSameInput [< 1 ms]
+  Пройден AnalyzeMessages_ContextualMessages_ReturnsLowScore [< 1 ms]
+  Пройден AnalyzeMessages_DiverseMessages_ReturnsLowScore [< 1 ms]
+  Пройден AnalyzeMessages_EmptyList_ReturnsZero [< 1 ms]
+  Пройден AnalyzeMessages_EmptyMessages_ReturnsHighScore [< 1 ms]
+  Пройден AnalyzeMessages_ExactlyThreeMessages_ReturnsValidScore [< 1 ms]
+  Пройден AnalyzeMessages_LessThanThreeMessages_ReturnsZero [< 1 ms]
+  Пройден AnalyzeMessages_LongMessages_ReturnsLowScore [< 1 ms]
+  Пройден AnalyzeMessages_MixedQualityMessages_ReturnsMediumScore [< 1 ms]
+  Пройден AnalyzeMessages_MoreThanThreeMessages_ReturnsZero [< 1 ms]
+  Пройден AnalyzeMessages_NormalMessages_ReturnsLowScore [< 1 ms]
+  Пройден AnalyzeMessages_NullMessages_ReturnsZero [< 1 ms]
+  Пройден AnalyzeMessages_RepetitiveMessages_ReturnsHighScore [< 1 ms]
+  Пройден AnalyzeMessages_ScoreClamped_ToValidRange [< 1 ms]
+  Пройден AnalyzeMessages_TemplatePhrases_ReturnsHighScore [< 1 ms]
+  Пройден AnalyzeMessages_ValidMessages_ReturnsScore [< 1 ms]
+  Пройден AnalyzeMessages_VeryShortMessages_ReturnsHighScore [< 1 ms]
+  Пройден AnalyzeMessages_WhitespaceOnlyMessages_ReturnsHighScore [< 1 ms]
+  Пройден BanAndCleanupUserAsync_ValidUser_ReturnsTrue [6 ms]
+  Пройден CheckMessageAsync_GoodMessage_ReturnsAllowAction [1 ms]
+  Пройден CheckMessageAsync_MessageWithButtons_ReturnsBanAction [< 1 ms]
+  Пройден CheckMessageAsync_MessageWithoutUser_ThrowsModerationException [< 1 ms]
+  Пройден CheckMessageAsync_MimicryDetected_ReturnsBanAction [< 1 ms]
+  Пройден CheckMessageAsync_NullMessage_ThrowsArgumentNullException [< 1 ms]
+  Пройден CheckMessageAsync_SpamDetected_ReturnsBanAction [< 1 ms]
+  Пройден CheckMessageAsync_StoryMessage_ReturnsDeleteAction [< 1 ms]
+  Пройден CheckMessageAsync_UserInBanlist_ReturnsBanAction [1 ms]
+  Пройден CheckUserNameAsync_EmptyFirstName_ThrowsException [< 1 ms]
+  Пройден CheckUserNameAsync_ValidUsername_ReturnsAllowAction [< 1 ms]
+  Пройден GetSuspiciousUsersStats_EmptyStorage_ReturnsZeroCounts [< 1 ms]
+  Пройден IsUserApproved_UserNotInLists_ReturnsFalse [< 1 ms]
+  Пройден SetAiDetectForSuspiciousUser_ValidUser_ReturnsTrue [1 ms]
+  Пройден UnrestrictAndApproveUserAsync_ValidUser_ReturnsTrue [2 ms]
+  Пройден Constructor_NullBotClient_ThrowsArgumentNullException [2 ms]
+  Пройден Constructor_NullLogger_ThrowsArgumentNullException [< 1 ms]
+  Пройден SendToAdminChatAsync_AiProfileAnalysisData_UsesSpecialHandling [7 ms]
+  Пройден SendToAdminChatAsync_AllNotificationTypes_HandledCorrectly [4 ms]
+  Пройден SendToAdminChatAsync_BotClientThrowsException_LogsErrorAndRethrows [2 ms]
+  Пройден SendToAdminChatAsync_CancellationTokenCancelled_ThrowsOperationCanceledException [2 ms]
+  Пройден SendToAdminChatAsync_NullNotification_ThrowsNullReferenceException [1 ms]
+  Пройден SendToAdminChatAsync_ValidNotification_LogsDebugMessages [3 ms]
+  Пройден SendToAdminChatAsync_ValidNotification_SendsMessage [3 ms]
+  Пройден SendToLogChatAsync_AllNotificationTypes_HandledCorrectly [2 ms]
+  Пройден SendToLogChatAsync_BotClientThrowsException_LogsErrorAndRethrows [2 ms]
+  Пройден SendToLogChatAsync_CancellationTokenCancelled_ThrowsOperationCanceledException [2 ms]
+  Пройден SendToLogChatAsync_NullNotification_ThrowsNullReferenceException [1 ms]
+  Пройден SendToLogChatAsync_ValidNotification_LogsDebugMessage [2 ms]
+  Пройден SendToLogChatAsync_ValidNotification_SendsMessage [1 ms]
+  Пройден ShouldSendToAdminChat_AiDetectData_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_AutoBanData_ReturnsFalse [< 1 ms]
+  Пройден ShouldSendToAdminChat_ErrorData_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_NullNotification_ReturnsFalse [< 1 ms]
+  Пройден ShouldSendToAdminChat_SimpleNotificationData_ReturnsFalse [< 1 ms]
+DispatchAsync_CallbackQueryUpdate_LogsCorrectDebugInfo: Callback query update processed successfully
+DispatchAsync_ChatMemberUpdate_LogsCorrectDebugInfo: Chat member update processed successfully
+  Пройден ShouldSendToAdminChat_SuspiciousMessageData_ReturnsTrue [< 1 ms]
+  Пройден ShouldSendToAdminChat_SuspiciousUserData_ReturnsTrue [< 1 ms]
+  Пройден Constructor_NullHandlers_ThrowsArgumentNullException [3 ms]
+  Пройден Constructor_NullLogger_ThrowsArgumentNullException [< 1 ms]
+  Пройден Constructor_ValidParameters_CreatesInstance [< 1 ms]
+  Пройден DispatchAsync_AllHandlersCanHandle_CallsAllHandlers [4 ms]
+  Пройден DispatchAsync_CallbackQueryUpdate_LogsCorrectDebugInfo [< 1 ms]
+  Пройден DispatchAsync_ChatMemberUpdate_LogsCorrectDebugInfo [< 1 ms]
+  Пройден DispatchAsync_EmptyHandlersList_ProcessesWithoutErrors [< 1 ms]
+DispatchAsync_MessageUpdate_LogsCorrectDebugInfo: Update processed successfully
+  Пройден DispatchAsync_HandlerThrowsException_LogsErrorAndRethrows [4 ms]
+  Пройден DispatchAsync_LargeNumberOfHandlers_ProcessesEfficiently [5 ms]
+  Пройден DispatchAsync_MessageUpdate_LogsCorrectDebugInfo [< 1 ms]
+  Пройден DispatchAsync_MultipleHandlersWithDifferentResponses_ProcessesCorrectly [2 ms]
+  Пройден DispatchAsync_NoHandlersCanHandle_LogsDebugInfo [2 ms]
+  Пройден DispatchAsync_NullUpdate_ThrowsArgumentNullException [< 1 ms]
+  Пройден DispatchAsync_OperationCanceledException_LogsInfoAndRethrows [1 ms]
+  Пройден DispatchAsync_ValidUpdate_ProcessesAllHandlers [2 ms]
+  Пройден DispatchAsync_WithCancellationToken_PassesTokenToHandlers [1 ms]
+  Пройден Approve_MaxLongUserId_ApprovesUser [1 ms]
+  Пройден Approve_NegativeUserId_ApprovesUser [1 ms]
+  Пройден Approve_ThenCheckApproval_ReturnsCorrectStatus [1 ms]
+  Пройден Approve_ThenRemoveApproval_WorksCorrectly [1 ms]
+  Пройден Approve_ValidUserId_ApprovesUser [1 ms]
+  Пройден Approve_WithGroupId_ApprovesUserInGroup [1 ms]
+  Пройден Approve_ZeroUserId_ApprovesUser [1 ms]
+  Пройден Approved_MaxLongUserId_ReturnsApprovalStatus [< 1 ms]
+  Пройден Approved_NegativeUserId_ReturnsApprovalStatus [< 1 ms]
+  Пройден Approved_ValidUserId_ReturnsApprovalStatus [1 ms]
+  Пройден Approved_WithGroupId_ReturnsApprovalStatus [1 ms]
+  Пройден Approved_ZeroUserId_ReturnsApprovalStatus [< 1 ms]
+  Пройден BanlistAndApproval_IndependentOperations [1 ms]
+  Пройден ConcurrentOperations_HandleCorrectly [2 ms]
+  Пройден FullUserLifecycle_WorksCorrectly [3 ms]
+  Пройден GetClubUsername_EmptyUsername_ReturnsEmptyString [2 ms]
+  Пройден GetClubUsername_NegativeUserId_ReturnsUsername [1 ms]
+  Пройден GetClubUsername_UserNotFound_ReturnsNull [1 ms]
+  Пройден GetClubUsername_ValidUserId_ReturnsUsername [1 ms]
+  Пройден GetClubUsername_ZeroUserId_ReturnsUsername [1 ms]
+  Пройден InBanlist_MaxLongUserId_ReturnsBanlistStatus [1 ms]
+  Пройден InBanlist_NegativeUserId_ReturnsBanlistStatus [1 ms]
+  Пройден InBanlist_ValidUserId_ReturnsBanlistStatus [1 ms]
+  Пройден InBanlist_ZeroUserId_ReturnsBanlistStatus [< 1 ms]
+  Пройден LargeUserId_HandlesCorrectly [1 ms]
+  Пройден MultipleApprovals_SameUser_HandlesCorrectly [1 ms]
+  Пройден MultipleUsers_ConcurrentOperations_HandleCorrectly [5 ms]
+  Пройден RefreshBanlist_ExecutesSuccessfully [< 1 ms]
+  Пройден RefreshBanlist_ThrowsException_HandlesGracefully [1 ms]
+  Пройден RemoveApproval_NegativeUserId_ReturnsRemovalResult [< 1 ms]
+  Пройден RemoveApproval_ValidUserId_ReturnsRemovalResult [< 1 ms]
+  Пройден RemoveApproval_WithGroupId_ReturnsRemovalResult [1 ms]
+  Пройден RemoveApproval_WithGroupIdAndRemoveAll_ReturnsRemovalResult [1 ms]
+  Пройден RemoveApproval_WithRemoveAll_ReturnsRemovalResult [1 ms]
+  Пройден RemoveApproval_ZeroUserId_ReturnsRemovalResult [< 1 ms]
+  Пройден UserManagement_WithClubIntegration_WorksCorrectly [1 ms]
+  Пройден CreateCaptchaService_ReturnsWorkingService [< 1 ms]
+  Пройден CreateCaptchaServiceWithFake_CustomFake_UsesProvidedFake [< 1 ms]
+  Пройден CreateCaptchaServiceWithFake_ReturnsWorkingService [< 1 ms]
+  Пройден Factory_ProvidesAccessToMocks [< 1 ms]
+  Пройден CreateMessageHandler_ReturnsWorkingService [2 ms]
+  Пройден CreateMessageHandlerWithFake_CustomFake_UsesProvidedFake [< 1 ms]
+  Пройден CreateMessageHandlerWithFake_ReturnsWorkingService [< 1 ms]
+  Пройден Factory_ProvidesAccessToMocks [< 1 ms]
+  Пройден Factory_WithCaptchaServiceSetup_ConfiguresMock [< 1 ms]
+[DEBUG] NO_VPN_AD_GROUPS env var: '-1002447377369,-1001755881475,-1001481929487,-1002393592376,-1001444430646,-1001756182053'
+[DEBUG] Loaded 6 groups without ads: [-1002447377369, -1001755881475, -1001481929487, -1002393592376, -1001444430646, -1001756182053]
+[DEBUG] DOORMAN_WHITELIST env var: ''
+[DEBUG] DOORMAN_LOG_ADMIN_CHAT env var: '-4829729373'
+[DEBUG] DOORMAN_TEST_BLACKLIST_IDS env var: ''
+
+  Пройден Factory_WithModerationServiceSetup_ConfiguresMock [< 1 ms]
+  Пройден Factory_WithUserManagerSetup_ConfiguresMock [< 1 ms]
+  Пройден AdminDisplayName_WithFirstNameOnly_ReturnsFirstName [2 ms]
+  Пройден AdminDisplayName_WithoutUsername_ReturnsFullName [< 1 ms]
+  Пройден AdminDisplayName_WithUsername_ReturnsUsername [< 1 ms]
+  Пройден FullName_WithEmptyLastName_ReturnsFirstName [< 1 ms]
+  Пройден FullName_WithFirstNameAndLastName_ReturnsCombinedName [< 1 ms]
+  Пройден FullName_WithFirstNameOnly_ReturnsFirstName [< 1 ms]
+  Пройден UserToKey_ReturnsCorrectFormat [< 1 ms]
+  Пройден Worker_StaticMethods_AreAccessible [< 1 ms]
+  Пройден BotMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateAiChecks_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateAiChecks_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateAiChecks_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateAiServiceException_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateAiServiceException_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateAiServiceException_ReturnsWorkingInstance [< 1 ms]
+  Пройден CreateApprovedUsersStorage_ConfiguresAllDependencies [2 ms]
+  Пройден CreateApprovedUsersStorage_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateApprovedUsersStorage_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден AiChecksMock_IsProperlyConfigured [1 ms]
+  Пройден BadMessageManagerMock_IsProperlyConfigured [< 1 ms]
+  Пройден BotMock_IsProperlyConfigured [< 1 ms]
+  Пройден CaptchaServiceMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateCallbackQueryHandler_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateCallbackQueryHandler_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateCallbackQueryHandler_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден ModerationServiceMock_IsProperlyConfigured [< 1 ms]
+  Пройден StatisticsServiceMock_IsProperlyConfigured [< 1 ms]
+  Пройден UserManagerMock_IsProperlyConfigured [< 1 ms]
+  Пройден BotMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateCaptchaService_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateCaptchaService_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateCaptchaService_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден BotMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateChatMemberHandler_ConfiguresAllDependencies [5 ms]
+  Пройден CreateChatMemberHandler_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateChatMemberHandler_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден UserManagerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateConfigurationException_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateConfigurationException_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateConfigurationException_ReturnsWorkingInstance [< 1 ms]
+  Пройден AiChecksMock_IsProperlyConfigured [< 1 ms]
+  Пройден BadMessageManagerMock_IsProperlyConfigured [1 ms]
+  Пройден BotMock_IsProperlyConfigured [< 1 ms]
+  Пройден CaptchaServiceMock_IsProperlyConfigured [< 1 ms]
+  Пройден ClassifierMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateMessageHandler_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateMessageHandler_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateMessageHandler_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден ModerationServiceMock_IsProperlyConfigured [< 1 ms]
+  Пройден ServiceProviderMock_IsProperlyConfigured [< 1 ms]
+  Пройден StatisticsServiceMock_IsProperlyConfigured [< 1 ms]
+  Пройден UserManagerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateMimicryClassifier_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateMimicryClassifier_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateMimicryClassifier_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateErrorScenario_ReturnsMockThatThrowsException [< 1 ms]
+  Пройден CreateErrorScenario_WithCustomException_ReturnsMockThatThrowsCustomException [< 1 ms]
+  Пройден CreateMockAiChecks_WithCustomParameters_ReturnsMockWithCustomValues [< 1 ms]
+  Пройден CreateMockAiChecks_WithDefaultParameters_ReturnsMockWithDefaultValues [< 1 ms]
+  Пройден CreateNormalScenario_ReturnsLowProbabilities [< 1 ms]
+  Пройден CreateSpamScenario_ReturnsHighProbabilities [< 1 ms]
+  Пройден CreateSuspiciousUserScenario_ReturnsHighSuspiciousProbability [< 1 ms]
+  Пройден AllMethods_WhenNotThrowingException_ReturnConfiguredValues [< 1 ms]
+  Пройден GetAttentionBaitProbability_ReturnsConfiguredValue [< 1 ms]
+  Пройден GetSpamProbability_ReturnsConfiguredValue [< 1 ms]
+  Пройден GetSpamProbability_WhenShouldThrowException_ThrowsCustomException [< 1 ms]
+  Пройден GetSpamProbability_WhenShouldThrowException_ThrowsException [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbability_ReturnsConfiguredValue [< 1 ms]
+  Пройден GetSuspiciousUserSpamProbabilityWithPhoto_ReturnsCombinedProbability [< 1 ms]
+  Пройден MarkUserOkay_DoesNotThrowException [< 1 ms]
+  Пройден CreateModerationException_ConfiguresAllDependencies [2 ms]
+  Пройден CreateModerationException_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateModerationException_ReturnsWorkingInstance [< 1 ms]
+  Пройден AiChecksMock_IsProperlyConfigured [< 1 ms]
+  Пройден BadMessageManagerMock_IsProperlyConfigured [< 1 ms]
+  Пройден BotClientMock_IsProperlyConfigured [< 1 ms]
+  Пройден ClassifierMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateModerationService_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateModerationService_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateModerationService_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден MimicryClassifierMock_IsProperlyConfigured [< 1 ms]
+  Пройден SuspiciousUsersStorageMock_IsProperlyConfigured [< 1 ms]
+  Пройден UserManagerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateSpamHamClassifier_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateSpamHamClassifier_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateSpamHamClassifier_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден BotMock_IsProperlyConfigured [< 1 ms]
+  Пройден ChatLinkFormatterMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateStatisticsService_ConfiguresAllDependencies [6 ms]
+  Пройден CreateStatisticsService_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateStatisticsService_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateSuspiciousUsersStorage_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateSuspiciousUsersStorage_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateSuspiciousUsersStorage_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateTelegramApiException_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateTelegramApiException_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateTelegramApiException_ReturnsWorkingInstance [< 1 ms]
+  Пройден CreateTelegramBotClientWrapper_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateTelegramBotClientWrapper_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateTelegramBotClientWrapper_ReturnsWorkingInstance [< 1 ms]
+  Пройден CreateUpdateDispatcher_ConfiguresAllDependencies [6 ms]
+  Пройден CreateUpdateDispatcher_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateUpdateDispatcher_ReturnsWorkingInstance [< 1 ms]
+  Пройден LoggerMock_IsProperlyConfigured [< 1 ms]
+NUnit Adapter 5.0.0.0: Test execution complete
+  Пройден UpdateHandlersMock_IsProperlyConfigured [< 1 ms]
+  Пройден CreateUserManagementException_ConfiguresAllDependencies [< 1 ms]
+  Пройден CreateUserManagementException_CreatesFreshInstanceEachTime [< 1 ms]
+  Пройден CreateUserManagementException_ReturnsWorkingInstance [< 1 ms]
+
+Сбой тестового запуска.
+Всего тестов: 633
+     Пройдено: 632
+     Не пройдено: 1
+ Общее время: 16,3244 Секунды
+       _VSTestConsole:
+         MSB4181: задача "VSTestTask" возвратила значение false, но не зарегистрировала ошибку.
+     3>Сборка проекта "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" завершена (целевые объекты VSTest) с ошибкой.
+     1>Сборка проекта "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" завершена (целевые объекты VSTest) с ошибкой.
+
+Ошибка сборки.
+
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" (целевой объект Restore ) (1) ->
+       (Целевой объект Restore) -> 
+         /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0. [/home/kpblc/projects/ClubDoorman/ClubDoorman.sln]
+         /home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от DotNetEnv (>= 2.6.0), но версия DotNetEnv 2.6.0 не найдена. Использовалась версия DotNetEnv 3.0.0. [/home/kpblc/projects/ClubDoorman/ClubDoorman.sln]
+         /home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0. [/home/kpblc/projects/ClubDoorman/ClubDoorman.sln]
+
+
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" (целевой объект VSTest ) (1:2) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект VSTest ) (3:6) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект по умолчанию) (3:7) ->
+       (Целевой объект ResolvePackageAssets) -> 
+         /home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0.
+
+
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" (целевой объект VSTest ) (1:2) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект VSTest ) (3:6) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект по умолчанию) (3:7) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj" (целевой объект по умолчанию) (2:9) ->
+         /home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от DotNetEnv (>= 2.6.0), но версия DotNetEnv 2.6.0 не найдена. Использовалась версия DotNetEnv 3.0.0.
+         /home/kpblc/projects/ClubDoorman/ClubDoorman/ClubDoorman.csproj : warning NU1603: ClubDoorman зависит от Microsoft.Extensions.Caching.Hybrid (>= 8.0.0), но версия Microsoft.Extensions.Caching.Hybrid 8.0.0 не найдена. Использовалась версия Microsoft.Extensions.Caching.Hybrid 9.3.0.
+
+
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" (целевой объект VSTest ) (1:2) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект VSTest ) (3:6) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект по умолчанию) (3:7) ->
+       (Целевой объект PostBuild) -> 
+         cp : warning : behavior of -n is non-portable and may change in future; use --update=none instead [/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj]
+
+
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.sln" (целевой объект VSTest ) (1:2) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект VSTest ) (3:6) ->
+       "/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj" (целевой объект по умолчанию) (3:7) ->
+         cp : warning : behavior of -n is non-portable and may change in future; use --update=none instead [/home/kpblc/projects/ClubDoorman/ClubDoorman.Test/ClubDoorman.Test.csproj]
+
+    Предупреждений: 8
+    Ошибок: 0
+
+Прошло времени 00:00:19.25
