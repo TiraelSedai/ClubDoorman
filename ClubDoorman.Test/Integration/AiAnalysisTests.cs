@@ -192,8 +192,9 @@ public class AiAnalysisTests
             Username = "money_maker_2024"
         };
 
-        // Act - тестируем с реальным API
-        var result = await realAiChecks.GetAttentionBaitProbability(suspiciousUser);
+        // Act - тестируем с реальным API с ретраем
+        var result = await RetryAiAnalysis(async () => 
+            await realAiChecks.GetAttentionBaitProbability(suspiciousUser));
 
         // Assert
         result.Should().NotBeNull();
@@ -508,8 +509,9 @@ public class AiAnalysisTests
         var suspiciousUser = TestData.MessageTestData.SuspiciousUserDnekxpb();
         var userChatInfo = TestData.MessageTestData.SuspiciousUserChatInfo();
 
-        // Act - анализируем профиль пользователя @Dnekxpb
-        var result = await realAiChecks.GetAttentionBaitProbability(suspiciousUser);
+        // Act - анализируем профиль пользователя @Dnekxpb с ретраем
+        var result = await RetryAiAnalysis(async () => 
+            await realAiChecks.GetAttentionBaitProbability(suspiciousUser));
 
         // Assert - проверяем результаты анализа
         result.Should().NotBeNull();
@@ -565,8 +567,9 @@ public class AiAnalysisTests
         // Настраиваем FakeTelegramClient для возврата ChatFullInfo с фото
         _fakeBot.SetupGetChatFullInfo(verySuspiciousUser.Id, userChatInfo);
 
-        // Act - анализируем профиль очень подозрительного пользователя
-        var result = await realAiChecks.GetAttentionBaitProbability(verySuspiciousUser);
+        // Act - анализируем профиль очень подозрительного пользователя с ретраем
+        var result = await RetryAiAnalysis(async () => 
+            await realAiChecks.GetAttentionBaitProbability(verySuspiciousUser));
 
         // Assert - проверяем результаты анализа
         result.Should().NotBeNull();
@@ -588,6 +591,67 @@ public class AiAnalysisTests
         
         // Ожидаем, что этот профиль будет более подозрительным, чем @Dnekxpb
         // Но не делаем жестких проверок, так как AI может давать разные результаты
+    }
+
+    private async Task<SpamPhotoBio> RetryAiAnalysis(Func<Task<SpamPhotoBio>> analysisFunc, int maxRetries = 3, int delayMs = 1000)
+    {
+        var lastException = (Exception?)null;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                TestContext.WriteLine($"Попытка AI анализа #{attempt}/{maxRetries}");
+                var result = await analysisFunc();
+                
+                // Проверяем, что результат валидный
+                if (result?.SpamProbability != null && 
+                    (result.SpamProbability.Probability > 0 || !string.IsNullOrEmpty(result.SpamProbability.Reason)))
+                {
+                    TestContext.WriteLine($"AI анализ успешно завершен на попытке #{attempt}");
+                    return result;
+                }
+                
+                TestContext.WriteLine($"AI анализ вернул невалидный результат на попытке #{attempt}, повторяем...");
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("401") || ex.Message.Contains("Unauthorized"))
+            {
+                lastException = ex;
+                TestContext.WriteLine($"Ошибка авторизации API (401) на попытке #{attempt}: {ex.Message}");
+                if (attempt == maxRetries) throw;
+                await Task.Delay(delayMs * attempt); // Увеличиваем задержку с каждой попыткой
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("400") || ex.Message.Contains("Bad Request"))
+            {
+                lastException = ex;
+                TestContext.WriteLine($"Ошибка запроса API (400) на попытке #{attempt}: {ex.Message}");
+                if (attempt == maxRetries) throw;
+                await Task.Delay(delayMs * attempt);
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("429") || ex.Message.Contains("Too Many Requests"))
+            {
+                lastException = ex;
+                TestContext.WriteLine($"Превышен лимит запросов API (429) на попытке #{attempt}: {ex.Message}");
+                if (attempt == maxRetries) throw;
+                await Task.Delay(delayMs * attempt * 2); // Увеличиваем задержку для rate limit
+            }
+            catch (HttpRequestException ex)
+            {
+                lastException = ex;
+                TestContext.WriteLine($"Ошибка соединения API на попытке #{attempt}: {ex.Message}");
+                if (attempt == maxRetries) throw;
+                await Task.Delay(delayMs * attempt);
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                TestContext.WriteLine($"Неожиданная ошибка на попытке #{attempt}: {ex.Message}");
+                if (attempt == maxRetries) throw;
+                await Task.Delay(delayMs * attempt);
+            }
+        }
+        
+        throw lastException ?? new Exception("Все попытки AI анализа завершились неудачно");
     }
 
     [Test]
@@ -658,8 +722,9 @@ public class AiAnalysisTests
         // Настраиваем FakeTelegramClient для возврата ChatFullInfo с фото
         fakeBotWithPhoto.SetupGetChatFullInfo(suspiciousUser.Id, userChatInfo);
 
-        // Act - анализируем профиль пользователя @Dnekxpb с реальным фото
-        var result = await realAiChecks.GetAttentionBaitProbability(suspiciousUser, "Продам слона пиши с лс");
+        // Act - анализируем профиль пользователя @Dnekxpb с реальным фото с ретраем
+        var result = await RetryAiAnalysis(async () => 
+            await realAiChecks.GetAttentionBaitProbability(suspiciousUser, "Продам слона пиши с лс"));
 
         // Assert - проверяем результаты анализа
         result.Should().NotBeNull();
