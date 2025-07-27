@@ -276,7 +276,7 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                               $"<b>💬 Сообщение:</b>\n{escapedMessageText}";
 
             // ФИКС: Добавляем ссылку на канал, если он есть в данных профиля
-            var channelLinkMatch = System.Text.RegularExpressions.Regex.Match(data.NameBio, @"Юзернейм: @(\w+)");
+            var channelLinkMatch = System.Text.RegularExpressions.Regex.Match(data.NameBio, @"Привязанный канал:[\s\S]*?Юзернейм: @(\w+)");
             if (channelLinkMatch.Success)
             {
                 var channelUsername = channelLinkMatch.Groups[1].Value;
@@ -284,6 +284,15 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                 photoCaption += $"\n\n<b>🔗 Канал:</b> <a href=\"{channelLink}\">@{channelUsername}</a>";
                 _logger.LogDebug("🤖 AI анализ профиля: добавлена ссылка на канал @{ChannelUsername} для пользователя {UserId}", 
                     channelUsername, data.User.Id);
+            }
+            else
+            {
+                // Если нет привязанного канала, проверяем есть ли хотя бы упоминание о нем
+                if (data.NameBio.Contains("Привязанный канал:"))
+                {
+                    photoCaption += $"\n\n<b>📺 Есть привязанный канал</b> (без username)";
+                    _logger.LogDebug("🤖 AI анализ профиля: найден привязанный канал без username для пользователя {UserId}", data.User.Id);
+                }
             }
             
             // Обрезаем caption если слишком длинный (лимит Telegram 1024 символа)
@@ -311,30 +320,20 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
             _logger.LogDebug("🤖 AI анализ профиля: фото отсутствует для пользователя {UserId}", data.User.Id);
         }
         
-        // 2. РЕФАКТОРИНГ: ВСЕГДА пересылаем сообщение пользователя между фото и AI анализом
-        // Сообщение удаляется ПОСЛЕ отправки AI анализа, поэтому сейчас оно ещё доступно
-        if (data.MessageId.HasValue)
+        // 2. Пересылаем подозрительное сообщение после AI анализа
+        try
         {
-            try
-            {
-                var forwardedMsg = await _bot.ForwardMessage(
-                    chatId: Config.AdminChatId,
-                    fromChatId: data.Chat.Id,
-                    messageId: (int)data.MessageId.Value,
-                    cancellationToken: cancellationToken
-                );
-                // Если пересылка удалась, используем её как основу для ответа на AI анализ
-                replyParams = new ReplyParameters { MessageId = forwardedMsg.MessageId };
-                _logger.LogDebug("🤖 AI анализ профиля: сообщение пользователя переслано для пользователя {UserId}", data.User.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "🤖 AI анализ профиля: не удалось переслать сообщение пользователя {UserId}", data.User.Id);
-            }
+            await _bot.ForwardMessage(
+                new ChatId(Config.AdminChatId),
+                data.Chat.Id,
+                (int)data.MessageId,
+                cancellationToken: cancellationToken
+            );
+            _logger.LogDebug("🔄 Подозрительное сообщение переслано в админ-чат для пользователя {UserId}", data.User.Id);
         }
-        else
+        catch (Exception ex)
         {
-            _logger.LogDebug("🤖 AI анализ профиля: сообщение пользователя не пересылается - MessageId отсутствует для пользователя {UserId}", data.User.Id);
+            _logger.LogWarning(ex, "Не удалось переслать подозрительное сообщение для пользователя {UserId}", data.User.Id);
         }
         
         // 3. Основное сообщение с анализом

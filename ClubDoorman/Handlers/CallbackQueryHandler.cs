@@ -481,14 +481,29 @@ public class CallbackQueryHandler : IUpdateHandler
             }
         }
         
-        await _messageService.SendAdminNotificationAsync(
-            AdminNotificationType.UserApproved,
-            new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, message),
-            cancellationToken
-        );
-
-        // Убираем кнопки
-        await _bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, cancellationToken: cancellationToken);
+        // Редактируем сообщение с результатом вместо отправки нового
+        try
+        {
+            await _bot.EditMessageText(
+                callbackQuery.Message!.Chat.Id,
+                callbackQuery.Message.MessageId,
+                $"{callbackQuery.Message.Text}\n\n{message}",
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                cancellationToken: cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Не удалось отредактировать сообщение с результатом AI анализа");
+            
+            // Если не получилось отредактировать - отправляем новое и убираем кнопки
+            await _messageService.SendAdminNotificationAsync(
+                AdminNotificationType.UserApproved,
+                new SimpleNotificationData(callbackQuery.From, callbackQuery.Message!.Chat, message),
+                cancellationToken
+            );
+            await _bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, cancellationToken: cancellationToken);
+        }
     }
 
     private async Task HandleSuspiciousUserCallback(CallbackQuery callbackQuery, List<string> split, CancellationToken cancellationToken)

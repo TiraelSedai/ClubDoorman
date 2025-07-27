@@ -717,18 +717,22 @@ public class MessageHandler : IUpdateHandler
             return;
         }
 
-        // AI анализ профиля при первом сообщении
-        var profileAnalysisResult = await PerformAiProfileAnalysis(message, user, chat, cancellationToken);
-        if (profileAnalysisResult)
-        {
-            // Пользователь получил ограничения за подозрительный профиль, не продолжаем модерацию
-            return;
-        }
-
         // Модерация сообщения
         _userFlowLogger.LogModerationStarted(user, chat, messageText);
         var moderationResult = await _moderationService.CheckMessageAsync(message);
         _userFlowLogger.LogModerationResult(user, chat, moderationResult.Action.ToString(), moderationResult.Reason, moderationResult.Confidence);
+        
+        // AI анализ профиля при первом сообщении (после базовой модерации)
+        // Выполняем только если базовая модерация разрешила сообщение
+        if (moderationResult.Action == ModerationAction.Allow)
+        {
+            var profileAnalysisResult = await PerformAiProfileAnalysis(message, user, chat, cancellationToken);
+            if (profileAnalysisResult)
+            {
+                // Пользователь получил ограничения за подозрительный профиль, возвращаемся
+                return;
+            }
+        }
         
         switch (moderationResult.Action)
         {
@@ -1275,19 +1279,52 @@ public class MessageHandler : IUpdateHandler
         
         try
         {
-            var result = await _aiChecks.GetAttentionBaitProbability(user);
+            // ФИКС: Передаем первое сообщение в AI анализ
+            var messageText = message.Text ?? message.Caption ?? "";
+            var result = await _aiChecks.GetAttentionBaitProbability(user, messageText);
             _logger.LogDebug("🔍 TRACE: AiChecks.GetAttentionBaitProbability завершен для пользователя {UserId}", user.Id);
             _logger.LogInformation("🤖 AI анализ профиля: пользователь {UserId}, вероятность={Probability}, причина={Reason}", 
                 user.Id, result.SpamProbability.Probability, result.SpamProbability.Reason);
 
-            // Проверяем пороги вероятности спама
-            if (result.SpamProbability.Probability >= Consts.LlmLowProbability) // >= 0.75
-            {
-                _logger.LogWarning("🚫 AI определил подозрительный профиль: пользователь {UserId}, вероятность={Probability}", 
-                    user.Id, result.SpamProbability.Probability);
+            // ФИКС: Восстанавливаем проверку на банальность приветствия
+            var isBoringGreeting = AiChecks.IsBoringGreeting(messageText);
+            
+            // ИСПРАВЛЕННАЯ ЛОГИКА: высокий спам (>=0.9) действует всегда, средний (>=0.75) только с банальным приветствием
+            var isHighSpam = result.SpamProbability.Probability >= Consts.LlmHighProbability; // >= 0.9
+            var isMediumSpamWithBoringGreeting = result.SpamProbability.Probability >= Consts.LlmLowProbability && isBoringGreeting; // >= 0.75 + банальное
+            var shouldTriggerAction = isHighSpam || isMediumSpamWithBoringGreeting;
+            
+            _logger.LogDebug("🤖 AI анализ: вероятность={Probability}, банальное приветствие={IsBoringGreeting}, высокий спам={IsHighSpam}, действие={ShouldTrigger}", 
+                result.SpamProbability.Probability, isBoringGreeting, isHighSpam, shouldTriggerAction);
 
-                // Удаляем сообщение только при высокой вероятности
+            // Проверяем пороги вероятности спама + банальность приветствия
+            if (shouldTriggerAction) // >= 0.75 + банальное приветствие
+            {
+                _logger.LogWarning("🚫 AI определил подозрительный профиль: пользователь {UserId}, вероятность={Probability}, банальное приветствие={IsBoringGreeting}", 
+                    user.Id, result.SpamProbability.Probability, isBoringGreeting);
+
+                // ФИКС: Сначала отправляем уведомление в админ-чат, потом удаляем сообщение
                 var shouldDeleteMessage = result.SpamProbability.Probability >= Consts.LlmHighProbability; // >= 0.9
+                var automaticAction = shouldDeleteMessage 
+                    ? "🗑️ Сообщение удалено + 🔇 Read-Only на 10 минут" 
+                    : "🔇 Read-Only на 10 минут (сообщение оставлено)";
+                    
+                var aiProfileData = new AiProfileAnalysisData(
+                    user, 
+                    chat, 
+                    result.SpamProbability.Probability, 
+                    result.SpamProbability.Reason, 
+                    result.NameBio, 
+                    messageText, 
+                    result.Photo, 
+                    message.MessageId,
+                    automaticAction
+                );
+                
+                // Отправляем уведомление ПЕРЕД удалением сообщения (включая пересылку)
+                await _messageService.SendAiProfileAnalysisAsync(aiProfileData, cancellationToken);
+
+                // Теперь удаляем сообщение (если нужно)
                 if (shouldDeleteMessage)
                 {
                     try
@@ -1338,23 +1375,7 @@ public class MessageHandler : IUpdateHandler
                     _logger.LogWarning(ex, "Не удалось дать ридонли пользователю");
                 }
 
-                // Отправляем красивое уведомление в админ-чат
-                var automaticAction = shouldDeleteMessage 
-                    ? "🗑️ Сообщение удалено + 🔇 Read-Only на 10 минут" 
-                    : "🔇 Read-Only на 10 минут (сообщение оставлено)";
-                    
-                var aiProfileData = new AiProfileAnalysisData(
-            user, 
-            chat, 
-            result.SpamProbability.Probability, 
-            result.SpamProbability.Reason, 
-            result.NameBio, 
-            message.Text ?? message.Caption ?? "[медиа]", 
-            result.Photo, 
-            message.MessageId,
-            automaticAction
-        );
-        await _messageService.SendAiProfileAnalysisAsync(aiProfileData, cancellationToken);
+
 
                 _globalStatsManager.IncBan(chat.Id, chat.Title ?? "");
                 _userFlowLogger.LogUserRestricted(user, chat, $"AI анализ профиля: {result.SpamProbability.Reason}", TimeSpan.FromMinutes(10));
@@ -1362,8 +1383,8 @@ public class MessageHandler : IUpdateHandler
             }
             else
             {
-                _logger.LogDebug("✅ AI анализ: профиль пользователя {UserId} выглядит безопасно (вероятность={Probability})", 
-                    user.Id, result.SpamProbability.Probability);
+                _logger.LogDebug("✅ AI анализ: профиль пользователя {UserId} выглядит безопасно (вероятность={Probability}, банальное приветствие={IsBoringGreeting})", 
+                    user.Id, result.SpamProbability.Probability, isBoringGreeting);
             }
         }
         catch (Exception ex)
