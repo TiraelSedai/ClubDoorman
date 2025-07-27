@@ -274,7 +274,18 @@ public class ServiceChatDispatcher : IServiceChatDispatcher
                               $"<b>💬 Чат:</b> {escapedChat}\n\n" +
                               $"<b>📋 Профиль:</b>\n{escapedNameBio}\n\n" +
                               $"<b>💬 Сообщение:</b>\n{escapedMessageText}";
-                              
+
+            // ФИКС: Добавляем ссылку на канал, если он есть в данных профиля
+            var channelLinkMatch = System.Text.RegularExpressions.Regex.Match(data.NameBio, @"Юзернейм: @(\w+)");
+            if (channelLinkMatch.Success)
+            {
+                var channelUsername = channelLinkMatch.Groups[1].Value;
+                var channelLink = $"https://t.me/{channelUsername}";
+                photoCaption += $"\n\n<b>🔗 Канал:</b> <a href=\"{channelLink}\">@{channelUsername}</a>";
+                _logger.LogDebug("🤖 AI анализ профиля: добавлена ссылка на канал @{ChannelUsername} для пользователя {UserId}", 
+                    channelUsername, data.User.Id);
+            }
+            
             // Обрезаем caption если слишком длинный (лимит Telegram 1024 символа)
             if (photoCaption.Length > 1024)
             {
