@@ -23,6 +23,7 @@ public class CallbackQueryHandler : IUpdateHandler
     private readonly IAiChecks _aiChecks;
     private readonly IModerationService _moderationService;
     private readonly IMessageService _messageService;
+    private readonly IViolationTracker _violationTracker;
     private readonly ILogger<CallbackQueryHandler> _logger;
 
     public CallbackQueryHandler(
@@ -34,6 +35,7 @@ public class CallbackQueryHandler : IUpdateHandler
         IAiChecks aiChecks,
         IModerationService moderationService,
         IMessageService messageService,
+        IViolationTracker violationTracker,
         ILogger<CallbackQueryHandler> logger)
     {
         _bot = bot;
@@ -44,6 +46,7 @@ public class CallbackQueryHandler : IUpdateHandler
         _aiChecks = aiChecks;
         _moderationService = moderationService;
         _messageService = messageService;
+        _violationTracker = violationTracker;
         _logger = logger;
     }
 
@@ -249,6 +252,7 @@ public class CallbackQueryHandler : IUpdateHandler
                 // Ничего не делаем, просто убираем кнопки
                 await _bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, cancellationToken: cancellationToken);
             }
+
 
             await _bot.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
         }
@@ -623,6 +627,8 @@ public class CallbackQueryHandler : IUpdateHandler
             await _bot.AnswerCallbackQuery(callbackQuery.Id, "❌ Произошла ошибка", showAlert: true, cancellationToken: cancellationToken);
         }
     }
+
+
 
     private static string GetAdminDisplayName(User user)
     {

@@ -100,8 +100,10 @@ public class FakeServicesFactory
         badMessageManagerMock.Setup(x => x.KnownBadMessage(It.IsAny<string>())).Returns(false);
         
         var aiChecksMock = new Mock<IAiChecks>();
-        aiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), null))
+        aiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), It.IsAny<Func<string, Task>>()))
             .ReturnsAsync(new SpamPhotoBio(new SpamProbability { Probability = 0.9, Reason = "Test suspicious profile" }, new byte[0], "Test bio"));
+        aiChecksMock.Setup(x => x.GetAttentionBaitProbability(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<Func<string, Task>>()))
+            .ReturnsAsync(new SpamPhotoBio(new SpamProbability { Probability = 0.9, Reason = "Test suspicious profile with message" }, new byte[0], "Test bio"));
         
         var globalStatsManager = new GlobalStatsManager();
         
@@ -156,6 +158,7 @@ public class FakeServicesFactory
             chatLinkFormatterMock.Object,
             botPermissionsServiceMock.Object,
             _appConfig,
+            new ViolationTracker(_loggerFactory.CreateLogger<ViolationTracker>(), _appConfig),
             logger);
     }
 

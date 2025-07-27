@@ -91,4 +91,34 @@ public interface IAppConfig
     /// </summary>
     HashSet<long> NoCaptchaGroups { get; }
     
+    /// <summary>
+    /// Включен ли фильтр ссылок
+    /// </summary>
+    bool TextMentionFilterEnabled { get; }
+    
+    /// <summary>
+    /// Количество повторных нарушений ML фильтра перед баном
+    /// </summary>
+    int MlViolationsBeforeBan { get; }
+    
+    /// <summary>
+    /// Количество повторных нарушений стоп-слов перед баном
+    /// </summary>
+    int StopWordsViolationsBeforeBan { get; }
+    
+    /// <summary>
+    /// Количество повторных нарушений эмодзи перед баном
+    /// </summary>
+    int EmojiViolationsBeforeBan { get; }
+    
+    /// <summary>
+    /// Количество повторных нарушений lookalike символов перед баном
+    /// </summary>
+    int LookalikeViolationsBeforeBan { get; }
+    
+            /// <summary>
+        /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
+        /// </summary>
+        bool RepeatedViolationsBanToAdminChat { get; }
+    
 } 

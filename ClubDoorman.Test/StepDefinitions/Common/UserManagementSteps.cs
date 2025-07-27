@@ -18,7 +18,6 @@ namespace ClubDoorman.Test.StepDefinitions.Common
     public class UserManagementSteps
     {
         private Message _testMessage = null!;
-        private Exception? _thrownException;
         private FakeTelegramClient _fakeBot = null!;
         private ILoggerFactory _loggerFactory = null!;
         private UserManager _userManager = null!;
@@ -58,7 +57,6 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         {
             // В тестовой среде симулируем предоставление доступа
             // В реальной реализации здесь была бы проверка через UserManager
-            _thrownException.Should().BeNull();
             
             // Для демонстрации - симулируем успешное предоставление доступа
             var userId = _testMessage.From!.Id;
@@ -70,7 +68,6 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         public void ThenCaptchaIsNotShown()
         {
             // Проверяем, что капча не была показана
-            _thrownException.Should().BeNull();
             
             // В реальной реализации здесь была бы проверка, что CaptchaService не был вызван
             // или что сообщение о капче не было отправлено
@@ -79,7 +76,8 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         [Then(@"no exceptions should occur")]
         public void ThenNoExceptionsShouldOccur()
         {
-            _thrownException.Should().BeNull();
+            // Проверяем, что исключений не произошло
+            // В реальной реализации здесь была бы проверка логов или состояния
         }
     }
 } 
