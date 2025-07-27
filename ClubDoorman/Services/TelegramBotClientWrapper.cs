@@ -142,8 +142,7 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
     /// </summary>
     public async Task<ChatFullInfo> GetChatFullInfo(ChatId chatId, CancellationToken cancellationToken = default)
     {
-        // В новой версии API используем GetChat для получения базовой информации
-        // LinkedChatId доступен только через специальные методы, но для наших целей достаточно
+        // Получаем информацию о чате через Telegram Bot API
         var chat = await _bot.GetChat(chatId, cancellationToken);
         return new ChatFullInfo
         {
@@ -156,9 +155,11 @@ public class TelegramBotClientWrapper : ITelegramBotClientWrapper
             Bio = chat.Bio,
             Description = chat.Description,
             InviteLink = chat.InviteLink,
-            Photo = chat.Photo, // Добавляем Photo!
-            // LinkedChatId не доступен через базовый GetChat, но это не критично для нашей логики
-            LinkedChatId = null
+            Photo = chat.Photo,
+            // Пробрасываем LinkedChatId из модели Chat
+            // Это поле доступно для supergroup и channel со связанным собеседником
+            // при условии, что бот является администратором
+            LinkedChatId = chat.LinkedChatId
         };
     }
 
