@@ -319,5 +319,183 @@ public static class TestDataFactory
             Username = null
         };
     }
+
+
+    public static Message CreateNewUserJoinMessage(long userId = 12345)
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            From = CreateValidUser(),
+            Chat = CreateGroupChat(),
+            NewChatMembers = new[]
+            {
+                new User
+                {
+                    Id = userId,
+                    FirstName = "NewUser",
+                    Username = $"user{userId}",
+                    IsBot = false
+                }
+            }
+        };
+    }
+
+    public static Message CreateSuspiciousUserMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = "Hello everyone!",
+            From = new User
+            {
+                Id = 999999,
+                FirstName = "Suspicious",
+                Username = "suspicious_user",
+                IsBot = false
+            },
+            Chat = CreateGroupChat()
+        };
+    }
+
+    public static Message CreateAdminNotificationMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = "Новый пользователь присоединился к чату",
+            From = new User
+            {
+                Id = 123456789, // ID админа
+                FirstName = "Admin",
+                Username = "admin",
+                IsBot = false
+            },
+            Chat = new Chat
+            {
+                Id = 123456789,
+                Title = "Admin Chat",
+                Type = ChatType.Private
+            },
+            ReplyMarkup = new Telegram.Bot.Types.ReplyMarkups.InlineKeyboardMarkup(new[]
+            {
+                new Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton("🥰 Свой") { CallbackData = "approve_user" },
+                new Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton("🤖 Бан") { CallbackData = "ban_user" },
+                new Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton("😶 Пропуск") { CallbackData = "skip_user" }
+            })
+        };
+    }
+
+    public static CallbackQuery CreateAdminApproveCallback()
+    {
+        return new CallbackQuery
+        {
+            Id = Guid.NewGuid().ToString(),
+            From = new User
+            {
+                Id = 123456789,
+                FirstName = "Admin",
+                Username = "admin",
+                IsBot = false
+            },
+            Message = CreateAdminNotificationMessage(),
+            Data = "approve_user"
+        };
+    }
+
+    public static CallbackQuery CreateAdminBanCallback()
+    {
+        return new CallbackQuery
+        {
+            Id = Guid.NewGuid().ToString(),
+            From = new User
+            {
+                Id = 123456789,
+                FirstName = "Admin",
+                Username = "admin",
+                IsBot = false
+            },
+            Message = CreateAdminNotificationMessage(),
+            Data = "ban_user"
+        };
+    }
+
+    public static CallbackQuery CreateAdminSkipCallback()
+    {
+        return new CallbackQuery
+        {
+            Id = Guid.NewGuid().ToString(),
+            From = new User
+            {
+                Id = 123456789,
+                FirstName = "Admin",
+                Username = "admin",
+                IsBot = false
+            },
+            Message = CreateAdminNotificationMessage(),
+            Data = "skip_user"
+        };
+    }
+
+    public static Message CreateStatsCommandMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = "/stats",
+            From = CreateValidUser(),
+            Chat = CreateGroupChat()
+        };
+    }
+
+    public static Message CreateHelpCommandMessage()
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = "/help",
+            From = CreateValidUser(),
+            Chat = CreateGroupChat()
+        };
+    }
+
+    public static CaptchaInfo CreateBaitCaptchaInfo()
+    {
+        var user = CreateValidUser();
+        var chat = CreateGroupChat();
+        var cts = new CancellationTokenSource();
+        
+        return new CaptchaInfo(
+            chat.Id,
+            chat.Title,
+            DateTime.UtcNow,
+            user,
+            0,
+            cts,
+            null
+        );
+    }
+
+    public static bool CreateCorrectCaptchaResult()
+    {
+        return true;
+    }
+
+    public static bool CreateIncorrectCaptchaResult()
+    {
+        return false;
+    }
+
+    public static User CreateBaitUser()
+    {
+        return new User
+        {
+            Id = 666666,
+            FirstName = "Bait",
+            Username = "bait_user",
+            IsBot = false
+        };
+    }
+
     #endregion
 }

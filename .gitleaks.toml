@@ -24,17 +24,23 @@ allowlist = [
     '''run_with_real_token.sh.example''',
     '''test_bot.sh''',
     '''run_with_real_token.sh''',
+    '''**/test_bot.sh''',
+    '''**/run_with_real_token.sh''',
+    '''./test_bot.sh''',
+    '''./run_with_real_token.sh''',
     '''ClubDoorman/.env''',
     '''.gitleaks.baseline.json''',
     '''scripts/run_tests*.sh''',
     '''ClubDoorman.Test/''',
     '''plans/''',
+    '''plans/phase2-test-analysis/df733b7-code-diff.txt''',
     '''AI_PROFILE_CHECKS.md''',
     '''.env.sample''',
     '''docker-compose.yml.example''',
     '''.github/workflows/''',
     '''env.example''',
-    '''test_bot.sh.example'''
+    '''test_bot.sh.example''',
+    '''2217e45fe88b6c20ea772da616db2b0b0bff8f38'''  # Старый коммит с тестовыми токенами
 ]
 
 # Правила для Telegram токенов (только реальные)
