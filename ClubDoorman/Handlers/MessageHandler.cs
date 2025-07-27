@@ -1040,12 +1040,6 @@ public class MessageHandler : IUpdateHandler
                     new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
                     new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
                     new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
-                },
-                new[]
-                {
-                    new InlineKeyboardButton("🔄 Сброс ML") { CallbackData = $"reset_{message.Chat.Id}_{user.Id}_{ViolationType.MlSpam}" },
-                    new InlineKeyboardButton("🔄 Сброс стоп-слов") { CallbackData = $"reset_{message.Chat.Id}_{user.Id}_{ViolationType.StopWords}" },
-                    new InlineKeyboardButton("🔄 Сброс эмодзи") { CallbackData = $"reset_{message.Chat.Id}_{user.Id}_{ViolationType.TooManyEmojis}" }
                 }
             });
 
