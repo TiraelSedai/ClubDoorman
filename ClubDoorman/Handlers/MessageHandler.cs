@@ -37,6 +37,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IChatLinkFormatter _chatLinkFormatter;
     private readonly IBotPermissionsService _botPermissionsService;
     private readonly IAppConfig _appConfig;
+    private readonly ViolationTracker _violationTracker;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -77,6 +78,7 @@ public class MessageHandler : IUpdateHandler
         IChatLinkFormatter chatLinkFormatter,
         IBotPermissionsService botPermissionsService,
         IAppConfig appConfig,
+        ViolationTracker violationTracker,
         ILogger<MessageHandler> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
@@ -94,6 +96,7 @@ public class MessageHandler : IUpdateHandler
         _chatLinkFormatter = chatLinkFormatter ?? throw new ArgumentNullException(nameof(chatLinkFormatter));
         _botPermissionsService = botPermissionsService ?? throw new ArgumentNullException(nameof(botPermissionsService));
         _appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
+        _violationTracker = violationTracker ?? throw new ArgumentNullException(nameof(violationTracker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -769,6 +772,9 @@ public class MessageHandler : IUpdateHandler
                         await DeleteAndReportMessage(message, moderationResult.Reason, isSilentMode, cancellationToken);
                     }
                     _logger.LogInformation("Сообщение успешно обработано для удаления");
+                    
+                    // Отслеживаем нарушения для повторных банов
+                    await TrackViolationAndBanIfNeeded(message, user, moderationResult.Reason, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -959,16 +965,60 @@ public class MessageHandler : IUpdateHandler
         {
             var r when r.Contains("Известное спам-сообщение") => LogNotificationType.AutoBanKnownSpam,
             var r when r.Contains("Ссылки запрещены") => LogNotificationType.AutoBanTextMention,
+            var r when r.Contains("Повторные нарушения") => LogNotificationType.AutoBanRepeatedViolations,
             _ => LogNotificationType.AutoBanBlacklist
         };
             
-        await _messageService.ForwardToLogWithNotificationAsync(message, logNotificationType, autoBanData, cancellationToken);
+        try
+        {
+            // Отправляем уведомление в зависимости от настройки
+                                    if (_appConfig.RepeatedViolationsBanToAdminChat)
+            {
+                // Отправляем в админ-чат
+                await _messageService.SendLogNotificationAsync(logNotificationType, autoBanData, cancellationToken);
+            }
+            else
+            {
+                // Отправляем в лог-чат без пересылки сообщения (так как оно уже удалено)
+                await _messageService.SendLogNotificationAsync(logNotificationType, autoBanData, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке уведомления о бане типа {NotificationType}", logNotificationType);
+        }
         
-        await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
-        await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
+        try
+        {
+            // Пытаемся удалить сообщение (может не получиться, если уже удалено)
+            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Не удалось удалить сообщение {MessageId} из чата {ChatId} (возможно, уже удалено)", message.MessageId, message.Chat.Id);
+        }
+        
+        try
+        {
+            // Баним пользователя
+            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
+            _logger.LogInformation("✅ Пользователь {UserId} успешно забанен в чате {ChatId}", user.Id, message.Chat.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при бане пользователя {UserId} в чате {ChatId}", user.Id, message.Chat.Id);
+        }
         
         // Полностью очищаем пользователя из всех списков
         _moderationService.CleanupUserFromAllLists(user.Id, message.Chat.Id);
+        
+        // Сбрасываем счетчики нарушений для всех типов
+        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.MlSpam);
+        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.StopWords);
+        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.TooManyEmojis);
+        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.LookalikeSymbols);
+        
+        _logger.LogInformation("🧹 Счетчики нарушений сброшены для пользователя {UserId} в чате {ChatId}", user.Id, message.Chat.Id);
     }
 
     private async Task DeleteAndReportToLogChat(Message message, string reason, CancellationToken cancellationToken)
@@ -990,6 +1040,12 @@ public class MessageHandler : IUpdateHandler
                     new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
                     new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
                     new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+                },
+                new[]
+                {
+                    new InlineKeyboardButton("🔄 Сброс ML") { CallbackData = $"reset_{message.Chat.Id}_{user.Id}_{ViolationType.MlSpam}" },
+                    new InlineKeyboardButton("🔄 Сброс стоп-слов") { CallbackData = $"reset_{message.Chat.Id}_{user.Id}_{ViolationType.StopWords}" },
+                    new InlineKeyboardButton("🔄 Сброс эмодзи") { CallbackData = $"reset_{message.Chat.Id}_{user.Id}_{ViolationType.TooManyEmojis}" }
                 }
             });
 
@@ -1002,10 +1058,14 @@ public class MessageHandler : IUpdateHandler
                 LinkToMessage(message.Chat, message.MessageId)
             );
             
-            // Отправляем в лог-чат с кнопками
-            await _messageService.ForwardToLogWithNotificationAsync(message, LogNotificationType.AutoBanTextMention, deletionData, cancellationToken);
+            // Пересылаем сообщение и отправляем уведомление с кнопками как реплай
+            var forwardedMessage = await _bot.ForwardMessage(
+                new ChatId(Config.LogAdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: cancellationToken
+            );
             
-            // Отправляем дополнительное сообщение с кнопками
             var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanTextMention);
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
             
@@ -1014,6 +1074,7 @@ public class MessageHandler : IUpdateHandler
                 messageText + "\n\n" + "Действия:",
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboard,
+                replyParameters: forwardedMessage,
                 cancellationToken: cancellationToken
             );
             
@@ -1078,20 +1139,21 @@ public class MessageHandler : IUpdateHandler
                 messageText = $"🔇 <b>Тихий режим</b>\n\n{messageText}";
             }
             
-            // Пересылаем сообщение
-            await _bot.ForwardMessage(
+            // Пересылаем сообщение и сохраняем ссылку на него
+            var forwardedMessage = await _bot.ForwardMessage(
                 new ChatId(Config.AdminChatId),
                 message.Chat.Id,
                 message.MessageId,
                 cancellationToken: cancellationToken
             );
             
-            // Отправляем уведомление с кнопками
+            // Отправляем уведомление с кнопками как реплай на пересланное сообщение
             await _bot.SendMessage(
                 Config.AdminChatId,
                 messageText,
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboard,
+                replyParameters: forwardedMessage,
                 cancellationToken: cancellationToken
             );
             
@@ -1242,10 +1304,10 @@ public class MessageHandler : IUpdateHandler
     /// </summary>
     private async Task HandleBlacklistBan(Message message, User user, Chat chat, CancellationToken cancellationToken)
     {
-        var messageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
+        var userMessageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
         _logger.LogWarning("🚫 БЛЭКЛИСТ LOLS.BOT: {UserName} (id={UserId}) в чате '{ChatTitle}' (id={ChatId}) написал: {MessageText}", 
             FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id, 
-            messageText.Length > 100 ? messageText.Substring(0, 100) + "..." : messageText);
+            userMessageText.Length > 100 ? userMessageText.Substring(0, 100) + "..." : userMessageText);
         
         _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте lols.bot");
         
@@ -1260,7 +1322,25 @@ public class MessageHandler : IUpdateHandler
                 message.MessageId, 
                 LinkToMessage(message.Chat, message.MessageId)
             );
-            await _messageService.ForwardToLogWithNotificationAsync(message, LogNotificationType.AutoBanBlacklist, blacklistData, cancellationToken);
+            
+            // Пересылаем сообщение и отправляем уведомление как реплай
+            var forwardedMessage = await _bot.ForwardMessage(
+                new ChatId(Config.LogAdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: cancellationToken
+            );
+            
+            var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanBlacklist);
+            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, blacklistData);
+            
+            await _bot.SendMessage(
+                Config.LogAdminChatId,
+                messageText,
+                parseMode: ParseMode.Html,
+                replyParameters: forwardedMessage,
+                cancellationToken: cancellationToken
+            );
         }
         catch (Exception e)
         {
@@ -1347,6 +1427,45 @@ public class MessageHandler : IUpdateHandler
     /// Выполняет AI анализ профиля пользователя при первом сообщении
     /// </summary>
     /// <returns>true если пользователь получил ограничения за подозрительный профиль</returns>
+    private async Task TrackViolationAndBanIfNeeded(Message message, User user, string reason, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Определяем тип нарушения по причине
+            ViolationType? violationType = reason switch
+            {
+                var r when r.Contains("ML решил что это спам") => ViolationType.MlSpam,
+                var r when r.Contains("стоп-слова") => ViolationType.StopWords,
+                var r when r.Contains("многовато эмоджи") => ViolationType.TooManyEmojis,
+                var r when r.Contains("lookalike") => ViolationType.LookalikeSymbols,
+                _ => null
+            };
+            
+            if (violationType == null)
+            {
+                _logger.LogDebug("Неизвестный тип нарушения: {Reason}", reason);
+                return;
+            }
+            
+            // Регистрируем нарушение
+            var shouldBan = _violationTracker.RegisterViolation(user.Id, message.Chat.Id, violationType.Value);
+            
+            if (shouldBan)
+            {
+                _logger.LogWarning("Достигнут лимит нарушений {ViolationType} для пользователя {UserId} в чате {ChatId} - бан", 
+                    ViolationTracker.GetViolationTypeName(violationType.Value), user.Id, message.Chat.Id);
+                
+                // Баним пользователя за повторные нарушения
+                var banReason = $"Повторные нарушения: {ViolationTracker.GetViolationTypeName(violationType.Value)}";
+                await AutoBan(message, banReason, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отслеживании нарушений для пользователя {UserId}", user.Id);
+        }
+    }
+
     private async Task<bool> PerformAiProfileAnalysis(Message message, User user, Chat chat, CancellationToken cancellationToken)
     {
         _logger.LogDebug("🤖 Запускаем AI анализ профиля пользователя {UserId} ({UserName})", 

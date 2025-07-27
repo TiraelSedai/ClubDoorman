@@ -53,5 +53,10 @@ public enum LogNotificationType
     /// <summary>
     /// Удаление сообщения за ссылки
     /// </summary>
-    AutoBanTextMention
+    AutoBanTextMention,
+    
+    /// <summary>
+    /// Автобан за повторные нарушения
+    /// </summary>
+    AutoBanRepeatedViolations
 } 

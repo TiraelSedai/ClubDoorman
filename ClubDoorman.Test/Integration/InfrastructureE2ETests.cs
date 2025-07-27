@@ -27,7 +27,6 @@ public class InfrastructureE2ETests : TestBase
     private ILoggerFactory _loggerFactory = null!;
     private ILogger<ModerationService> _moderationLogger = null!;
     private ModerationService _moderationService = null!;
-    private ITelegramBotClient _botClient = null!;
 
     [SetUp]
     public void Setup()

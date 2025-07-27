@@ -162,7 +162,12 @@ public class MessageTemplates
         [LogNotificationType.AutoBanTextMention] = 
             "🚫 Удаление сообщения за ссылки\n" +
             "Юзер {UserFullName} из чата {ChatTitle}\n" +
-            "{MessageLink}"
+            "{MessageLink}",
+            
+        [LogNotificationType.AutoBanRepeatedViolations] = 
+            "🚫 Автобан за повторные нарушения: {Reason}\n" +
+            "Юзер {UserFullName} из чата {ChatTitle}\n" +
+            "Если это ошибка - разбаньте вручную"
     };
     
     private readonly Dictionary<UserNotificationType, string> _userTemplates = new()

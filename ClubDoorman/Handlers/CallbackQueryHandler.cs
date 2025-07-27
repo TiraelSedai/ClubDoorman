@@ -23,6 +23,7 @@ public class CallbackQueryHandler : IUpdateHandler
     private readonly IAiChecks _aiChecks;
     private readonly IModerationService _moderationService;
     private readonly IMessageService _messageService;
+    private readonly ViolationTracker _violationTracker;
     private readonly ILogger<CallbackQueryHandler> _logger;
 
     public CallbackQueryHandler(
@@ -34,6 +35,7 @@ public class CallbackQueryHandler : IUpdateHandler
         IAiChecks aiChecks,
         IModerationService moderationService,
         IMessageService messageService,
+        ViolationTracker violationTracker,
         ILogger<CallbackQueryHandler> logger)
     {
         _bot = bot;
@@ -44,6 +46,7 @@ public class CallbackQueryHandler : IUpdateHandler
         _aiChecks = aiChecks;
         _moderationService = moderationService;
         _messageService = messageService;
+        _violationTracker = violationTracker;
         _logger = logger;
     }
 
@@ -248,6 +251,10 @@ public class CallbackQueryHandler : IUpdateHandler
             {
                 // Ничего не делаем, просто убираем кнопки
                 await _bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, cancellationToken: cancellationToken);
+            }
+            else if (split.Count > 3 && split[0] == "reset" && long.TryParse(split[1], out var resetChatId) && long.TryParse(split[2], out var resetUserId) && Enum.TryParse<ViolationType>(split[3], out var violationType))
+            {
+                await HandleResetViolations(callbackQuery, resetChatId, resetUserId, violationType, cancellationToken);
             }
 
             await _bot.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
@@ -622,6 +629,27 @@ public class CallbackQueryHandler : IUpdateHandler
             _logger.LogError(ex, "Ошибка при обработке callback для подозрительного пользователя {UserId}", userId);
             await _bot.AnswerCallbackQuery(callbackQuery.Id, "❌ Произошла ошибка", showAlert: true, cancellationToken: cancellationToken);
         }
+    }
+
+    private async Task HandleResetViolations(CallbackQuery callbackQuery, long chatId, long userId, ViolationType violationType, CancellationToken cancellationToken)
+    {
+        var adminName = GetAdminDisplayName(callbackQuery.From);
+        
+        // Сбрасываем счетчик нарушений
+        _violationTracker.ResetViolations(userId, chatId, violationType);
+        
+        // Обновляем сообщение с результатом действия
+        var resetMessage = $"{callbackQuery.Message!.Text}\n\n🔄 Сброшен счетчик нарушений {ViolationTracker.GetViolationTypeName(violationType)} администратором {adminName}";
+        
+        await _bot.EditMessageText(
+            callbackQuery.Message.Chat.Id,
+            callbackQuery.Message.MessageId,
+            resetMessage,
+            cancellationToken: cancellationToken
+        );
+        
+        _logger.LogInformation("Сброшен счетчик нарушений {ViolationType} для пользователя {UserId} в чате {ChatId} администратором {AdminName}", 
+            violationType, userId, chatId, adminName);
     }
 
     private static string GetAdminDisplayName(User user)

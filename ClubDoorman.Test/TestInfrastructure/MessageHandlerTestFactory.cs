@@ -30,6 +30,7 @@ public class MessageHandlerTestFactory
     public Mock<IChatLinkFormatter> ChatLinkFormatterMock { get; } = new();
     public Mock<IBotPermissionsService> BotPermissionsServiceMock { get; } = new();
     public Mock<IAppConfig> AppConfigMock { get; } = new();
+    public Mock<ViolationTracker> ViolationTrackerMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
 
     public MessageHandler CreateMessageHandler()
@@ -50,6 +51,7 @@ public class MessageHandlerTestFactory
             ChatLinkFormatterMock.Object,
             BotPermissionsServiceMock.Object,
             AppConfigMock.Object,
+            ViolationTrackerMock.Object,
             LoggerMock.Object
         );
     }
@@ -146,6 +148,12 @@ public class MessageHandlerTestFactory
         return this;
     }
 
+    public MessageHandlerTestFactory WithViolationTrackerSetup(Action<Mock<ViolationTracker>> setup)
+    {
+        setup(ViolationTrackerMock);
+        return this;
+    }
+
     #endregion
 
     #region Smart Methods Based on Business Logic
@@ -219,6 +227,7 @@ public class MessageHandlerTestFactory
             ChatLinkFormatterMock.Object,
             BotPermissionsServiceMock.Object,
             AppConfigMock.Object,
+            ViolationTrackerMock.Object,
             LoggerMock.Object
         );
     }

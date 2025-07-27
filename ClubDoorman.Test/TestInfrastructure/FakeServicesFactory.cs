@@ -156,6 +156,7 @@ public class FakeServicesFactory
             chatLinkFormatterMock.Object,
             botPermissionsServiceMock.Object,
             _appConfig,
+            new ViolationTracker(_loggerFactory.CreateLogger<ViolationTracker>(), _appConfig),
             logger);
     }
 
