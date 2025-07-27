@@ -123,6 +123,19 @@ namespace ClubDoorman.Infrastructure
         /// Удаление пересланных сообщений от новичков (из .env DOORMAN_DELETE_FORWARDED_MESSAGES)
         /// </summary>
         public static bool DeleteForwardedMessages { get; } = GetEnvironmentBool("DOORMAN_DELETE_FORWARDED_MESSAGES");
+        
+        /// <summary>
+        /// Включить фильтр ссылок
+        /// </summary>
+        public static bool TextMentionFilterEnabled { get; } = GetTextMentionFilterEnabled();
+        
+        private static bool GetTextMentionFilterEnabled()
+        {
+            var enabled = GetEnvironmentBool("DOORMAN_TEXT_MENTION_FILTER_ENABLE");
+            Console.WriteLine($"[DEBUG] DOORMAN_TEXT_MENTION_FILTER_ENABLE env var: '{Environment.GetEnvironmentVariable("DOORMAN_TEXT_MENTION_FILTER_ENABLE")}'");
+            Console.WriteLine($"[DEBUG] TextMentionFilterEnabled: {enabled}");
+            return enabled;
+        }
 
         /// <summary>
         /// Проверяет, разрешен ли бот в данном чате

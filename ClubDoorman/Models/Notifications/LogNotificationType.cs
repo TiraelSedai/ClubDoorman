@@ -48,5 +48,10 @@ public enum LogNotificationType
     /// <summary>
     /// Сообщение от канала
     /// </summary>
-    ChannelMessage
+    ChannelMessage,
+    
+    /// <summary>
+    /// Удаление сообщения за ссылки
+    /// </summary>
+    AutoBanTextMention
 } 

@@ -93,4 +93,9 @@ public class AppConfig : IAppConfig
     /// </summary>
     public HashSet<long> NoCaptchaGroups => Config.NoCaptchaGroups;
     
+    /// <summary>
+    /// Включен ли фильтр ссылок
+    /// </summary>
+    public bool TextMentionFilterEnabled => Config.TextMentionFilterEnabled;
+    
 } 

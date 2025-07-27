@@ -759,7 +759,15 @@ public class MessageHandler : IUpdateHandler
                 _logger.LogInformation("Удаление сообщения: {Reason}", moderationResult.Reason);
                 try
                 {
-                    await DeleteAndReportMessage(message, moderationResult.Reason, isSilentMode, cancellationToken);
+                    // Специальная обработка для ссылок - отправляем в лог-чат без предупреждения пользователю
+                    if (moderationResult.Reason.Contains("Ссылки запрещены"))
+                    {
+                        await DeleteAndReportToLogChat(message, moderationResult.Reason, cancellationToken);
+                    }
+                    else
+                    {
+                        await DeleteAndReportMessage(message, moderationResult.Reason, isSilentMode, cancellationToken);
+                    }
                     _logger.LogInformation("Сообщение успешно обработано для удаления");
                 }
                 catch (Exception ex)
@@ -947,9 +955,12 @@ public class MessageHandler : IUpdateHandler
         );
         
         // Выбираем правильный тип уведомления в зависимости от причины
-        var logNotificationType = reason.Contains("Известное спам-сообщение") 
-            ? LogNotificationType.AutoBanKnownSpam 
-            : LogNotificationType.AutoBanBlacklist;
+        var logNotificationType = reason switch
+        {
+            var r when r.Contains("Известное спам-сообщение") => LogNotificationType.AutoBanKnownSpam,
+            var r when r.Contains("Ссылки запрещены") => LogNotificationType.AutoBanTextMention,
+            _ => LogNotificationType.AutoBanBlacklist
+        };
             
         await _messageService.ForwardToLogWithNotificationAsync(message, logNotificationType, autoBanData, cancellationToken);
         
@@ -958,6 +969,71 @@ public class MessageHandler : IUpdateHandler
         
         // Полностью очищаем пользователя из всех списков
         _moderationService.CleanupUserFromAllLists(user.Id, message.Chat.Id);
+    }
+
+    private async Task DeleteAndReportToLogChat(Message message, string reason, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Начинаем DeleteAndReportToLogChat для сообщения {MessageId} в чате {ChatId}", message.MessageId, message.Chat.Id);
+        
+        var user = message.From;
+
+        try
+        {
+            // Создаем кнопки реакции для лог-чата
+            var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
+            MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
+            
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    new InlineKeyboardButton("🤖 бан") { CallbackData = callbackDataBan },
+                    new InlineKeyboardButton("😶 пропуск") { CallbackData = "noop" },
+                    new InlineKeyboardButton("🥰 свой") { CallbackData = $"approve_{user.Id}" }
+                }
+            });
+
+            var deletionData = new AutoBanNotificationData(
+                user, 
+                message.Chat, 
+                "Удаление за ссылки", 
+                reason, 
+                message.MessageId, 
+                LinkToMessage(message.Chat, message.MessageId)
+            );
+            
+            // Отправляем в лог-чат с кнопками
+            await _messageService.ForwardToLogWithNotificationAsync(message, LogNotificationType.AutoBanTextMention, deletionData, cancellationToken);
+            
+            // Отправляем дополнительное сообщение с кнопками
+            var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanTextMention);
+            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
+            
+            await _bot.SendMessage(
+                Config.LogAdminChatId,
+                messageText + "\n\n" + "Действия:",
+                parseMode: ParseMode.Html,
+                replyMarkup: keyboard,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Уведомление с кнопками успешно отправлено в лог-чат");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Не удалось отправить уведомление в лог-чат");
+        }
+        
+        try
+        {
+            _logger.LogDebug("Пытаемся удалить сообщение {MessageId} из чата {ChatId}", message.MessageId, message.Chat.Id);
+            await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: cancellationToken);
+            _logger.LogDebug("Сообщение успешно удалено");
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Unable to delete message {MessageId} from chat {ChatId}", message.MessageId, message.Chat.Id);
+        }
     }
 
     private async Task DeleteAndReportMessage(Message message, string reason, bool isSilentMode, CancellationToken cancellationToken)
