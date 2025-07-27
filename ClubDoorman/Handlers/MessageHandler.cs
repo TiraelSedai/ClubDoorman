@@ -972,10 +972,10 @@ public class MessageHandler : IUpdateHandler
         try
         {
             // Отправляем уведомление в зависимости от настройки
-                                    if (_appConfig.RepeatedViolationsBanToAdminChat)
+            if (_appConfig.RepeatedViolationsBanToAdminChat)
             {
                 // Отправляем в админ-чат
-                await _messageService.SendLogNotificationAsync(logNotificationType, autoBanData, cancellationToken);
+                await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, autoBanData, cancellationToken);
             }
             else
             {
