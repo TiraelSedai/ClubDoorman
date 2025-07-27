@@ -147,8 +147,15 @@ public class MessageService : IMessageService
     /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
-    public async Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request)
+    public async Task<Message?> SendWelcomeMessageAsync(SendWelcomeMessageRequest request)
     {
+        // Проверяем, отключены ли приветствия
+        if (Config.DisableWelcome)
+        {
+            _logger.LogDebug("Приветственные сообщения отключены (DOORMAN_DISABLE_WELCOME=true)");
+            return null;
+        }
+
         // Создаем приветственное сообщение (логика перенесена из CallbackQueryHandler)
         var displayName = !string.IsNullOrEmpty(request.User.FirstName)
             ? System.Net.WebUtility.HtmlEncode(Utils.FullName(request.User))

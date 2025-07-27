@@ -119,6 +119,8 @@ public class FakeServicesFactory
         var messageServiceMock = new Mock<IMessageService>();
         messageServiceMock.Setup(x => x.SendWelcomeMessageAsync(It.IsAny<User>(), It.IsAny<Chat>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Telegram.Bot.Types.Message());
+        messageServiceMock.Setup(x => x.SendWelcomeMessageAsync(It.IsAny<SendWelcomeMessageRequest>()))
+            .ReturnsAsync(new Telegram.Bot.Types.Message());
         messageServiceMock.Setup(x => x.SendAiProfileAnalysisAsync(It.IsAny<AiProfileAnalysisData>(), It.IsAny<CancellationToken>()))
             .Callback<AiProfileAnalysisData, CancellationToken>((data, token) =>
             {
