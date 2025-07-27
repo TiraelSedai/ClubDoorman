@@ -37,7 +37,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IChatLinkFormatter _chatLinkFormatter;
     private readonly IBotPermissionsService _botPermissionsService;
     private readonly IAppConfig _appConfig;
-    private readonly ViolationTracker _violationTracker;
+    private readonly IViolationTracker _violationTracker;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -78,7 +78,7 @@ public class MessageHandler : IUpdateHandler
         IChatLinkFormatter chatLinkFormatter,
         IBotPermissionsService botPermissionsService,
         IAppConfig appConfig,
-        ViolationTracker violationTracker,
+        IViolationTracker violationTracker,
         ILogger<MessageHandler> logger)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));

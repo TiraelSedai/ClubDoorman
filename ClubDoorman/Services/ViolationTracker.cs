@@ -32,7 +32,7 @@ public enum ViolationType
 /// <summary>
 /// Сервис для отслеживания повторных нарушений пользователей
 /// </summary>
-public class ViolationTracker
+public class ViolationTracker : IViolationTracker
 {
     private readonly ILogger<ViolationTracker> _logger;
     private readonly IAppConfig _appConfig;

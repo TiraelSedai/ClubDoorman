@@ -23,7 +23,7 @@ public class CallbackQueryHandler : IUpdateHandler
     private readonly IAiChecks _aiChecks;
     private readonly IModerationService _moderationService;
     private readonly IMessageService _messageService;
-    private readonly ViolationTracker _violationTracker;
+    private readonly IViolationTracker _violationTracker;
     private readonly ILogger<CallbackQueryHandler> _logger;
 
     public CallbackQueryHandler(
@@ -35,7 +35,7 @@ public class CallbackQueryHandler : IUpdateHandler
         IAiChecks aiChecks,
         IModerationService moderationService,
         IMessageService messageService,
-        ViolationTracker violationTracker,
+        IViolationTracker violationTracker,
         ILogger<CallbackQueryHandler> logger)
     {
         _bot = bot;

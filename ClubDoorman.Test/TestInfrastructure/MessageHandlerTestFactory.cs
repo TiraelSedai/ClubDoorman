@@ -30,7 +30,7 @@ public class MessageHandlerTestFactory
     public Mock<IChatLinkFormatter> ChatLinkFormatterMock { get; } = new();
     public Mock<IBotPermissionsService> BotPermissionsServiceMock { get; } = new();
     public Mock<IAppConfig> AppConfigMock { get; } = new();
-    public Mock<ViolationTracker> ViolationTrackerMock { get; } = new();
+    public Mock<IViolationTracker> ViolationTrackerMock { get; } = new();
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = new();
 
     public MessageHandler CreateMessageHandler()
@@ -148,7 +148,7 @@ public class MessageHandlerTestFactory
         return this;
     }
 
-    public MessageHandlerTestFactory WithViolationTrackerSetup(Action<Mock<ViolationTracker>> setup)
+    public MessageHandlerTestFactory WithViolationTrackerSetup(Action<Mock<IViolationTracker>> setup)
     {
         setup(ViolationTrackerMock);
         return this;

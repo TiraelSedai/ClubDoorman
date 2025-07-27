@@ -25,7 +25,7 @@ public class CallbackQueryHandlerTestFactory
     public Mock<IAiChecks> AiChecksMock { get; } = new();
     public Mock<IModerationService> ModerationServiceMock { get; } = new();
     public Mock<IMessageService> MessageServiceMock { get; } = new();
-    public Mock<ViolationTracker> ViolationTrackerMock { get; } = new();
+    public Mock<IViolationTracker> ViolationTrackerMock { get; } = new();
     public Mock<ILogger<CallbackQueryHandler>> LoggerMock { get; } = new();
 
     public CallbackQueryHandler CreateCallbackQueryHandler()
@@ -100,7 +100,7 @@ public class CallbackQueryHandlerTestFactory
         return this;
     }
 
-    public CallbackQueryHandlerTestFactory WithViolationTrackerSetup(Action<Mock<ViolationTracker>> setup)
+    public CallbackQueryHandlerTestFactory WithViolationTrackerSetup(Action<Mock<IViolationTracker>> setup)
     {
         setup(ViolationTrackerMock);
         return this;
