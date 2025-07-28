@@ -61,22 +61,13 @@ jobs:
     - name: Build application
       run: dotnet build --configuration Release --no-restore
 
-    - name: Run E2E tests (without real API)
+    - name: Run E2E tests
       run: |
         dotnet test ClubDoorman.Test/ClubDoorman.Test.csproj \
-          --filter "Category=e2e&Category!=real-api" \
+          --filter "Category=e2e" \
           --verbosity normal \
           --logger "console;verbosity=detailed" \
           --no-restore
-
-    - name: Run AI Analysis tests with real API
-      run: |
-        dotnet test ClubDoorman.Test/ClubDoorman.Test.csproj \
-          --filter "Category=real-api" \
-          --verbosity normal \
-          --logger "console;verbosity=detailed" \
-          --no-restore \
-          --logger "trx;LogFileName=real-api-tests.trx"
 
     - name: Clean up sensitive files
       if: always()
