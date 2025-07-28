@@ -21,15 +21,14 @@ namespace ClubDoorman.Test.Features
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [NUnit.Framework.TestFixtureAttribute()]
     [NUnit.Framework.DescriptionAttribute("AI Profile Analysis")]
+    [NUnit.Framework.CategoryAttribute("BDD")]
     public partial class AIProfileAnalysisFeature
     {
         
         private TechTalk.SpecFlow.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
-        
-#line 1 "AiAnalysis.feature"
-#line hidden
+        private static string[] featureTags = new string[] {
+                "BDD"};
         
         [NUnit.Framework.OneTimeSetUpAttribute()]
         public virtual void FeatureSetup()
@@ -81,9 +80,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("AI analysis on first message", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 7
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -91,24 +88,12 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 8
-    testRunner.Given("a user with bait profile joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 9
-    testRunner.When("the user sends the first message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 10
-    testRunner.Then("AI profile analysis is performed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 11
-    testRunner.And("a notification is sent to admin chat with profile photo", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 12
-    testRunner.And("the user gets restricted for 10 minutes", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 13
-    testRunner.And("there is a log record about AI analysis", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user with bait profile joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the user sends the first message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("AI profile analysis is performed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("a notification is sent to admin chat with profile photo", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("the user gets restricted for 10 minutes", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("there is a log record about AI analysis", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -120,9 +105,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Admin button \"🥰 own\"", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 15
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -130,21 +113,11 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 16
-    testRunner.Given("there is a notification with buttons in admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 17
-    testRunner.When("the button \"🥰 own\" is clicked", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 18
-    testRunner.Then("the user is added to global approved list", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 19
-    testRunner.And("the restriction is removed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 20
-    testRunner.And("there is a log record about approval", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("there is a notification with buttons in admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the button \"🥰 own\" is clicked", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the user is added to global approved list", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("the restriction is removed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("there is a log record about approval", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -156,9 +129,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Admin button \"🤖 ban\"", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 22
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -166,21 +137,11 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 23
-    testRunner.Given("there is a notification with buttons in admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 24
-    testRunner.When("the button \"🤖 ban\" is clicked", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 25
-    testRunner.Then("the user gets banned", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 26
-    testRunner.And("all user messages are deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 27
-    testRunner.And("there is a log record about ban", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("there is a notification with buttons in admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the button \"🤖 ban\" is clicked", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the user gets banned", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("all user messages are deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("there is a log record about ban", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -192,9 +153,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("AI analysis in channels", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 29
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -202,21 +161,11 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 30
-    testRunner.Given("a user with bait profile joins the channel", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 31
-    testRunner.When("the user leaves a comment", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 32
-    testRunner.Then("AI profile analysis is performed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 33
-    testRunner.And("a notification is sent to admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 34
-    testRunner.And("the captcha is NOT shown (channels don\'t support captcha)", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user with bait profile joins the channel", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the user leaves a comment", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("AI profile analysis is performed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("a notification is sent to admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("the captcha is NOT shown (channels don\'t support captcha)", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }

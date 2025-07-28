@@ -1,4 +1,5 @@
 # language: en
+@BDD
 Feature: Permissions and Quiet Mode
   As a chat administrator
   I want to manage bot permissions and quiet mode

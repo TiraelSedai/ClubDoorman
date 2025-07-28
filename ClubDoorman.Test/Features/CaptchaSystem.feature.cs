@@ -21,15 +21,14 @@ namespace ClubDoorman.Test.Features
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [NUnit.Framework.TestFixtureAttribute()]
     [NUnit.Framework.DescriptionAttribute("Captcha System")]
+    [NUnit.Framework.CategoryAttribute("BDD")]
     public partial class CaptchaSystemFeature
     {
         
         private TechTalk.SpecFlow.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
-        
-#line 1 "CaptchaSystem.feature"
-#line hidden
+        private static string[] featureTags = new string[] {
+                "BDD"};
         
         [NUnit.Framework.OneTimeSetUpAttribute()]
         public virtual void FeatureSetup()
@@ -81,9 +80,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Captcha timeout", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 7
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -91,24 +88,12 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 8
-    testRunner.Given("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 9
-    testRunner.When("a captcha is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 10
-    testRunner.And("the user does not respond within timeout", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 11
-    testRunner.Then("the user gets banned", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 12
-    testRunner.And("there is a log record about captcha timeout", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 13
-    testRunner.And("all user messages are deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("a captcha is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.And("the user does not respond within timeout", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.Then("the user gets banned", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("there is a log record about captcha timeout", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("all user messages are deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -120,9 +105,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Wrong captcha button", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 15
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -130,24 +113,12 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 16
-    testRunner.Given("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 17
-    testRunner.When("a captcha is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 18
-    testRunner.And("the user clicks the wrong button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 19
-    testRunner.Then("the user gets banned", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 20
-    testRunner.And("there is a log record about wrong answer", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 21
-    testRunner.And("all user messages are deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("a captcha is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.And("the user clicks the wrong button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.Then("the user gets banned", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("there is a log record about wrong answer", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("all user messages are deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -159,9 +130,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Correct captcha completion", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 23
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -169,21 +138,11 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 24
-    testRunner.Given("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 25
-    testRunner.When("a captcha is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 26
-    testRunner.And("the user clicks the correct button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 27
-    testRunner.Then("the captcha is removed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 28
-    testRunner.And("there is a log record about successful completion", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("a captcha is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.And("the user clicks the correct button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.Then("the captcha is removed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("there is a log record about successful completion", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -195,9 +154,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Captcha in silent mode", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 30
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -205,18 +162,10 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 31
-    testRunner.Given("the bot works in silent mode", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 32
-    testRunner.When("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 33
-    testRunner.Then("the captcha is sent without admin rights", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 34
-    testRunner.And("the user can pass the captcha", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("the bot works in silent mode", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("a user joins the group", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the captcha is sent without admin rights", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("the user can pass the captcha", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }

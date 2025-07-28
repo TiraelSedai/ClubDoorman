@@ -1,0 +1,27 @@
+{
+  "$schema": "https://specflow.org/specflow-config.json",
+  "bindingCulture": {
+    "name": "en-us"
+  },
+  "language": {
+    "feature": "en-us"
+  },
+  "runtime": {
+    "missingOrPendingStepsOutcome": "Error"
+  },
+  "generator": {
+    "allowRowTests": true,
+    "allowDebugGeneratedFiles": true,
+    "generateAsyncTests": true
+  },
+  "trace": {
+    "traceTimings": true,
+    "minTracedDuration": "0:0:0.1",
+    "listener": "TechTalk.SpecFlow.Tracing.DefaultListener, TechTalk.SpecFlow"
+  },
+  "stepAssemblies": [
+    {
+      "assembly": "ClubDoorman.Test"
+    }
+  ]
+} 

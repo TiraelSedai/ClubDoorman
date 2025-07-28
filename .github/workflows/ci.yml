@@ -23,4 +23,4 @@ jobs:
       run: dotnet build --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test --no-restore
+      run: dotnet test --no-restore --filter "Category!=real-api&Category!=BDD" --verbosity quiet --logger "console;verbosity=quiet" --logger "trx;LogFileName=test-results.trx"

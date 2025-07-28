@@ -1,4 +1,5 @@
 # language: en
+@BDD
 Feature: Statistics and Commands
   As a chat administrator
   I want to view statistics and execute commands

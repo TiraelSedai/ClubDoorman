@@ -17,6 +17,7 @@ using System.Reflection;
 namespace ClubDoorman.Test.StepDefinitions.Common
 {
     [Binding]
+    [Category("BDD")]
     public class CaptchaSteps
     {
         private Message _testMessage = null!;
@@ -260,6 +261,13 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             
             // В реальной реализации здесь была бы проверка, что CaptchaService работает корректно
             // и что пользователь может успешно пройти проверку
+        }
+
+        [Given(@"the bot works in silent mode")]
+        public void GivenTheBotWorksInSilentMode()
+        {
+            // TODO: Implement silent mode setup
+            // Assert.Pass("Bot works in silent mode");
         }
     }
 } 

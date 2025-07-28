@@ -1,4 +1,5 @@
 # language: en
+@BDD
 Feature: Moderation Flow
   As a chat administrator
   I want messages to be moderated automatically

@@ -15,6 +15,7 @@ using FluentAssertions;
 namespace ClubDoorman.Test.StepDefinitions.Common
 {
     [Binding]
+    [Category("BDD")]
     public class UserManagementSteps
     {
         private Message _testMessage = null!;
