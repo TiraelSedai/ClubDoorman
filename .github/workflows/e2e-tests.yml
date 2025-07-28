@@ -61,10 +61,10 @@ jobs:
     - name: Build application
       run: dotnet build --configuration Release --no-restore
 
-    - name: Run E2E tests
+    - name: Run BDD tests
       run: |
         dotnet test ClubDoorman.Test/ClubDoorman.Test.csproj \
-          --filter "Category=e2e" \
+          --filter "Category=BDD" \
           --verbosity normal \
           --logger "console;verbosity=detailed" \
           --no-restore

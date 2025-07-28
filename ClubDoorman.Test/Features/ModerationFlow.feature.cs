@@ -21,15 +21,14 @@ namespace ClubDoorman.Test.Features
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [NUnit.Framework.TestFixtureAttribute()]
     [NUnit.Framework.DescriptionAttribute("Moderation Flow")]
+    [NUnit.Framework.CategoryAttribute("BDD")]
     public partial class ModerationFlowFeature
     {
         
         private TechTalk.SpecFlow.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
-        
-#line 1 "ModerationFlow.feature"
-#line hidden
+        private static string[] featureTags = new string[] {
+                "BDD"};
         
         [NUnit.Framework.OneTimeSetUpAttribute()]
         public virtual void FeatureSetup()
@@ -81,9 +80,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Check order in logs", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 7
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -91,9 +88,7 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 8
-    testRunner.Given("a user sends a message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
+                testRunner.Given("a user sends a message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
                 TechTalk.SpecFlow.Table table1 = new TechTalk.SpecFlow.Table(new string[] {
                             "1. lols.bot blacklist"});
                 table1.AddRow(new string[] {
@@ -106,9 +101,7 @@ namespace ClubDoorman.Test.Features
                             "5. ML analysis"});
                 table1.AddRow(new string[] {
                             "6. AI analysis (only for first message)"});
-#line 9
-    testRunner.Then("the logs check strict order:", ((string)(null)), table1, "Then ");
-#line hidden
+                testRunner.Then("the logs check strict order:", ((string)(null)), table1, "Then ");
             }
             this.ScenarioCleanup();
         }
@@ -120,9 +113,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Spam message", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 17
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -130,21 +121,11 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 18
-    testRunner.Given("a user sends a spam message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 19
-    testRunner.When("ML/stop words/known spam triggers", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 20
-    testRunner.Then("the message is deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 21
-    testRunner.And("AI check is NOT performed in admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 22
-    testRunner.And("there is a log record about spam", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user sends a spam message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("ML/stop words/known spam triggers", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the message is deleted", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("AI check is NOT performed in admin chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("there is a log record about spam", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -156,9 +137,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("ML model training", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 24
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -166,18 +145,10 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 25
-    testRunner.Given("there is a message in chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 26
-    testRunner.When("the /spam command is executed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 27
-    testRunner.Then("the message is added to dataset as spam", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 28
-    testRunner.And("there is a log record about training", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("there is a message in chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the /spam command is executed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the message is added to dataset as spam", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("there is a log record about training", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -189,9 +160,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Forward messages", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 30
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -199,18 +168,10 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 31
-    testRunner.Given("a user forwards a message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 32
-    testRunner.When("the message passes checks", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 33
-    testRunner.Then("the forward is also deleted for spam", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 34
-    testRunner.And("there is a log record about forward", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a user forwards a message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the message passes checks", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the forward is also deleted for spam", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("there is a log record about forward", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }

@@ -1,4 +1,5 @@
 # language: en
+@BDD
 Feature: AI Profile Analysis
   As a chat administrator
   I want AI to analyze suspicious user profiles

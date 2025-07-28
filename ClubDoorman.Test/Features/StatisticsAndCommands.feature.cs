@@ -21,15 +21,14 @@ namespace ClubDoorman.Test.Features
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [NUnit.Framework.TestFixtureAttribute()]
     [NUnit.Framework.DescriptionAttribute("Statistics and Commands")]
+    [NUnit.Framework.CategoryAttribute("BDD")]
     public partial class StatisticsAndCommandsFeature
     {
         
         private TechTalk.SpecFlow.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
-        
-#line 1 "StatisticsAndCommands.feature"
-#line hidden
+        private static string[] featureTags = new string[] {
+                "BDD"};
         
         [NUnit.Framework.OneTimeSetUpAttribute()]
         public virtual void FeatureSetup()
@@ -81,9 +80,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("/stat command", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 7
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -91,12 +88,8 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 8
-    testRunner.Given("there is activity in chat (messages, bans, approvals)", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 9
-    testRunner.When("the /stat command is executed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
+                testRunner.Given("there is activity in chat (messages, bans, approvals)", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the /stat command is executed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
                 TechTalk.SpecFlow.Table table2 = new TechTalk.SpecFlow.Table(new string[] {
                             "message count"});
                 table2.AddRow(new string[] {
@@ -107,12 +100,8 @@ namespace ClubDoorman.Test.Features
                             "AI analyses"});
                 table2.AddRow(new string[] {
                             "ML analyses"});
-#line 10
-    testRunner.Then("correct statistics are displayed:", ((string)(null)), table2, "Then ");
-#line hidden
-#line 16
-    testRunner.And("statistics are formatted correctly", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Then("correct statistics are displayed:", ((string)(null)), table2, "Then ");
+                testRunner.And("statistics are formatted correctly", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -124,9 +113,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Automatic statistics", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 18
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -134,21 +121,11 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 19
-    testRunner.Given("the system works throughout the day", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 20
-    testRunner.When("automatic statistics time comes", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 21
-    testRunner.Then("daily report is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 22
-    testRunner.And("statistics include all metrics", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 23
-    testRunner.And("report is sent to correct chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("the system works throughout the day", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("automatic statistics time comes", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("daily report is sent", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("statistics include all metrics", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+                testRunner.And("report is sent to correct chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }
@@ -160,9 +137,7 @@ namespace ClubDoorman.Test.Features
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Command access rights", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 25
-  this.ScenarioInitialize(scenarioInfo);
-#line hidden
+            this.ScenarioInitialize(scenarioInfo);
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -170,18 +145,10 @@ namespace ClubDoorman.Test.Features
             else
             {
                 this.ScenarioStart();
-#line 26
-    testRunner.Given("a regular user tries to execute /spam command", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 27
-    testRunner.When("the command is executed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 28
-    testRunner.Then("the command is ignored", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 29
-    testRunner.And("there is a log record about unauthorized access attempt", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                testRunner.Given("a regular user tries to execute /spam command", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+                testRunner.When("the command is executed", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+                testRunner.Then("the command is ignored", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+                testRunner.And("there is a log record about unauthorized access attempt", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
             }
             this.ScenarioCleanup();
         }

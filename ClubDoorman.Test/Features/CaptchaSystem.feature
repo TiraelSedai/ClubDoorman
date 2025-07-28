@@ -1,4 +1,5 @@
 # language: en
+@BDD
 Feature: Captcha System
   As a chat administrator
   I want to protect the chat from bots
