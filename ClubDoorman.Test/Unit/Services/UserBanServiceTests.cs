@@ -1,5 +1,6 @@
 using ClubDoorman.Models.Notifications;
 using ClubDoorman.Services;
+using ClubDoorman.Handlers;
 using ClubDoorman.TestInfrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -7,6 +8,7 @@ using NUnit.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using ClubDoorman.Test.TestData;
+using ClubDoorman.Test.TestKit;
 
 namespace ClubDoorman.Test.Unit.Services;
 
@@ -26,6 +28,16 @@ public class UserBanServiceTests
     private Mock<IStatisticsService> _statisticsServiceMock = null!;
     private Mock<GlobalStatsManager> _globalStatsManagerMock = null!;
     private Mock<IUserManager> _userManagerMock = null!;
+    
+    // Дополнительные моки для MessageHandler (эталонная версия)
+    private Mock<ICaptchaService> _captchaServiceMock = null!;
+    private Mock<ISpamHamClassifier> _classifierMock = null!;
+    private Mock<IBadMessageManager> _badMessageManagerMock = null!;
+    private Mock<IAiChecks> _aiServiceMock = null!;
+    private Mock<IServiceProvider> _serviceProviderMock = null!;
+    private Mock<IChatLinkFormatter> _chatLinkFormatterMock = null!;
+    private Mock<IBotPermissionsService> _botPermissionsServiceMock = null!;
+    
     private IUserBanService _userBanService = null!;
 
     [SetUp]
@@ -41,9 +53,40 @@ public class UserBanServiceTests
         _statisticsServiceMock = new Mock<IStatisticsService>();
         _globalStatsManagerMock = new Mock<GlobalStatsManager>();
         _userManagerMock = new Mock<IUserManager>();
+        
+        // Дополнительные моки для MessageHandler (эталонная версия)
+        _captchaServiceMock = new Mock<ICaptchaService>();
+        _classifierMock = new Mock<ISpamHamClassifier>();
+        _badMessageManagerMock = new Mock<IBadMessageManager>();
+        _aiServiceMock = new Mock<IAiChecks>();
+        _serviceProviderMock = new Mock<IServiceProvider>();
+        _chatLinkFormatterMock = new Mock<IChatLinkFormatter>();
+        _botPermissionsServiceMock = new Mock<IBotPermissionsService>();
 
-        // В эталонной версии momai UserBanService - это заглушка с простым конструктором
-        _userBanService = new UserBanService(_loggerMock.Object);
+        // Создаем MessageHandler для делегирования (эталонная версия)
+        var messageHandler = new MessageHandler(
+            _botMock.Object,                      // ITelegramBotClientWrapper bot
+            _moderationServiceMock.Object,        // IModerationService moderationService
+            _captchaServiceMock.Object,           // ICaptchaService captchaService
+            _userManagerMock.Object,              // IUserManager userManager
+            _classifierMock.Object,               // ISpamHamClassifier classifier
+            _badMessageManagerMock.Object,        // IBadMessageManager badMessageManager
+            _aiServiceMock.Object,                // IAiChecks aiChecks
+            _globalStatsManagerMock.Object,       // GlobalStatsManager globalStatsManager
+            _statisticsServiceMock.Object,        // IStatisticsService statisticsService
+            _serviceProviderMock.Object,          // IServiceProvider serviceProvider
+            _userFlowLoggerMock.Object,           // IUserFlowLogger userFlowLogger
+            _messageServiceMock.Object,           // IMessageService messageService
+            _chatLinkFormatterMock.Object,        // IChatLinkFormatter chatLinkFormatter
+            _botPermissionsServiceMock.Object,    // IBotPermissionsService botPermissionsService
+            _appConfigMock.Object,                // IAppConfig appConfig
+            _violationTrackerMock.Object,         // IViolationTracker violationTracker
+            new Mock<ILogger<MessageHandler>>().Object, // ILogger<MessageHandler> logger
+            null                                  // IUserBanService userBanService = null
+        );
+        
+        // UserBanService теперь делегирует к MessageHandler
+        _userBanService = new UserBanService(_loggerMock.Object, messageHandler);
     }
 
     #region BanUserForLongName Tests

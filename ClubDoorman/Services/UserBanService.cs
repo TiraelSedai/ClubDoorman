@@ -1,47 +1,45 @@
 using Microsoft.Extensions.Logging;
 using Telegram.Bot.Types;
+using ClubDoorman.Handlers;
 
 namespace ClubDoorman.Services;
 
 /// <summary>
-/// Заглушка для совместимости с тестами
+/// Мостик к реальной логике банов в MessageHandler
 /// </summary>
 public class UserBanService : IUserBanService
 {
     private readonly ILogger<UserBanService> _logger;
+    private readonly MessageHandler _messageHandler;
 
-    public UserBanService(ILogger<UserBanService> logger)
+    public UserBanService(ILogger<UserBanService> logger, MessageHandler messageHandler)
     {
         _logger = logger;
+        _messageHandler = messageHandler;
     }
 
     public Task BanUserForLongNameAsync(Message? userJoinMessage, User user, string reason, TimeSpan? banDuration, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("BanUserForLongNameAsync stub called: userId={UserId}, reason={Reason}", user?.Id, reason);
-        return Task.CompletedTask;
+        return _messageHandler.BanUserForLongName(userJoinMessage, user, reason, banDuration, cancellationToken);
     }
 
     public Task BanBlacklistedUserAsync(Message userJoinMessage, User user, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("BanBlacklistedUserAsync stub called: userId={UserId}", user?.Id);
-        return Task.CompletedTask;
+        return _messageHandler.BanBlacklistedUser(userJoinMessage, user, cancellationToken);
     }
 
     public Task AutoBanAsync(Message message, string reason, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("AutoBanAsync stub called: messageId={MessageId}, reason={Reason}", message?.MessageId, reason);
-        return Task.CompletedTask;
+        return _messageHandler.AutoBan(message, reason, cancellationToken);
     }
 
     public Task AutoBanChannelAsync(Message message, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("AutoBanChannelAsync stub called: messageId={MessageId}", message?.MessageId);
-        return Task.CompletedTask;
+        return _messageHandler.AutoBanChannel(message, cancellationToken);
     }
 
     public Task HandleBlacklistBanAsync(Message message, User user, Chat chat, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("HandleBlacklistBanAsync stub called: userId={UserId}, chatId={ChatId}", user?.Id, chat?.Id);
-        return Task.CompletedTask;
+        return _messageHandler.HandleBlacklistBan(message, user, chat, cancellationToken);
     }
 } 

@@ -824,7 +824,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task BanUserForLongName(Message? userJoinMessage, User user, string reason, TimeSpan? banDuration, CancellationToken cancellationToken)
+    internal async Task BanUserForLongName(Message? userJoinMessage, User user, string reason, TimeSpan? banDuration, CancellationToken cancellationToken)
     {
         try
         {
@@ -877,7 +877,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task BanBlacklistedUser(Message userJoinMessage, User user, CancellationToken cancellationToken)
+    internal async Task BanBlacklistedUser(Message userJoinMessage, User user, CancellationToken cancellationToken)
     {
         try
         {
@@ -910,7 +910,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task AutoBanChannel(Message message, CancellationToken cancellationToken)
+    internal async Task AutoBanChannel(Message message, CancellationToken cancellationToken)
     {
         try
         {
@@ -936,7 +936,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task AutoBan(Message message, string reason, CancellationToken cancellationToken)
+    internal async Task AutoBan(Message message, string reason, CancellationToken cancellationToken)
     {
         var user = message.From;
         var chat = message.Chat;
@@ -1301,7 +1301,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
     /// <summary>
     /// Обработка бана пользователя по блэклисту lols.bot при первом сообщении
     /// </summary>
-    private async Task HandleBlacklistBan(Message message, User user, Chat chat, CancellationToken cancellationToken)
+    internal async Task HandleBlacklistBan(Message message, User user, Chat chat, CancellationToken cancellationToken)
     {
         var userMessageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
         _logger.LogWarning("🚫 БЛЭКЛИСТ LOLS.BOT: {UserName} (id={UserId}) в чате '{ChatTitle}' (id={ChatId}) написал: {MessageText}", 
