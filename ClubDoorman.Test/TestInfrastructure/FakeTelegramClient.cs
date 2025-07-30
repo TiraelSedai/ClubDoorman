@@ -4,6 +4,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
 using System.Text;
 using ClubDoorman.Services;
+using ClubDoorman.Test.TestData;
 
 namespace ClubDoorman.TestInfrastructure;
 
@@ -11,8 +12,14 @@ namespace ClubDoorman.TestInfrastructure;
 /// In-memory фейк для Telegram Bot API
 /// Заменяет сложные моки и позволяет тестировать без реальных токенов
 /// </summary>
+[Obsolete("Use TestKitTelegram.CreateFakeClient() instead of new FakeTelegramClient()")]
 public class FakeTelegramClient : ITelegramBotClientWrapper
 {
+    public FakeTelegramClient()
+    {
+        // Стандартный конструктор
+    }
+
     public List<SentMessage> SentMessages { get; } = new();
     public List<DeletedMessage> DeletedMessages { get; } = new();
     public List<BannedUser> BannedUsers { get; } = new();
@@ -33,6 +40,10 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     // Для интеграционных тестов
     private Dictionary<long, ChatFullInfo> _chatFullInfos = new();
     private Dictionary<string, string> _filePaths = new();
+    private int _nextMessageId = 1;
+    
+    // MessageEnvelope для тестовых сценариев
+    private Dictionary<int, MessageEnvelope> _messageEnvelopes = new();
 
     public Task<Message> SendMessageAsync(
         ChatId chatId,
@@ -42,16 +53,17 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         ReplyMarkup? replyMarkup = null,
         CancellationToken cancellationToken = default)
     {
+        Console.WriteLine($"DEBUG: FakeTelegramClient.SendMessageAsync called: chatId={chatId.Identifier}, text='{text}'");
+        
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
-        var message = new Message
-        {
-            Date = DateTime.UtcNow,
-            Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group },
-            From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" },
-            Text = text
-        };
+        // Используем TestDataFactory для создания Message с MessageId
+        var message = TK.CreateValidMessageWithId(_nextMessageId++);
+        // Переопределяем Chat, From и Text для соответствия параметрам
+        message.Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group };
+        message.From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" };
+        message.Text = text;
 
         SentMessages.Add(new SentMessage(
             chatId.Identifier ?? 0,
@@ -61,6 +73,7 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
             message
         ));
         
+        Console.WriteLine($"DEBUG: FakeTelegramClient.SendMessageAsync added message, SentMessages count: {SentMessages.Count}");
         OperationLog.Add($"SendMessageAsync: chatId={chatId.Identifier}, text={text}");
 
         return Task.FromResult(message);
@@ -71,12 +84,36 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         int messageId,
         CancellationToken cancellationToken = default)
     {
+        Console.WriteLine($"DEBUG: DeleteMessageAsync called: chatId={chatId.Identifier}, messageId={messageId}");
+        
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
+        // Если messageId = 0 (что происходит с Telegram.Bot.Message), 
+        // пытаемся найти соответствующий MessageEnvelope
+        var actualMessageId = messageId;
+        if (messageId == 0)
+        {
+            Console.WriteLine($"DEBUG: messageId is 0, searching for envelope in chat {chatId.Identifier}");
+            Console.WriteLine($"DEBUG: Available envelopes: {string.Join(", ", _messageEnvelopes.Values.Select(e => $"ChatId={e.ChatId}, MessageId={e.MessageId}"))}");
+            
+            // Ищем MessageEnvelope по ChatId
+            var envelope = _messageEnvelopes.Values.FirstOrDefault(e => e.ChatId == (chatId.Identifier ?? 0));
+            if (envelope != null)
+            {
+                actualMessageId = envelope.MessageId;
+                Console.WriteLine($"DEBUG: Found envelope with MessageId={envelope.MessageId}");
+            }
+            else
+            {
+                Console.WriteLine($"DEBUG: No envelope found for chat {chatId.Identifier}");
+            }
+        }
+
+        Console.WriteLine($"DEBUG: Adding DeletedMessage: ChatId={chatId.Identifier}, MessageId={actualMessageId}");
         DeletedMessages.Add(new DeletedMessage(
             chatId.Identifier ?? 0,
-            messageId
+            actualMessageId
         ));
 
         return Task.FromResult(true);
@@ -136,6 +173,7 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
 
     public Task DeleteMessage(ChatId chatId, int messageId, CancellationToken cancellationToken = default)
     {
+        Console.WriteLine($"DEBUG: DeleteMessage called: chatId={chatId.Identifier}, messageId={messageId}");
         return DeleteMessageAsync(chatId, messageId, cancellationToken);
     }
 
@@ -172,15 +210,12 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
-        var message = new Message
-        {
-            Date = DateTime.UtcNow,
-            Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group },
-            From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" },
-            Text = "Forwarded message"
-        };
-        // MessageId устанавливается через рефлексию, так как это readonly свойство
-        typeof(Message).GetProperty("MessageId")?.SetValue(message, Random.Shared.Next(1, 10000));
+        // Используем TestDataFactory для создания Message с MessageId
+        var message = TK.CreateValidMessageWithId(_nextMessageId++);
+        // Переопределяем Chat и From для соответствия параметрам
+        message.Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group };
+        message.From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" };
+        message.Text = "Forwarded message";
 
         return Task.FromResult(message);
     }
@@ -240,19 +275,12 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
         if (ShouldThrowException)
             throw ExceptionToThrow ?? new Exception("Fake exception");
 
-        var message = new Message
-        {
-            Date = DateTime.UtcNow,
-            Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group },
-            From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" },
-            Caption = caption
-        };
-        // MessageId устанавливается через рефлексию, так как это readonly свойство
-        var messageIdProperty = typeof(Message).GetProperty("MessageId");
-        if (messageIdProperty?.CanWrite == true)
-        {
-            messageIdProperty.SetValue(message, Random.Shared.Next(1, 10000));
-        }
+        // Используем TestDataFactory для создания Message с MessageId
+        var message = TK.CreateValidMessageWithId(_nextMessageId++);
+        // Переопределяем Chat и From для соответствия параметрам
+        message.Chat = new Chat { Id = chatId.Identifier ?? 0, Type = ChatType.Group };
+        message.From = new User { Id = 123456789, IsBot = true, FirstName = "TestBot" };
+        message.Caption = caption;
 
         SentPhotos.Add(new SentPhoto(
             chatId.Identifier ?? 0,
@@ -550,6 +578,54 @@ public class FakeTelegramClient : ITelegramBotClientWrapper
     public void ClearOperationLog()
     {
         OperationLog.Clear();
+    }
+    
+    /// <summary>
+    /// Регистрирует MessageEnvelope для тестовых сценариев
+    /// </summary>
+    public void RegisterMessageEnvelope(MessageEnvelope envelope)
+    {
+        _messageEnvelopes[envelope.MessageId] = envelope;
+    }
+    
+    /// <summary>
+    /// Проверяет, было ли удалено сообщение по MessageEnvelope
+    /// </summary>
+    public bool WasMessageDeleted(MessageEnvelope envelope)
+    {
+        return WasMessageDeleted(envelope.ChatId, envelope.MessageId);
+    }
+    
+    /// <summary>
+    /// Создает Message из MessageEnvelope для тестов
+    /// ВНИМАНИЕ: MessageId всегда будет 0 из-за ограничений Telegram.Bot
+    /// Используйте MessageEnvelope для проверки MessageId в тестах
+    /// </summary>
+    public Message CreateMessageFromEnvelope(MessageEnvelope envelope)
+    {
+        var message = TK.CreateValidMessage();
+        message.Chat = new Chat 
+        { 
+            Id = envelope.ChatId, 
+            Type = ChatType.Group,
+            Title = envelope.ChatTitle ?? "Test Chat",
+            Username = envelope.ChatUsername
+        };
+        message.From = new User 
+        { 
+            Id = envelope.UserId, 
+            IsBot = envelope.IsBot, 
+            FirstName = envelope.FirstName,
+            LastName = envelope.LastName,
+            Username = envelope.Username
+        };
+        message.Text = envelope.Text;
+        message.Date = envelope.Date ?? DateTime.UtcNow;
+        
+        // ВНИМАНИЕ: message.MessageId останется 0 из-за ограничений Telegram.Bot
+        // Используйте envelope.MessageId для проверок в тестах
+        
+        return message;
     }
 }
 

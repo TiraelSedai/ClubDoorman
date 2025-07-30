@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace ClubDoorman.Test.StepDefinitions
 {
     [Binding]
+    [Category("BDD")]
     public class BasicModerationSteps
     {
         private Message _testMessage = null!;

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using ClubDoorman.Models;
 using ClubDoorman.Models.Requests;
 using ClubDoorman.Handlers.Commands;
+using ClubDoorman.Test.TestKit;
 
 namespace ClubDoorman.Test.Unit.Handlers;
 
@@ -88,71 +89,69 @@ public class MessageHandlerFakeTests
     [Test]
     public async Task HandleAsync_SpamMessage_DeletesAndReports()
     {
-        // Arrange
-        var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.SpamMessage();
+        // Arrange - используем новые возможности TestKit
+        var (fakeClient, envelope, message, update) = TestKitTelegram.CreateSpamScenario(
+            userId: 789, 
+            chatId: 123456
+        );
+        
+        // Создаем MessageHandler с правильным FakeTelegramClient
+        var service = _factory.CreateMessageHandlerWithFake(fakeClient);
 
-        // Настройка моков - пользователь НЕ одобрен, чтобы дойти до модерации
+        // Настройка моков - используем билдеры для создания результатов модерации
+        var moderationResult = TestKitBuilders.CreateModerationResult()
+            .AsDelete()
+            .Build();
+
         _factory.ModerationServiceMock
             .Setup(x => x.CheckMessageAsync(It.IsAny<Message>()))
-            .ReturnsAsync(new ModerationResult(ModerationAction.Delete, "Spam detected"));
+            .ReturnsAsync(moderationResult);
 
         _factory.ModerationServiceMock
             .Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
             .Returns(false);
 
-        // Настройка моков для CaptchaService
-        _factory.CaptchaServiceMock
-            .Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
-            .Returns("test-key");
-
-        _factory.CaptchaServiceMock
-            .Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
-            .Returns((CaptchaInfo?)null);
-
-        // Настройка моков для UserManager
-        _factory.UserManagerMock
-            .Setup(x => x.GetClubUsername(It.IsAny<long>()))
-            .ReturnsAsync((string?)null);
-
         // Act
-        var update = new Update { Message = message };
         await service.HandleAsync(update);
 
         // Assert
-        Assert.That(_fakeClient.WasMessageDeleted(message.Chat.Id, message.MessageId), Is.True);
+        Assert.That(fakeClient.WasMessageDeleted(envelope), Is.True);
     }
 
     [Test]
     public async Task HandleAsync_NewUser_SendsCaptcha()
     {
-        // Arrange
-        var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.ServiceMessage(); // Сообщение о новом участнике
+        // Arrange - используем новые возможности TestKit
+        var fakeClient = TestKitTelegram.CreateFakeClient();
+        
+        // Создаем сервисное сообщение о новом участнике через билдеры
+        var message = TestKitBuilders.CreateMessage()
+            .FromUser(12345)
+            .InChat(67890)
+            .WithText(null) // null для сервисных сообщений
+            .Build();
+        
+        // Добавляем NewChatMembers для сервисного сообщения
+        message.NewChatMembers = new[] { TestKitBogus.CreateRealisticUser(12345) };
+        
+        var update = new Update { Message = message };
+        var service = _factory.CreateMessageHandlerWithFake(fakeClient);
 
-        // Настройка моков для ProcessNewUserAsync
+        // Настройка моков через билдеры
+        var moderationResult = TestKitBuilders.CreateModerationResult()
+            .AsAllow()
+            .WithReason("Valid username")
+            .Build();
+
         _factory.ModerationServiceMock
             .Setup(x => x.CheckUserNameAsync(It.IsAny<User>()))
-            .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Valid username"));
+            .ReturnsAsync(moderationResult);
 
-        _factory.UserManagerMock
-            .Setup(x => x.GetClubUsername(It.IsAny<long>()))
-            .ReturnsAsync((string?)null);
-
-        _factory.UserManagerMock
-            .Setup(x => x.InBanlist(It.IsAny<long>()))
-            .ReturnsAsync(false);
-
-        _factory.CaptchaServiceMock
-            .Setup(x => x.GenerateKey(It.IsAny<long>(), It.IsAny<long>()))
-            .Returns("test-key");
-
-        _factory.CaptchaServiceMock
-            .Setup(x => x.GetCaptchaInfo(It.IsAny<string>()))
-            .Returns((CaptchaInfo?)null);
+        _factory.ModerationServiceMock
+            .Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>()))
+            .Returns(false);
 
         // Act
-        var update = new Update { Message = message };
         await service.HandleAsync(update);
 
         // Assert
@@ -261,12 +260,22 @@ public class MessageHandlerFakeTests
             .ReturnsAsync((string?)null);
 
         // Act & Assert
-        // Ошибка должна быть проброшена, так как нет обработки исключений
-        Assert.ThrowsAsync<Exception>(async () =>
+        // Ошибка должна быть обработана gracefully (не проброшена наружу)
+        Assert.DoesNotThrowAsync(async () =>
         {
             var update = new Update { Message = message };
             await service.HandleAsync(update);
         });
+
+        // Проверяем, что ошибка была залогирована
+        _factory.LoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Ошибка при модерации сообщения")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Test]

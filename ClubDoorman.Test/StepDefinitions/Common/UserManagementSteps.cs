@@ -47,7 +47,7 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         [Given(@"a user joins the group")]
         public void GivenUserJoinsGroup()
         {
-            _testMessage = TestDataFactory.CreateNewUserJoinMessage();
+            _testMessage = TK.CreateNewUserJoinMessage();
             // Сохраняем сообщение в ScenarioContext для использования в других Step Definition
             ScenarioContext.Current["TestMessage"] = _testMessage;
             Console.WriteLine($"[DEBUG] UserManagementSteps: Сохранил TestMessage в ScenarioContext, From.Id = {_testMessage?.From?.Id}");

@@ -2,6 +2,7 @@ using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
 using ClubDoorman.Models;
 using ClubDoorman.Models.Requests;
+using ClubDoorman.Test.TestData;
 using NUnit.Framework;
 using Moq;
 using System;
@@ -167,6 +168,10 @@ public class CaptchaServiceExtendedTests
         var request1 = new CreateCaptchaRequest(chat, user1, null);
         var request2 = new CreateCaptchaRequest(chat, user2, null);
         var result1 = await service.CreateCaptchaAsync(request1);
+        
+        // Небольшая задержка для изменения seed генератора случайных чисел
+        await Task.Delay(1);
+        
         var result2 = await service.CreateCaptchaAsync(request2);
 
         // Assert
@@ -638,13 +643,8 @@ public class CaptchaServiceExtendedTests
 
     private static Message CreateTestMessage(long messageId = 1, long chatId = 123456, long userId = 789)
     {
-        return new Message
-        {
-            Chat = CreateTestChat(chatId),
-            From = CreateTestUser(userId),
-            Date = DateTime.UtcNow,
-            Text = "Test message"
-        };
+        // Используем TestDataFactory для создания Message с MessageId
+        return TK.CreateValidMessageWithId(messageId);
     }
 
     #endregion

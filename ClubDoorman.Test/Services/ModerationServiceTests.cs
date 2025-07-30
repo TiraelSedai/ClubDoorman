@@ -27,11 +27,11 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_ValidMessage_ReturnsAllow()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
-                .ReturnsAsync((false, 0.2f)));
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
         
         _factory.WithMimicryClassifierSetup(mock => 
             mock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
@@ -49,7 +49,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_SpamMessage_ReturnsDelete()
     {
         // Arrange
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
@@ -71,11 +71,11 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_EmptyMessage_ReturnsReport()
     {
         // Arrange
-        var message = TestDataFactory.CreateEmptyMessage();
+        var message = TK.CreateEmptyMessage();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
-                .ReturnsAsync((false, 0.2f)));
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
         
         _factory.WithMimicryClassifierSetup(mock => 
             mock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
@@ -93,7 +93,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_BothClassifiersReturnSpam_ReturnsDelete()
     {
         // Arrange
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
@@ -115,7 +115,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_ExceptionInClassifier_ThrowsException()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
@@ -136,8 +136,8 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_BotUser_ReturnsDelete()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
-        message.From = TestDataFactory.CreateBotUser();
+        var message = TK.CreateValidMessage();
+        message.From = TK.CreateBotUser();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))

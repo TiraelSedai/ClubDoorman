@@ -94,7 +94,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var user = TestDataFactory.CreateValidUser();
+        var user = TK.CreateValidUser();
 
         // Act
         var result = await service.GetAttentionBaitProbability(user);
@@ -153,7 +153,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var user = TestDataFactory.CreateValidUser();
+        var user = TK.CreateValidUser();
         var callbackCalled = false;
         Func<string, Task> callback = async (reason) => 
         {
@@ -192,7 +192,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Act
         var result = await service.GetSpamProbability(message);
@@ -209,7 +209,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateEmptyMessage();
+        var message = TK.CreateEmptyMessage();
 
         // Act
         var result = await service.GetSpamProbability(message);
@@ -225,7 +225,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
 
         // Act
         var result = await service.GetSpamProbability(message);
@@ -241,7 +241,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateLongMessage();
+        var message = TK.CreateLongMessage();
 
         // Act
         var result = await service.GetSpamProbability(message);
@@ -261,7 +261,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var user = TestDataFactory.CreateValidUser();
+        var user = TK.CreateValidUser();
         var firstMessages = new List<string> { "Hello" };
         var mimicryScore = 0.5;
 
@@ -279,7 +279,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         var firstMessages = new List<string> { "Hello" };
         var mimicryScore = 0.5;
 
@@ -297,8 +297,8 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
-        var user = TestDataFactory.CreateValidUser();
+        var message = TK.CreateValidMessage();
+        var user = TK.CreateValidUser();
         var mimicryScore = 0.5;
 
         // Act
@@ -315,8 +315,8 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
-        var user = TestDataFactory.CreateValidUser();
+        var message = TK.CreateValidMessage();
+        var user = TK.CreateValidUser();
         var firstMessages = new List<string> { "Hello", "How are you?" };
         var mimicryScore = 0.5;
 
@@ -335,8 +335,8 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
-        var user = TestDataFactory.CreateValidUser();
+        var message = TK.CreateValidMessage();
+        var user = TK.CreateValidUser();
         var firstMessages = new List<string>();
         var mimicryScore = 0.5;
 
@@ -354,8 +354,8 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
-        var user = TestDataFactory.CreateValidUser();
+        var message = TK.CreateValidMessage();
+        var user = TK.CreateValidUser();
         var firstMessages = new List<string> { "Hello" };
         var mimicryScore = 0.9; // Высокий score
 
@@ -373,8 +373,8 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
-        var user = TestDataFactory.CreateValidUser();
+        var message = TK.CreateValidMessage();
+        var user = TK.CreateValidUser();
         var firstMessages = new List<string> { "Hello" };
         var mimicryScore = 0.1; // Низкий score
 
@@ -398,8 +398,8 @@ public class AiChecksExtendedTests
         var service = _factory.CreateAiChecks();
         var message = new Message
         {
-            From = TestDataFactory.CreateValidUser(),
-            Chat = TestDataFactory.CreateGroupChat(),
+            From = TK.CreateValidUser(),
+            Chat = TK.CreateGroupChat(),
             Text = null
         };
 
@@ -420,7 +420,7 @@ public class AiChecksExtendedTests
         var message = new Message
         {
             From = null,
-            Chat = TestDataFactory.CreateGroupChat(),
+            Chat = TK.CreateGroupChat(),
             Text = "Test message"
         };
 
@@ -438,7 +438,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         var tasks = new List<ValueTask<SpamProbability>>();
 
         // Act
@@ -463,7 +463,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var user = TestDataFactory.CreateValidUser();
+        var user = TK.CreateValidUser();
         var userId = user.Id;
 
         // Act
@@ -480,7 +480,7 @@ public class AiChecksExtendedTests
     {
         // Arrange
         var service = _factory.CreateAiChecks();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Act
         var result1 = await service.GetSpamProbability(message);

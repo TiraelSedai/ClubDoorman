@@ -19,7 +19,7 @@ namespace ClubDoorman.Handlers;
 /// <summary>
 /// Обработчик сообщений
 /// </summary>
-public class MessageHandler : IUpdateHandler
+public class MessageHandler : IUpdateHandler, IMessageHandler
 {
     private readonly ITelegramBotClientWrapper _bot;
     private readonly IModerationService _moderationService;
@@ -38,6 +38,7 @@ public class MessageHandler : IUpdateHandler
     private readonly IBotPermissionsService _botPermissionsService;
     private readonly IAppConfig _appConfig;
     private readonly IViolationTracker _violationTracker;
+    private readonly IUserBanService _userBanService;
 
     // Флаги присоединившихся пользователей (временные)
     private static readonly ConcurrentDictionary<string, byte> _joinedUserFlags = new();
@@ -60,7 +61,9 @@ public class MessageHandler : IUpdateHandler
     /// <param name="chatLinkFormatter">Форматтер ссылок на чаты</param>
     /// <param name="botPermissionsService">Сервис проверки прав бота</param>
     /// <param name="appConfig">Конфигурация приложения</param>
+    /// <param name="violationTracker">Трекер нарушений</param>
     /// <param name="logger">Логгер</param>
+    /// <param name="userBanService">Сервис управления банами пользователей</param>
     /// <exception cref="ArgumentNullException">Если любой из параметров равен null</exception>
     public MessageHandler(
         ITelegramBotClientWrapper bot,
@@ -79,7 +82,8 @@ public class MessageHandler : IUpdateHandler
         IBotPermissionsService botPermissionsService,
         IAppConfig appConfig,
         IViolationTracker violationTracker,
-        ILogger<MessageHandler> logger)
+        ILogger<MessageHandler> logger,
+        IUserBanService userBanService = null)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
         _moderationService = moderationService ?? throw new ArgumentNullException(nameof(moderationService));
@@ -98,6 +102,7 @@ public class MessageHandler : IUpdateHandler
         _appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
         _violationTracker = violationTracker ?? throw new ArgumentNullException(nameof(violationTracker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userBanService = userBanService; // Заглушка - не используется
     }
 
     /// <summary>
@@ -1585,5 +1590,25 @@ public class MessageHandler : IUpdateHandler
         return false; // Возвращаем false - профиль безопасен, продолжаем модерацию
     }
 
+    #region IMessageHandler Implementation
 
+    /// <summary>
+    /// Определяет, может ли данный обработчик обработать указанное сообщение
+    /// </summary>
+    public bool CanHandle(Message message)
+    {
+        var update = new Update { Message = message };
+        return CanHandle(update);
+    }
+
+    /// <summary>
+    /// Обрабатывает сообщение
+    /// </summary>
+    public async Task HandleAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        var update = new Update { Message = message };
+        await HandleAsync(update, cancellationToken);
+    }
+
+    #endregion
 } 

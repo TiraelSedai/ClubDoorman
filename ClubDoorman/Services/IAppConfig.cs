@@ -116,9 +116,9 @@ public interface IAppConfig
     /// </summary>
     int LookalikeViolationsBeforeBan { get; }
     
-            /// <summary>
-        /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
-        /// </summary>
-        bool RepeatedViolationsBanToAdminChat { get; }
+                /// <summary>
+    /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
+    /// </summary>
+    bool RepeatedViolationsBanToAdminChat { get; }
     
 } 

@@ -57,7 +57,7 @@ public class AiChecksPhotoLoggingTest
     public void Setup()
     {
         _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AiChecks>();
-        _fakeBot = new FakeTelegramClient();
+        _fakeBot = FakeTelegramClientFactory.Create();
         
         // Загружаем .env файл
         var envPath = FindEnvFile();

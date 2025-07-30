@@ -130,10 +130,10 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             {
                 try
                 {
-                    _captchaInfo = TestDataFactory.CreateBaitCaptchaInfo();
+                    _captchaInfo = TK.CreateBaitCaptchaInfo();
                     if (_captchaInfo == null)
                     {
-                        throw new InvalidOperationException("TestDataFactory.CreateBaitCaptchaInfo() вернул null");
+                        throw new InvalidOperationException("TK.CreateBaitCaptchaInfo() вернул null");
                     }
                 }
                 catch (Exception ex)
@@ -174,10 +174,10 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             {
                 try
                 {
-                    _captchaInfo = TestDataFactory.CreateBaitCaptchaInfo();
+                    _captchaInfo = TK.CreateBaitCaptchaInfo();
                     if (_captchaInfo == null)
                     {
-                        throw new InvalidOperationException("TestDataFactory.CreateBaitCaptchaInfo() вернул null");
+                        throw new InvalidOperationException("TK.CreateBaitCaptchaInfo() вернул null");
                     }
                 }
                 catch (Exception ex)

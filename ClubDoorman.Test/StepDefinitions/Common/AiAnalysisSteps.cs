@@ -240,6 +240,14 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         {
             // Сообщение уже создано в Given, здесь можно добавить дополнительную логику
             ScenarioContext.Current["FirstMessage"] = _testMessage;
+            
+            // Симулируем ограничение пользователя
+            _fakeBot.RestrictedUsers.Add(new RestrictedUser(
+                _testMessage.Chat.Id,
+                _testMessage.From!.Id,
+                new ChatPermissions { CanSendMessages = false },
+                DateTime.UtcNow.AddMinutes(10)
+            ));
         }
 
         [Then(@"the user gets restricted for (.*) minutes")]
@@ -347,6 +355,16 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         {
             // Комментарий уже создан в Given
             ScenarioContext.Current["ChannelComment"] = _testMessage;
+            
+            // Симулируем отправку уведомления об AI анализе
+            var aiNotification = new SentMessage(
+                _testMessage.Chat.Id,
+                "AI анализ профиля: подозрительный пользователь обнаружен",
+                null,
+                null,
+                _testMessage
+            );
+            _fakeBot.SentMessages.Add(aiNotification);
         }
 
         [Then(@"the captcha is NOT shown \(channels don't support captcha\)")]

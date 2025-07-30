@@ -1,0 +1,68 @@
+Feature: Say Command
+  As an administrator
+  I want to send messages as the bot
+  So that I can communicate with users using the bot's identity
+
+  Background:
+    Given I am an administrator
+    And I have a message handler
+
+  Scenario: Send message as bot with text
+    Given I send say command "/say @testuser Hello, this is a test message"
+    When I send the say command
+    Then the bot should send "Hello, this is a test message"
+    And my original message should be deleted
+    And I should receive a confirmation
+
+  Scenario: Send message as bot with long text
+    Given I send say command "/say @testuser This is a very long message that contains multiple sentences and should be handled properly by the bot system"
+    When I send the say command
+    Then the bot should send the complete message
+    And my original message should be deleted
+
+  Scenario: Say command without text should fail
+    Given I send say command "/say"
+    When I send the say command
+    Then I should receive a say error message
+    And the error should indicate I need to provide text
+    And my original message should not be deleted
+
+  Scenario: Non-admin user cannot use say command
+    Given I am not an administrator
+    And I send say command "/say @testuser Hello, unauthorized message"
+    When I send the say command
+    Then I should receive a say access denied message
+    And no message should be sent by the bot
+    And my original message should not be deleted
+
+  Scenario: Say command with special characters
+    Given I send say command "/say @testuser Message with special chars: @#$%^&*()_+-=[]{}|;':\",./<>?"
+    When I send the say command
+    Then the bot should send the message with special characters preserved
+    And my original message should be deleted
+
+  Scenario: Say command with emoji
+    Given I send say command "/say @testuser Hello 👋 World 🌍"
+    When I send the say command
+    Then the bot should send the message with emojis
+    And my original message should be deleted
+
+  Scenario: Say command with newlines
+    Given I send say command "/say @testuser Line 1\nLine 2\nLine 3"
+    When I send the say command
+    Then the bot should send the message with proper line breaks
+    And my original message should be deleted
+
+  Scenario: Say command with HTML-like text
+    Given I send say command "/say @testuser <b>Bold text</b> and <i>italic text</i>"
+    When I send the say command
+    Then the bot should send the message as plain text
+    And HTML tags should not be interpreted
+    And my original message should be deleted
+
+  Scenario: Say command with mention
+    Given I send say command "/say @testuser Hello @username, how are you?"
+    When I send the say command
+    Then the bot should send the message with the mention
+    And the mention should be properly formatted
+    And my original message should be deleted 

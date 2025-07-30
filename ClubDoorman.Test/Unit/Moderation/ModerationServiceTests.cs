@@ -37,6 +37,10 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_ValidMessage_ReturnsAllow()
     {
         // Arrange
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
+        
         var service = _factory.CreateModerationService();
         var message = new Message
         {

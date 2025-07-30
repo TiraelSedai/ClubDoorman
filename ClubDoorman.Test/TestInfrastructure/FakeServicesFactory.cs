@@ -107,7 +107,11 @@ public class FakeServicesFactory
         
         var globalStatsManager = new GlobalStatsManager();
         
+        var appConfigMock = new Mock<IAppConfig>();
+        var violationTrackerMock = new Mock<IViolationTracker>();
         var statisticsServiceMock = new Mock<IStatisticsService>();
+        var globalStatsManagerMock = new Mock<GlobalStatsManager>();
+        
         
 
         statisticsServiceMock.Setup(x => x.GetAllStats()).Returns(new Dictionary<long, ChatStats>());
@@ -159,7 +163,8 @@ public class FakeServicesFactory
             botPermissionsServiceMock.Object,
             _appConfig,
             new ViolationTracker(_loggerFactory.CreateLogger<ViolationTracker>(), _appConfig),
-            logger);
+            logger,
+            new Mock<IUserBanService>().Object);
     }
 
     /// <summary>

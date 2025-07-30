@@ -72,7 +72,7 @@ public class AiAnalysisTests
     {
         _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AiChecks>();
         _callbackLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<CallbackQueryHandler>();
-        _fakeBot = new FakeTelegramClient();
+        _fakeBot = FakeTelegramClientFactory.Create();
         
         // Загружаем .env файл для E2E тестов
         var envPath = FindEnvFile();
@@ -178,6 +178,7 @@ public class AiAnalysisTests
 
     [Test]
     [Category("real-api")]
+    [Ignore("Requires real API key")]
     public async Task E2E_AI_Analysis_WithRealApi_ShouldWork()
     {
         // Arrange - создаем AiChecks с реальной конфигурацией из .env файла
@@ -500,6 +501,7 @@ public class AiAnalysisTests
 
     [Test]
     [Category("real-api")]
+    [Ignore("Requires real API key")]
     public async Task E2E_AI_Analysis_SpecificUserDnekxpb_ShouldDetectSuspiciousProfile()
     {
         // Arrange - создаем AiChecks с реальным API для анализа конкретного пользователя
@@ -534,6 +536,7 @@ public class AiAnalysisTests
 
     [Test]
     [Category("real-api")]
+    [Ignore("Requires real API key")]
     public async Task E2E_AI_Analysis_VerySuspiciousUser_ShouldDetectHighSpamProbability()
     {
         // Arrange - создаем AiChecks с реальным API для анализа очень подозрительного пользователя
@@ -656,6 +659,7 @@ public class AiAnalysisTests
 
     [Test]
     [Category("real-api")]
+    [Ignore("Requires real API key")]
     public async Task E2E_AI_Analysis_WithRealPhoto_ShouldDetectHighSpamProbability()
     {
         // Arrange - создаем AiChecks с реальной конфигурацией и настроенным фото
@@ -682,6 +686,7 @@ public class AiAnalysisTests
             if (string.IsNullOrEmpty(apiKey) || apiKey == "test-api-key")
             {
                 Assert.Ignore("DOORMAN_OPENROUTER_API не настроен или равен 'test-api-key'. Пропускаем тест с реальным API.");
+                return;
             }
             
             Environment.SetEnvironmentVariable("DOORMAN_OPENROUTER_API", apiKey);
@@ -698,7 +703,7 @@ public class AiAnalysisTests
             Assert.Ignore(".env файл не найден. Пропускаем тест с реальным API.");
         }
         
-        var fakeBotWithPhoto = new FakeTelegramClient();
+                    var fakeBotWithPhoto = FakeTelegramClientFactory.Create();
         
         // Настраиваем FakeTelegramClient для возврата реального фото профиля
         var photoPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Images", "dnekxpb_profile_photo.jpg");

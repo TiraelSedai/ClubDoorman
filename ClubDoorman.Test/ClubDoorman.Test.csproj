@@ -9,6 +9,11 @@
         <IsTestProject>true</IsTestProject>
         <RunTestsInParallel>true</RunTestsInParallel>
         <MaxCpuCount>4</MaxCpuCount>
+        <!-- Временно отключаем предупреждения для разработки -->
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <WarningsAsErrors />
+        <WarningsNotAsErrors />
+        <NoWarn>CS1998;CS8602;CS8618;CS8604;CS8601;CS8600;CS8625;CS8620;CS0219;CS0414;CS0618;CS0219;NU1603;NU1608</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -26,6 +31,11 @@
         <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
         <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
         <PackageReference Include="Telegram.Bot" Version="22.4.4" />
+        <!-- New packages for improved test infrastructure -->
+        <PackageReference Include="Bogus" Version="35.4.0" />
+        <PackageReference Include="AutoFixture" Version="4.18.1" />
+        <PackageReference Include="AutoFixture.AutoMoq" Version="4.18.1" />
+        <PackageReference Include="Verify.NUnit" Version="23.0.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -22,7 +22,7 @@ public class FakeTelegramClientExtendedTests : TestBase
     [SetUp]
     public void SetUp()
     {
-        _fakeBot = new FakeTelegramClient();
+        _fakeBot = FakeTelegramClientFactory.Create();
     }
 
     [Test]

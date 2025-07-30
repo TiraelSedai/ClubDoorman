@@ -174,4 +174,19 @@ public class MockAiChecks : IAiChecks
             Reason = "Mock suspicious user analysis" 
         });
     }
+
+    public ValueTask<SpamProbability> GetMlSuspiciousMessageAnalysis(
+        Message message, 
+        User user, 
+        double mlScore)
+    {
+        if (_shouldThrowException)
+            throw _exceptionToThrow ?? new AiServiceException("Mock error");
+
+        return ValueTask.FromResult(new SpamProbability 
+        { 
+            Probability = _suspiciousUserSpamProbability, 
+            Reason = "Mock ML-AI cascade analysis" 
+        });
+    }
 } 

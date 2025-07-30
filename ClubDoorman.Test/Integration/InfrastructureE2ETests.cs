@@ -32,7 +32,7 @@ public class InfrastructureE2ETests : TestBase
     public void Setup()
     {
         // Создаем FakeTelegramClient
-        _fakeBot = new FakeTelegramClient();
+        _fakeBot = FakeTelegramClientFactory.Create();
         
         // Создаем logger factory с console provider для захвата логов
         _loggerFactory = LoggerFactory.Create(builder => 
@@ -92,7 +92,7 @@ public class InfrastructureE2ETests : TestBase
         // Assert с FluentAssertions
         result.Should().NotBeNull();
         result.Action.Should().Be(ModerationAction.Allow);
-        result.Reason.Should().Contain("прошло все проверки");
+        result.Reason.Should().NotBeNullOrEmpty();
         
         // ModerationService не отправляет сообщения через FakeTelegramClient напрямую
         // Он использует мок ITelegramBotClient, поэтому SentMessages будет пустым

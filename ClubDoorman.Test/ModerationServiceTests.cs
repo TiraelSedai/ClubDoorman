@@ -31,13 +31,15 @@ public class ModerationServiceTests
     {
         // Arrange
         var message = SampleMessages.CreateValidMessage();
+        _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
+            .ReturnsAsync((false, -1.5f)); // Уверенный ham (не спам)
 
         // Act
         var result = await _service.CheckMessageAsync(message);
 
         // Assert
         Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Is.EqualTo("Сообщение прошло все проверки"));
+        Assert.That(result.Reason, Is.EqualTo("ML уверен что это не спам"));
     }
 
     [Test]
@@ -61,6 +63,8 @@ public class ModerationServiceTests
     {
         // Arrange
         var message = SampleMessages.CreateMimicryMessage();
+        _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
+            .ReturnsAsync((false, -1.2f)); // Уверенный ham (не спам)
         // Мимикрия обрабатывается в другом месте, здесь просто проверяем что сообщение проходит
 
         // Act

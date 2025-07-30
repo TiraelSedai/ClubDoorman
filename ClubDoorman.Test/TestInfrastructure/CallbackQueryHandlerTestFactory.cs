@@ -110,7 +110,7 @@ public class CallbackQueryHandlerTestFactory
 
     #region Smart Methods Based on Business Logic
 
-    public FakeTelegramClient FakeTelegramClient => new FakeTelegramClient();
+    public FakeTelegramClient FakeTelegramClient => FakeTelegramClientFactory.Create();
     
     public Mock<ITelegramBotClientWrapper> TelegramBotClientWrapperMock => new Mock<ITelegramBotClientWrapper>();
 

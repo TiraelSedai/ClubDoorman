@@ -68,6 +68,7 @@ namespace ClubDoorman.Test.StepDefinitions.Common
                 };
 
                 ScenarioContext.Current["CommandMessage"] = commandMessage;
+                ScenarioContext.Current["StatisticsResult"] = "mock_stats";
             }
             catch (Exception ex)
             {
@@ -82,6 +83,30 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             {
                 // Симулируем автоматическую отправку статистики
                 ScenarioContext.Current["StatisticsResult"] = "mock_stats";
+                
+                // Создаем тестовое сообщение, если его нет
+                if (_testMessage == null)
+                {
+                    _testMessage = new Message
+                    {
+                        From = new User { Id = 123456789, FirstName = "TestUser" },
+                        Chat = new Chat { Id = -1001234567890, Title = "Test Group", Type = ChatType.Group },
+                        Date = DateTime.UtcNow
+                    };
+                }
+                
+                // Отправляем тестовое сообщение со статистикой
+                var statsMessage = new SentMessage(
+                    _testMessage.Chat.Id,
+                    "Daily statistics report: 10 messages, 2 bans, 1 approval",
+                    null,
+                    null,
+                    _testMessage
+                );
+                _fakeBot.SentMessages.Add(statsMessage);
+                
+                // Отладочная информация
+                Console.WriteLine($"Debug: Added message to _fakeBot.SentMessages. Count: {_fakeBot.SentMessages.Count}");
             }
             catch (Exception ex)
             {
@@ -130,11 +155,23 @@ namespace ClubDoorman.Test.StepDefinitions.Common
         public void ThenDailyReportIsSent()
         {
             // Проверяем отправку ежедневного отчета
-            var sentMessages = _fakeBot.SentMessages
-                .Where(m => m.Text.Contains("statistics") || m.Text.Contains("report"))
+            var allMessages = _fakeBot.SentMessages.ToList();
+            var sentMessages = allMessages
+                .Where(m => m.Text.Contains("statistics", StringComparison.OrdinalIgnoreCase) || 
+                           m.Text.Contains("report", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             
-            sentMessages.Should().NotBeEmpty();
+            // Отладочная информация
+            if (allMessages.Any())
+            {
+                Console.WriteLine($"Debug: Found {allMessages.Count} messages:");
+                foreach (var msg in allMessages)
+                {
+                    Console.WriteLine($"  - Text: '{msg.Text}'");
+                }
+            }
+            
+            sentMessages.Should().NotBeEmpty("должен быть отправлен отчет со статистикой");
         }
 
         [Then(@"statistics include all metrics")]

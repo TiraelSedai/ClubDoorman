@@ -1,0 +1,55 @@
+@BDD
+Feature: Suspicious Command
+  As an administrator
+  I want to manage suspicious users
+  So that I can monitor and control potentially problematic users
+
+  Background:
+    Given I am an administrator
+    And I have a message handler
+
+  Scenario: Show suspicious users statistics
+    Given there are suspicious users in the system
+    When I send "/suspicious stats"
+    Then I should see suspicious users statistics
+    And the statistics should include total suspicious users count
+    And the statistics should include AI detect users count
+    And the statistics should include groups count
+    And the statistics should show system status
+
+  Scenario: List users with AI detect
+    Given there are users with AI detect enabled
+    When I send "/suspicious list"
+    Then I should see a list of users with AI detect
+    And the list should include user IDs and chat IDs
+    And the list should be limited to 10 users
+
+  Scenario: Show help for suspicious command
+    When I send "/suspicious help"
+    Then I should see help information
+    And the help should describe the suspicious system
+    And the help should list available commands
+
+  Scenario: Show help for suspicious command without parameters
+    When I send "/suspicious"
+    Then I should see help information
+    And the help should describe the suspicious system
+    And the help should list available commands
+
+  Scenario: Non-admin user cannot access suspicious command
+    Given I am not an administrator
+    When I send "/suspicious stats"
+    Then I should not receive any response
+    And no suspicious users statistics should be displayed
+
+  Scenario: Empty AI detect users list
+    Given there are no users with AI detect enabled
+    When I send "/suspicious list"
+    Then I should see a message indicating no users with AI detect
+    And the message should be informative
+
+  Scenario: Suspicious command with invalid subcommand
+    When I send "/suspicious invalid_subcommand"
+    Then I should see help information
+    And the help should describe the suspicious system
+    And the help should list available commands 

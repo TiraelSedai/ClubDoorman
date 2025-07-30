@@ -26,6 +26,26 @@ public static class TestDataFactory
         };
     }
 
+    public static Message CreateValidMessageWithId(long messageId = 123)
+    {
+        // ВНИМАНИЕ: MessageId в Telegram.Bot является readonly свойством и не может быть установлен
+        // через обычные средства .NET (конструктор, рефлексию, FormatterServices).
+        // Это ограничение самой библиотеки Telegram.Bot.
+        // 
+        // Для тестов, где важен MessageId, рекомендуется:
+        // 1. Использовать FakeTelegramClient, который отслеживает отправленные сообщения
+        // 2. Проверять логику, которая не зависит от конкретного значения MessageId
+        // 3. Использовать моки для имитации поведения с MessageId
+        
+        var message = CreateValidMessage();
+        
+        // MessageId останется 0 (значение по умолчанию)
+        // Это нормально для большинства тестов, так как MessageId обычно используется
+        // только для идентификации сообщений в Telegram API
+        
+        return message;
+    }
+
     public static Message CreateSpamMessage()
     {
         return new Message
@@ -494,6 +514,61 @@ public static class TestDataFactory
             FirstName = "Bait",
             Username = "bait_user",
             IsBot = false
+        };
+    }
+
+    public static Chat CreateChannel()
+    {
+        return new Chat
+        {
+            Id = -1001234567891,
+            Type = ChatType.Channel,
+            Title = "Test Channel",
+            Username = "testchannel"
+        };
+    }
+
+    public static Message CreateChannelMessage(long senderChatId, long chatId, string text = "Channel message")
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = text,
+            Chat = new Chat
+            {
+                Id = chatId,
+                Type = ChatType.Group,
+                Title = "Test Group"
+            },
+            SenderChat = new Chat
+            {
+                Id = senderChatId,
+                Type = ChatType.Channel,
+                Title = "Test Channel",
+                Username = "testchannel"
+            }
+        };
+    }
+
+    public static Message CreateTextMessage(long userId, long chatId, string text = "Test message")
+    {
+        return new Message
+        {
+            Date = DateTime.UtcNow,
+            Text = text,
+            From = new User
+            {
+                Id = userId,
+                FirstName = "Test",
+                Username = "testuser",
+                IsBot = false
+            },
+            Chat = new Chat
+            {
+                Id = chatId,
+                Type = ChatType.Group,
+                Title = "Test Group"
+            }
         };
     }
 
