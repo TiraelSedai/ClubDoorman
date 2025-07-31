@@ -1,0 +1,112 @@
+﻿{
+  TestName: BanUserForLongName_JsonSnapshot_GoldenMaster,
+  Timestamp: DateTimeOffset_1,
+  JsonData:
+{
+  "TestName": "BanUserForLongName_JsonSnapshot_GoldenMaster",
+  "Scenarios": [
+    {
+      "Seed": 200,
+      "ScenarioType": "TemporaryBan",
+      "User": {
+        "Id": 290175497,
+        "FirstName": "Кира",
+        "Username": "Evgenii_Seleznev2",
+        "IsBot": false
+      },
+      "Chat": {
+        "Id": -425789314241,
+        "Type": 4,
+        "Title": "Панфилов - Сысоева"
+      },
+      "Message": {
+        "MessageId": 0,
+        "Text": "Вызывает системы не уточнения сознания управление материально-технической забывать технологий предложений."
+      },
+      "BanDuration": "00:49:00",
+      "Reason": "Временный бан за нарушение"
+    },
+    {
+      "Seed": 201,
+      "ScenarioType": "PermanentBan",
+      "User": {
+        "Id": 760358279,
+        "FirstName": "Валентина",
+        "Username": "Eduard84",
+        "IsBot": false
+      },
+      "Chat": {
+        "Id": -646592424599,
+        "Type": 4,
+        "Title": "Вишняков - Нестеров"
+      },
+      "Message": {
+        "MessageId": 0,
+        "Text": "Предпосылки дальнейшее для повышение забывать."
+      },
+      "BanDuration": null,
+      "Reason": "Перманентный бан за серьезное нарушение"
+    },
+    {
+      "Seed": 202,
+      "ScenarioType": "PrivateChatBan",
+      "User": {
+        "Id": 330541062,
+        "FirstName": "Юрий",
+        "Username": "Darya_Maslov76",
+        "IsBot": false
+      },
+      "Chat": {
+        "Id": 200325636,
+        "Type": 1,
+        "Title": "Kautzer, Schmeler and Sporer"
+      },
+      "Message": {
+        "MessageId": 0,
+        "Text": "Порядка начало задача современного интересный другой."
+      },
+      "BanDuration": "00:30:00",
+      "Reason": "Бан в приватном чате"
+    },
+    {
+      "Seed": 203,
+      "ScenarioType": "NullMessageBan",
+      "User": {
+        "Id": 800723845,
+        "FirstName": "Леонид",
+        "Username": "Rimma9",
+        "IsBot": false
+      },
+      "Chat": {
+        "Id": -882840448843,
+        "Type": 4,
+        "Title": "Королева, Воробьев and Пономарева"
+      },
+      "Message": null,
+      "BanDuration": "00:15:00",
+      "Reason": "Бан без сообщения"
+    },
+    {
+      "Seed": 204,
+      "ScenarioType": "BotBan",
+      "User": {
+        "Id": 370906628,
+        "FirstName": "Виктория",
+        "Username": "Vladimir.Antonova49",
+        "IsBot": true
+      },
+      "Chat": {
+        "Id": -473559413652,
+        "Type": 4,
+        "Title": "Сафонова, Родионова and Суворова"
+      },
+      "Message": {
+        "MessageId": 0,
+        "Text": "Участия укрепления организационной материально-технической равным."
+      },
+      "BanDuration": "01:00:00",
+      "Reason": "Бан бота"
+    }
+  ]
+}
+}

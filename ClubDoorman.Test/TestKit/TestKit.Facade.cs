@@ -25,6 +25,12 @@ namespace ClubDoorman.Test.TestKit
         public static MessageHandlerTestFactory CreateMessageHandlerFactory() => new();
 
         /// <summary>
+        /// Создает билдер для MessageHandler
+        /// <tags>builder, message-handler, test-infrastructure, fluent-api</tags>
+        /// </summary>
+        public static MessageHandlerBuilder CreateMessageHandlerBuilder() => new();
+
+        /// <summary>
         /// Создает фабрику для ModerationService
         /// <tags>factory, moderation-service, test-infrastructure</tags>
         /// </summary>
@@ -89,6 +95,40 @@ namespace ClubDoorman.Test.TestKit
         /// <tags>factory, mimicry-classifier, ml, test-infrastructure</tags>
         /// </summary>
         public static MimicryClassifierTestFactory CreateMimicryClassifierFactory() => new();
+
+        #endregion
+
+        #region Mock Builder Methods
+
+        /// <summary>
+        /// Создает билдер для мока IModerationService
+        /// <tags>builder, moderation-service, mocks, fluent-api</tags>
+        /// </summary>
+        public static ModerationServiceMockBuilder CreateModerationServiceMock() => TestKitMockBuilders.CreateModerationServiceMock();
+        
+        /// <summary>
+        /// Создает билдер для мока IUserManager
+        /// <tags>builder, user-manager, mocks, fluent-api</tags>
+        /// </summary>
+        public static UserManagerMockBuilder CreateUserManagerMock() => TestKitMockBuilders.CreateUserManagerMock();
+        
+        /// <summary>
+        /// Создает билдер для мока ICaptchaService
+        /// <tags>builder, captcha-service, mocks, fluent-api</tags>
+        /// </summary>
+        public static CaptchaServiceMockBuilder CreateCaptchaServiceMock() => TestKitMockBuilders.CreateCaptchaServiceMock();
+        
+        /// <summary>
+        /// Создает билдер для мока IAiChecks
+        /// <tags>builder, ai-checks, mocks, fluent-api</tags>
+        /// </summary>
+        public static AiChecksMockBuilder CreateAiChecksMock() => TestKitMockBuilders.CreateAiChecksMock();
+        
+        /// <summary>
+        /// Создает билдер для мока ITelegramBotClientWrapper
+        /// <tags>builder, telegram-bot, mocks, fluent-api</tags>
+        /// </summary>
+        public static TelegramBotMockBuilder CreateTelegramBotMock() => TestKitMockBuilders.CreateTelegramBotMock();
 
         #endregion
 

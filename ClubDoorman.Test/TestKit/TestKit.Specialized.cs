@@ -262,6 +262,62 @@ namespace ClubDoorman.Test.TestKit
                 /// <tags>ban, moderation, allow, result, ml</tags>
                 /// </summary>
                 public static ModerationResult AllowResult(string reason = "Valid message") => new ModerationResult(ModerationAction.Allow, reason);
+
+                /// <summary>
+                /// Сценарий для тестирования временного бана
+                /// <tags>ban, scenario, temporary, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, TimeSpan BanDuration, string Reason) TemporaryBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 12345);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, TimeSpan.FromMinutes(10), "Длинное имя пользователя");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования перманентного бана
+                /// <tags>ban, scenario, permanent, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, TimeSpan? BanDuration, string Reason) PermanentBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 67890);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, null, "Экстремально длинное имя пользователя");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования попытки бана в приватном чате
+                /// <tags>ban, scenario, private-chat, error-handling, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, TimeSpan BanDuration, string Reason) PrivateChatBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 11111);
+                    var chat = TK.CreatePrivateChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, TimeSpan.FromMinutes(10), "Длинное имя пользователя");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования бана пользователя из блэклиста
+                /// <tags>ban, scenario, blacklist, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) BlacklistBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 22222);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message);
+                }
             }
 
             /// <summary>

@@ -1,0 +1,36 @@
+﻿{
+  TestName: BanUserForLongName_TemporaryBan_GoldenMaster,
+  Timestamp: DateTimeOffset_1,
+  TotalScenarios: 1,
+  Scenarios: [
+    {
+      Input: {
+        User: {
+          Id: 701295819,
+          FirstName: Аркадий,
+          Username: Anzhelika.Rogov,
+          IsBot: false
+        },
+        Chat: {
+          Id: -314874497203,
+          Type: Supergroup,
+          Title: Горшков Торг
+        },
+        Message: {
+          Text: Повседневная анализа соответствующих постоянное новых.
+        },
+        BanDuration: 00:13:00,
+        Reason: Временный бан за нарушение,
+        ScenarioType: TemporaryBan,
+        Seed: 42
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Временный бан за нарушение,
+      HasException: false
+    }
+  ]
+}
