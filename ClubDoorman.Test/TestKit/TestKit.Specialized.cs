@@ -318,6 +318,51 @@ namespace ClubDoorman.Test.TestKit
                     
                     return (user, chat, message);
                 }
+
+                /// <summary>
+                /// Сценарий для тестирования бана канала
+                /// <tags>ban, scenario, channel, golden-master</tags>
+                /// </summary>
+                public static (Chat TargetChat, Chat SenderChat, Message Message) ChannelBanScenario()
+                {
+                    var targetChat = TK.CreateGroupChat();
+                    var senderChat = TK.CreateChannel();
+                    var message = TK.CreateChannelMessage(senderChat.Id, targetChat.Id);
+                    message.Chat = targetChat;
+                    message.SenderChat = senderChat;
+                    
+                    return (targetChat, senderChat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования автобана пользователя
+                /// <tags>ban, scenario, auto-ban, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, string Reason) AutoBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 33333);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, "Известное спам-сообщение");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan
+                /// <tags>ban, scenario, handle-blacklist, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 44444);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    
+                    return (user, chat, message);
+                }
             }
 
             /// <summary>

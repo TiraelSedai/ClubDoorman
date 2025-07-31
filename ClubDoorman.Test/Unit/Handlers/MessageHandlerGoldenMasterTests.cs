@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ClubDoorman.Handlers;
 using ClubDoorman.Models.Notifications;
+using ClubDoorman.Services;
 using ClubDoorman.Test.TestKit;
 using ClubDoorman.TestInfrastructure;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ using Moq;
 using NUnit.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman.Test.Unit.Handlers;
 
@@ -31,6 +33,14 @@ public class MessageHandlerGoldenMasterTests
     public void Setup()
     {
         _factory = new MessageHandlerTestFactory();
+        
+        // Настраиваем AppConfig для тестов
+        _factory.AppConfigMock.Setup(x => x.LogAdminChatId).Returns(123456789L);
+        _factory.AppConfigMock.Setup(x => x.RepeatedViolationsBanToAdminChat).Returns(false);
+        
+        // Настраиваем UserManager для HandleBlacklistBan
+        _factory.UserManagerMock.Setup(x => x.RemoveApproval(It.IsAny<long>(), It.IsAny<long?>(), It.IsAny<bool>())).Returns(false);
+        
         _messageHandler = _factory.CreateMessageHandler();
     }
 
@@ -246,5 +256,149 @@ public class MessageHandlerGoldenMasterTests
                 "Пользователь в блэклисте"),
             Times.Once,
             "Должен залогироваться бан пользователя из блэклиста");
+    }
+
+    /// <summary>
+    /// Тест для бана канала
+    /// Проверяет AutoBanChannel метод
+    /// <tags>golden-master, production, channel-ban, extrapolation</tags>
+    /// </summary>
+    [Test]
+    public async Task AutoBanChannel_ChannelMessage_VerifiesAllCalls()
+    {
+        // Arrange: Используем готовый сценарий из TestKit
+        var (targetChat, senderChat, message) = TK.Specialized.BanTests.ChannelBanScenario();
+
+        // Act: Вызываем метод напрямую
+        await _messageHandler.AutoBanChannel(message, CancellationToken.None);
+
+        // Assert: Проверяем все внешние вызовы
+        _factory.BotMock.Verify(
+            x => x.DeleteMessage(
+                targetChat,
+                message.MessageId,
+                CancellationToken.None),
+            Times.Once,
+            "Должно удалиться сообщение от канала");
+
+        _factory.BotMock.Verify(
+            x => x.BanChatSenderChat(
+                targetChat,
+                senderChat.Id,
+                CancellationToken.None),
+            Times.Once,
+            "Должен заблокироваться канал-отправитель");
+
+        _factory.MessageServiceMock.Verify(
+            x => x.ForwardToAdminWithNotificationAsync(
+                message,
+                AdminNotificationType.ChannelMessage,
+                It.Is<ChannelMessageNotificationData>(data => 
+                    data.SenderChat.Id == senderChat.Id && 
+                    data.Chat.Id == targetChat.Id),
+                CancellationToken.None),
+            Times.Once,
+            "Должно отправиться уведомление администратору о сообщении от канала");
+    }
+
+    /// <summary>
+    /// Тест для автобана пользователя
+    /// Проверяет AutoBan метод
+    /// <tags>golden-master, production, auto-ban, extrapolation</tags>
+    /// </summary>
+    [Test]
+    public async Task AutoBan_GroupChat_VerifiesAllCalls()
+    {
+        // Arrange: Используем готовый сценарий из TestKit
+        var (user, chat, message, reason) = TK.Specialized.BanTests.AutoBanScenario();
+
+        // Act: Вызываем метод напрямую
+        await _messageHandler.AutoBan(message, reason, CancellationToken.None);
+
+        // Assert: Проверяем все внешние вызовы
+        _factory.BotMock.Verify(
+            x => x.BanChatMember(
+                chat,
+                user.Id,
+                null, // Перманентный бан
+                false, // revokeMessages = false
+                CancellationToken.None),
+            Times.Once,
+            "Должен заблокироваться пользователь");
+
+        _factory.BotMock.Verify(
+            x => x.DeleteMessage(
+                chat,
+                message.MessageId,
+                CancellationToken.None),
+            Times.Once,
+            "Должно удалиться сообщение");
+
+        _factory.MessageServiceMock.Verify(
+            x => x.SendLogNotificationAsync(
+                LogNotificationType.AutoBanKnownSpam,
+                It.Is<AutoBanNotificationData>(data => 
+                    data.User.Id == user.Id && 
+                    data.Chat.Id == chat.Id &&
+                    data.Reason == reason),
+                CancellationToken.None),
+            Times.Once,
+            "Должно отправиться уведомление в лог-чат");
+    }
+
+    /// <summary>
+    /// Тест для HandleBlacklistBan
+    /// Проверяет обработку бана из блэклиста lols.bot
+    /// <tags>golden-master, production, handle-blacklist, extrapolation</tags>
+    /// </summary>
+    [Test]
+    public async Task HandleBlacklistBan_GroupChat_VerifiesAllCalls()
+    {
+        // Arrange: Используем готовый сценарий из TestKit
+        var (user, chat, message) = TK.Specialized.BanTests.HandleBlacklistBanScenario();
+
+        // Act: Вызываем метод напрямую
+        await _messageHandler.HandleBlacklistBan(message, user, chat, CancellationToken.None);
+
+        // Assert: Проверяем все внешние вызовы
+        _factory.UserFlowLoggerMock.Verify(
+            x => x.LogUserBanned(
+                user,
+                chat,
+                "Пользователь в блэклисте lols.bot"),
+            Times.Once,
+            "Должен залогироваться бан пользователя из блэклиста");
+
+        _factory.BotMock.Verify(
+            x => x.ForwardMessage(
+                It.IsAny<ChatId>(),
+                chat.Id,
+                message.MessageId,
+                CancellationToken.None),
+            Times.Once,
+            "Должно переслаться сообщение в лог-чат");
+
+        _factory.BotMock.Verify(
+            x => x.DeleteMessage(
+                chat,
+                message.MessageId,
+                CancellationToken.None),
+            Times.Once,
+            "Должно удалиться сообщение");
+
+        _factory.BotMock.Verify(
+            x => x.BanChatMember(
+                chat.Id,
+                user.Id,
+                It.Is<DateTime?>(dt => dt.HasValue && dt.Value > DateTime.UtcNow),
+                true, // revokeMessages
+                CancellationToken.None),
+            Times.Once,
+            "Должен заблокироваться пользователь на 4 часа");
+
+        _factory.StatisticsServiceMock.Verify(
+            x => x.IncrementBlacklistBan(chat.Id),
+            Times.Once,
+            "Должна обновиться статистика банов из блэклиста");
     }
 } 
