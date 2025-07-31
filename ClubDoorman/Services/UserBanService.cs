@@ -96,75 +96,13 @@ public class UserBanService : IUserBanService
         if (!await ValidateBanOperationAsync(chat, user, reason, cancellationToken))
             return;
         
-        // Форвардим сообщение в лог-чат с уведомлением
-        var autoBanData = new AutoBanNotificationData(
-            user, 
-            message.Chat, 
-            "Автобан", 
-            reason, 
-            message.MessageId, 
-            LinkToMessage(message.Chat, message.MessageId)
-        );
+        var autoBanData = CreateAutoBanData(user, message, reason);
+        var logNotificationType = DetermineLogNotificationType(reason);
         
-        // Выбираем правильный тип уведомления в зависимости от причины
-        var logNotificationType = reason switch
-        {
-            var r when r.Contains("Известное спам-сообщение") => LogNotificationType.AutoBanKnownSpam,
-            var r when r.Contains("Ссылки запрещены") => LogNotificationType.AutoBanTextMention,
-            var r when r.Contains("Повторные нарушения") => LogNotificationType.AutoBanRepeatedViolations,
-            _ => LogNotificationType.AutoBanBlacklist
-        };
-            
-        try
-        {
-            // Отправляем уведомление в зависимости от настройки
-            if (_appConfig.RepeatedViolationsBanToAdminChat)
-            {
-                // Отправляем в админ-чат
-                await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, autoBanData, cancellationToken);
-            }
-            else
-            {
-                // Отправляем в лог-чат без пересылки сообщения (так как оно уже удалено)
-                await _messageService.SendLogNotificationAsync(logNotificationType, autoBanData, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при отправке уведомления о бане типа {NotificationType}", logNotificationType);
-        }
-        
-        try
-        {
-            // Пытаемся удалить сообщение (может не получиться, если уже удалено)
-            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Не удалось удалить сообщение {MessageId} из чата {ChatId} (возможно, уже удалено)", message.MessageId, message.Chat.Id);
-        }
-        
-        try
-        {
-            // Баним пользователя
-            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
-            _logger.LogInformation("✅ Пользователь {UserId} успешно забанен в чате {ChatId}", user.Id, message.Chat.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при бане пользователя {UserId} в чате {ChatId}", user.Id, message.Chat.Id);
-        }
-        
-        // Полностью очищаем пользователя из всех списков
-        _moderationService.CleanupUserFromAllLists(user.Id, message.Chat.Id);
-        
-        // Сбрасываем счетчики нарушений для всех типов
-        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.MlSpam);
-        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.StopWords);
-        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.TooManyEmojis);
-        _violationTracker.ResetViolations(user.Id, message.Chat.Id, ViolationType.LookalikeSymbols);
-        
-        _logger.LogInformation("🧹 Счетчики нарушений сброшены для пользователя {UserId} в чате {ChatId}", user.Id, message.Chat.Id);
+        await SendAutoBanNotificationAsync(autoBanData, logNotificationType, cancellationToken);
+        await DeleteMessageWithErrorHandlingAsync(message, cancellationToken);
+        await BanUserPermanentlyAsync(message, user, cancellationToken);
+        await CleanupUserDataAsync(user, chat, cancellationToken);
     }
 
     public async Task AutoBanChannelAsync(Message message, CancellationToken cancellationToken)
@@ -333,6 +271,18 @@ public class UserBanService : IUserBanService
         }
     }
 
+    private async Task DeleteMessageWithErrorHandlingAsync(Message message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Не удалось удалить сообщение {MessageId} из чата {ChatId} (возможно, уже удалено)", message.MessageId, message.Chat.Id);
+        }
+    }
+
     private async Task BanUserWithDurationAsync(Chat chat, User user, TimeSpan? banDuration, CancellationToken cancellationToken)
     {
         DateTime? banUntil = banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null;
@@ -352,5 +302,67 @@ public class UserBanService : IUserBanService
         {
             await _messageService.SendLogNotificationAsync(LogNotificationType.BanForLongName, banData, cancellationToken);
         }
+    }
+
+    private AutoBanNotificationData CreateAutoBanData(User user, Message message, string reason) =>
+        new AutoBanNotificationData(
+            user, 
+            message.Chat, 
+            "Автобан", 
+            reason, 
+            message.MessageId, 
+            LinkToMessage(message.Chat, message.MessageId)
+        );
+
+    private LogNotificationType DetermineLogNotificationType(string reason) =>
+        reason switch
+        {
+            var r when r.Contains("Известное спам-сообщение") => LogNotificationType.AutoBanKnownSpam,
+            var r when r.Contains("Ссылки запрещены") => LogNotificationType.AutoBanTextMention,
+            var r when r.Contains("Повторные нарушения") => LogNotificationType.AutoBanRepeatedViolations,
+            _ => LogNotificationType.AutoBanBlacklist
+        };
+
+    private async Task SendAutoBanNotificationAsync(AutoBanNotificationData autoBanData, LogNotificationType logNotificationType, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (_appConfig.RepeatedViolationsBanToAdminChat)
+            {
+                await _messageService.SendAdminNotificationAsync(AdminNotificationType.AutoBan, autoBanData, cancellationToken);
+            }
+            else
+            {
+                await _messageService.SendLogNotificationAsync(logNotificationType, autoBanData, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке уведомления о бане типа {NotificationType}", logNotificationType);
+        }
+    }
+
+    private async Task BanUserPermanentlyAsync(Message message, User user, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _bot.BanChatMember(message.Chat, user.Id, revokeMessages: false, cancellationToken: cancellationToken);
+            _logger.LogInformation("✅ Пользователь {UserId} успешно забанен в чате {ChatId}", user.Id, message.Chat.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при бане пользователя {UserId} в чате {ChatId}", user.Id, message.Chat.Id);
+        }
+    }
+
+    private async Task CleanupUserDataAsync(User user, Chat chat, CancellationToken cancellationToken)
+    {
+        _moderationService.CleanupUserFromAllLists(user.Id, chat.Id);
+        _violationTracker.ResetViolations(user.Id, chat.Id, ViolationType.MlSpam);
+        _violationTracker.ResetViolations(user.Id, chat.Id, ViolationType.StopWords);
+        _violationTracker.ResetViolations(user.Id, chat.Id, ViolationType.TooManyEmojis);
+        _violationTracker.ResetViolations(user.Id, chat.Id, ViolationType.LookalikeSymbols);
+        
+        _logger.LogInformation("🧹 Счетчики нарушений сброшены для пользователя {UserId} в чате {ChatId}", user.Id, chat.Id);
     }
 } 
