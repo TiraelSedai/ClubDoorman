@@ -200,6 +200,95 @@ namespace ClubDoorman.Test.TestKit
                 /// <tags>messages, new-user, join, member</tags>
                 /// </summary>
                 public static Message NewUserJoin(long userId = 12345) => TestDataFactory.CreateNewUserJoinMessage(userId);
+
+                // === СЦЕНАРИИ ДЛЯ ПОКРЫТИЯ NULL COALESCING МУТАНТОВ ===
+                
+                /// <summary>
+                /// Сценарий для тестирования сообщения с Text, но без Caption
+                /// <tags>messages, null-coalescing, text-only, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) TextOnlyScenario()
+                {
+                    var user = TK.CreateUser(userId: 55555);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = "Обычное текстовое сообщение";
+                    message.Caption = null;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения с Caption, но без Text
+                /// <tags>messages, null-coalescing, caption-only, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) CaptionOnlyScenario()
+                {
+                    var user = TK.CreateUser(userId: 66666);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = "Подпись к медиа";
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения без Text и Caption
+                /// <tags>messages, null-coalescing, no-text, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) NoTextScenario()
+                {
+                    var user = TK.CreateUser(userId: 77777);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = null;
+                    message.Photo = new[] { new PhotoSize { FileId = "photo1", Width = 100, Height = 100 } };
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения с длинным текстом (>100 символов)
+                /// <tags>messages, long-text, truncation, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) LongTextScenario()
+                {
+                    var user = TK.CreateUser(userId: 88888);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = "Это очень длинное сообщение, которое содержит более ста символов для тестирования логики обрезки текста в логах. Оно должно быть обрезано до 100 символов с добавлением многоточия.";
+                    message.Caption = null;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения с длинной подписью (>100 символов)
+                /// <tags>messages, long-caption, truncation, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) LongCaptionScenario()
+                {
+                    var user = TK.CreateUser(userId: 99999);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = "Это очень длинная подпись к медиа, которая содержит более ста символов для тестирования логики обрезки текста в логах. Она должна быть обрезана до 100 символов с добавлением многоточия.";
+                    message.Photo = new[] { new PhotoSize { FileId = "photo2", Width = 200, Height = 200 } };
+                    
+                    return (user, chat, message);
+                }
             }
 
             /// <summary>
