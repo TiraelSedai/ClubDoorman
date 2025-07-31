@@ -135,90 +135,13 @@ public class UserBanService : IUserBanService
 
     public async Task HandleBlacklistBanAsync(Message message, User user, Chat chat, CancellationToken cancellationToken)
     {
-        var userMessageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
-        _logger.LogWarning("🚫 БЛЭКЛИСТ LOLS.BOT: {UserName} (id={UserId}) в чате '{ChatTitle}' (id={ChatId}) написал: {MessageText}", 
-            FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id, 
-            userMessageText.Length > 100 ? userMessageText.Substring(0, 100) + "..." : userMessageText);
-        
-        _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте lols.bot");
-        
-        // Пересылаем сообщение в лог-чат с уведомлением
-        try
-        {
-            var blacklistData = new AutoBanNotificationData(
-                user, 
-                message.Chat, 
-                "Автобан по блэклисту lols.bot", 
-                "первое сообщение", 
-                message.MessageId, 
-                LinkToMessage(message.Chat, message.MessageId)
-            );
-            
-            // Пересылаем сообщение и отправляем уведомление как реплай
-            var forwardedMessage = await _bot.ForwardMessage(
-                new ChatId(Config.LogAdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: cancellationToken
-            );
-            
-            var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanBlacklist);
-            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, blacklistData);
-            
-            await _bot.SendMessage(
-                Config.LogAdminChatId,
-                messageText,
-                parseMode: ParseMode.Html,
-                replyParameters: forwardedMessage,
-                cancellationToken: cancellationToken
-            );
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Не удалось переслать сообщение в лог-чат");
-        }
-        
-        // Удаляем сообщение
-        try
-        {
-            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Не удалось удалить сообщение пользователя из блэклиста");
-        }
-        
-        // Баним пользователя на 4 часа (как в IntroFlowService)
-        try
-        {
-            var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
-            await _bot.BanChatMember(chat.Id, user.Id, untilDate: banUntil, revokeMessages: true, cancellationToken: cancellationToken);
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Не удалось забанить пользователя из блэклиста");
-        }
-        
-        // Обновляем статистику
-        _statisticsService.IncrementBlacklistBan(message.Chat.Id);
-        _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
-        
-        // Удаляем из списка одобренных
-        if (_userManager.RemoveApproval(user.Id))
-        {
-            try
-            {
-                var removedData = new SimpleNotificationData(user, message.Chat, "удален из списка одобренных после автобана по блэклисту");
-                await _messageService.SendAdminNotificationAsync(AdminNotificationType.RemovedFromApproved, removedData, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Не удалось отправить уведомление об удалении из одобренных");
-            }
-        }
-        
-        _logger.LogInformation("✅ АВТОБАН ЗАВЕРШЕН: пользователь {User} (id={UserId}) забанен на 4 часа в чате '{ChatTitle}' (id={ChatId}) по блэклисту lols.bot", 
-            FullName(user.FirstName, user.LastName), user.Id, message.Chat.Title, message.Chat.Id);
+        await LogBlacklistBanAttemptAsync(message, user, chat);
+        await SendBlacklistBanNotificationAsync(message, user, chat, cancellationToken);
+        await DeleteMessageSafelyAsync(message, cancellationToken);
+        await BanUserFromBlacklistAsync(chat, user, cancellationToken);
+        await UpdateBlacklistStatisticsAsync(message, chat);
+        await RemoveUserFromApprovedAsync(user, message, chat, cancellationToken);
+        await LogBlacklistBanSuccessAsync(user, chat);
     }
 
     private static string LinkToMessage(Chat chat, long messageId) =>
@@ -345,5 +268,106 @@ public class UserBanService : IUserBanService
         _violationTracker.ResetViolations(user.Id, chat.Id, ViolationType.LookalikeSymbols);
         
         _logger.LogInformation("🧹 Счетчики нарушений сброшены для пользователя {UserId} в чате {ChatId}", user.Id, chat.Id);
+    }
+
+    private async Task LogBlacklistBanAttemptAsync(Message message, User user, Chat chat)
+    {
+        var userMessageText = message.Text ?? message.Caption ?? "[медиа/стикер/файл]";
+        _logger.LogWarning("🚫 БЛЭКЛИСТ LOLS.BOT: {UserName} (id={UserId}) в чате '{ChatTitle}' (id={ChatId}) написал: {MessageText}", 
+            FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id, 
+            userMessageText.Length > 100 ? userMessageText.Substring(0, 100) + "..." : userMessageText);
+        
+        _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте lols.bot");
+    }
+
+    private async Task SendBlacklistBanNotificationAsync(Message message, User user, Chat chat, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var blacklistData = new AutoBanNotificationData(
+                user, 
+                message.Chat, 
+                "Автобан по блэклисту lols.bot", 
+                "первое сообщение", 
+                message.MessageId, 
+                LinkToMessage(message.Chat, message.MessageId)
+            );
+            
+            // Пересылаем сообщение и отправляем уведомление как реплай
+            var forwardedMessage = await _bot.ForwardMessage(
+                new ChatId(Config.LogAdminChatId),
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: cancellationToken
+            );
+            
+            var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanBlacklist);
+            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, blacklistData);
+            
+            await _bot.SendMessage(
+                Config.LogAdminChatId,
+                messageText,
+                parseMode: ParseMode.Html,
+                replyParameters: forwardedMessage,
+                cancellationToken: cancellationToken
+            );
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось переслать сообщение в лог-чат");
+        }
+    }
+
+    private async Task DeleteMessageSafelyAsync(Message message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _bot.DeleteMessage(message.Chat, message.MessageId, cancellationToken: cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось удалить сообщение пользователя из блэклиста");
+        }
+    }
+
+    private async Task BanUserFromBlacklistAsync(Chat chat, User user, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
+            await _bot.BanChatMember(chat.Id, user.Id, untilDate: banUntil, revokeMessages: true, cancellationToken: cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Не удалось забанить пользователя из блэклиста");
+        }
+    }
+
+    private async Task UpdateBlacklistStatisticsAsync(Message message, Chat chat)
+    {
+        _statisticsService.IncrementBlacklistBan(message.Chat.Id);
+        _globalStatsManager.IncBan(message.Chat.Id, message.Chat.Title ?? "");
+    }
+
+    private async Task RemoveUserFromApprovedAsync(User user, Message message, Chat chat, CancellationToken cancellationToken)
+    {
+        if (_userManager.RemoveApproval(user.Id))
+        {
+            try
+            {
+                var removedData = new SimpleNotificationData(user, message.Chat, "удален из списка одобренных после автобана по блэклисту");
+                await _messageService.SendAdminNotificationAsync(AdminNotificationType.RemovedFromApproved, removedData, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Не удалось отправить уведомление об удалении из одобренных");
+            }
+        }
+    }
+
+    private async Task LogBlacklistBanSuccessAsync(User user, Chat chat)
+    {
+        _logger.LogInformation("✅ АВТОБАН ЗАВЕРШЕН: пользователь {User} (id={UserId}) забанен на 4 часа в чате '{ChatTitle}' (id={ChatId}) по блэклисту lols.bot", 
+            FullName(user.FirstName, user.LastName), user.Id, chat.Title, chat.Id);
     }
 } 
