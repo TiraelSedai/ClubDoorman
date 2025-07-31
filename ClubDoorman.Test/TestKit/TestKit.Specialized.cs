@@ -1,9 +1,12 @@
 using ClubDoorman.Models;
 using ClubDoorman.Test.TestData;
 using Telegram.Bot.Types;
+using Moq;
 
 namespace ClubDoorman.Test.TestKit
 {
+
+
     /// <summary>
     /// Специализированные генераторы для конкретных доменных областей
     /// <tags>specialized, generators, domain-specific</tags>
@@ -405,6 +408,55 @@ namespace ClubDoorman.Test.TestKit
                 public static (User User, Chat Chat, Message Message) HandleBlacklistBanScenario()
                 {
                     var user = TK.CreateUser(userId: 44444);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan с длинным текстом
+                /// <tags>ban, scenario, handle-blacklist, long-text, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanLongTextScenario()
+                {
+                    var user = TK.CreateUser(userId: 55555);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = "Это очень длинное сообщение от пользователя из блэклиста, которое содержит более ста символов для тестирования логики обрезки текста в логах. Оно должно быть обрезано до 100 символов с добавлением многоточия.";
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan с медиа сообщением
+                /// <tags>ban, scenario, handle-blacklist, media-message, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanMediaScenario()
+                {
+                    var user = TK.CreateUser(userId: 66666);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = "Подпись к медиа от пользователя из блэклиста";
+                    message.Photo = new[] { new PhotoSize { FileId = "photo1", Width = 100, Height = 100 } };
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan с пользователем из одобренных
+                /// <tags>ban, scenario, handle-blacklist, approved-user, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanApprovedUserScenario()
+                {
+                    var user = TK.CreateUser(userId: 77777);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;

@@ -11,8 +11,10 @@ ClubDoorman/ClubDoorman.csproj.user
 
 # Test artifacts
 ClubDoorman.Test/TestResults/
+TestResults/
 test_output.txt
 ClubDoorman.Test/StrykerOutput/
+StrykerOutput/
 ClubDoorman.Test/coverage/
 ClubDoorman.Test/TestData/temp/
 ClubDoorman.Test/Performance/results/
@@ -22,7 +24,15 @@ ClubDoorman.Test/Mutation/results/
 *.test.log
 test-results.xml
 coverage.xml
+coverage.cobertura.xml
 mutation-report.html
+mutation-report.json
+
+# Coverage reports
+*.coverage
+*.coverage.*
+coverage/
+coverage-reports/
 
 # Application logs
 ClubDoorman/logs/
