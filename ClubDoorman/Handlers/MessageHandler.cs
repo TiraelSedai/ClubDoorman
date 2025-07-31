@@ -7,6 +7,7 @@ using ClubDoorman.Models;
 using ClubDoorman.Models.Notifications;
 using ClubDoorman.Models.Requests;
 using ClubDoorman.Services;
+using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -290,6 +291,27 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
 
     private async Task HandleCheckCommandAsync(Message message, string text, Message replyToMessage, CancellationToken cancellationToken)
     {
+        // Проверяем права администратора через существующий сервис
+        try 
+        {
+            var isBotAdmin = await _botPermissionsService.IsBotAdminAsync(message.Chat.Id, cancellationToken);
+            if (!isBotAdmin)
+            {
+                await _messageService.SendUserNotificationAsync(message.From!, message.Chat, UserNotificationType.Warning, 
+                    new SimpleNotificationData(message.From!, message.Chat, "Доступ запрещен - требуются права администратора"), 
+                    cancellationToken);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Не удалось проверить права администратора в чате {ChatId}", message.Chat.Id);
+            await _messageService.SendUserNotificationAsync(message.From!, message.Chat, UserNotificationType.Warning, 
+                new SimpleNotificationData(message.From!, message.Chat, "Ошибка проверки прав доступа"), 
+                cancellationToken);
+            return;
+        }
+        
         var emojis = SimpleFilters.TooManyEmojis(text);
         var normalized = TextProcessor.NormalizeText(text);
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
@@ -727,7 +749,19 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
 
         // Модерация сообщения
         _userFlowLogger.LogModerationStarted(user, chat, messageText);
-        var moderationResult = await _moderationService.CheckMessageAsync(message);
+        ModerationResult moderationResult;
+        try
+        {
+            moderationResult = await _moderationService.CheckMessageAsync(message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при модерации сообщения");
+            // При ошибке в ModerationService передаем на ручной анализ вместо автоматического разрешения
+            // Изначальное поведение: исключение прерывало всю обработку, сообщение не обрабатывалось
+            // Новое поведение: передаем на fallback-механизм (RequireManualReview) для безопасности
+            moderationResult = new ModerationResult(ModerationAction.RequireManualReview, "Ошибка модерации - требуется ручной анализ", 0);
+        }
         _userFlowLogger.LogModerationResult(user, chat, moderationResult.Action.ToString(), moderationResult.Reason, moderationResult.Confidence);
         
         // AI анализ профиля при первом сообщении (после базовой модерации)

@@ -89,12 +89,14 @@ namespace ClubDoorman.Test.StepDefinitions.Common
             // Определяем isAdmin из последнего вызова GivenIAmAnAdministrator или GivenIAmNotAnAdministrator
             var isAdmin = ScenarioContext.Current.ContainsKey("IsAdmin") && (bool)ScenarioContext.Current["IsAdmin"];
             
+            // Используем TestKit для создания правильного мока BotPermissionsService
             var botPermMock = isAdmin
                 ? TestKit.TestKit.CreateBotPermissionsServiceMockForChat(123456789)
                 : TestKit.TestKit.CreateBotPermissionsServiceMock(false);
             
             _factory.WithBotPermissionsServiceSetup(mock => {
                 mock.Reset();
+                // Настраиваем мок для проверки прав БОТА (а не пользователя) в чате
                 mock.Setup(x => x.IsBotAdminAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
                     .Returns((long chatId, CancellationToken token) => botPermMock.Object.IsBotAdminAsync(chatId, token));
                 mock.Setup(x => x.IsSilentModeAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))

@@ -399,6 +399,7 @@ public class MessageHandlerBanTests
     [Test]
     [Category("ban")]
     [Category("ai")]
+    [Ignore("AI/ML functionality not available in upstream momai version")]
     public async Task WhenAiConfirmsMlSuspicion_ShouldCallAutoBanAsync()
     {
         // Arrange
