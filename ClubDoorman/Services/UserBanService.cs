@@ -53,19 +53,9 @@ public class UserBanService : IUserBanService
         {
             var chat = userJoinMessage?.Chat!;
             
-            // Проверяем, что чат не приватный - в приватных чатах нельзя банить пользователей
-            if (chat.Type == ChatType.Private)
-            {
-                _logger.LogWarning("Попытка бана за длинное имя в приватном чате {ChatId} - операция невозможна", chat.Id);
-                var errorData = new ErrorNotificationData(
-                    new InvalidOperationException("Попытка бана в приватном чате"),
-                    "Бан за длинное имя",
-                    user,
-                    chat
-                );
-                await _messageService.SendAdminNotificationAsync(AdminNotificationType.PrivateChatBanAttempt, errorData, cancellationToken);
+            if (!await ValidateBanOperationAsync(chat, user, "Бан за длинное имя", cancellationToken))
                 return;
-            }
+
             await _bot.BanChatMember(
                 chat.Id, 
                 user.Id,
@@ -105,19 +95,8 @@ public class UserBanService : IUserBanService
         {
             var chat = userJoinMessage.Chat;
             
-            // Проверяем, что чат не приватный - в приватных чатах нельзя банить пользователей
-            if (chat.Type == ChatType.Private)
-            {
-                _logger.LogWarning("Попытка бана из блэклиста в приватном чате {ChatId} - операция невозможна", chat.Id);
-                var errorData = new ErrorNotificationData(
-                    new InvalidOperationException("Попытка бана в приватном чате"),
-                    "Бан из блэклиста",
-                    user,
-                    chat
-                );
-                await _messageService.SendAdminNotificationAsync(AdminNotificationType.PrivateChatBanAttempt, errorData, cancellationToken);
+            if (!await ValidateBanOperationAsync(chat, user, "Бан из блэклиста", cancellationToken))
                 return;
-            }
             
             var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
             await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true, cancellationToken: cancellationToken);
@@ -137,19 +116,8 @@ public class UserBanService : IUserBanService
         var user = message.From;
         var chat = message.Chat;
         
-        // Проверяем, что чат не приватный - в приватных чатах нельзя банить пользователей
-        if (chat.Type == ChatType.Private)
-        {
-            _logger.LogWarning("Попытка бана в приватном чате {ChatId} - операция невозможна", chat.Id);
-            var errorData = new ErrorNotificationData(
-                new InvalidOperationException("Попытка бана в приватном чате"),
-                reason,
-                user,
-                chat
-            );
-            await _messageService.SendAdminNotificationAsync(AdminNotificationType.PrivateChatBanAttempt, errorData, cancellationToken);
+        if (!await ValidateBanOperationAsync(chat, user, reason, cancellationToken))
             return;
-        }
         
         // Форвардим сообщение в лог-чат с уведомлением
         var autoBanData = new AutoBanNotificationData(
@@ -346,4 +314,23 @@ public class UserBanService : IUserBanService
 
     private static string FullName(string firstName, string? lastName) =>
         string.IsNullOrEmpty(lastName) ? firstName : $"{firstName} {lastName}";
+
+    // Приватные вспомогательные методы
+
+    private async Task<bool> ValidateBanOperationAsync(Chat chat, User user, string operation, CancellationToken cancellationToken)
+    {
+        if (chat.Type == ChatType.Private)
+        {
+            _logger.LogWarning("Попытка {Operation} в приватном чате {ChatId} - операция невозможна", operation, chat.Id);
+            var errorData = new ErrorNotificationData(
+                new InvalidOperationException($"Попытка {operation} в приватном чате"),
+                operation,
+                user,
+                chat
+            );
+            await _messageService.SendAdminNotificationAsync(AdminNotificationType.PrivateChatBanAttempt, errorData, cancellationToken);
+            return false;
+        }
+        return true;
+    }
 } 
