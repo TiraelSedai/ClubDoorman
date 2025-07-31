@@ -116,7 +116,7 @@ public class MessageHandlerMutationCoverageTests
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Попытка Бан за длинное имя в приватном чате") && v.ToString().Contains("операция невозможна")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Попытка бана за длинное имя в приватном чате") && v.ToString().Contains("операция невозможна")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once,

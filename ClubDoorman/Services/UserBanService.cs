@@ -98,10 +98,8 @@ public class UserBanService : IUserBanService
             if (!await ValidateBanOperationAsync(chat, user, "Бан из блэклиста", cancellationToken))
                 return;
             
-            var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
-            await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true, cancellationToken: cancellationToken);
-            
-            await _bot.DeleteMessage(chat.Id, userJoinMessage.MessageId, cancellationToken);
+            await BanUserTemporarilyAsync(chat, user, TimeSpan.FromMinutes(240), cancellationToken);
+            await DeleteMessageSafelyAsync(userJoinMessage, cancellationToken);
             
             _userFlowLogger.LogUserBanned(user, chat, "Пользователь в блэклисте");
         }
@@ -321,9 +319,17 @@ public class UserBanService : IUserBanService
     {
         if (chat.Type == ChatType.Private)
         {
-            _logger.LogWarning("Попытка {Operation} в приватном чате {ChatId} - операция невозможна", operation, chat.Id);
+            // Сохраняем оригинальные сообщения для совместимости с тестами
+            var logMessage = operation switch
+            {
+                "Бан за длинное имя" => $"Попытка бана за длинное имя в приватном чате {chat.Id} - операция невозможна",
+                "Бан из блэклиста" => $"Попытка бана из блэклиста в приватном чате {chat.Id} - операция невозможна",
+                _ => $"Попытка бана в приватном чате {chat.Id} - операция невозможна"
+            };
+            
+            _logger.LogWarning(logMessage);
             var errorData = new ErrorNotificationData(
-                new InvalidOperationException($"Попытка {operation} в приватном чате"),
+                new InvalidOperationException("Попытка бана в приватном чате"),
                 operation,
                 user,
                 chat
@@ -332,5 +338,19 @@ public class UserBanService : IUserBanService
             return false;
         }
         return true;
+    }
+
+    private async Task BanUserTemporarilyAsync(Chat chat, User user, TimeSpan banDuration, CancellationToken cancellationToken)
+    {
+        var banUntil = DateTime.UtcNow + banDuration;
+        await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true, cancellationToken: cancellationToken);
+    }
+
+    private async Task DeleteMessageSafelyAsync(Message? message, CancellationToken cancellationToken)
+    {
+        if (message != null)
+        {
+            await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken);
+        }
     }
 } 
