@@ -54,6 +54,11 @@ public static class TestCategories
     public const string MutationCoverage = "mutation-coverage";
     
     /// <summary>
+    /// Golden Master тесты - фиксируют текущее поведение и помогают обнаружить регрессии
+    /// </summary>
+    public const string GoldenMaster = "golden-master";
+    
+    /// <summary>
     /// Тесты инфраструктуры - фабрики, моки, утилиты
     /// </summary>
     public const string TestInfrastructure = "test-infrastructure";
