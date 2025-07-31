@@ -56,30 +56,9 @@ public class UserBanService : IUserBanService
             if (!await ValidateBanOperationAsync(chat, user, "Бан за длинное имя", cancellationToken))
                 return;
 
-            await _bot.BanChatMember(
-                chat.Id, 
-                user.Id,
-                banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null,
-                revokeMessages: true
-            );
-            
-            if (userJoinMessage != null)
-            {
-                await _bot.DeleteMessage(userJoinMessage.Chat.Id, userJoinMessage.MessageId, cancellationToken);
-            }
-
-            var banType = banDuration.HasValue ? "Автобан на 10 минут" : "🚫 Перманентный бан";
-            var banData = new AutoBanNotificationData(user, chat, banType, reason, userJoinMessage?.MessageId);
-            
-            // Отправляем уведомление только в лог-чат
-            if (userJoinMessage != null)
-            {
-                await _messageService.ForwardToLogWithNotificationAsync(userJoinMessage, LogNotificationType.BanForLongName, banData, cancellationToken);
-            }
-            else
-            {
-                await _messageService.SendLogNotificationAsync(LogNotificationType.BanForLongName, banData, cancellationToken);
-            }
+            await BanUserWithDurationAsync(chat, user, banDuration, cancellationToken);
+            await DeleteMessageSafelyAsync(userJoinMessage, cancellationToken);
+            await SendBanNotificationAsync(userJoinMessage, user, chat, reason, banDuration, cancellationToken);
             
             _userFlowLogger.LogUserBanned(user, chat, reason);
         }
@@ -351,6 +330,27 @@ public class UserBanService : IUserBanService
         if (message != null)
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken);
+        }
+    }
+
+    private async Task BanUserWithDurationAsync(Chat chat, User user, TimeSpan? banDuration, CancellationToken cancellationToken)
+    {
+        DateTime? banUntil = banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null;
+        await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: true, cancellationToken: cancellationToken);
+    }
+
+    private async Task SendBanNotificationAsync(Message? userJoinMessage, User user, Chat chat, string reason, TimeSpan? banDuration, CancellationToken cancellationToken)
+    {
+        var banType = banDuration.HasValue ? "Автобан на 10 минут" : "🚫 Перманентный бан";
+        var banData = new AutoBanNotificationData(user, chat, banType, reason, userJoinMessage?.MessageId);
+        
+        if (userJoinMessage != null)
+        {
+            await _messageService.ForwardToLogWithNotificationAsync(userJoinMessage, LogNotificationType.BanForLongName, banData, cancellationToken);
+        }
+        else
+        {
+            await _messageService.SendLogNotificationAsync(LogNotificationType.BanForLongName, banData, cancellationToken);
         }
     }
 } 
