@@ -130,6 +130,7 @@ public class Program
                 services.AddSingleton<GlobalStatsManager>();
                 services.AddSingleton<ISuspiciousUsersStorage, SuspiciousUsersStorage>();
                 services.AddSingleton<IViolationTracker, ViolationTracker>();
+                services.AddSingleton<IUserBanService, UserBanService>();
                 
                 // Новые сервисы
                 services.AddSingleton<IUpdateDispatcher, UpdateDispatcher>();
@@ -186,7 +187,8 @@ public class Program
                     provider.GetRequiredService<IBotPermissionsService>(),
                     provider.GetRequiredService<IAppConfig>(),
                     provider.GetRequiredService<IViolationTracker>(),
-                    provider.GetRequiredService<ILogger<MessageHandler>>()));
+                    provider.GetRequiredService<ILogger<MessageHandler>>(),
+                    provider.GetRequiredService<IUserBanService>()));
                 services.AddSingleton<IUpdateHandler>(provider => new CallbackQueryHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IBadMessageManager>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IViolationTracker>(), provider.GetRequiredService<ILogger<CallbackQueryHandler>>()));
                 services.AddSingleton<IUpdateHandler>(provider => new ChatMemberHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<ILogger<ChatMemberHandler>>(), provider.GetRequiredService<IntroFlowService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
                 

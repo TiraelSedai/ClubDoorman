@@ -84,7 +84,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         IAppConfig appConfig,
         IViolationTracker violationTracker,
         ILogger<MessageHandler> logger,
-        IUserBanService userBanService = null)
+        IUserBanService userBanService)
     {
         _bot = bot ?? throw new ArgumentNullException(nameof(bot));
         _moderationService = moderationService ?? throw new ArgumentNullException(nameof(moderationService));
@@ -103,17 +103,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         _appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
         _violationTracker = violationTracker ?? throw new ArgumentNullException(nameof(violationTracker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _userBanService = userBanService ?? new UserBanService(
-            bot,
-            messageService,
-            userFlowLogger,
-            null!, // Логгер будет создан в DI
-            moderationService,
-            violationTracker,
-            appConfig,
-            statisticsService,
-            globalStatsManager,
-            userManager);
+        _userBanService = userBanService ?? throw new ArgumentNullException(nameof(userBanService));
     }
 
     /// <summary>
