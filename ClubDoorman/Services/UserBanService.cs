@@ -138,7 +138,7 @@ public class UserBanService : IUserBanService
         await LogBlacklistBanAttemptAsync(message, user, chat);
         await SendBlacklistBanNotificationAsync(message, user, chat, cancellationToken);
         await DeleteMessageSafelyAsync(message, cancellationToken);
-        await BanUserFromBlacklistAsync(chat, user, cancellationToken);
+        await BanUserAsync(chat, user, TimeSpan.FromMinutes(240), revokeMessages: true, withErrorHandling: true, "Не удалось забанить пользователя из блэклиста", cancellationToken);
         await UpdateBlacklistStatisticsAsync(message, chat);
         await RemoveUserFromApprovedAsync(user, message, chat, cancellationToken);
         await LogBlacklistBanSuccessAsync(user, chat);
@@ -198,10 +198,17 @@ public class UserBanService : IUserBanService
         }
     }
 
-    private async Task BanUserAsync(Chat chat, User user, TimeSpan? banDuration, bool revokeMessages = true, CancellationToken cancellationToken = default)
+    private async Task BanUserAsync(Chat chat, User user, TimeSpan? banDuration, bool revokeMessages = true, bool withErrorHandling = false, string? errorMessage = null, CancellationToken cancellationToken = default)
     {
-        DateTime? banUntil = banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null;
-        await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: revokeMessages, cancellationToken: cancellationToken);
+        try
+        {
+            DateTime? banUntil = banDuration.HasValue ? DateTime.UtcNow + banDuration.Value : null;
+            await _bot.BanChatMember(chat.Id, user.Id, banUntil, revokeMessages: revokeMessages, cancellationToken: cancellationToken);
+        }
+        catch (Exception e) when (withErrorHandling)
+        {
+            _logger.LogWarning(e, errorMessage ?? "Не удалось забанить пользователя");
+        }
     }
 
     private async Task SendNotificationAsync(AutoBanNotificationData banData, LogNotificationType logType, Message? message = null, bool withErrorHandling = false, CancellationToken cancellationToken = default)
@@ -330,18 +337,7 @@ public class UserBanService : IUserBanService
         }
     }
 
-    private async Task BanUserFromBlacklistAsync(Chat chat, User user, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var banUntil = DateTime.UtcNow + TimeSpan.FromMinutes(240);
-            await _bot.BanChatMember(chat.Id, user.Id, untilDate: banUntil, revokeMessages: true, cancellationToken: cancellationToken);
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Не удалось забанить пользователя из блэклиста");
-        }
-    }
+
 
     private async Task UpdateBlacklistStatisticsAsync(Message message, Chat chat)
     {
