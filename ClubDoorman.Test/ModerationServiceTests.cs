@@ -39,7 +39,7 @@ public class ModerationServiceTests
 
         // Assert
         Assert.That(result.Action, Is.EqualTo(ModerationAction.Allow));
-        Assert.That(result.Reason, Is.EqualTo("ML уверен что это не спам"));
+        Assert.That(result.Reason, Is.EqualTo("Сообщение прошло все проверки"));
     }
 
     [Test]
