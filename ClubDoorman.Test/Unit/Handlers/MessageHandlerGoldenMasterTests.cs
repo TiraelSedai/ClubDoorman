@@ -207,15 +207,15 @@ public class MessageHandlerGoldenMasterTests
             "Должно отправиться уведомление администратору о попытке бана в приватном чате");
 
         // Assert: Проверяем логирование предупреждения
-        _factory.UserBanServiceLoggerMock.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Попытка бана за длинное имя в приватном чате")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once,
-            "Должно залогироваться предупреждение о попытке бана в приватном чате");
+                    _factory.UserBanServiceLoggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Попытка бана за длинное имя в приватном чате")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once,
+                "Должно залогироваться предупреждение о попытке бана в приватном чате");
     }
 
     /// <summary>
