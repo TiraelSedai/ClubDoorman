@@ -823,7 +823,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                     _logger.LogInformation("Сообщение успешно обработано для удаления");
                     
                     // Отслеживаем нарушения для повторных банов
-                    await TrackViolationAndBanIfNeeded(message, user, moderationResult.Reason, cancellationToken);
+                    await _userBanService.TrackViolationAndBanIfNeededAsync(message, user, moderationResult.Reason, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -1182,48 +1182,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         );
     }
 
-    /// <summary>
-    /// Выполняет AI анализ профиля пользователя при первом сообщении
-    /// </summary>
-    /// <returns>true если пользователь получил ограничения за подозрительный профиль</returns>
-    private async Task TrackViolationAndBanIfNeeded(Message message, User user, string reason, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Определяем тип нарушения по причине
-            ViolationType? violationType = reason switch
-            {
-                var r when r.Contains("ML решил что это спам") => ViolationType.MlSpam,
-                var r when r.Contains("стоп-слова") => ViolationType.StopWords,
-                var r when r.Contains("многовато эмоджи") => ViolationType.TooManyEmojis,
-                var r when r.Contains("lookalike") => ViolationType.LookalikeSymbols,
-                _ => null
-            };
-            
-            if (violationType == null)
-            {
-                _logger.LogDebug("Неизвестный тип нарушения: {Reason}", reason);
-                return;
-            }
-            
-            // Регистрируем нарушение
-            var shouldBan = _violationTracker.RegisterViolation(user.Id, message.Chat.Id, violationType.Value);
-            
-            if (shouldBan)
-            {
-                _logger.LogWarning("Достигнут лимит нарушений {ViolationType} для пользователя {UserId} в чате {ChatId} - бан", 
-                    ViolationTracker.GetViolationTypeName(violationType.Value), user.Id, message.Chat.Id);
-                
-                // Баним пользователя за повторные нарушения
-                var banReason = $"Повторные нарушения: {ViolationTracker.GetViolationTypeName(violationType.Value)}";
-                await _userBanService.AutoBanAsync(message, banReason, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при отслеживании нарушений для пользователя {UserId}", user.Id);
-        }
-    }
+
 
     private async Task<bool> PerformAiProfileAnalysis(Message message, User user, Chat chat, CancellationToken cancellationToken)
     {

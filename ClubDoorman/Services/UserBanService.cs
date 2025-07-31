@@ -144,6 +144,45 @@ public class UserBanService : IUserBanService
         await LogBlacklistBanSuccessAsync(user, chat);
     }
 
+    public async Task TrackViolationAndBanIfNeededAsync(Message message, User user, string reason, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Определяем тип нарушения по причине
+            ViolationType? violationType = reason switch
+            {
+                var r when r.Contains("ML решил что это спам") => ViolationType.MlSpam,
+                var r when r.Contains("стоп-слова") => ViolationType.StopWords,
+                var r when r.Contains("многовато эмоджи") => ViolationType.TooManyEmojis,
+                var r when r.Contains("lookalike") => ViolationType.LookalikeSymbols,
+                _ => null
+            };
+            
+            if (violationType == null)
+            {
+                _logger.LogDebug("Неизвестный тип нарушения: {Reason}", reason);
+                return;
+            }
+            
+            // Регистрируем нарушение
+            var shouldBan = _violationTracker.RegisterViolation(user.Id, message.Chat.Id, violationType.Value);
+            
+            if (shouldBan)
+            {
+                _logger.LogWarning("Достигнут лимит нарушений {ViolationType} для пользователя {UserId} в чате {ChatId} - бан",
+                    ViolationTracker.GetViolationTypeName(violationType.Value), user.Id, message.Chat.Id);
+                
+                // Баним пользователя за повторные нарушения
+                var banReason = $"Повторные нарушения: {ViolationTracker.GetViolationTypeName(violationType.Value)}";
+                await AutoBanAsync(message, banReason, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отслеживании нарушений для пользователя {UserId}", user.Id);
+        }
+    }
+
     private static string LinkToMessage(Chat chat, long messageId) =>
         chat.Type switch
         {

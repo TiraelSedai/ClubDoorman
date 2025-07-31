@@ -31,4 +31,9 @@ public interface IUserBanService
     /// Обрабатывает бан пользователя из блэклиста
     /// </summary>
     Task HandleBlacklistBanAsync(Message message, User user, Chat chat, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Отслеживает нарушение и банит пользователя при достижении лимита
+    /// </summary>
+    Task TrackViolationAndBanIfNeededAsync(Message message, User user, string reason, CancellationToken cancellationToken);
 } 
