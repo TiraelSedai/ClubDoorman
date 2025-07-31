@@ -192,7 +192,7 @@ public class MessageHandlerHandleAsyncBasicTests
 
         // Проверяем, что AI анализ запускается
         _factory.AiChecksMock.Verify(
-            x => x.GetAttentionBaitProbability(It.Is<User>(u => u.Id == 12345), It.IsAny<Func<string, Task>>()),
+            x => x.GetAttentionBaitProbability(It.Is<User>(u => u.Id == 12345), It.Is<string>(s => s == "Hello world"), It.IsAny<Func<string, Task>>()),
             Times.Once,
             "Должен запуститься AI анализ профиля");
     }
