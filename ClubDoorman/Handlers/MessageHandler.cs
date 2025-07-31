@@ -8,7 +8,6 @@ using ClubDoorman.Models;
 using ClubDoorman.Models.Notifications;
 using ClubDoorman.Models.Requests;
 using ClubDoorman.Services;
-using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -906,7 +905,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             
             // Пересылаем сообщение и отправляем уведомление с кнопками как реплай
             var forwardedMessage = await _bot.ForwardMessage(
-                new ChatId(Config.LogAdminChatId),
+                new ChatId(_appConfig.LogAdminChatId),
                 message.Chat.Id,
                 message.MessageId,
                 cancellationToken: cancellationToken
@@ -916,7 +915,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
             
             await _bot.SendMessage(
-                Config.LogAdminChatId,
+                _appConfig.LogAdminChatId,
                 messageText + "\n\n" + "Действия:",
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboard,
@@ -987,7 +986,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             
             // Пересылаем сообщение и сохраняем ссылку на него
             var forwardedMessage = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
+                new ChatId(_appConfig.AdminChatId),
                 message.Chat.Id,
                 message.MessageId,
                 cancellationToken: cancellationToken
@@ -995,7 +994,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             
             // Отправляем уведомление с кнопками как реплай на пересланное сообщение
             await _bot.SendMessage(
-                Config.AdminChatId,
+                _appConfig.AdminChatId,
                 messageText,
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboard,
@@ -1095,7 +1094,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         {
             // Сначала пересылаем оригинальное сообщение
             var forward = await _bot.ForwardMessage(
-                new ChatId(Config.AdminChatId),
+                new ChatId(_appConfig.AdminChatId),
                 message.Chat.Id,
                 message.MessageId,
                 cancellationToken: cancellationToken
@@ -1126,7 +1125,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             
             // Отправляем уведомление с кнопками как ответ на форвард
             await _bot.SendMessage(
-                Config.AdminChatId,
+                _appConfig.AdminChatId,
                 messageText,
                 parseMode: ParseMode.Html,
                 replyParameters: forward,
