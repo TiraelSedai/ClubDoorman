@@ -83,8 +83,19 @@ public class UserBanServiceTests
             null                                  // IUserBanService userBanService = null
         );
         
-        // UserBanService теперь делегирует к MessageHandler
-        _userBanService = new UserBanService(messageHandler);
+        // UserBanService теперь содержит реальную логику
+        _userBanService = new UserBanService(
+            _botMock.Object,
+            _messageServiceMock.Object,
+            _userFlowLoggerMock.Object,
+            new Mock<ILogger<UserBanService>>().Object,
+            _moderationServiceMock.Object,
+            _violationTrackerMock.Object,
+            _appConfigMock.Object,
+            _statisticsServiceMock.Object,
+            _globalStatsManagerMock.Object,
+            _userManagerMock.Object
+        );
     }
 
     #region BanUserForLongName Tests

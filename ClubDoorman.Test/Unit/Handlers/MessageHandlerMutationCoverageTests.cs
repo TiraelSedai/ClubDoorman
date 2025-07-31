@@ -28,6 +28,7 @@ public class MessageHandlerMutationCoverageTests
     private Mock<IMessageService> _messageServiceMock;
     private Mock<ILogger<MessageHandler>> _loggerMock;
     private MessageHandlerTestFactory _factory;
+    private IUserBanService _userBanService;
     
     [SetUp]
     public void Setup()
@@ -38,7 +39,8 @@ public class MessageHandlerMutationCoverageTests
             .WithMessageServiceSetup(mock => _messageServiceMock = mock)
             .WithLoggerSetup(mock => _loggerMock = mock);
             
-        _messageHandler = _factory.CreateMessageHandler();
+        _messageHandler = _factory.CreateMessageHandlerWithRealUserBanService();
+        _userBanService = _factory.CreateRealUserBanService();
     }
 
     /// <summary>
@@ -68,14 +70,14 @@ public class MessageHandlerMutationCoverageTests
             .Build();
 
         // Act & Assert
-        // Вызываем internal метод - он должен работать нормально
-        await _messageHandler.Invoking(h => 
-                h.BanUserForLongName(messageWithProblematicChat, user, "Test ban", 
+        // Вызываем метод через UserBanService - он должен работать нормально
+        await _userBanService.Invoking(h => 
+                h.BanUserForLongNameAsync(messageWithProblematicChat, user, "Test ban", 
                     TimeSpan.FromMinutes(10), CancellationToken.None))
             .Should().NotThrowAsync();
 
         // Verify: код должен работать нормально без ошибок
-        _loggerMock.Verify(
+        _factory.UserBanServiceLoggerMock.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
@@ -107,10 +109,10 @@ public class MessageHandlerMutationCoverageTests
             .Build();
 
         // Act
-        await _messageHandler.BanUserForLongName(message, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
+        await _userBanService.BanUserForLongNameAsync(message, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
 
         // Assert: Проверяем логирование предупреждения (строка 870)
-        _loggerMock.Verify(
+        _factory.UserBanServiceLoggerMock.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
@@ -157,7 +159,7 @@ public class MessageHandlerMutationCoverageTests
             .Build();
 
         // Act: Временный бан (с указанием времени)
-        await _messageHandler.BanUserForLongName(message, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
+        await _userBanService.BanUserForLongNameAsync(message, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
 
         // Assert: Проверяем, что использован правильный тип бана для временного (строка 893)
         _messageServiceMock.Verify(
@@ -190,7 +192,7 @@ public class MessageHandlerMutationCoverageTests
             .Build();
 
         // Act: Перманентный бан (без указания времени)
-        await _messageHandler.BanUserForLongName(message, user, "Long name ban", null, CancellationToken.None);
+        await _userBanService.BanUserForLongNameAsync(message, user, "Long name ban", null, CancellationToken.None);
 
         // Assert: Проверяем, что использован правильный тип бана для перманентного (строка 893)
         _messageServiceMock.Verify(
@@ -220,7 +222,7 @@ public class MessageHandlerMutationCoverageTests
             .Build();
 
         // Act: Передаем null в качестве userJoinMessage - код должен обработать это в try-catch
-        await _messageHandler.BanUserForLongName(null, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
+        await _userBanService.BanUserForLongNameAsync(null, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
 
         // Assert: НЕ должен быть вызван SendLogNotificationAsync, так как код падает с исключением
         _messageServiceMock.Verify(
@@ -263,7 +265,7 @@ public class MessageHandlerMutationCoverageTests
             .Build();
 
         // Act
-        await _messageHandler.BanUserForLongName(message, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
+        await _userBanService.BanUserForLongNameAsync(message, user, "Long name ban", TimeSpan.FromMinutes(10), CancellationToken.None);
 
         // Assert: Проверяем, что сообщение удалено
         _botMock.Verify(

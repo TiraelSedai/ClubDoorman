@@ -69,7 +69,7 @@ public class IntroFlowService
         if (fullName.Length > 40)
         {
             var isPermanent = fullName.Length > 75;
-            await BanUserForLongName(
+            await BanUserForLongNameAsync(
                 userJoinMessage,
                 user,
                 fullName,
@@ -122,7 +122,7 @@ public class IntroFlowService
         }
     }
 
-    private async Task BanUserForLongName(
+    private async Task BanUserForLongNameAsync(
         Message? userJoinMessage,
         User user,
         string fullName,

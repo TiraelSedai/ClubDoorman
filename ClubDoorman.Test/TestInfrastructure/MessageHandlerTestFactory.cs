@@ -44,7 +44,24 @@ public class MessageHandlerTestFactory
     public Mock<IAppConfig> AppConfigMock { get; } = TK.CreateMockAppConfig();
     public Mock<IViolationTracker> ViolationTrackerMock { get; } = TK.CreateMockViolationTracker();
     public Mock<IUserBanService> UserBanServiceMock { get; } = TK.CreateMockUserBanService();
+    
+    public IUserBanService CreateRealUserBanService()
+    {
+        return new UserBanService(
+            BotMock.Object,
+            MessageServiceMock.Object,
+            UserFlowLoggerMock.Object,
+            UserBanServiceLoggerMock.Object,
+            ModerationServiceMock.Object,
+            ViolationTrackerMock.Object,
+            AppConfigMock.Object,
+            StatisticsServiceMock.Object,
+            new GlobalStatsManager(),
+            UserManagerMock.Object
+        );
+    }
     public Mock<ILogger<MessageHandler>> LoggerMock { get; } = TK.CreateLoggerMock<MessageHandler>();
+    public Mock<ILogger<UserBanService>> UserBanServiceLoggerMock { get; } = TK.CreateLoggerMock<UserBanService>();
     public Mock<ILogger<SuspiciousCommandHandler>> SuspiciousCommandHandlerLoggerMock { get; } = TK.CreateLoggerMock<SuspiciousCommandHandler>();
     public Mock<ISuspiciousUsersStorage> SuspiciousUsersStorageMock { get; } = TK.CreateMock<ISuspiciousUsersStorage>();
     public FakeTelegramClient FakeBotClient { get; } = FakeTelegramClientFactory.Create();
@@ -70,6 +87,30 @@ public class MessageHandlerTestFactory
             ViolationTrackerMock.Object,
             LoggerMock.Object,
             UserBanServiceMock.Object
+        );
+    }
+    
+    public MessageHandler CreateMessageHandlerWithRealUserBanService()
+    {
+        return new MessageHandler(
+            BotMock.Object,
+            ModerationServiceMock.Object,
+            CaptchaServiceMock.Object,
+            UserManagerMock.Object,
+            ClassifierMock.Object,
+            BadMessageManagerMock.Object,
+            AiChecksMock.Object,
+            new GlobalStatsManager(),
+            StatisticsServiceMock.Object,
+            ServiceProviderMock.Object,
+            UserFlowLoggerMock.Object,
+            MessageServiceMock.Object,
+            ChatLinkFormatterMock.Object,
+            BotPermissionsServiceMock.Object,
+            AppConfigMock.Object,
+            ViolationTrackerMock.Object,
+            LoggerMock.Object,
+            CreateRealUserBanService()
         );
     }
 
