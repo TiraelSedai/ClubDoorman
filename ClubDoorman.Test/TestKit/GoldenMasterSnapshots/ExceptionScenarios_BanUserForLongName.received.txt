@@ -1,0 +1,94 @@
+﻿{
+  TestName: BanUserForLongName_ExceptionScenarios_GoldenMaster,
+  Timestamp: DateTimeOffset_1,
+  TotalScenarios: 3,
+  Scenarios: [
+    {
+      Input: {
+        User: {
+          Id: 508453774,
+          FirstName: Елизавета,
+          Username: Lyubov.Veselova89,
+          IsBot: false
+        },
+        Chat: {
+          Id: -720041799508,
+          Type: Supergroup,
+          Title: Лукина, Мельникова and Лыткина
+        },
+        Message: {
+          Text: Путь однако развития степени высокотехнологичная от.
+        },
+        BanDuration: 00:53:00,
+        Reason: Временный бан за нарушение,
+        ScenarioType: ExceptionScenario_0,
+        Seed: 300
+      },
+      ShouldCallBanChatMember: false,
+      ShouldCallDeleteMessage: false,
+      ShouldCallForwardToLogWithNotification: false,
+      ShouldCallSendLogNotification: false,
+      BanType: ,
+      ExpectedReason: ,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 978636556,
+          FirstName: Артём,
+          Username: Alla.Sitnikova,
+          IsBot: false
+        },
+        Chat: {
+          Id: -758993636798,
+          Type: Supergroup,
+          Title: Потапов Снаб
+        },
+        Message: {
+          Text: Не предпосылки социально-экономическое.
+        },
+        BanDuration: 00:53:00,
+        Reason: Временный бан за нарушение,
+        ScenarioType: ExceptionScenario_1,
+        Seed: 301
+      },
+      ShouldCallBanChatMember: false,
+      ShouldCallDeleteMessage: false,
+      ShouldCallForwardToLogWithNotification: false,
+      ShouldCallSendLogNotification: false,
+      BanType: ,
+      ExpectedReason: ,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 548819339,
+          FirstName: Семён,
+          Username: Ivan.Sobolev63,
+          IsBot: false
+        },
+        Chat: {
+          Id: -293926849213,
+          Type: Supergroup,
+          Title: Дроздов Торг
+        },
+        Message: {
+          Text: Интересный структуры кадровой формировании форм актуальность подготовке материально-технической собой.
+        },
+        BanDuration: 00:37:00,
+        Reason: Временный бан за нарушение,
+        ScenarioType: ExceptionScenario_2,
+        Seed: 302
+      },
+      ShouldCallBanChatMember: false,
+      ShouldCallDeleteMessage: false,
+      ShouldCallForwardToLogWithNotification: false,
+      ShouldCallSendLogNotification: false,
+      BanType: ,
+      ExpectedReason: ,
+      HasException: false
+    }
+  ]
+}

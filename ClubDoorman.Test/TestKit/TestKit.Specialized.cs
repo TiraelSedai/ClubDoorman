@@ -1,9 +1,12 @@
 using ClubDoorman.Models;
 using ClubDoorman.Test.TestData;
 using Telegram.Bot.Types;
+using Moq;
 
 namespace ClubDoorman.Test.TestKit
 {
+
+
     /// <summary>
     /// Специализированные генераторы для конкретных доменных областей
     /// <tags>specialized, generators, domain-specific</tags>
@@ -200,6 +203,95 @@ namespace ClubDoorman.Test.TestKit
                 /// <tags>messages, new-user, join, member</tags>
                 /// </summary>
                 public static Message NewUserJoin(long userId = 12345) => TestDataFactory.CreateNewUserJoinMessage(userId);
+
+                // === СЦЕНАРИИ ДЛЯ ПОКРЫТИЯ NULL COALESCING МУТАНТОВ ===
+                
+                /// <summary>
+                /// Сценарий для тестирования сообщения с Text, но без Caption
+                /// <tags>messages, null-coalescing, text-only, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) TextOnlyScenario()
+                {
+                    var user = TK.CreateUser(userId: 55555);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = "Обычное текстовое сообщение";
+                    message.Caption = null;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения с Caption, но без Text
+                /// <tags>messages, null-coalescing, caption-only, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) CaptionOnlyScenario()
+                {
+                    var user = TK.CreateUser(userId: 66666);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = "Подпись к медиа";
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения без Text и Caption
+                /// <tags>messages, null-coalescing, no-text, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) NoTextScenario()
+                {
+                    var user = TK.CreateUser(userId: 77777);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = null;
+                    message.Photo = new[] { new PhotoSize { FileId = "photo1", Width = 100, Height = 100 } };
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения с длинным текстом (>100 символов)
+                /// <tags>messages, long-text, truncation, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) LongTextScenario()
+                {
+                    var user = TK.CreateUser(userId: 88888);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = "Это очень длинное сообщение, которое содержит более ста символов для тестирования логики обрезки текста в логах. Оно должно быть обрезано до 100 символов с добавлением многоточия.";
+                    message.Caption = null;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования сообщения с длинной подписью (>100 символов)
+                /// <tags>messages, long-caption, truncation, mutation-coverage</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) LongCaptionScenario()
+                {
+                    var user = TK.CreateUser(userId: 99999);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = "Это очень длинная подпись к медиа, которая содержит более ста символов для тестирования логики обрезки текста в логах. Она должна быть обрезана до 100 символов с добавлением многоточия.";
+                    message.Photo = new[] { new PhotoSize { FileId = "photo2", Width = 200, Height = 200 } };
+                    
+                    return (user, chat, message);
+                }
             }
 
             /// <summary>
@@ -221,28 +313,186 @@ namespace ClubDoorman.Test.TestKit
             /// </summary>
             public static class BanTests
             {
+                // === СЦЕНАРИИ ДЛЯ GOLDEN MASTER ТЕСТОВ ===
+                
+                /// <summary>
+                /// Сценарий для тестирования временного бана
+                /// <tags>ban, scenario, temporary, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, TimeSpan BanDuration, string Reason) TemporaryBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 12345);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, TimeSpan.FromMinutes(10), "Длинное имя пользователя");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования перманентного бана
+                /// <tags>ban, scenario, permanent, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, TimeSpan? BanDuration, string Reason) PermanentBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 67890);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, null, "Экстремально длинное имя пользователя");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования попытки бана в приватном чате
+                /// <tags>ban, scenario, private-chat, error-handling, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, TimeSpan BanDuration, string Reason) PrivateChatBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 11111);
+                    var chat = TK.CreatePrivateChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, TimeSpan.FromMinutes(10), "Длинное имя пользователя");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования бана пользователя из блэклиста
+                /// <tags>ban, scenario, blacklist, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) BlacklistBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 22222);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateNewUserJoinMessage(user.Id);
+                    message.Chat = chat;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования бана канала
+                /// <tags>ban, scenario, channel, golden-master</tags>
+                /// </summary>
+                public static (Chat TargetChat, Chat SenderChat, Message Message) ChannelBanScenario()
+                {
+                    var targetChat = TK.CreateGroupChat();
+                    var senderChat = TK.CreateChannel();
+                    var message = TK.CreateChannelMessage(senderChat.Id, targetChat.Id);
+                    message.Chat = targetChat;
+                    message.SenderChat = senderChat;
+                    
+                    return (targetChat, senderChat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования автобана пользователя
+                /// <tags>ban, scenario, auto-ban, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message, string Reason) AutoBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 33333);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    
+                    return (user, chat, message, "Известное спам-сообщение");
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan
+                /// <tags>ban, scenario, handle-blacklist, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanScenario()
+                {
+                    var user = TK.CreateUser(userId: 44444);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan с длинным текстом
+                /// <tags>ban, scenario, handle-blacklist, long-text, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanLongTextScenario()
+                {
+                    var user = TK.CreateUser(userId: 55555);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = "Это очень длинное сообщение от пользователя из блэклиста, которое содержит более ста символов для тестирования логики обрезки текста в логах. Оно должно быть обрезано до 100 символов с добавлением многоточия.";
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan с медиа сообщением
+                /// <tags>ban, scenario, handle-blacklist, media-message, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanMediaScenario()
+                {
+                    var user = TK.CreateUser(userId: 66666);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    message.Text = null;
+                    message.Caption = "Подпись к медиа от пользователя из блэклиста";
+                    message.Photo = new[] { new PhotoSize { FileId = "photo1", Width = 100, Height = 100 } };
+                    
+                    return (user, chat, message);
+                }
+
+                /// <summary>
+                /// Сценарий для тестирования HandleBlacklistBan с пользователем из одобренных
+                /// <tags>ban, scenario, handle-blacklist, approved-user, golden-master</tags>
+                /// </summary>
+                public static (User User, Chat Chat, Message Message) HandleBlacklistBanApprovedUserScenario()
+                {
+                    var user = TK.CreateUser(userId: 77777);
+                    var chat = TK.CreateGroupChat();
+                    var message = TK.CreateValidMessage();
+                    message.From = user;
+                    message.Chat = chat;
+                    
+                    return (user, chat, message);
+                }
+
+                // === УТИЛИТЫ ДЛЯ СТАРЫХ ТЕСТОВ (DEPRECATED) ===
+                
                 /// <summary>
                 /// Пользователь для тестов банов
-                /// <tags>ban, user, integration</tags>
+                /// <tags>ban, user, integration, deprecated</tags>
                 /// </summary>
+                [Obsolete("Используйте сценарии выше")]
                 public static User UserForBan() => TestDataFactory.CreateValidUser();
                 
                 /// <summary>
                 /// Чат для тестов банов
-                /// <tags>ban, chat, integration</tags>
+                /// <tags>ban, chat, integration, deprecated</tags>
                 /// </summary>
+                [Obsolete("Используйте сценарии выше")]
                 public static Chat ChatForBanTest() => TestDataFactory.CreateGroupChat();
                 
                 /// <summary>
                 /// Спам сообщение для тестов банов
-                /// <tags>ban, spam, message, moderation</tags>
+                /// <tags>ban, spam, message, moderation, deprecated</tags>
                 /// </summary>
+                [Obsolete("Используйте сценарии выше")]
                 public static Message SpamMessage() => TestDataFactory.CreateSpamMessage();
                 
                 /// <summary>
                 /// Сообщение от канала для тестов банов
-                /// <tags>ban, channel, message, moderation</tags>
+                /// <tags>ban, channel, message, moderation, deprecated</tags>
                 /// </summary>
+                [Obsolete("Используйте сценарии выше")]
                 public static Message ChannelMessage() => TestDataFactory.CreateChannelMessage(-100123456789, -1009876543210);
                 
                 /// <summary>

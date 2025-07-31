@@ -1,0 +1,30 @@
+{
+  "stryker-config": {
+    "test-projects": [
+      "ClubDoorman.Test/ClubDoorman.Test.csproj"
+    ],
+    "reporters": [
+      "html",
+      "progress",
+      "json"
+    ],
+    "concurrency": 8,
+    "mutation-level": "Standard",
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 0
+    },
+    "target-framework": "net9.0",
+    "mutate": [
+      "**/Handlers/MessageHandler.cs"
+    ],
+    "ignore-mutations": [
+      "string",
+      "regex"
+    ],
+    "verbosity": "info",
+    "disable-bail": false,
+    "coverage-analysis": "perTest"
+  }
+}

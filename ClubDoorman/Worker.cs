@@ -208,7 +208,7 @@ internal sealed class Worker(
 
     // Метод HandleUpdate удален - логика перенесена в MessageHandler и CallbackQueryHandler через UpdateDispatcher
 
-    private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
+    private async Task AutoBanAsync(Message message, string reason, CancellationToken stoppingToken)
     {
         var user = message.From;
         

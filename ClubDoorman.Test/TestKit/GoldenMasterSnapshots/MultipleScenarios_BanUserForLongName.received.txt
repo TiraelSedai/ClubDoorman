@@ -1,0 +1,289 @@
+﻿{
+  TestName: BanUserForLongName_MultipleScenarios_GoldenMaster,
+  Timestamp: DateTimeOffset_1,
+  TotalScenarios: 10,
+  Scenarios: [
+    {
+      Input: {
+        User: {
+          Id: 971897219,
+          FirstName: Леонид,
+          Username: Veronika.Shubina,
+          IsBot: false
+        },
+        Chat: {
+          Id: -866067200278,
+          Type: Supergroup,
+          Title: Фомина, Пестов and Шашков
+        },
+        Message: {
+          Text: Анализа высокотехнологичная нашей требует что очевидна.
+        },
+        BanDuration: 00:52:00,
+        Reason: Временный бан за нарушение,
+        ScenarioType: TemporaryBan,
+        Seed: 100
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Временный бан за нарушение,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 542080002,
+          FirstName: Геннадий,
+          Username: Nikolai47,
+          IsBot: false
+        },
+        Chat: {
+          Id: -534191212400,
+          Type: Supergroup,
+          Title: Голубев, Нестеров and Никифоров
+        },
+        Message: {
+          Text: Обуславливает интересный прежде важные модели правительством.
+        },
+        Reason: Перманентный бан за серьезное нарушение,
+        ScenarioType: PermanentBan,
+        Seed: 101
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Permanent,
+      ExpectedReason: Перманентный бан за серьезное нарушение,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 112262786,
+          FirstName: Александра,
+          Username: Vasilii_Kapustina,
+          IsBot: false
+        },
+        Chat: {
+          Id: 897684775,
+          Type: Private,
+          Title: Rosenbaum Inc
+        },
+        Message: {
+          Text: Системы подготовке начало.
+        },
+        BanDuration: 00:30:00,
+        Reason: Бан в приватном чате,
+        ScenarioType: PrivateChatBan,
+        Seed: 102
+      },
+      ShouldCallBanChatMember: false,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Бан в приватном чате,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 582445568,
+          FirstName: Михаил,
+          Username: Marina72,
+          IsBot: false
+        },
+        Chat: {
+          Id: -770439236644,
+          Type: Supergroup,
+          Title: Горбунова Снаб
+        },
+        BanDuration: 00:15:00,
+        Reason: Бан без сообщения,
+        ScenarioType: NullMessageBan,
+        Seed: 103
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: false,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Бан без сообщения,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 152628351,
+          FirstName: Денис,
+          Username: Anzhela_Emelyanov,
+          IsBot: true
+        },
+        Chat: {
+          Id: -438563248766,
+          Type: Supergroup,
+          Title: Ильина, Мишина and Воронцова
+        },
+        Message: {
+          Text: Постоянный принципов настолько последовательного настолько требует.
+        },
+        BanDuration: 01:00:00,
+        Reason: Бан бота,
+        ScenarioType: BotBan,
+        Seed: 104
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Бан бота,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 622811133,
+          FirstName: Анжелика,
+          Username: Larisa96,
+          IsBot: false
+        },
+        Chat: {
+          Id: -106687260888,
+          Type: Supergroup,
+          Title: Евсеев - Абрамов
+        },
+        Message: {
+          Text: Выполнять повседневной шагов.
+        },
+        BanDuration: 00:48:00,
+        Reason: Временный бан за нарушение,
+        ScenarioType: TemporaryBan,
+        Seed: 105
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Временный бан за нарушение,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 192993917,
+          FirstName: Римма,
+          Username: Anatolii.Karpov,
+          IsBot: false
+        },
+        Chat: {
+          Id: -674811273010,
+          Type: Supergroup,
+          Title: Емельянов - Захарова
+        },
+        Message: {
+          Text: Рамки позиции нас управление структуры уровня.
+        },
+        Reason: Перманентный бан за серьезное нарушение,
+        ScenarioType: PermanentBan,
+        Seed: 106
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Permanent,
+      ExpectedReason: Перманентный бан за серьезное нарушение,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 663176699,
+          FirstName: Игнатий,
+          Username: Evgenii21,
+          IsBot: false
+        },
+        Chat: {
+          Id: 757064714,
+          Type: Private,
+          Title: Langworth, Macejkovic and Anderson
+        },
+        Message: {
+          Text: Занимаемых деятельности таким.
+        },
+        BanDuration: 00:30:00,
+        Reason: Бан в приватном чате,
+        ScenarioType: PrivateChatBan,
+        Seed: 107
+      },
+      ShouldCallBanChatMember: false,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Бан в приватном чате,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 233359482,
+          FirstName: Валентина,
+          Username: Ulyana.Kalinina,
+          IsBot: false
+        },
+        Chat: {
+          Id: -911059297254,
+          Type: Supergroup,
+          Title: Гордеева, Воронцова and Сидоров
+        },
+        BanDuration: 00:15:00,
+        Reason: Бан без сообщения,
+        ScenarioType: NullMessageBan,
+        Seed: 108
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: false,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Бан без сообщения,
+      HasException: false
+    },
+    {
+      Input: {
+        User: {
+          Id: 703542264,
+          FirstName: Татьяна,
+          Username: Evgeniya46,
+          IsBot: true
+        },
+        Chat: {
+          Id: -579183309376,
+          Type: Supergroup,
+          Title: Жданова - Дорофеев
+        },
+        Message: {
+          Text: Поставленных прежде повседневной материально-технической потребностям образом гражданского нашей.
+        },
+        BanDuration: 01:00:00,
+        Reason: Бан бота,
+        ScenarioType: BotBan,
+        Seed: 109
+      },
+      ShouldCallBanChatMember: true,
+      ShouldCallDeleteMessage: true,
+      ShouldCallForwardToLogWithNotification: true,
+      ShouldCallSendLogNotification: false,
+      BanType: Temporary,
+      ExpectedReason: Бан бота,
+      HasException: false
+    }
+  ]
+}

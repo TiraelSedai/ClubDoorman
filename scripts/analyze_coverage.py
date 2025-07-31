@@ -1,206 +1,233 @@
 #!/usr/bin/env python3
 """
-Анализ покрытия кода и поиск проблемных областей
+Скрипт для анализа coverage отчетов ClubDoorman
+
+Использование:
+    python3 scripts/analyze_coverage.py <модуль> [путь_к_coverage.xml]
+
+Параметры:
+    модуль - имя модуля для анализа (например: MessageHandler, ModerationService, UserManager)
+
+Примеры:
+    python3 scripts/analyze_coverage.py MessageHandler
+    python3 scripts/analyze_coverage.py ModerationService TestResults/*/coverage.cobertura.xml
+    python3 scripts/analyze_coverage.py UserManager TestResults/eb31ed7e-5ff4-40a6-878d-2dd4cc93e02b/coverage.cobertura.xml
 """
 
 import xml.etree.ElementTree as ET
-import os
 import sys
-from pathlib import Path
+import glob
+import os
 from typing import Dict, List, Tuple
 
-def parse_coverage_report(coverage_file: str) -> Dict:
-    """Парсит отчет о покрытии и возвращает статистику"""
-    tree = ET.parse(coverage_file)
-    root = tree.getroot()
-    
-    # Общая статистика
-    total_lines = int(root.get('lines-valid', 0))
-    covered_lines = int(root.get('lines-covered', 0))
-    total_branches = int(root.get('branches-valid', 0))
-    covered_branches = int(root.get('branches-covered', 0))
-    
-    # Анализ классов
-    uncovered_classes = []
-    low_coverage_classes = []
-    
-    for package in root.findall('.//package'):
-        for class_elem in package.findall('.//class'):
-            class_name = class_elem.get('name', '')
-            filename = class_elem.get('filename', '')
-            line_rate = float(class_elem.get('line-rate', 0))
-            branch_rate = float(class_elem.get('branch-rate', 0))
-            
-            # Пропускаем сгенерированные файлы
-            if 'obj/' in filename or 'bin/' in filename:
-                continue
-                
-            # Анализируем покрытие
-            uncovered_lines = []
-            for line_elem in class_elem.findall('.//line'):
-                line_num = int(line_elem.get('number', 0))
-                hits = int(line_elem.get('hits', 0))
-                if hits == 0:
-                    uncovered_lines.append(line_num)
-            
-            if line_rate == 0:
-                uncovered_classes.append({
-                    'name': class_name,
-                    'filename': filename,
-                    'line_rate': line_rate,
-                    'uncovered_lines': uncovered_lines
-                })
-            elif line_rate < 0.5:  # Меньше 50% покрытия
-                low_coverage_classes.append({
-                    'name': class_name,
-                    'filename': filename,
-                    'line_rate': line_rate,
-                    'uncovered_lines': uncovered_lines[:10]  # Первые 10 непокрытых строк
-                })
-    
-    return {
-        'total_lines': total_lines,
-        'covered_lines': covered_lines,
-        'total_branches': total_branches,
-        'covered_branches': covered_branches,
-        'uncovered_classes': uncovered_classes,
-        'low_coverage_classes': low_coverage_classes
-    }
 
-def find_latest_coverage_report() -> str:
-    """Находит самый свежий отчет о покрытии"""
-    coverage_dir = Path('coverage')
-    if not coverage_dir.exists():
-        raise FileNotFoundError("Директория coverage не найдена")
-    
-    # Ищем самый свежий файл coverage.cobertura.xml
-    latest_report = None
-    latest_time = 0
-    
-    for subdir in coverage_dir.iterdir():
-        if subdir.is_dir():
-            report_file = subdir / 'coverage.cobertura.xml'
-            if report_file.exists():
-                mtime = report_file.stat().st_mtime
-                if mtime > latest_time:
-                    latest_time = mtime
-                    latest_report = str(report_file)
-    
-    if not latest_report:
-        raise FileNotFoundError("Отчет о покрытии не найден")
-    
-    return latest_report
-
-def analyze_complexity_for_testing(classes: List[Dict]) -> List[Dict]:
-    """Анализирует классы на предмет сложности тестирования"""
-    priority_classes = []
-    
-    for class_info in classes:
-        class_name = class_info['name']
-        filename = class_info['filename']
-        line_rate = class_info['line_rate']
-        
-        # Приоритетные классы для тестирования
-        priority_keywords = [
-            'Service', 'Handler', 'Manager', 'Controller',
-            'Moderation', 'Captcha', 'User', 'Message'
-        ]
-        
-        is_priority = any(keyword in class_name for keyword in priority_keywords)
-        
-        if is_priority and line_rate < 0.8:  # Меньше 80% покрытия
-            priority_classes.append({
-                'name': class_name,
-                'filename': filename,
-                'line_rate': line_rate,
-                'priority': 'HIGH' if line_rate < 0.3 else 'MEDIUM',
-                'uncovered_lines': class_info.get('uncovered_lines', [])
-            })
-    
-    return sorted(priority_classes, key=lambda x: x['line_rate'])
-
-def main():
+def analyze_coverage_file(file_path: str, module_name: str) -> Dict:
+    """Анализирует один файл coverage для указанного модуля"""
     try:
-        # Находим отчет о покрытии
-        coverage_file = find_latest_coverage_report()
-        print(f"📊 Анализируем отчет: {coverage_file}")
+        tree = ET.parse(file_path)
+        root = tree.getroot()
         
-        # Парсим отчет
-        stats = parse_coverage_report(coverage_file)
+        # Общая статистика
+        coverage = root
+        lines_valid = int(coverage.get('lines-valid', 0))
+        lines_covered = int(coverage.get('lines-covered', 0))
+        branches_valid = int(coverage.get('branches-valid', 0))
+        branches_covered = int(coverage.get('branches-covered', 0))
         
-        # Выводим общую статистику
-        print("\n" + "="*60)
-        print("📈 ОБЩАЯ СТАТИСТИКА ПОКРЫТИЯ")
-        print("="*60)
+        line_coverage = (lines_covered / lines_valid * 100) if lines_valid > 0 else 0
+        branch_coverage = (branches_covered / branches_valid * 100) if branches_valid > 0 else 0
         
-        line_coverage = (stats['covered_lines'] / stats['total_lines']) * 100 if stats['total_lines'] > 0 else 0
-        branch_coverage = (stats['covered_branches'] / stats['total_branches']) * 100 if stats['total_branches'] > 0 else 0
+        # Анализ указанного модуля
+        module_classes = []
+        module_methods = []
         
-        print(f"Строки кода: {stats['covered_lines']}/{stats['total_lines']} ({line_coverage:.1f}%)")
-        print(f"Ветки кода: {stats['covered_branches']}/{stats['total_branches']} ({branch_coverage:.1f}%)")
+        for package in root.findall('.//package'):
+            for class_elem in package.findall('.//class'):
+                class_name = class_elem.get('name', '')
+                filename = class_elem.get('filename', '')
+                
+                # Ищем классы, содержащие имя модуля
+                if module_name in class_name:
+                    line_rate = float(class_elem.get('line-rate', 0))
+                    branch_rate = float(class_elem.get('branch-rate', 0))
+                    
+                    module_classes.append({
+                        'name': class_name,
+                        'filename': filename,
+                        'line_coverage': line_rate * 100,
+                        'branch_coverage': branch_rate * 100
+                    })
+                    
+                    # Анализ методов (для MessageHandler - методы банов)
+                    for method in class_elem.findall('.//method'):
+                        method_name = method.get('name', '')
+                        method_line_rate = float(method.get('line-rate', 0))
+                        method_branch_rate = float(method.get('branch-rate', 0))
+                        
+                        # Специальная логика для MessageHandler
+                        if module_name == 'MessageHandler':
+                            if any(ban_method in method_name for ban_method in [
+                                'BanUserForLongName', 'BanBlacklistedUser', 
+                                'AutoBanChannel', 'AutoBan', 'HandleBlacklistBan'
+                            ]):
+                                module_methods.append({
+                                    'name': method_name,
+                                    'line_coverage': method_line_rate * 100,
+                                    'branch_coverage': method_branch_rate * 100,
+                                    'type': 'ban_method'
+                                })
+                        else:
+                            # Для других модулей - все методы
+                            module_methods.append({
+                                'name': method_name,
+                                'line_coverage': method_line_rate * 100,
+                                'branch_coverage': method_branch_rate * 100,
+                                'type': 'general'
+                            })
         
-        # Анализируем непокрытые классы
-        print(f"\n🔴 НЕПОКРЫТЫЕ КЛАССЫ: {len(stats['uncovered_classes'])}")
-        print("-" * 60)
-        
-        for class_info in stats['uncovered_classes'][:10]:  # Показываем первые 10
-            print(f"❌ {class_info['name']}")
-            print(f"   Файл: {class_info['filename']}")
-            print(f"   Покрытие: {class_info['line_rate']*100:.1f}%")
-            if class_info['uncovered_lines']:
-                print(f"   Непокрытые строки: {class_info['uncovered_lines'][:5]}...")
-            print()
-        
-        # Анализируем классы с низким покрытием
-        print(f"\n🟡 КЛАССЫ С НИЗКИМ ПОКРЫТИЕМ: {len(stats['low_coverage_classes'])}")
-        print("-" * 60)
-        
-        for class_info in stats['low_coverage_classes'][:10]:  # Показываем первые 10
-            print(f"⚠️  {class_info['name']}")
-            print(f"   Файл: {class_info['filename']}")
-            print(f"   Покрытие: {class_info['line_rate']*100:.1f}%")
-            if class_info['uncovered_lines']:
-                print(f"   Непокрытые строки: {class_info['uncovered_lines']}")
-            print()
-        
-        # Анализируем приоритетные классы для тестирования
-        all_classes = stats['uncovered_classes'] + stats['low_coverage_classes']
-        priority_classes = analyze_complexity_for_testing(all_classes)
-        
-        print(f"\n🎯 ПРИОРИТЕТНЫЕ КЛАССЫ ДЛЯ ТЕСТИРОВАНИЯ: {len(priority_classes)}")
-        print("-" * 60)
-        
-        for class_info in priority_classes[:15]:  # Показываем топ-15
-            priority_icon = "🔴" if class_info['priority'] == 'HIGH' else "🟡"
-            print(f"{priority_icon} {class_info['name']}")
-            print(f"   Файл: {class_info['filename']}")
-            print(f"   Покрытие: {class_info['line_rate']*100:.1f}%")
-            print(f"   Приоритет: {class_info['priority']}")
-            if class_info['uncovered_lines']:
-                print(f"   Непокрытые строки: {class_info['uncovered_lines'][:5]}...")
-            print()
-        
-        # Рекомендации
-        print("\n💡 РЕКОМЕНДАЦИИ")
-        print("-" * 60)
-        
-        if priority_classes:
-            print("1. Начните с классов с высоким приоритетом (🔴)")
-            print("2. Используйте DX-утилиту для генерации базовой структуры тестов")
-            print("3. Сфокусируйтесь на бизнес-логике и критических путях")
-            print("4. Добавьте интеграционные тесты для сложных сценариев")
-        
-        if line_coverage < 50:
-            print("5. Общее покрытие низкое - рассмотрите добавление unit-тестов")
-        
-        if branch_coverage < 40:
-            print("6. Покрытие веток низкое - добавьте тесты для условных путей")
-        
-        print(f"\n📁 Полный отчет: {coverage_file}")
+        return {
+            'file_path': file_path,
+            'module_name': module_name,
+            'general': {
+                'lines_valid': lines_valid,
+                'lines_covered': lines_covered,
+                'line_coverage': line_coverage,
+                'branches_valid': branches_valid,
+                'branches_covered': branches_covered,
+                'branch_coverage': branch_coverage
+            },
+            'module_classes': module_classes,
+            'module_methods': module_methods
+        }
         
     except Exception as e:
-        print(f"❌ Ошибка при анализе покрытия: {e}")
-        sys.exit(1)
+        return {"error": f"Ошибка при анализе {file_path}: {e}"}
+
+
+def print_analysis(data: Dict):
+    """Выводит анализ в красивом формате"""
+    if 'error' in data:
+        print(f"❌ {data['error']}")
+        return
+    
+    module_name = data['module_name']
+    print(f"=== АНАЛИЗ COVERAGE ОТЧЕТА ===")
+    print(f"Модуль: {module_name}")
+    print(f"Файл: {data['file_path']}")
+    print()
+    
+    # Общая статистика
+    general = data['general']
+    print(f"ОБЩАЯ СТАТИСТИКА:")
+    print(f"Строк кода: {general['lines_valid']}")
+    print(f"Покрыто строк: {general['lines_covered']}")
+    print(f"Покрытие строк: {general['line_coverage']:.1f}%")
+    print(f"Веток: {general['branches_valid']}")
+    print(f"Покрыто веток: {general['branches_covered']}")
+    print(f"Покрытие веток: {general['branch_coverage']:.1f}%")
+    print()
+    
+    # Классы модуля
+    if data['module_classes']:
+        print(f"АНАЛИЗ {module_name}:")
+        for cls in data['module_classes']:
+            print(f"Класс: {cls['name']}")
+            print(f"Файл: {cls['filename']}")
+            print(f"Покрытие строк: {cls['line_coverage']:.1f}%")
+            print(f"Покрытие веток: {cls['branch_coverage']:.1f}%")
+            print()
+    
+    # Методы модуля
+    if data['module_methods']:
+        if module_name == 'MessageHandler':
+            print("МЕТОДЫ БАНОВ:")
+        else:
+            print("МЕТОДЫ МОДУЛЯ:")
+            
+        for method in data['module_methods']:
+            status = "✅ ГОТОВ" if method['line_coverage'] >= 90 else "⚠️ ЧАСТИЧНО" if method['line_coverage'] >= 70 else "❌ НЕ ГОТОВ"
+            print(f"{method['name']}:")
+            print(f"  Покрытие строк: {method['line_coverage']:.1f}%")
+            print(f"  Покрытие веток: {method['branch_coverage']:.1f}%")
+            print(f"  Статус: {status}")
+            print()
+    
+    # Оценка готовности к рефакторингу
+    print("ОЦЕНКА ГОТОВНОСТИ К РЕФАКТОРИНГУ:")
+    
+    # Вычисляем среднее покрытие модуля
+    if data['module_classes']:
+        avg_line_coverage = sum(cls['line_coverage'] for cls in data['module_classes']) / len(data['module_classes'])
+        avg_branch_coverage = sum(cls['branch_coverage'] for cls in data['module_classes']) / len(data['module_classes'])
+    else:
+        avg_line_coverage = general['line_coverage']
+        avg_branch_coverage = general['branch_coverage']
+    
+    if avg_line_coverage >= 90 and avg_branch_coverage >= 80:
+        print(f"✅ {module_name} ГОТОВ К БЕЗОПАСНОМУ РЕФАКТОРИНГУ")
+        print(f"- Покрытие строк: {avg_line_coverage:.1f}%")
+        print(f"- Покрытие веток: {avg_branch_coverage:.1f}%")
+        print("- Рекомендация: можно рефакторить с уверенностью")
+    elif avg_line_coverage >= 70 and avg_branch_coverage >= 60:
+        print(f"⚠️ {module_name} ЧАСТИЧНО ГОТОВ К РЕФАКТОРИНГУ")
+        print(f"- Покрытие строк: {avg_line_coverage:.1f}%")
+        print(f"- Покрытие веток: {avg_branch_coverage:.1f}%")
+        print("- Рекомендация: добавить тесты перед рефакторингом")
+    else:
+        print(f"❌ {module_name} НЕ ГОТОВ К РЕФАКТОРИНГУ")
+        print(f"- Покрытие строк: {avg_line_coverage:.1f}%")
+        print(f"- Покрытие веток: {avg_branch_coverage:.1f}%")
+        print("- Рекомендация: значительно улучшить тестовое покрытие")
+
+
+def find_latest_coverage() -> str:
+    """Находит самый свежий coverage файл"""
+    pattern = "TestResults/*/coverage.cobertura.xml"
+    files = glob.glob(pattern)
+    
+    if not files:
+        return None
+    
+    # Сортируем по времени модификации
+    latest_file = max(files, key=os.path.getmtime)
+    return latest_file
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("❌ Не указан модуль для анализа")
+        print("Использование: python3 scripts/analyze_coverage.py <модуль> [путь_к_coverage.xml]")
+        print("Примеры:")
+        print("  python3 scripts/analyze_coverage.py MessageHandler")
+        print("  python3 scripts/analyze_coverage.py ModerationService")
+        return
+    
+    module_name = sys.argv[1]
+    
+    if len(sys.argv) > 2:
+        # Используем переданный путь
+        file_path = sys.argv[2]
+        if '*' in file_path:
+            # Если передан паттерн, берем самый свежий
+            files = glob.glob(file_path)
+            if not files:
+                print(f"❌ Не найдены файлы по паттерну: {file_path}")
+                return
+            file_path = max(files, key=os.path.getmtime)
+    else:
+        # Ищем самый свежий coverage файл
+        file_path = find_latest_coverage()
+        if not file_path:
+            print("❌ Не найден coverage файл. Запустите тесты с coverage:")
+            print("   dotnet test --collect:\"XPlat Code Coverage\" --results-directory TestResults")
+            return
+    
+    print(f"📊 Анализируем модуль '{module_name}' в файле: {file_path}")
+    print()
+    
+    data = analyze_coverage_file(file_path, module_name)
+    print_analysis(data)
+
 
 if __name__ == "__main__":
     main() 

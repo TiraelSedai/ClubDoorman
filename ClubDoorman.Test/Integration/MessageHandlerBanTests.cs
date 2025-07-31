@@ -81,8 +81,8 @@ public class MessageHandlerBanTests
         // Используем стандартную настройку из инфраструктуры
         factory.SetupLongNameBanTestScenario(user);
         
-        // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        // Создаем MessageHandler с реальным UserBanService после настройки всех моков
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = userJoinMessage };
@@ -120,7 +120,7 @@ public class MessageHandlerBanTests
         factory.SetupLongNameBanTestScenario(user);
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = userJoinMessage };
@@ -158,7 +158,7 @@ public class MessageHandlerBanTests
         factory.SetupBlacklistUserTestScenario(user);
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = userJoinMessage };
@@ -205,7 +205,7 @@ public class MessageHandlerBanTests
         _factory.SetupAutoBanScenario(user, "Спам сообщение");
         
         // Создаем MessageHandler после настройки моков
-        _handler = _factory.CreateMessageHandler();
+        _handler = _factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -250,7 +250,7 @@ public class MessageHandlerBanTests
         // Используем стандартную настройку из инфраструктуры
         factory.SetupChannelTestScenario(chat);
         
-        // Настраиваем UserBanService для вызова AutoBanChannelAsync
+        // Настраиваем UserBanService для вызова AutoBanChannel
         // ДОЛЖНО быть ПОСЛЕ SetupChannelTestScenario, чтобы не перезаписаться
         factory.UserBanServiceMock.Setup(x => x.AutoBanChannelAsync(
             It.IsAny<Message>(), 
@@ -259,7 +259,7 @@ public class MessageHandlerBanTests
         
         // Config.ChannelAutoBan - статическое свойство, по умолчанию true
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -304,7 +304,7 @@ public class MessageHandlerBanTests
         _factory.SetupBlacklistBanHandlingScenario(user, "Пользователь в блэклисте");
         
         // Создаем MessageHandler после настройки моков
-        _handler = _factory.CreateMessageHandler();
+        _handler = _factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -344,7 +344,7 @@ public class MessageHandlerBanTests
         factory.SetupModerationBanScenario("Спам сообщение");
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -384,7 +384,7 @@ public class MessageHandlerBanTests
         factory.SetupModerationBanScenario("Спам сообщение");
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -413,7 +413,7 @@ public class MessageHandlerBanTests
         factory.SetupAiMlBanScenario(probability: 0.85, reason: "ML подозрение подтверждено");
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -453,7 +453,7 @@ public class MessageHandlerBanTests
         factory.SetupAiMlRejectScenario(probability: 0.25, reason: "ML подозрение отклонено");
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -491,7 +491,7 @@ public class MessageHandlerBanTests
         });
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -537,7 +537,7 @@ public class MessageHandlerBanTests
         });
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -574,7 +574,7 @@ public class MessageHandlerBanTests
         });
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
@@ -619,7 +619,7 @@ public class MessageHandlerBanTests
         });
         
         // Создаем MessageHandler после настройки всех моков
-        var handler = factory.CreateMessageHandler();
+        var handler = factory.CreateMessageHandlerWithRealUserBanService();
 
         // Act
         var update = new Update { Message = message };
