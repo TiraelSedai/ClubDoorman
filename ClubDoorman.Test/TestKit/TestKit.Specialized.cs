@@ -221,48 +221,8 @@ namespace ClubDoorman.Test.TestKit
             /// </summary>
             public static class BanTests
             {
-                /// <summary>
-                /// Пользователь для тестов банов
-                /// <tags>ban, user, integration</tags>
-                /// </summary>
-                public static User UserForBan() => TestDataFactory.CreateValidUser();
+                // === СЦЕНАРИИ ДЛЯ GOLDEN MASTER ТЕСТОВ ===
                 
-                /// <summary>
-                /// Чат для тестов банов
-                /// <tags>ban, chat, integration</tags>
-                /// </summary>
-                public static Chat ChatForBanTest() => TestDataFactory.CreateGroupChat();
-                
-                /// <summary>
-                /// Спам сообщение для тестов банов
-                /// <tags>ban, spam, message, moderation</tags>
-                /// </summary>
-                public static Message SpamMessage() => TestDataFactory.CreateSpamMessage();
-                
-                /// <summary>
-                /// Сообщение от канала для тестов банов
-                /// <tags>ban, channel, message, moderation</tags>
-                /// </summary>
-                public static Message ChannelMessage() => TestDataFactory.CreateChannelMessage(-100123456789, -1009876543210);
-                
-                /// <summary>
-                /// Результат модерации: бан
-                /// <tags>ban, moderation, result, ml</tags>
-                /// </summary>
-                public static ModerationResult BanResult(string reason = "Спам") => new ModerationResult(ModerationAction.Ban, reason);
-                
-                /// <summary>
-                /// Результат модерации: удаление
-                /// <tags>ban, moderation, delete, result, ml</tags>
-                /// </summary>
-                public static ModerationResult DeleteResult(string reason = "ML решил что это спам") => new ModerationResult(ModerationAction.Delete, reason);
-                
-                /// <summary>
-                /// Результат модерации: разрешить
-                /// <tags>ban, moderation, allow, result, ml</tags>
-                /// </summary>
-                public static ModerationResult AllowResult(string reason = "Valid message") => new ModerationResult(ModerationAction.Allow, reason);
-
                 /// <summary>
                 /// Сценарий для тестирования временного бана
                 /// <tags>ban, scenario, temporary, golden-master</tags>
@@ -363,6 +323,54 @@ namespace ClubDoorman.Test.TestKit
                     
                     return (user, chat, message);
                 }
+
+                // === УТИЛИТЫ ДЛЯ СТАРЫХ ТЕСТОВ (DEPRECATED) ===
+                
+                /// <summary>
+                /// Пользователь для тестов банов
+                /// <tags>ban, user, integration, deprecated</tags>
+                /// </summary>
+                [Obsolete("Используйте сценарии выше")]
+                public static User UserForBan() => TestDataFactory.CreateValidUser();
+                
+                /// <summary>
+                /// Чат для тестов банов
+                /// <tags>ban, chat, integration, deprecated</tags>
+                /// </summary>
+                [Obsolete("Используйте сценарии выше")]
+                public static Chat ChatForBanTest() => TestDataFactory.CreateGroupChat();
+                
+                /// <summary>
+                /// Спам сообщение для тестов банов
+                /// <tags>ban, spam, message, moderation, deprecated</tags>
+                /// </summary>
+                [Obsolete("Используйте сценарии выше")]
+                public static Message SpamMessage() => TestDataFactory.CreateSpamMessage();
+                
+                /// <summary>
+                /// Сообщение от канала для тестов банов
+                /// <tags>ban, channel, message, moderation, deprecated</tags>
+                /// </summary>
+                [Obsolete("Используйте сценарии выше")]
+                public static Message ChannelMessage() => TestDataFactory.CreateChannelMessage(-100123456789, -1009876543210);
+                
+                /// <summary>
+                /// Результат модерации: бан
+                /// <tags>ban, moderation, result, ml</tags>
+                /// </summary>
+                public static ModerationResult BanResult(string reason = "Спам") => new ModerationResult(ModerationAction.Ban, reason);
+                
+                /// <summary>
+                /// Результат модерации: удаление
+                /// <tags>ban, moderation, delete, result, ml</tags>
+                /// </summary>
+                public static ModerationResult DeleteResult(string reason = "ML решил что это спам") => new ModerationResult(ModerationAction.Delete, reason);
+                
+                /// <summary>
+                /// Результат модерации: разрешить
+                /// <tags>ban, moderation, allow, result, ml</tags>
+                /// </summary>
+                public static ModerationResult AllowResult(string reason = "Valid message") => new ModerationResult(ModerationAction.Allow, reason);
             }
 
             /// <summary>
