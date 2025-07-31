@@ -93,4 +93,34 @@ public class AppConfig : IAppConfig
     /// </summary>
     public HashSet<long> NoCaptchaGroups => Config.NoCaptchaGroups;
     
+    /// <summary>
+    /// Включен ли фильтр ссылок
+    /// </summary>
+    public bool TextMentionFilterEnabled => Config.TextMentionFilterEnabled;
+    
+    /// <summary>
+    /// Количество повторных нарушений ML фильтра перед баном
+    /// </summary>
+    public int MlViolationsBeforeBan => Config.MlViolationsBeforeBan;
+    
+    /// <summary>
+    /// Количество повторных нарушений стоп-слов перед баном
+    /// </summary>
+    public int StopWordsViolationsBeforeBan => Config.StopWordsViolationsBeforeBan;
+    
+    /// <summary>
+    /// Количество повторных нарушений эмодзи перед баном
+    /// </summary>
+    public int EmojiViolationsBeforeBan => Config.EmojiViolationsBeforeBan;
+    
+    /// <summary>
+    /// Количество повторных нарушений lookalike символов перед баном
+    /// </summary>
+    public int LookalikeViolationsBeforeBan => Config.LookalikeViolationsBeforeBan;
+    
+            /// <summary>
+        /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
+        /// </summary>
+        public bool RepeatedViolationsBanToAdminChat => Config.RepeatedViolationsBanToAdminChat;
+    
 } 

@@ -20,14 +20,14 @@ public class SpamHamClassifierTests : TestBase
     public void Setup()
     {
         _factory = new SpamHamClassifierTestFactory();
-        _classifierMock = _factory.CreateMockSpamHamClassifier();
+        _classifierMock = TK.CreateMockSpamHamClassifier();
     }
 
     [Test]
     public async Task IsSpam_ValidMessage_ReturnsNotSpam()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         _classifierMock.Setup(x => x.IsSpam(message.Text!))
             .ReturnsAsync((false, 0.2f));
 
@@ -43,7 +43,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_SpamMessage_ReturnsSpam()
     {
         // Arrange
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
         _classifierMock.Setup(x => x.IsSpam(message.Text!))
             .ReturnsAsync((true, 0.8f));
 
@@ -60,7 +60,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_EmptyMessage_ReturnsNotSpam()
     {
         // Arrange
-        var message = TestDataFactory.CreateEmptyMessage();
+        var message = TK.CreateEmptyMessage();
         _classifierMock.Setup(x => x.IsSpam(message.Text!))
             .ReturnsAsync((false, 0.1f));
 
@@ -76,7 +76,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_NullText_ThrowsNullReferenceException()
     {
         // Arrange
-        var message = TestDataFactory.CreateNullTextMessage();
+        var message = TK.CreateNullTextMessage();
         _classifierMock.Setup(x => x.IsSpam(message.Text!))
             .ThrowsAsync(new NullReferenceException());
 
@@ -89,7 +89,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_LongMessage_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateLongMessage();
+        var message = TK.CreateLongMessage();
         _classifierMock.Setup(x => x.IsSpam(message.Text!))
             .ReturnsAsync((false, 0.3f));
 
@@ -105,7 +105,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_ConcurrentCalls_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         _classifierMock.Setup(x => x.IsSpam(message.Text!))
             .ReturnsAsync((false, 0.2f));
         var tasks = new List<Task<(bool, float)>>();
@@ -131,8 +131,8 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_DifferentUserTypes_HandlesCorrectly()
     {
         // Arrange
-        var validMessage = TestDataFactory.CreateValidMessage();
-        var spamMessage = TestDataFactory.CreateSpamMessage();
+        var validMessage = TK.CreateValidMessage();
+        var spamMessage = TK.CreateSpamMessage();
         _classifierMock.Setup(x => x.IsSpam(validMessage.Text!))
             .ReturnsAsync((false, 0.2f));
         _classifierMock.Setup(x => x.IsSpam(spamMessage.Text!))
@@ -153,8 +153,8 @@ public class SpamHamClassifierTests : TestBase
     public async Task IsSpam_DifferentChatTypes_HandlesCorrectly()
     {
         // Arrange
-        var groupMessage = TestDataFactory.CreateValidMessage();
-        var privateMessage = TestDataFactory.CreateSpamMessage();
+        var groupMessage = TK.CreateValidMessage();
+        var privateMessage = TK.CreateSpamMessage();
         _classifierMock.Setup(x => x.IsSpam(groupMessage.Text!))
             .ReturnsAsync((false, 0.2f));
         _classifierMock.Setup(x => x.IsSpam(privateMessage.Text!))
@@ -173,7 +173,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddSpam_ValidMessage_AddsToDataset()
     {
         // Arrange
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
 
         // Act
         await _classifierMock.Object.AddSpam(message.Text!);
@@ -187,7 +187,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddHam_ValidMessage_AddsToDataset()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Act
         await _classifierMock.Object.AddHam(message.Text!);
@@ -201,7 +201,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddSpam_EmptyMessage_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateEmptyMessage();
+        var message = TK.CreateEmptyMessage();
 
         // Act
         await _classifierMock.Object.AddSpam(message.Text!);
@@ -215,7 +215,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddHam_EmptyMessage_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateEmptyMessage();
+        var message = TK.CreateEmptyMessage();
 
         // Act
         await _classifierMock.Object.AddHam(message.Text!);
@@ -229,7 +229,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddSpam_LongMessage_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateLongMessage();
+        var message = TK.CreateLongMessage();
 
         // Act
         await _classifierMock.Object.AddSpam(message.Text!);
@@ -243,7 +243,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddHam_LongMessage_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateLongMessage();
+        var message = TK.CreateLongMessage();
 
         // Act
         await _classifierMock.Object.AddHam(message.Text!);
@@ -285,7 +285,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddSpam_ConcurrentCalls_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
         var tasks = new List<Task>();
 
         // Act
@@ -305,7 +305,7 @@ public class SpamHamClassifierTests : TestBase
     public async Task AddHam_ConcurrentCalls_HandlesCorrectly()
     {
         // Arrange
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         var tasks = new List<Task>();
 
         // Act

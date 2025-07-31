@@ -123,6 +123,44 @@ namespace ClubDoorman.Infrastructure
         /// Удаление пересланных сообщений от новичков (из .env DOORMAN_DELETE_FORWARDED_MESSAGES)
         /// </summary>
         public static bool DeleteForwardedMessages { get; } = GetEnvironmentBool("DOORMAN_DELETE_FORWARDED_MESSAGES");
+        
+            /// <summary>
+    /// Включить фильтр ссылок
+    /// </summary>
+    public static bool TextMentionFilterEnabled { get; } = GetTextMentionFilterEnabled();
+    
+    private static bool GetTextMentionFilterEnabled()
+    {
+        var enabled = GetEnvironmentBool("DOORMAN_TEXT_MENTION_FILTER_ENABLE");
+        Console.WriteLine($"[DEBUG] DOORMAN_TEXT_MENTION_FILTER_ENABLE env var: '{Environment.GetEnvironmentVariable("DOORMAN_TEXT_MENTION_FILTER_ENABLE")}'");
+        Console.WriteLine($"[DEBUG] TextMentionFilterEnabled: {enabled}");
+        return enabled;
+    }
+    
+    /// <summary>
+    /// Количество повторных нарушений ML фильтра перед баном (0 = отключено)
+    /// </summary>
+    public static int MlViolationsBeforeBan { get; } = GetEnvironmentInt("DOORMAN_ML_VIOLATIONS_BEFORE_BAN", 0);
+    
+    /// <summary>
+    /// Количество повторных нарушений стоп-слов перед баном (0 = отключено)
+    /// </summary>
+    public static int StopWordsViolationsBeforeBan { get; } = GetEnvironmentInt("DOORMAN_STOP_WORDS_VIOLATIONS_BEFORE_BAN", 0);
+    
+    /// <summary>
+    /// Количество повторных нарушений эмодзи перед баном (0 = отключено)
+    /// </summary>
+    public static int EmojiViolationsBeforeBan { get; } = GetEnvironmentInt("DOORMAN_EMOJI_VIOLATIONS_BEFORE_BAN", 0);
+    
+    /// <summary>
+    /// Количество повторных нарушений lookalike символов перед баном (0 = отключено)
+    /// </summary>
+    public static int LookalikeViolationsBeforeBan { get; } = GetEnvironmentInt("DOORMAN_LOOKALIKE_VIOLATIONS_BEFORE_BAN", 0);
+    
+            /// <summary>
+        /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
+        /// </summary>
+        public static bool RepeatedViolationsBanToAdminChat { get; } = GetEnvironmentBool("DOORMAN_REPEATED_VIOLATIONS_BAN_TO_ADMIN_CHAT");
 
         /// <summary>
         /// Проверяет, разрешен ли бот в данном чате

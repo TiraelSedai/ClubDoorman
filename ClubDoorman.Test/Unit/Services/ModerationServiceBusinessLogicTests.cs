@@ -8,12 +8,13 @@ using NUnit.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using ClubDoorman.Test.TestKit;
 
 namespace ClubDoorman.Test.Unit.Services;
 
 /// <summary>
 /// Тесты бизнес-логики ModerationService
-/// Проверяют реальную логику модерации, а не только моки
+/// Проверяют реальную логику модерации
 /// </summary>
 [TestFixture]
 [Category("business-logic")]
@@ -37,9 +38,12 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckMessageAsync_UserInBanlist_ReturnsBanAction()
     {
-        // Arrange
+        // Arrange - используем новые возможности TestKit
         var userId = 123456L;
-        var message = CreateTestMessage(userId, "Hello world");
+        var message = TestKitBuilders.CreateMessage()
+            .FromUser(userId)
+            .WithText("Hello world")
+            .Build();
         
         _factory.WithUserManagerSetup(mock => 
             mock.Setup(x => x.InBanlist(userId)).ReturnsAsync(true));
@@ -55,8 +59,17 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckMessageAsync_MessageWithButtons_ReturnsBanAction()
     {
-        // Arrange
-        var message = CreateTestMessage(123456L, "Hello", hasButtons: true);
+        // Arrange - используем новые возможности TestKit
+        var message = TestKitBuilders.CreateMessage()
+            .FromUser(123456L)
+            .WithText("Hello")
+            .Build();
+        
+        // Добавляем кнопки (пока нет билдера для этого)
+        message.ReplyMarkup = new InlineKeyboardMarkup(new[]
+        {
+            new[] { new InlineKeyboardButton("Button 1") { CallbackData = "test" } }
+        });
 
         // Act
         var result = await _service.CheckMessageAsync(message);
@@ -69,8 +82,14 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckMessageAsync_StoryMessage_ReturnsDeleteAction()
     {
-        // Arrange
-        var message = CreateTestMessage(123456L, "Hello", hasStory: true);
+        // Arrange - используем новые возможности TestKit
+        var message = TestKitBuilders.CreateMessage()
+            .FromUser(123456L)
+            .WithText("Hello")
+            .Build();
+        
+        // Добавляем Story (пока нет билдера для этого)
+        message.Story = new Story { Id = 1 };
 
         // Act
         var result = await _service.CheckMessageAsync(message);
@@ -83,8 +102,11 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckMessageAsync_SpamDetected_ReturnsBanAction()
     {
-        // Arrange
-        var message = CreateTestMessage(123456L, "SPAM MESSAGE");
+        // Arrange - используем новые возможности TestKit
+        var message = TestKitBuilders.CreateMessage()
+            .FromUser(123456L)
+            .WithText("SPAM MESSAGE")
+            .Build();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
@@ -104,6 +126,10 @@ public class ModerationServiceBusinessLogicTests
         // Arrange
         var message = CreateTestMessage(123456L, "Hello");
         
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
+        
         // Мимикрия проверяется только для подозрительных пользователей
         // и только в AnalyzeMimicryAndMarkSuspicious, не в CheckMessageAsync
         // Поэтому этот тест не корректен - убираем его
@@ -118,12 +144,15 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckMessageAsync_GoodMessage_ReturnsAllowAction()
     {
-        // Arrange
-        var message = CreateTestMessage(123456L, "Hello world");
+        // Arrange - используем новые возможности TestKit
+        var message = TestKitBuilders.CreateMessage()
+            .FromUser(123456L)
+            .WithText("Hello world")
+            .Build();
         
         _factory.WithClassifierSetup(mock => 
             mock.Setup(x => x.IsSpam(It.IsAny<string>()))
-                .ReturnsAsync((false, 0.1f)));
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
         
         _factory.WithMimicryClassifierSetup(mock => 
             mock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
@@ -143,8 +172,14 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckUserNameAsync_EmptyFirstName_ThrowsException()
     {
-        // Arrange
-        var user = new User { Id = 123456L, Username = "john_doe", FirstName = null };
+        // Arrange - используем новые возможности TestKit
+        var user = TestKitBuilders.CreateUser()
+            .WithId(123456L)
+            .WithUsername("john_doe")
+            .Build();
+        
+        // Устанавливаем FirstName в null
+        user.FirstName = null;
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ModerationException>(async () => 
@@ -156,8 +191,12 @@ public class ModerationServiceBusinessLogicTests
     [Test]
     public async Task CheckUserNameAsync_ValidUsername_ReturnsAllowAction()
     {
-        // Arrange
-        var user = new User { Id = 123456L, Username = "john_doe", FirstName = "John" };
+        // Arrange - используем новые возможности TestKit
+        var user = TestKitBuilders.CreateUser()
+            .WithId(123456L)
+            .WithUsername("john_doe")
+            .WithFirstName("John")
+            .Build();
 
         // Act
         var result = await _service.CheckUserNameAsync(user);

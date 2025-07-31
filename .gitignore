@@ -11,6 +11,7 @@ ClubDoorman/ClubDoorman.csproj.user
 
 # Test artifacts
 ClubDoorman.Test/TestResults/
+test_output.txt
 ClubDoorman.Test/StrykerOutput/
 ClubDoorman.Test/coverage/
 ClubDoorman.Test/TestData/temp/

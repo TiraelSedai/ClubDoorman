@@ -625,7 +625,35 @@ public class ModerationService : IModerationService
         var chatType = ChatSettingsManager.GetChatType(message.Chat.Id);
         var isAnnouncement = chatType == "announcement";
 
-        // 6. Проверка эмодзи
+        // 6. ПРИОРИТЕТНАЯ проверка ссылок
+        if (Config.TextMentionFilterEnabled)
+        {
+            var hasLinks = SimpleFilters.HasLinks(text);
+            _logger.LogDebug("Проверка ссылок: текст='{Text}', найдены={HasLinks}", 
+                text.Length > 50 ? text.Substring(0, 50) + "..." : text, hasLinks);
+                
+            if (hasLinks)
+            {
+                _logger.LogInformation("Найдены ссылки в тексте: '{Text}'", text);
+                return new ModerationResult(ModerationAction.Delete, "Ссылки запрещены");
+            }
+            
+            // Проверяем наличие ссылок в превью сообщения
+            if (message.Entities != null)
+            {
+                var hasUrlEntities = message.Entities.Any(e => 
+                    e.Type == Telegram.Bot.Types.Enums.MessageEntityType.Url ||
+                    e.Type == Telegram.Bot.Types.Enums.MessageEntityType.TextLink);
+                
+                if (hasUrlEntities)
+                {
+                    _logger.LogInformation("Найдены URL-сущности или TextLink в сообщении");
+                    return new ModerationResult(ModerationAction.Delete, "Ссылки запрещены");
+                }
+            }
+        }
+
+        // 7. Проверка эмодзи
         var tooManyEmojis = SimpleFilters.TooManyEmojis(text);
         _logger.LogDebug("Проверка эмодзи: текст='{Text}', многовато={TooMany}, объявление={IsAnnouncement}", 
             text.Length > 50 ? text.Substring(0, 50) + "..." : text, tooManyEmojis, isAnnouncement);

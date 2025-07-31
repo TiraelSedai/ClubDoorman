@@ -26,6 +26,8 @@ public class CallbackQueryHandlerTests
     private Mock<IModerationService> _mockModerationService = null!;
     private Mock<IMessageService> _mockMessageService = null!;
     private Mock<ILogger<CallbackQueryHandler>> _mockLogger = null!;
+    private Mock<ILogger<ViolationTracker>> _mockViolationTrackerLogger = null!;
+    private Mock<IAppConfig> _mockAppConfig = null!;
 
     [SetUp]
     public void Setup()
@@ -39,6 +41,8 @@ public class CallbackQueryHandlerTests
         _mockModerationService = new Mock<IModerationService>();
         _mockMessageService = new Mock<IMessageService>();
         _mockLogger = new Mock<ILogger<CallbackQueryHandler>>();
+        _mockViolationTrackerLogger = new Mock<ILogger<ViolationTracker>>();
+        _mockAppConfig = new Mock<IAppConfig>();
 
         _handler = new CallbackQueryHandler(
             _mockBot.Object,
@@ -49,6 +53,7 @@ public class CallbackQueryHandlerTests
             _mockAiChecks.Object,
             _mockModerationService.Object,
             _mockMessageService.Object,
+            new ViolationTracker(_mockViolationTrackerLogger.Object, _mockAppConfig.Object),
             _mockLogger.Object
         );
     }

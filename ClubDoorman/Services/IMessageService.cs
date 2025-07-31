@@ -33,7 +33,7 @@ public interface IMessageService
     /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
-    Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
+    Task<Message?> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
 
     /// <summary>
     /// Отправляет приветственное сообщение (новая версия без Request объекта)

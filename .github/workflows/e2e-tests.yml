@@ -1,0 +1,88 @@
+name: E2E Tests with Secrets
+
+on:
+  pull_request:
+    branches: [ "*" ]
+  push:
+    branches: [ "main", "develop" ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    environment: Spampyre-dotnet9
+    # Запускаем для всех pull request'ов и push в основные ветки
+    # Убираем ограничение по измененным файлам, так как оно не работает для PR
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Create .env file from secrets
+      run: |
+        # Проверяем наличие секретов (без показа их значений)
+        echo "=== Проверка секретов ==="
+        if [ -n "${{ secrets.DOORMAN_OPENROUTER_API }}" ]; then
+          echo "DOORMAN_OPENROUTER_API: настроен"
+        else
+          echo "DOORMAN_OPENROUTER_API: НЕ НАСТРОЕН"
+        fi
+        
+        if [ -n "${{ secrets.DOORMAN_BOT_API }}" ]; then
+          echo "DOORMAN_BOT_API: настроен"
+        else
+          echo "DOORMAN_BOT_API: НЕ НАСТРОЕН"
+        fi
+        
+        if [ -n "${{ secrets.DOORMAN_ADMIN_CHAT }}" ]; then
+          echo "DOORMAN_ADMIN_CHAT: настроен"
+        else
+          echo "DOORMAN_ADMIN_CHAT: НЕ НАСТРОЕН"
+        fi
+        
+        # Создаем .env файл с fallback значениями
+        cat > ClubDoorman/.env << EOF
+        DOORMAN_OPENROUTER_API=${{ secrets.DOORMAN_OPENROUTER_API }}
+        DOORMAN_BOT_API=${{ secrets.DOORMAN_BOT_API }}
+        DOORMAN_ADMIN_CHAT=${{ secrets.DOORMAN_ADMIN_CHAT }}
+        EOF
+        
+        # Проверяем, что файл создался (без показа содержимого)
+        echo "=== Проверка .env файла ==="
+        ls -la ClubDoorman/.env
+        echo "=== Файл создан успешно ==="
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build application
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run BDD tests
+      run: |
+        dotnet test ClubDoorman.Test/ClubDoorman.Test.csproj \
+          --filter "Category=BDD" \
+          --verbosity normal \
+          --logger "console;verbosity=detailed" \
+          --no-restore
+
+    - name: Clean up sensitive files
+      if: always()
+      run: |
+        echo "=== Очистка чувствительных файлов ==="
+        rm -f ClubDoorman/.env
+        rm -f .env
+        echo "=== Очистка завершена ==="
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          ClubDoorman.Test/TestResults/
+          *.trx
+        retention-days: 7 

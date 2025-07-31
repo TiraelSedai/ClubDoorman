@@ -207,6 +207,20 @@ internal sealed class UserManager : IUserManager
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(5));
             var get = await _clubHttpClient.GetAsync(url, cts.Token);
+            
+            if (!get.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("GetClubUsername: HTTP {StatusCode} для пользователя {UserId}", get.StatusCode, userId);
+                return null;
+            }
+            
+            var content = await get.Content.ReadAsStringAsync(cts.Token);
+            if (string.IsNullOrWhiteSpace(content) || !content.TrimStart().StartsWith("{"))
+            {
+                _logger.LogWarning("GetClubUsername: не JSON ответ для пользователя {UserId}: '{Content}'", userId, content?.Length > 100 ? content.Substring(0, 100) + "..." : content);
+                return null;
+            }
+            
             var response = await get.Content.ReadFromJsonAsync<ClubByTgIdResponse>(cancellationToken: cts.Token);
             var fullName = response?.user?.full_name;
             if (!string.IsNullOrEmpty(fullName))
@@ -215,7 +229,7 @@ internal sealed class UserManager : IUserManager
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "GetClubUsername");
+            _logger.LogWarning(e, "GetClubUsername для пользователя {UserId}", userId);
             return null;
         }
     }

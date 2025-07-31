@@ -94,7 +94,7 @@ public class MessageService : IMessageService
             await _bot.SendMessage(
                 chat.Id,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken
             );
             
@@ -130,7 +130,7 @@ public class MessageService : IMessageService
             var sent = await _bot.SendMessage(
                 chat.Id,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken
             );
             
@@ -147,8 +147,15 @@ public class MessageService : IMessageService
     /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
-    public async Task<Message> SendWelcomeMessageAsync(SendWelcomeMessageRequest request)
+    public async Task<Message?> SendWelcomeMessageAsync(SendWelcomeMessageRequest request)
     {
+        // Проверяем, отключены ли приветствия
+        if (Config.DisableWelcome)
+        {
+            _logger.LogDebug("Приветственные сообщения отключены (DOORMAN_DISABLE_WELCOME=true)");
+            return null;
+        }
+
         // Создаем приветственное сообщение (логика перенесена из CallbackQueryHandler)
         var displayName = !string.IsNullOrEmpty(request.User.FirstName)
             ? System.Net.WebUtility.HtmlEncode(Utils.FullName(request.User))
@@ -280,7 +287,7 @@ public class MessageService : IMessageService
             var notification = await _bot.SendMessage(
                 _appConfig.AdminChatId,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: forward,
                 cancellationToken: cancellationToken
             );
@@ -314,7 +321,7 @@ public class MessageService : IMessageService
             var notification = await _bot.SendMessage(
                 _appConfig.LogAdminChatId,
                 message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: forward,
                 cancellationToken: cancellationToken
             );
@@ -393,7 +400,7 @@ public class MessageService : IMessageService
             var sent = await _bot.SendMessage(
                 request.Chat.Id,
                 request.Message,
-                parseMode: ParseMode.Markdown,
+                parseMode: ParseMode.Html,
                 replyParameters: request.ReplyParameters,
                 replyMarkup: request.ReplyMarkup,
                 cancellationToken: request.CancellationToken

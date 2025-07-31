@@ -94,7 +94,7 @@ public class ModerationServiceExtendedTests
     {
         // Arrange
         var service = _factory.CreateModerationService();
-        var chat = TestDataFactory.CreateGroupChat();
+        var chat = TK.CreateGroupChat();
         var messageText = "test message";
 
         // Act & Assert
@@ -109,7 +109,7 @@ public class ModerationServiceExtendedTests
     {
         // Arrange
         var service = _factory.CreateModerationService();
-        var user = TestDataFactory.CreateValidUser();
+        var user = TK.CreateValidUser();
         var messageText = "test message";
 
         // Act & Assert
@@ -124,8 +124,8 @@ public class ModerationServiceExtendedTests
     {
         // Arrange
         var service = _factory.CreateModerationService();
-        var user = TestDataFactory.CreateValidUser();
-        var chat = TestDataFactory.CreateGroupChat();
+        var user = TK.CreateValidUser();
+        var chat = TK.CreateGroupChat();
 
         // Act & Assert
         var exception = Assert.ThrowsAsync<ArgumentException>(
@@ -139,8 +139,8 @@ public class ModerationServiceExtendedTests
     {
         // Arrange
         var service = _factory.CreateModerationService();
-        var user = TestDataFactory.CreateValidUser();
-        var chat = TestDataFactory.CreateGroupChat();
+        var user = TK.CreateValidUser();
+        var chat = TK.CreateGroupChat();
         var messageText = "test message";
 
         // Act
@@ -325,6 +325,10 @@ public class ModerationServiceExtendedTests
     public async Task CheckMessageAsync_UserWithoutFirstName_HandlesGracefully()
     {
         // Arrange
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
+        
         var service = _factory.CreateModerationService();
         var message = new Message
         {
@@ -344,6 +348,10 @@ public class ModerationServiceExtendedTests
     public async Task CheckMessageAsync_ChatWithoutId_HandlesGracefully()
     {
         // Arrange
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
+        
         var service = _factory.CreateModerationService();
         var message = new Message
         {
@@ -363,8 +371,12 @@ public class ModerationServiceExtendedTests
     public async Task CheckMessageAsync_ConcurrentCalls_HandlesCorrectly()
     {
         // Arrange
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
+        
         var service = _factory.CreateModerationService();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         var tasks = new List<Task<ModerationResult>>();
 
         // Act
@@ -388,12 +400,16 @@ public class ModerationServiceExtendedTests
     public async Task CheckMessageAsync_WithMimicryDetection_ReturnsAllow()
     {
         // Arrange
+        _factory.WithClassifierSetup(mock => 
+            mock.Setup(x => x.IsSpam(It.IsAny<string>()))
+                .ReturnsAsync((false, -1.5f))); // Уверенный ham (не спам)
+        
         _factory.WithMimicryClassifierSetup(mock => 
             mock.Setup(x => x.AnalyzeMessages(It.IsAny<List<string>>()))
                 .Returns(0.9));
         
         var service = _factory.CreateModerationService();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Act
         var result = await service.CheckMessageAsync(message);
@@ -411,7 +427,7 @@ public class ModerationServiceExtendedTests
                 .Returns(true));
         
         var service = _factory.CreateModerationService();
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Act
         var result = await service.CheckMessageAsync(message);

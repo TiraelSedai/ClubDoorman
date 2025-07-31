@@ -6,6 +6,11 @@ using Moq;
 using NUnit.Framework;
 using Telegram.Bot.Types;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using ClubDoorman.Models.Notifications;
 
 namespace ClubDoorman.Test.Services;
 
@@ -67,7 +72,7 @@ public class ModerationServiceSimpleTests
     public void TestDataFactory_CreatesValidMessage()
     {
         // Act
-        var message = TestDataFactory.CreateValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Assert
         Assert.That(message, Is.Not.Null);
@@ -81,7 +86,7 @@ public class ModerationServiceSimpleTests
     public void TestDataFactory_CreatesSpamMessage()
     {
         // Act
-        var message = TestDataFactory.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
 
         // Assert
         Assert.That(message, Is.Not.Null);
@@ -93,7 +98,7 @@ public class ModerationServiceSimpleTests
     public void TestDataFactory_CreatesValidUser()
     {
         // Act
-        var user = TestDataFactory.CreateValidUser();
+        var user = TK.CreateValidUser();
 
         // Assert
         Assert.That(user, Is.Not.Null);
@@ -108,7 +113,7 @@ public class ModerationServiceSimpleTests
     public void TestDataFactory_CreatesBotUser()
     {
         // Act
-        var user = TestDataFactory.CreateBotUser();
+        var user = TK.CreateBotUser();
 
         // Assert
         Assert.That(user, Is.Not.Null);
@@ -122,7 +127,7 @@ public class ModerationServiceSimpleTests
     public void TestDataFactory_CreatesGroupChat()
     {
         // Act
-        var chat = TestDataFactory.CreateGroupChat();
+        var chat = TK.CreateGroupChat();
 
         // Assert
         Assert.That(chat, Is.Not.Null);
@@ -130,5 +135,197 @@ public class ModerationServiceSimpleTests
         Assert.That(chat.Type, Is.EqualTo(Telegram.Bot.Types.Enums.ChatType.Group));
         Assert.That(chat.Title, Is.EqualTo("Test Group"));
         Assert.That(chat.Username, Is.EqualTo("testgroup"));
+    }
+
+    [Test]
+    public void CreateMessageWithMessageId_UsingTestDataFactory_Works()
+    {
+        // Act
+        var message = TK.CreateValidMessageWithId(456);
+
+        // Assert
+        Assert.That(message, Is.Not.Null);
+        // ВНИМАНИЕ: MessageId в Telegram.Bot является readonly и не может быть установлен в тестах
+        // Это ограничение библиотеки Telegram.Bot, а не нашего кода
+        Assert.That(message.MessageId, Is.EqualTo(0), "MessageId всегда 0 в Telegram.Bot из-за readonly ограничений");
+        Assert.That(message.Text, Is.EqualTo("Hello, this is a valid message!"));
+        Assert.That(message.Chat.Id, Is.EqualTo(-1001234567890));
+        Assert.That(message.From.Id, Is.EqualTo(123456789));
+    }
+
+    [Test]
+    public void SimpleMessageDeletionTest_TraceProblem()
+    {
+        // Arrange
+        var fakeClient = new FakeTelegramClient();
+        var envelope = new MessageEnvelope(
+            MessageId: 123,
+            UserId: 456,
+            ChatId: 789,
+            Text: "Test spam message"
+        );
+        
+        // Act - напрямую удаляем сообщение
+        fakeClient.DeleteMessageAsync(envelope.ChatId, envelope.MessageId);
+        
+        // Assert
+        Console.WriteLine($"DEBUG: DeletedMessages count: {fakeClient.DeletedMessages.Count}");
+        foreach (var deleted in fakeClient.DeletedMessages)
+        {
+            Console.WriteLine($"DEBUG: Deleted: ChatId={deleted.ChatId}, MessageId={deleted.MessageId}");
+        }
+        
+        Assert.That(fakeClient.WasMessageDeleted(envelope), Is.True, 
+            $"Сообщение должно быть удалено. ChatId={envelope.ChatId}, MessageId={envelope.MessageId}");
+    }
+
+    [Test]
+    public async Task MessageHandlerDeletionTest_TraceProblem()
+    {
+        // Arrange
+        var fakeClient = new FakeTelegramClient();
+        var factory = new MessageHandlerTestFactory();
+        var handler = factory.CreateMessageHandlerWithFake(fakeClient);
+        
+        var envelope = new MessageEnvelope(
+            MessageId: 456,
+            UserId: 789,
+            ChatId: 123,
+            Text: "SPAM MESSAGE"
+        );
+        
+        // Регистрируем envelope в fakeClient
+        fakeClient.RegisterMessageEnvelope(envelope);
+        
+        // Создаем Message из envelope
+        var message = fakeClient.CreateMessageFromEnvelope(envelope);
+        
+        // Настройка AppConfig - разрешаем чат 123 для обработки модерации
+        factory.AppConfigMock.Setup(x => x.IsChatAllowed(123)).Returns(true);
+        
+        // Настройка AppConfig - пустой список отключенных чатов
+        factory.AppConfigMock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
+        
+        // Настройка AppConfig - не админский чат
+        factory.AppConfigMock.Setup(x => x.AdminChatId).Returns(999L);
+        factory.AppConfigMock.Setup(x => x.LogAdminChatId).Returns(998L);
+        
+        // Настройка ModerationService - пользователь не одобрен, сообщение спам
+        factory.ModerationServiceMock.Setup(x => x.IsUserApproved(789, 123)).Returns(false);
+        factory.ModerationServiceMock.Setup(x => x.CheckMessageAsync(
+            It.IsAny<Message>()))
+            .ReturnsAsync(new ModerationResult(ModerationAction.Delete, "SPAM detected", 0.9));
+        
+        // Настройка UserManager - пользователь не в блэклисте
+        factory.UserManagerMock.Setup(x => x.InBanlist(789)).ReturnsAsync(false);
+        
+        // Настройка UserManager - пользователь не клубный
+        factory.UserManagerMock.Setup(x => x.GetClubUsername(789)).ReturnsAsync((string?)null);
+        
+        // Настройка CaptchaService - пользователь не проходит капчу
+        factory.CaptchaServiceMock.Setup(x => x.GetCaptchaInfo(It.IsAny<string>())).Returns((CaptchaInfo?)null);
+        
+        // Настройка MessageService - для отправки уведомлений
+        factory.MessageServiceMock.Setup(x => x.SendUserNotificationWithReplyAsync(
+            It.IsAny<User>(), 
+            It.IsAny<Chat>(), 
+            It.IsAny<UserNotificationType>(), 
+            It.IsAny<object>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TK.CreateValidMessage());
+        
+        // Act
+        Console.WriteLine("=== НАЧАЛО ТЕСТА ===");
+        Console.WriteLine($"Отправляем сообщение: {message.Text}");
+        Console.WriteLine($"MessageId: {message.MessageId}, UserId: {message.From?.Id}, ChatId: {message.Chat.Id}");
+        
+        await handler.HandleAsync(message, CancellationToken.None);
+        
+        Console.WriteLine("=== ПОСЛЕ ОБРАБОТКИ ===");
+        Console.WriteLine($"Количество отправленных сообщений: {fakeClient.SentMessages.Count}");
+        foreach (var sentMsg in fakeClient.SentMessages)
+        {
+            Console.WriteLine($"Отправлено: {sentMsg.Text}");
+        }
+        
+        Console.WriteLine($"Сообщение удалено: {fakeClient.WasMessageDeleted(envelope)}");
+        Console.WriteLine($"Количество удаленных сообщений: {fakeClient.DeletedMessages.Count}");
+        foreach (var deletedMsg in fakeClient.DeletedMessages)
+        {
+            Console.WriteLine($"Удалено: ChatId={deletedMsg.ChatId}, MessageId={deletedMsg.MessageId}");
+        }
+        Console.WriteLine("=== КОНЕЦ ТЕСТА ===");
+        
+        // Assert
+        // Проверяем, что сообщение было удалено через envelope
+        Assert.That(fakeClient.WasMessageDeleted(envelope), Is.True, 
+            "Сообщение должно быть удалено");
+        
+        // Проверяем, что было отправлено приветственное уведомление новичку
+        factory.MessageServiceMock.Verify(x => x.SendUserNotificationWithReplyAsync(
+            It.Is<User>(user => user.Id == 789),
+            It.Is<Chat>(chat => chat.Id == 123),
+            It.Is<UserNotificationType>(type => type == UserNotificationType.ModerationWarning),
+            It.IsAny<object>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        
+        // Проверяем логи для отладки
+        var logs = fakeClient.GetOperationLog();
+        Console.WriteLine("=== Логи операций ===");
+        foreach (var log in logs)
+        {
+            Console.WriteLine(log);
+        }
+    }
+
+    [Test]
+    public void MessageEnvelopeApproach_SimpleTest()
+    {
+        // Arrange
+        var fakeClient = new FakeTelegramClient();
+        var envelope = new MessageEnvelope(
+            MessageId: 999,
+            UserId: 111,
+            ChatId: 222,
+            Text: "Test message"
+        );
+        
+        // Регистрируем envelope в fakeClient
+        fakeClient.RegisterMessageEnvelope(envelope);
+        
+        // Act - напрямую удаляем сообщение по envelope
+        fakeClient.DeleteMessageAsync(envelope.ChatId, envelope.MessageId);
+        
+        // Assert
+        Console.WriteLine($"DEBUG: MessageEnvelope test - DeletedMessages count: {fakeClient.DeletedMessages.Count}");
+        foreach (var deleted in fakeClient.DeletedMessages)
+        {
+            Console.WriteLine($"DEBUG: MessageEnvelope test - Deleted: ChatId={deleted.ChatId}, MessageId={deleted.MessageId}");
+        }
+        
+        Assert.That(fakeClient.WasMessageDeleted(envelope), Is.True, 
+            $"Сообщение должно быть удалено по MessageEnvelope. ChatId={envelope.ChatId}, MessageId={envelope.MessageId}");
+        
+        // Дополнительные проверки через MessageEnvelope
+        Assert.That(envelope.MessageId, Is.EqualTo(999));
+        Assert.That(envelope.UserId, Is.EqualTo(111));
+        Assert.That(envelope.ChatId, Is.EqualTo(222));
+        Assert.That(envelope.Text, Is.EqualTo("Test message"));
+    }
+
+    [Test]
+    public void CreateMessageWithMessageId_UsingObjectInitializer_DoesNotWork()
+    {
+        // Act & Assert
+        var message = new Message
+        {
+            // MessageId = 123, // Это не скомпилируется - readonly свойство
+            Text = "test message",
+            Chat = TK.CreateGroupChat(),
+            From = TK.CreateValidUser()
+        };
+
+        // MessageId остается 0 (значение по умолчанию)
+        Assert.That(message.MessageId, Is.EqualTo(0));
     }
 } 

@@ -9,6 +9,11 @@
         <IsTestProject>true</IsTestProject>
         <RunTestsInParallel>true</RunTestsInParallel>
         <MaxCpuCount>4</MaxCpuCount>
+        <!-- Временно отключаем предупреждения для разработки -->
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <WarningsAsErrors />
+        <WarningsNotAsErrors />
+        <NoWarn>CS1998;CS8602;CS8618;CS8604;CS8601;CS8600;CS8625;CS8620;CS0219;CS0414;CS0618;CS0219;NU1603;NU1608</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,17 +21,21 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-        <PackageReference Include="NUnit" Version="4.3.2" />
-        <PackageReference Include="NUnit.Analyzers" Version="4.7.0">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+        <PackageReference Include="DotNetEnv" Version="3.0.0" />
+        <PackageReference Include="FluentAssertions" Version="6.12.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
         <PackageReference Include="Moq" Version="4.20.70" />
+        <PackageReference Include="NUnit" Version="4.0.1" />
+        <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
         <PackageReference Include="SpecFlow" Version="3.9.74" />
         <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
+        <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
         <PackageReference Include="Telegram.Bot" Version="22.4.4" />
+        <!-- New packages for improved test infrastructure -->
+        <PackageReference Include="Bogus" Version="35.4.0" />
+        <PackageReference Include="AutoFixture" Version="4.18.1" />
+        <PackageReference Include="AutoFixture.AutoMoq" Version="4.18.1" />
+        <PackageReference Include="Verify.NUnit" Version="23.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -41,6 +50,15 @@
         <None Update="test-timeouts.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="specflow.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="TestData\Images\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
     <!-- Конфигурация для разделения быстрых и медленных тестов -->
