@@ -49,6 +49,11 @@ public static class TestCategories
     public const string Demo = "demo";
     
     /// <summary>
+    /// Тесты для покрытия мутантов - созданы на основе Mutation Testing отчетов
+    /// </summary>
+    public const string MutationCoverage = "mutation-coverage";
+    
+    /// <summary>
     /// Тесты инфраструктуры - фабрики, моки, утилиты
     /// </summary>
     public const string TestInfrastructure = "test-infrastructure";

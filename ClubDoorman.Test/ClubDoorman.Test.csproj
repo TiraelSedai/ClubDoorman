@@ -9,6 +9,8 @@
         <IsTestProject>true</IsTestProject>
         <RunTestsInParallel>true</RunTestsInParallel>
         <MaxCpuCount>4</MaxCpuCount>
+        <!-- Исключаем demo тесты из обычного запуска -->
+        <DefaultTestCaseFilter Condition="'$(IncludeDemoTests)' != 'true'">Category!=demo</DefaultTestCaseFilter>
         <!-- Временно отключаем предупреждения для разработки -->
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
         <WarningsAsErrors />
