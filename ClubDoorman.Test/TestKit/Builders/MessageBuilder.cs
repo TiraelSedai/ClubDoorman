@@ -85,6 +85,49 @@ public class MessageBuilder
     }
     
     /// <summary>
+    /// Устанавливает пустой текст сообщения
+    /// <tags>builders, message, empty, fluent-api</tags>
+    /// </summary>
+    public MessageBuilder WithEmptyText()
+    {
+        _message.Text = "";
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает длинный текст сообщения
+    /// <tags>builders, message, long, fluent-api</tags>
+    /// </summary>
+    public MessageBuilder AsLong()
+    {
+        _message.Text = new string('A', 1000);
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает сообщение от бота
+    /// <tags>builders, message, bot, fluent-api</tags>
+    /// </summary>
+    public MessageBuilder FromBot()
+    {
+        _message.From = TestKitBogus.CreateRealisticUser();
+        _message.From.IsBot = true;
+        _message.From.FirstName = "TestBot";
+        _message.From.Username = "test_bot";
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает сообщение от канала (From = null)
+    /// <tags>builders, message, channel, fluent-api</tags>
+    /// </summary>
+    public MessageBuilder FromChannel()
+    {
+        _message.From = null;
+        return this;
+    }
+    
+    /// <summary>
     /// Строит сообщение
     /// <tags>builders, message, build, fluent-api</tags>
     /// </summary>

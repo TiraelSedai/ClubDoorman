@@ -64,6 +64,54 @@ public class UserBuilder
     }
     
     /// <summary>
+    /// Устанавливает пользователя как подозрительного
+    /// <tags>builders, user, suspicious, fluent-api</tags>
+    /// </summary>
+    public UserBuilder AsSuspicious()
+    {
+        _user.FirstName = "SuspiciousUser";
+        _user.Username = "suspicious_user_123";
+        _user.IsBot = false;
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает пользователя как нарушающего правила
+    /// <tags>builders, user, violating, fluent-api</tags>
+    /// </summary>
+    public UserBuilder AsViolating()
+    {
+        _user.FirstName = "SpammerUser";
+        _user.Username = "spammer_bot_fake";
+        _user.IsBot = false;
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает пользователя как нового
+    /// <tags>builders, user, new, fluent-api</tags>
+    /// </summary>
+    public UserBuilder AsNew()
+    {
+        _user.FirstName = "NewUser";
+        _user.Username = "new_user_" + DateTime.UtcNow.Ticks;
+        _user.IsBot = false;
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает пользователя с очень длинным именем для тестирования бана
+    /// <tags>builders, user, long-name, ban-test, fluent-api</tags>
+    /// </summary>
+    public UserBuilder WithExtremelyLongName()
+    {
+        _user.FirstName = "ОченьДлинноеИмяПользователяКотороеПревышаетДопустимуюДлинуИДолжноБытьЗаблокированоПоПравиламМодерации";
+        _user.LastName = "ОченьДлиннаяФамилияПользователяКотороеПревышаетДопустимуюДлинуИДолжноБытьЗаблокированоПоПравиламМодерации";
+        _user.Username = "very_long_username_that_exceeds_maximum_length_and_should_be_banned_by_moderation_rules";
+        return this;
+    }
+    
+    /// <summary>
     /// Строит пользователя
     /// <tags>builders, user, build, fluent-api</tags>
     /// </summary>

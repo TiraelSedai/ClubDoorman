@@ -5,6 +5,8 @@ using ClubDoorman.Services;
 using ClubDoorman.Handlers;
 using ClubDoorman.Handlers.Commands;
 using ClubDoorman.Models.Logging;
+using ClubDoorman.Services.UserJoin;
+using ClubDoorman.Services.Notifications;
 using Telegram.Bot;
 using DotNetEnv;
 
@@ -191,6 +193,32 @@ public class Program
                     provider.GetRequiredService<IUserBanService>()));
                 services.AddSingleton<IUpdateHandler>(provider => new CallbackQueryHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ICaptchaService>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<IBadMessageManager>(), provider.GetRequiredService<IStatisticsService>(), provider.GetRequiredService<IAiChecks>(), provider.GetRequiredService<IModerationService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IViolationTracker>(), provider.GetRequiredService<ILogger<CallbackQueryHandler>>()));
                 services.AddSingleton<IUpdateHandler>(provider => new ChatMemberHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<IUserManager>(), provider.GetRequiredService<ILogger<ChatMemberHandler>>(), provider.GetRequiredService<IntroFlowService>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));
+                
+                // Новые прокси-сервисы для рефакторинга
+                services.AddSingleton<IMessageHandler>(provider => provider.GetRequiredService<MessageHandler>());
+                services.AddSingleton<MessageHandler>(provider => new MessageHandler(
+                    provider.GetRequiredService<ITelegramBotClientWrapper>(),
+                    provider.GetRequiredService<IModerationService>(),
+                    provider.GetRequiredService<ICaptchaService>(),
+                    provider.GetRequiredService<IUserManager>(),
+                    provider.GetRequiredService<ISpamHamClassifier>(),
+                    provider.GetRequiredService<IBadMessageManager>(),
+                    provider.GetRequiredService<IAiChecks>(),
+                    provider.GetRequiredService<GlobalStatsManager>(),
+                    provider.GetRequiredService<IStatisticsService>(),
+                    provider.GetRequiredService<IServiceProvider>(),
+                    provider.GetRequiredService<IUserFlowLogger>(),
+                    provider.GetRequiredService<IMessageService>(),
+                    provider.GetRequiredService<IChatLinkFormatter>(),
+                    provider.GetRequiredService<IBotPermissionsService>(),
+                    provider.GetRequiredService<IAppConfig>(),
+                    provider.GetRequiredService<IViolationTracker>(),
+                    provider.GetRequiredService<ILogger<MessageHandler>>(),
+                    provider.GetRequiredService<IUserBanService>()));
+                services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
+                services.AddSingleton<IChannelModerationService, ChannelModerationService>();
+                services.AddSingleton<IUserJoinService, UserJoinService>();
+                services.AddSingleton<INotificationService, NotificationService>();
                 
                 // Обработчики команд
                 services.AddSingleton<ICommandHandler>(provider => new StartCommandHandler(provider.GetRequiredService<ITelegramBotClientWrapper>(), provider.GetRequiredService<ILogger<StartCommandHandler>>(), provider.GetRequiredService<IMessageService>(), provider.GetRequiredService<IAppConfig>()));

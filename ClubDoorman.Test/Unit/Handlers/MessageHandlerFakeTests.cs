@@ -1,6 +1,6 @@
 using ClubDoorman.Handlers;
 using ClubDoorman.Services;
-using ClubDoorman.Test.TestData;
+using ClubDoorman.Test.TestKit;
 using ClubDoorman.TestInfrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,7 +66,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.ValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Настройка моков - пользователь НЕ одобрен, чтобы дойти до модерации
         _factory.ModerationServiceMock
@@ -166,7 +166,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.BotMessage();
+        var message = TK.CreateBotMessage();
 
         // Act
         var update = new Update { Message = message };
@@ -184,7 +184,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.ServiceMessage();
+        var message = TK.CreateNewUserJoinMessage();
 
         // Настройка моков для ProcessNewUserAsync
         _factory.ModerationServiceMock
@@ -234,7 +234,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.ValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Настройка моков
         _factory.ModerationServiceMock
@@ -286,7 +286,7 @@ public class MessageHandlerFakeTests
         _fakeClient.ExceptionToThrow = new Exception("Telegram API error");
         
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.ValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Настройка моков
         _factory.ModerationServiceMock
@@ -318,7 +318,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.StartCommand();
+        var message = TK.CreateStartCommandMessage();
 
         // Настройка ServiceProvider для команд
         var mockStartCommandHandler = new Mock<StartCommandHandler>(
@@ -346,7 +346,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.ValidMessage();
+        var message = TK.CreateValidMessage();
 
         // Настройка моков - пользователь одобрен
         _factory.ModerationServiceMock
@@ -373,7 +373,7 @@ public class MessageHandlerFakeTests
     {
         // Arrange
         var service = _factory.CreateMessageHandlerWithFake(_fakeClient);
-        var message = MessageTestData.EmptyMessage();
+        var message = TK.CreateEmptyMessage();
 
         // Настройка моков - пользователь НЕ одобрен, чтобы дойти до модерации
         _factory.ModerationServiceMock

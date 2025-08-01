@@ -205,7 +205,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         await HandleUserMessageAsync(message, isSilentMode, cancellationToken);
     }
 
-    private async Task HandleCommandAsync(Message message, CancellationToken cancellationToken)
+    public async Task HandleCommandAsync(Message message, CancellationToken cancellationToken)
     {
         var commandText = message.Text!.Split(' ')[0].ToLower();
         var command = commandText.StartsWith("/") ? commandText.Substring(1) : commandText;
@@ -590,7 +590,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task HandleChannelMessageAsync(Message message, CancellationToken cancellationToken)
+    public async Task HandleChannelMessageAsync(Message message, CancellationToken cancellationToken)
     {
         var chat = message.Chat;
         var senderChat = message.SenderChat!;

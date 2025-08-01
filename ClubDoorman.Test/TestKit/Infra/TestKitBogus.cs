@@ -261,6 +261,50 @@ public static class TestKitBogus
     public static Message CreateRealisticSpamMessage(User? from = null, Chat? chat = null) => CreateSpamMessage(from, chat);
     
     /// <summary>
+    /// Создает сообщение от бота
+    /// <tags>bogus, bot-message, faker</tags>
+    /// </summary>
+    public static Message CreateBotMessage(User? from = null, Chat? chat = null)
+    {
+        var botUser = from ?? CreateRealisticBot();
+        var messageChat = chat ?? CreateRealisticGroup();
+        
+        var messageFaker = new Faker<Message>()
+            .RuleFor(m => m.MessageId, f => f.Random.Int(1, 10000))
+            .RuleFor(m => m.Date, f => f.Date.Recent(7))
+            .RuleFor(m => m.Chat, messageChat)
+            .RuleFor(m => m.From, botUser)
+            .RuleFor(m => m.Text, f => f.PickRandom("Bot message", "Service notification", "Automated response"))
+            .RuleFor(m => m.IsAutomaticForward, false)
+            .RuleFor(m => m.HasProtectedContent, false)
+            .RuleFor(m => m.IsTopicMessage, false);
+
+        return messageFaker.Generate();
+    }
+    
+    /// <summary>
+    /// Создает сообщение с командой /start
+    /// <tags>bogus, start-command, faker</tags>
+    /// </summary>
+    public static Message CreateStartCommandMessage(User? from = null, Chat? chat = null)
+    {
+        var messageUser = from ?? CreateRealisticUser();
+        var messageChat = chat ?? CreateRealisticGroup();
+        
+        var messageFaker = new Faker<Message>()
+            .RuleFor(m => m.MessageId, f => f.Random.Int(1, 10000))
+            .RuleFor(m => m.Date, f => f.Date.Recent(7))
+            .RuleFor(m => m.Chat, messageChat)
+            .RuleFor(m => m.From, messageUser)
+            .RuleFor(m => m.Text, "/start")
+            .RuleFor(m => m.IsAutomaticForward, false)
+            .RuleFor(m => m.HasProtectedContent, false)
+            .RuleFor(m => m.IsTopicMessage, false);
+
+        return messageFaker.Generate();
+    }
+    
+    /// <summary>
     /// Создает реалистичный канал
     /// <tags>bogus, channel, realistic, faker</tags>
     /// </summary>
@@ -282,8 +326,14 @@ public static class TestKitBogus
     public static bool IsSpamText(string? text)
     {
         if (string.IsNullOrEmpty(text)) return false;
-        var spamPatterns = new[] { "🔥", "💰", "🎁", "⚡", "💎", "🚀", "📱" };
-        return spamPatterns.Any(p => text.Contains(p));
+        
+        var spamEmojis = new[] { "🔥", "💰", "🎁", "⚡", "💎", "🚀", "📱", "❗️" };
+        var spamWords = new[] { "внимание", "заработал", "миллион", "деньги", "быстро", "срочно", "бесплатно", "скам", "bit.ly" };
+        
+        var lowerText = text.ToLowerInvariant();
+        
+        return spamEmojis.Any(p => text.Contains(p)) || 
+               spamWords.Any(word => lowerText.Contains(word));
     }
 
     #endregion

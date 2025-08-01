@@ -193,12 +193,21 @@ namespace ClubDoorman.Test.TestKit
     /// </summary>
     public static Telegram.Bot.Types.User CreateRealisticUser(long? userId = null) => 
         Infra.TestKitBogus.CreateRealisticUser(userId);
+        
+    public static Telegram.Bot.Types.User CreateSuspiciousUser(long? userId = null) => 
+        Infra.TestKitBogus.CreateSuspiciousUser(userId);
 
     /// <summary>
     /// Создает реалистичное сообщение с помощью Bogus
     /// </summary>
     public static Telegram.Bot.Types.Message CreateRealisticMessage() => 
         Infra.TestKitBogus.CreateRealisticMessage();
+        
+    public static Telegram.Bot.Types.Message CreateBotMessage() => 
+        Infra.TestKitBogus.CreateBotMessage();
+        
+    public static Telegram.Bot.Types.Message CreateStartCommandMessage() => 
+        Infra.TestKitBogus.CreateStartCommandMessage();
 
     /// <summary>
     /// Создает спам-сообщение с помощью Bogus
@@ -233,6 +242,14 @@ namespace ClubDoorman.Test.TestKit
     /// <tags>builders, moderation-result, moderation, fluent-api</tags>
     /// </summary>
     public static Builders.ModerationResultBuilder BuildModerationResult() => Builders.TestKitBuilders.CreateModerationResult();
+    
+    /// <summary>
+    /// Создает builder для сложных тестовых сценариев
+    /// <tags>builders, scenario, complex, fluent-api</tags>
+    /// </summary>
+    public static Builders.ScenarioBuilder BuildScenario() => new Builders.ScenarioBuilder();
+    
+    public static Builders.ChatFullInfoBuilder BuildChatFullInfo() => Builders.TestKitBuilders.CreateChatFullInfo();
 
     #endregion
 

@@ -32,4 +32,10 @@ public static class TestKitBuilders
     /// <tags>builders, moderation-result, moderation, fluent-api</tags>
     /// </summary>
     public static ModerationResultBuilder CreateModerationResult() => new ModerationResultBuilder();
+    
+    /// <summary>
+    /// Создает builder для полной информации о чате
+    /// <tags>builders, chat-full-info, telegram, fluent-api</tags>
+    /// </summary>
+    public static ChatFullInfoBuilder CreateChatFullInfo() => new ChatFullInfoBuilder();
 } 

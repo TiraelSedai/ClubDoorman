@@ -113,7 +113,7 @@ public class MessageHandlerBanAdvancedTests
         
         Assert.That(realisticSpamMessage.From, Is.EqualTo(realisticUser));
         Assert.That(realisticSpamMessage.Chat, Is.EqualTo(realisticGroup));
-        Assert.That(TestKitBogus.IsSpamText(realisticSpamMessage.Text), Is.True);
+        Assert.That(TestKitBogus.IsSpamText(realisticSpamMessage.Text), Is.True, $"Text '{realisticSpamMessage.Text}' should be detected as spam");
     }
 
     [Test]
@@ -310,7 +310,7 @@ public class MessageHandlerBanAdvancedTests
         // Проверяем реалистичность данных
         Assert.That(realisticUser.Id, Is.EqualTo(12345));
         Assert.That(realisticGroup.Id, Is.EqualTo(67890));
-        Assert.That(TestKitBogus.IsSpamText(spamMessage.Text), Is.True);
+        Assert.That(TestKitBogus.IsSpamText(spamMessage.Text), Is.True, $"Text '{spamMessage.Text}' should be detected as spam");
     }
 
     [Test]

@@ -73,6 +73,29 @@ public class ChatBuilder
     }
     
     /// <summary>
+    /// Устанавливает чат как канал
+    /// <tags>builders, chat, channel, fluent-api</tags>
+    /// </summary>
+    public ChatBuilder AsChannel()
+    {
+        _chat.Type = ChatType.Channel;
+        _chat.Title = "Test Channel";
+        _chat.Username = "test_channel";
+        return this;
+    }
+    
+    /// <summary>
+    /// Устанавливает чат с требованием капчи
+    /// <tags>builders, chat, captcha, fluent-api</tags>
+    /// </summary>
+    public ChatBuilder WithCaptchaRequired()
+    {
+        // Это концептуальный метод - в реальности капча настраивается через конфигурацию
+        _chat.Title = "Chat with Captcha";
+        return this;
+    }
+    
+    /// <summary>
     /// Строит чат
     /// <tags>builders, chat, build, fluent-api</tags>
     /// </summary>

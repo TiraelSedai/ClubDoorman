@@ -110,7 +110,7 @@ public class TestKitDemoTests
         // Assert
         Assert.That(spamMessage, Is.Not.Null);
         Assert.That(spamMessage.Text, Is.Not.Null.And.Not.Empty);
-        Assert.That(spamMessage.Text, Does.Contain("🔥").Or.Contain("💰").Or.Contain("🎁").Or.Contain("⚡").Or.Contain("💎").Or.Contain("🚀").Or.Contain("📱"));
+        Assert.That(spamMessage.Text, Does.Contain("🔥").Or.Contain("💰").Or.Contain("🎁").Or.Contain("⚡").Or.Contain("💎").Or.Contain("🚀").Or.Contain("📱").Or.Contain("❗️").Or.Contain("ВНИМАНИЕ").Or.Contain("ЗАРАБОТАЛ"));
     }
 
     [Test]
