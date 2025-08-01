@@ -4,6 +4,7 @@ using ClubDoorman.Test.TestInfrastructure;
 using ClubDoorman.Test.TestData;
 using ClubDoorman.Handlers;
 using ClubDoorman.Test.TestKit.Builders;
+using ClubDoorman.Test.TestKit.Builders.MockBuilders;
 using Telegram.Bot.Types;
 using AutoFixture;
 using AutoFixture.AutoMoq;
@@ -105,43 +106,43 @@ namespace ClubDoorman.Test.TestKit
         /// Создает билдер для мока IModerationService
         /// <tags>builder, moderation-service, mocks, fluent-api</tags>
         /// </summary>
-        public static ModerationServiceMockBuilder CreateModerationServiceMock() => TestKitMockBuilders.CreateModerationServiceMock();
+        public static Builders.MockBuilders.ModerationServiceMockBuilder CreateModerationServiceMock() => Builders.MockBuilders.TestKitMockBuilders.CreateModerationServiceMock();
         
         /// <summary>
         /// Создает билдер для мока IUserManager
         /// <tags>builder, user-manager, mocks, fluent-api</tags>
         /// </summary>
-        public static UserManagerMockBuilder CreateUserManagerMock() => TestKitMockBuilders.CreateUserManagerMock();
+        public static Builders.MockBuilders.UserManagerMockBuilder CreateUserManagerMock() => Builders.MockBuilders.TestKitMockBuilders.CreateUserManagerMock();
         
         /// <summary>
         /// Создает билдер для мока ICaptchaService
         /// <tags>builder, captcha-service, mocks, fluent-api</tags>
         /// </summary>
-        public static CaptchaServiceMockBuilder CreateCaptchaServiceMock() => TestKitMockBuilders.CreateCaptchaServiceMock();
+        public static Builders.MockBuilders.CaptchaServiceMockBuilder CreateCaptchaServiceMock() => Builders.MockBuilders.TestKitMockBuilders.CreateCaptchaServiceMock();
         
         /// <summary>
         /// Создает билдер для мока IAiChecks
         /// <tags>builder, ai-checks, mocks, fluent-api</tags>
         /// </summary>
-        public static AiChecksMockBuilder CreateAiChecksMock() => TestKitMockBuilders.CreateAiChecksMock();
+        public static Builders.MockBuilders.AiChecksMockBuilder CreateAiChecksMock() => Builders.MockBuilders.TestKitMockBuilders.CreateAiChecksMock();
         
         /// <summary>
         /// Создает билдер для мока ITelegramBotClientWrapper
         /// <tags>builder, telegram-bot, mocks, fluent-api</tags>
         /// </summary>
-        public static TelegramBotMockBuilder CreateTelegramBotMock() => TestKitMockBuilders.CreateTelegramBotMock();
+        public static Builders.MockBuilders.TelegramBotMockBuilder CreateTelegramBotMock() => Builders.MockBuilders.TestKitMockBuilders.CreateTelegramBotMock();
         
         /// <summary>
         /// Создает билдер для мока IMessageService
         /// <tags>builders, message-service, mocks, fluent-api</tags>
         /// </summary>
-        public static MessageServiceMockBuilder CreateMessageServiceMock() => TestKitMockBuilders.CreateMessageServiceMock();
+        public static Builders.MockBuilders.MessageServiceMockBuilder CreateMessageServiceMock() => Builders.MockBuilders.TestKitMockBuilders.CreateMessageServiceMock();
         
         /// <summary>
         /// Создает билдер для мока MessageHandler
         /// <tags>builders, message-handler, mocks, fluent-api</tags>
         /// </summary>
-        public static MessageHandlerMockBuilder CreateMessageHandlerMock() => TestKitMockBuilders.CreateMessageHandlerMock();
+        public static Builders.MockBuilders.MessageHandlerMockBuilder CreateMessageHandlerMock() => Builders.MockBuilders.TestKitMockBuilders.CreateMessageHandlerMock();
         
         /// <summary>
         /// Создает билдер для NotificationService
