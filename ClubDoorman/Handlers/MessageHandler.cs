@@ -903,25 +903,46 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                 LinkToMessage(message.Chat, message.MessageId)
             );
             
-            // Пересылаем сообщение и отправляем уведомление с кнопками как реплай
-            var forwardedMessage = await _bot.ForwardMessage(
-                new ChatId(_appConfig.LogAdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: cancellationToken
-            );
-            
-            var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanTextMention);
-            var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
-            
-            await _bot.SendMessage(
-                _appConfig.LogAdminChatId,
-                messageText + "\n\n" + "Действия:",
-                parseMode: ParseMode.Html,
-                replyMarkup: keyboard,
-                replyParameters: forwardedMessage,
-                cancellationToken: cancellationToken
-            );
+            // ФИКС: Пытаемся переслать сообщение, но если не получается - отправляем без пересылки
+            Message? forwardedMessage = null;
+            try
+            {
+                // Пересылаем сообщение и отправляем уведомление с кнопками как реплай
+                forwardedMessage = await _bot.ForwardMessage(
+                    new ChatId(_appConfig.LogAdminChatId),
+                    message.Chat.Id,
+                    message.MessageId,
+                    cancellationToken: cancellationToken
+                );
+                
+                var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanTextMention);
+                var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
+                
+                await _bot.SendMessage(
+                    _appConfig.LogAdminChatId,
+                    messageText + "\n\n" + "Действия:",
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboard,
+                    replyParameters: forwardedMessage,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception forwardEx) when (forwardEx.Message.Contains("protected content") || forwardEx.Message.Contains("can't be forwarded"))
+            {
+                _logger.LogWarning("Сообщение имеет защищенный контент, отправляем уведомление без пересылки: {Error}", forwardEx.Message);
+                
+                var template = _messageService.GetTemplates().GetLogTemplate(LogNotificationType.AutoBanTextMention);
+                var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, deletionData);
+                
+                // Отправляем уведомление без пересылки (просто как обычное сообщение)
+                await _bot.SendMessage(
+                    _appConfig.LogAdminChatId,
+                    messageText + "\n\n" + "Действия:",
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken
+                );
+            }
             
             _logger.LogDebug("Уведомление с кнопками успешно отправлено в лог-чат");
         }
@@ -1023,23 +1044,41 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                 messageText = $"🔇 <b>Тихий режим</b>\n\n{messageText}";
             }
             
-            // Пересылаем сообщение и сохраняем ссылку на него
-            var forwardedMessage = await _bot.ForwardMessage(
-                new ChatId(_appConfig.AdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: cancellationToken
-            );
-            
-            // Отправляем уведомление с кнопками как реплай на пересланное сообщение
-            await _bot.SendMessage(
-                _appConfig.AdminChatId,
-                messageText,
-                parseMode: ParseMode.Html,
-                replyMarkup: keyboard,
-                replyParameters: forwardedMessage,
-                cancellationToken: cancellationToken
-            );
+            // ФИКС: Пытаемся переслать сообщение, но если не получается - отправляем без пересылки
+            Message? forwardedMessage = null;
+            try
+            {
+                // Пересылаем сообщение и сохраняем ссылку на него
+                forwardedMessage = await _bot.ForwardMessage(
+                    new ChatId(_appConfig.AdminChatId),
+                    message.Chat.Id,
+                    message.MessageId,
+                    cancellationToken: cancellationToken
+                );
+                
+                // Отправляем уведомление с кнопками как реплай на пересланное сообщение
+                await _bot.SendMessage(
+                    _appConfig.AdminChatId,
+                    messageText,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboard,
+                    replyParameters: forwardedMessage,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception forwardEx) when (forwardEx.Message.Contains("protected content") || forwardEx.Message.Contains("can't be forwarded"))
+            {
+                _logger.LogWarning("Сообщение имеет защищенный контент, отправляем уведомление без пересылки: {Error}", forwardEx.Message);
+                
+                // Отправляем уведомление без пересылки (просто как обычное сообщение)
+                await _bot.SendMessage(
+                    _appConfig.AdminChatId,
+                    messageText,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken
+                );
+            }
             
             _logger.LogDebug("Уведомление с кнопками успешно отправлено в админ-чат");
         }
@@ -1096,14 +1135,6 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
     {
         try
         {
-            // Сначала пересылаем оригинальное сообщение
-            var forward = await _bot.ForwardMessage(
-                new ChatId(_appConfig.AdminChatId),
-                message.Chat.Id,
-                message.MessageId,
-                cancellationToken: cancellationToken
-            );
-            
             var template = _messageService.GetTemplates().GetAdminTemplate(AdminNotificationType.SuspiciousMessage);
             var messageText = _messageService.GetTemplates().FormatNotificationTemplate(template, data);
             
@@ -1127,15 +1158,41 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                 }
             });
             
-            // Отправляем уведомление с кнопками как ответ на форвард
-            await _bot.SendMessage(
-                _appConfig.AdminChatId,
-                messageText,
-                parseMode: ParseMode.Html,
-                replyParameters: forward,
-                replyMarkup: keyboard,
-                cancellationToken: cancellationToken
-            );
+            // ФИКС: Пытаемся переслать сообщение, но если не получается - отправляем без пересылки
+            Message? forward = null;
+            try
+            {
+                // Сначала пересылаем оригинальное сообщение
+                forward = await _bot.ForwardMessage(
+                    new ChatId(_appConfig.AdminChatId),
+                    message.Chat.Id,
+                    message.MessageId,
+                    cancellationToken: cancellationToken
+                );
+                
+                // Отправляем уведомление с кнопками как ответ на форвард
+                await _bot.SendMessage(
+                    _appConfig.AdminChatId,
+                    messageText,
+                    parseMode: ParseMode.Html,
+                    replyParameters: forward,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception forwardEx) when (forwardEx.Message.Contains("protected content") || forwardEx.Message.Contains("can't be forwarded"))
+            {
+                _logger.LogWarning("Сообщение имеет защищенный контент, отправляем уведомление без пересылки: {Error}", forwardEx.Message);
+                
+                // Отправляем уведомление без пересылки (просто как обычное сообщение)
+                await _bot.SendMessage(
+                    _appConfig.AdminChatId,
+                    messageText,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken
+                );
+            }
             
             _logger.LogDebug("Отправлено подозрительное сообщение с кнопками для пользователя {User} в чате {Chat}", 
                 Utils.FullName(user), message.Chat.Title);
