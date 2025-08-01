@@ -951,6 +951,17 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             _logger.LogError(e, "Не удалось отправить уведомление в лог-чат");
         }
         
+        // Небольшая задержка перед удалением сообщения для избежания race condition
+        try
+        {
+            await Task.Delay(50, cancellationToken); // 50мс задержка
+            _logger.LogDebug("Выполнена задержка 50мс между пересылкой и удалением");
+        }
+        catch (OperationCanceledException)
+        {
+            // Игнорируем отмену операции
+        }
+        
         try
         {
             _logger.LogDebug("Пытаемся удалить сообщение {MessageId} из чата {ChatId}", message.MessageId, message.Chat.Id);
@@ -970,48 +981,9 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         var user = message.From;
         var deletionMessagePart = $"{reason}";
 
-        // ФИКС: Сначала отправляем предупреждение пользователю как реплай на сообщение
-        Message? warningMessage = null;
-        if (!isSilentMode)
-        {
-            var warningKey = $"warning_{message.Chat.Id}_{user.Id}";
-            var existingWarning = MemoryCache.Default.Get(warningKey);
-            
-            if (existingWarning == null)
-            {
-                try
-                {
-                    var warningData = new SimpleNotificationData(user, message.Chat, "новичок в этом чате");
-                    // ФИКС: Отправляем предупреждение как реплай на сообщение, которое будет удалено
-                    warningMessage = await _messageService.SendUserNotificationWithReplyAsync(
-                        user, 
-                        message.Chat, 
-                        UserNotificationType.ModerationWarning, 
-                        warningData, 
-                        new ReplyParameters { MessageId = message.MessageId },
-                        cancellationToken
-                    );
-                    
-                    // Сохраняем ID предупреждающего сообщения в кэше (на 10 минут, чтобы не спамить)
-                    MemoryCache.Default.Add(warningKey, warningMessage.MessageId, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(10) });
-                    
-                    DeleteMessageLater(warningMessage, TimeSpan.FromSeconds(40), cancellationToken);
-                    _logger.LogDebug("Предупреждение отправлено пользователю и будет удалено через 40 секунд");
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Не удалось отправить предупреждение пользователю");
-                }
-            }
-            else
-            {
-                _logger.LogDebug("Предупреждение пользователю {UserId} в чате {ChatId} уже было отправлено недавно, пропускаем", user.Id, message.Chat.Id);
-            }
-        }
-
         try
         {
-            // Создаем кнопки реакции для админ-чата
+            // ЭТАП 1: Пересылаем сообщение в админ-чат (делаем это первым, чтобы избежать race condition)
             var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
             MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
             
@@ -1044,7 +1016,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                 messageText = $"🔇 <b>Тихий режим</b>\n\n{messageText}";
             }
             
-            // ФИКС: Пытаемся переслать сообщение, но если не получается - отправляем без пересылки
+            // Пытаемся переслать сообщение, но если не получается - отправляем без пересылки
             Message? forwardedMessage = null;
             try
             {
@@ -1085,11 +1057,70 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         catch (Exception e)
         {
             _logger.LogError(e, "Не удалось отправить уведомление в админ-чат");
-            // Fallback убран - автобаны теперь идут только в лог-чат
-            _logger.LogDebug("Не удалось отправить уведомление в админ-чат, но это ожидаемое поведение для автобанов");
+        }
+
+        // ЭТАП 2: Небольшая задержка для избежания race condition с Telegram API
+        try
+        {
+            await Task.Delay(50, cancellationToken); // 50мс задержка
+            _logger.LogDebug("Выполнена задержка 50мс между пересылкой и предупреждением");
+        }
+        catch (OperationCanceledException)
+        {
+            // Игнорируем отмену операции
+        }
+
+        // ЭТАП 3: Отправляем предупреждение пользователю как реплай на оригинальное сообщение
+        Message? warningMessage = null;
+        if (!isSilentMode)
+        {
+            var warningKey = $"warning_{message.Chat.Id}_{user.Id}";
+            var existingWarning = MemoryCache.Default.Get(warningKey);
+            
+            if (existingWarning == null)
+            {
+                try
+                {
+                    var warningData = new SimpleNotificationData(user, message.Chat, "новичок в этом чате");
+                    // Отправляем предупреждение как реплай на сообщение, которое будет удалено
+                    warningMessage = await _messageService.SendUserNotificationWithReplyAsync(
+                        user, 
+                        message.Chat, 
+                        UserNotificationType.ModerationWarning, 
+                        warningData, 
+                        new ReplyParameters { MessageId = message.MessageId },
+                        cancellationToken
+                    );
+                    
+                    // Сохраняем ID предупреждающего сообщения в кэше (на 10 минут, чтобы не спамить)
+                    MemoryCache.Default.Add(warningKey, warningMessage.MessageId, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(10) });
+                    
+                    DeleteMessageLater(warningMessage, TimeSpan.FromSeconds(40), cancellationToken);
+                    _logger.LogDebug("Предупреждение отправлено пользователю и будет удалено через 40 секунд");
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Не удалось отправить предупреждение пользователю");
+                }
+            }
+            else
+            {
+                _logger.LogDebug("Предупреждение пользователю {UserId} в чате {ChatId} уже было отправлено недавно, пропускаем", user.Id, message.Chat.Id);
+            }
+        }
+
+        // ЭТАП 4: Еще одна небольшая задержка перед удалением
+        try
+        {
+            await Task.Delay(100, cancellationToken); // 100мс задержка
+            _logger.LogDebug("Выполнена задержка 100мс между предупреждением и удалением");
+        }
+        catch (OperationCanceledException)
+        {
+            // Игнорируем отмену операции
         }
         
-        // ФИКС: Теперь удаляем сообщение ПОСЛЕ отправки предупреждения
+        // ЭТАП 5: Удаляем оригинальное сообщение
         try
         {
             _logger.LogDebug("Пытаемся удалить сообщение {MessageId} из чата {ChatId}", message.MessageId, message.Chat.Id);
