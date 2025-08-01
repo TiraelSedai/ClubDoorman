@@ -233,6 +233,12 @@ namespace ClubDoorman.Test.TestKit
     /// <tags>builders, moderation-result, moderation, fluent-api</tags>
     /// </summary>
     public static Builders.ModerationResultBuilder BuildModerationResult() => Builders.TestKitBuilders.CreateModerationResult();
+    
+    /// <summary>
+    /// Создает builder для сложных тестовых сценариев
+    /// <tags>builders, scenario, complex, fluent-api</tags>
+    /// </summary>
+    public static Builders.ScenarioBuilder BuildScenario() => new Builders.ScenarioBuilder();
 
     #endregion
 

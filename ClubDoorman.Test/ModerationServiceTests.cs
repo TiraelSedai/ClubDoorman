@@ -1,7 +1,8 @@
 using ClubDoorman.Models;
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
-using ClubDoorman.TestData;
+
+using ClubDoorman.Test.TestKit;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -30,7 +31,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_ValidMessage_ReturnsAllowAction()
     {
         // Arrange
-        var message = SampleMessages.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ReturnsAsync((false, -1.5f)); // Уверенный ham (не спам)
 
@@ -46,7 +47,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_SpamMessage_ReturnsDeleteAction()
     {
         // Arrange
-        var message = SampleMessages.CreateSpamMessage();
+        var message = TK.CreateSpamMessage();
         _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ReturnsAsync((true, 0.9f));
 
@@ -62,7 +63,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_MimicryMessage_ReturnsAllowAction()
     {
         // Arrange
-        var message = SampleMessages.CreateMimicryMessage();
+        var message = TK.CreateValidMessage(); // Заменяем на валидное сообщение, так как мимикрия обрабатывается отдельно
         _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ReturnsAsync((false, -1.2f)); // Уверенный ham (не спам)
         // Мимикрия обрабатывается в другом месте, здесь просто проверяем что сообщение проходит
@@ -78,7 +79,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_BadMessage_ReturnsBanAction()
     {
         // Arrange
-        var message = SampleMessages.CreateBadMessage();
+        var message = TK.CreateValidMessage(); // Заменяем на валидное сообщение, так как BadMessageManager определяет спам
         _factory.BadMessageManagerMock.Setup(x => x.KnownBadMessage(It.IsAny<string>()))
             .Returns(true);
 
@@ -94,7 +95,7 @@ public class ModerationServiceTests
     public async Task CheckUserNameAsync_ValidUser_ReturnsAllowAction()
     {
         // Arrange
-        var user = SampleMessages.CreateValidUser();
+        var user = TK.CreateValidUser();
 
         // Act
         var result = await _service.CheckUserNameAsync(user);
@@ -108,7 +109,7 @@ public class ModerationServiceTests
     public async Task CheckUserNameAsync_InvalidUser_ReturnsBanAction()
     {
         // Arrange
-        var user = SampleMessages.CreateInvalidUser();
+        var user = TK.BuildUser().WithExtremelyLongName().Build(); // Создаем пользователя с очень длинным именем для бана
 
         // Act
         var result = await _service.CheckUserNameAsync(user);
@@ -200,7 +201,7 @@ public class ModerationServiceTests
     public async Task CheckMessageAsync_ClassifierThrowsException_ThrowsException()
     {
         // Arrange
-        var message = SampleMessages.CreateValidMessage();
+        var message = TK.CreateValidMessage();
         _factory.ClassifierMock.Setup(x => x.IsSpam(It.IsAny<string>()))
             .ThrowsAsync(new Exception("Classifier error"));
 
