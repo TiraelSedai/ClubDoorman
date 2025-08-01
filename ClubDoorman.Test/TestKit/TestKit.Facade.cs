@@ -129,6 +129,30 @@ namespace ClubDoorman.Test.TestKit
         /// <tags>builder, telegram-bot, mocks, fluent-api</tags>
         /// </summary>
         public static TelegramBotMockBuilder CreateTelegramBotMock() => TestKitMockBuilders.CreateTelegramBotMock();
+        
+        /// <summary>
+        /// Создает билдер для мока IMessageService
+        /// <tags>builders, message-service, mocks, fluent-api</tags>
+        /// </summary>
+        public static MessageServiceMockBuilder CreateMessageServiceMock() => TestKitMockBuilders.CreateMessageServiceMock();
+        
+        /// <summary>
+        /// Создает билдер для мока MessageHandler
+        /// <tags>builders, message-handler, mocks, fluent-api</tags>
+        /// </summary>
+        public static MessageHandlerMockBuilder CreateMessageHandlerMock() => TestKitMockBuilders.CreateMessageHandlerMock();
+        
+        /// <summary>
+        /// Создает билдер для NotificationService
+        /// <tags>builders, notification-service, fluent-api</tags>
+        /// </summary>
+        public static NotificationServiceBuilder CreateNotificationServiceBuilder() => new();
+        
+        /// <summary>
+        /// Создает билдер для UserJoinService
+        /// <tags>builders, user-join-service, fluent-api</tags>
+        /// </summary>
+        public static UserJoinServiceBuilder CreateUserJoinServiceBuilder() => new();
 
         #endregion
 

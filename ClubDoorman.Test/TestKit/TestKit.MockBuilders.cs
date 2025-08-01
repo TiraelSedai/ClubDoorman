@@ -47,6 +47,18 @@ public static class TestKitMockBuilders
     /// <tags>builders, telegram-bot, mocks, fluent-api</tags>
     /// </summary>
     public static TelegramBotMockBuilder CreateTelegramBotMock() => new();
+    
+    /// <summary>
+    /// Создает билдер для мока IMessageService
+    /// <tags>builders, message-service, mocks, fluent-api</tags>
+    /// </summary>
+    public static MessageServiceMockBuilder CreateMessageServiceMock() => new();
+    
+    /// <summary>
+    /// Создает билдер для мока MessageHandler
+    /// <tags>builders, message-handler, mocks, fluent-api</tags>
+    /// </summary>
+    public static MessageHandlerMockBuilder CreateMessageHandlerMock() => new();
 }
 
 /// <summary>
@@ -335,6 +347,50 @@ public class TelegramBotMockBuilder
     }
 
     /// <summary>
+    /// Настраивает мок для успешного удаления сообщений
+    /// <tags>builders, telegram-bot, delete-message, fluent-api</tags>
+    /// </summary>
+    public TelegramBotMockBuilder ThatDeletesMessagesSuccessfully()
+    {
+        _mock.Setup(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для пересылки сообщений
+    /// <tags>builders, telegram-bot, forward-message, fluent-api</tags>
+    /// </summary>
+    public TelegramBotMockBuilder ThatForwardsMessages()
+    {
+        _mock.Setup(x => x.ForwardMessage(It.IsAny<ChatId>(), It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Message());
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для выбрасывания исключения при удалении
+    /// <tags>builders, telegram-bot, delete-exception, fluent-api</tags>
+    /// </summary>
+    public TelegramBotMockBuilder ThatThrowsOnDelete()
+    {
+        _mock.Setup(x => x.DeleteMessage(It.IsAny<ChatId>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Bot error"));
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для выбрасывания исключения при отправке
+    /// <tags>builders, telegram-bot, send-exception, fluent-api</tags>
+    /// </summary>
+    public TelegramBotMockBuilder ThatThrowsOnSend()
+    {
+        _mock.Setup(x => x.SendMessage(It.IsAny<ChatId>(), It.IsAny<string>(), It.IsAny<ParseMode>(), It.IsAny<ReplyParameters>(), It.IsAny<ReplyMarkup>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Bot error"));
+        return this;
+    }
+
+    /// <summary>
     /// Создает настроенный мок
     /// <tags>builders, telegram-bot, build, fluent-api</tags>
     /// </summary>
@@ -345,4 +401,183 @@ public class TelegramBotMockBuilder
     /// <tags>builders, telegram-bot, object, fluent-api</tags>
     /// </summary>
     public ITelegramBotClientWrapper BuildObject() => Build().Object;
+} 
+
+/// <summary>
+/// Билдер для мока IMessageService
+/// <tags>builders, message-service, mocks, fluent-api</tags>
+/// </summary>
+public class MessageServiceMockBuilder
+{
+    private readonly Mock<IMessageService> _mock = new();
+
+    /// <summary>
+    /// Настраивает мок для успешной отправки пользовательского уведомления
+    /// <tags>builders, message-service, user-notification, fluent-api</tags>
+    /// </summary>
+    public MessageServiceMockBuilder ThatSendsUserNotification()
+    {
+        _mock.Setup(x => x.SendUserNotificationWithReplyAsync(
+            It.IsAny<User>(), 
+            It.IsAny<Chat>(), 
+            It.IsAny<UserNotificationType>(), 
+            It.IsAny<object>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Message());
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для успешной отправки админского уведомления
+    /// <tags>builders, message-service, admin-notification, fluent-api</tags>
+    /// </summary>
+    public MessageServiceMockBuilder ThatSendsAdminNotification()
+    {
+        _mock.Setup(x => x.SendAdminNotificationAsync(
+            It.IsAny<AdminNotificationType>(), 
+            It.IsAny<NotificationData>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для отправки пользовательского уведомления без ответа
+    /// <tags>builders, message-service, user-notification-no-reply, fluent-api</tags>
+    /// </summary>
+    public MessageServiceMockBuilder ThatSendsUserNotificationWithoutReply()
+    {
+        _mock.Setup(x => x.SendUserNotificationAsync(
+            It.IsAny<User>(), 
+            It.IsAny<Chat>(), 
+            It.IsAny<UserNotificationType>(), 
+            It.IsAny<object>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для выбрасывания исключения при отправке
+    /// <tags>builders, message-service, exception, fluent-api</tags>
+    /// </summary>
+    public MessageServiceMockBuilder ThatThrowsException()
+    {
+        _mock.Setup(x => x.SendUserNotificationWithReplyAsync(
+            It.IsAny<User>(), 
+            It.IsAny<Chat>(), 
+            It.IsAny<UserNotificationType>(), 
+            It.IsAny<object>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Message service error"));
+        return this;
+    }
+
+    /// <summary>
+    /// Создает настроенный мок
+    /// <tags>builders, message-service, build, fluent-api</tags>
+    /// </summary>
+    public Mock<IMessageService> Build() => _mock;
+
+    /// <summary>
+    /// Создает объект сервиса из мока
+    /// <tags>builders, message-service, object, fluent-api</tags>
+    /// </summary>
+    public IMessageService BuildObject() => Build().Object;
+} 
+
+/// <summary>
+/// Билдер для мока MessageHandler
+/// <tags>builders, message-handler, mocks, fluent-api</tags>
+/// </summary>
+public class MessageHandlerMockBuilder
+{
+    private readonly Mock<MessageHandler> _mock = new();
+
+    /// <summary>
+    /// Настраивает мок для успешного удаления сообщения
+    /// <tags>builders, message-handler, delete-message, fluent-api</tags>
+    /// </summary>
+    public MessageHandlerMockBuilder ThatDeletesMessages()
+    {
+        _mock.Setup(x => x.DeleteAndReportMessage(
+            It.IsAny<Message>(), 
+            It.IsAny<string>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для отправки в лог-чат
+    /// <tags>builders, message-handler, log-chat, fluent-api</tags>
+    /// </summary>
+    public MessageHandlerMockBuilder ThatReportsToLogChat()
+    {
+        _mock.Setup(x => x.DeleteAndReportToLogChat(
+            It.IsAny<Message>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для отправки уведомления без удаления
+    /// <tags>builders, message-handler, report-only, fluent-api</tags>
+    /// </summary>
+    public MessageHandlerMockBuilder ThatReportsWithoutDeleting()
+    {
+        _mock.Setup(x => x.DontDeleteButReportMessage(
+            It.IsAny<Message>(), 
+            It.IsAny<User>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для отправки подозрительного сообщения с кнопками
+    /// <tags>builders, message-handler, suspicious-message, fluent-api</tags>
+    /// </summary>
+    public MessageHandlerMockBuilder ThatSendsSuspiciousMessageWithButtons()
+    {
+        _mock.Setup(x => x.SendSuspiciousMessageWithButtons(
+            It.IsAny<Message>(), 
+            It.IsAny<User>(), 
+            It.IsAny<SuspiciousMessageNotificationData>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает мок для выбрасывания исключения
+    /// <tags>builders, message-handler, exception, fluent-api</tags>
+    /// </summary>
+    public MessageHandlerMockBuilder ThatThrowsException()
+    {
+        _mock.Setup(x => x.DeleteAndReportMessage(
+            It.IsAny<Message>(), 
+            It.IsAny<string>(), 
+            It.IsAny<bool>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("MessageHandler error"));
+        return this;
+    }
+
+    /// <summary>
+    /// Создает настроенный мок
+    /// <tags>builders, message-handler, build, fluent-api</tags>
+    /// </summary>
+    public Mock<MessageHandler> Build() => _mock;
+
+    /// <summary>
+    /// Создает объект из мока
+    /// <tags>builders, message-handler, object, fluent-api</tags>
+    /// </summary>
+    public MessageHandler BuildObject() => Build().Object;
 } 

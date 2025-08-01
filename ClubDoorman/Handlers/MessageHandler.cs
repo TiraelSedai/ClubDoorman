@@ -493,7 +493,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         return null;
     }
 
-    private async Task HandleNewMembersAsync(Message message, CancellationToken cancellationToken)
+    public async Task HandleNewMembersAsync(Message message, CancellationToken cancellationToken)
     {
         if (message.NewChatMembers == null)
         {
@@ -522,7 +522,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task ProcessNewUserAsync(Message userJoinMessage, User user, CancellationToken cancellationToken)
+    public async Task ProcessNewUserAsync(Message userJoinMessage, User user, CancellationToken cancellationToken)
     {
         if (user == null)
         {
@@ -862,7 +862,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
 
 
 
-    private async Task DeleteAndReportToLogChat(Message message, string reason, CancellationToken cancellationToken)
+    public async Task DeleteAndReportToLogChat(Message message, string reason, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Начинаем DeleteAndReportToLogChat для сообщения {MessageId} в чате {ChatId}", message.MessageId, message.Chat.Id);
         
@@ -932,7 +932,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task DeleteAndReportMessage(Message message, string reason, bool isSilentMode, CancellationToken cancellationToken)
+    public async Task DeleteAndReportMessage(Message message, string reason, bool isSilentMode, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Начинаем DeleteAndReportMessage для сообщения {MessageId} в чате {ChatId}", message.MessageId, message.Chat.Id);
         
@@ -1051,7 +1051,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
 
-    private async Task DontDeleteButReportMessage(Message message, User user, bool isSilentMode, CancellationToken cancellationToken)
+    public async Task DontDeleteButReportMessage(Message message, User user, bool isSilentMode, CancellationToken cancellationToken)
     {
         try
         {
@@ -1078,7 +1078,7 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
         }
     }
     
-    private async Task SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, bool isSilentMode, CancellationToken cancellationToken)
+    public async Task SendSuspiciousMessageWithButtons(Message message, User user, SuspiciousMessageNotificationData data, bool isSilentMode, CancellationToken cancellationToken)
     {
         try
         {
