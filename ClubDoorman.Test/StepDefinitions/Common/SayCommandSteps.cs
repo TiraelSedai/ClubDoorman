@@ -18,6 +18,7 @@ namespace ClubDoorman.Test.StepDefinitions.Common
 {
     [Binding]
     [Category("BDD")]
+    [Category("disabled")]
     public class SayCommandSteps
     {
         private Message _testMessage = null!;

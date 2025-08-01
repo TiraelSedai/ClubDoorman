@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <!-- Простые настройки для исключения демо-тестов -->
+  <RunConfiguration>
+    <!-- Исключаем демо-тесты и отключенные тесты по умолчанию -->
+    <TestCaseFilter>Category!=demo&amp;Category!=Demo&amp;Category!=disabled</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

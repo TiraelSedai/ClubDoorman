@@ -6,6 +6,7 @@ using ClubDoorman.Models;
 using ClubDoorman.Models.Notifications;
 using ClubDoorman.Models.Requests;
 using ClubDoorman.Test.TestInfrastructure;
+using ClubDoorman.Test.TestKit.Builders.MockBuilders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -42,6 +43,7 @@ public class MessageHandlerBuilder
     private readonly Mock<ILogger<MessageHandler>> _loggerMock = TK.CreateLoggerMock<MessageHandler>();
     private readonly Mock<ILogger<SuspiciousCommandHandler>> _suspiciousCommandHandlerLoggerMock = TK.CreateLoggerMock<SuspiciousCommandHandler>();
     private readonly Mock<ISuspiciousUsersStorage> _suspiciousUsersStorageMock = TK.CreateMock<ISuspiciousUsersStorage>();
+    private readonly Mock<IMessageHandler> _messageHandlerMock = new();
 
     /// <summary>
     /// Настраивает модерационный сервис через билдер
@@ -153,6 +155,8 @@ public class MessageHandlerBuilder
         // Настройка стандартных моков
         _moderationServiceMock.Setup(x => x.CheckMessageAsync(It.IsAny<Message>()))
             .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Test moderation"));
+        _moderationServiceMock.Setup(x => x.CheckUserNameAsync(It.IsAny<User>()))
+            .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Test user name"));
         _moderationServiceMock.Setup(x => x.IsUserApproved(It.IsAny<long>(), It.IsAny<long>())).Returns(false);
         
         _userManagerMock.Setup(x => x.Approved(It.IsAny<long>(), null)).Returns(false);
@@ -289,6 +293,50 @@ public class MessageHandlerBuilder
             _loggerMock.Object,
             _userBanServiceMock.Object
         );
+    }
+
+    /// <summary>
+    /// Создает Mock<IMessageHandler> для прокси-сервисов
+    /// <tags>builders, message-handler, proxy-services, fluent-api</tags>
+    /// </summary>
+    public Mock<IMessageHandler> BuildMock()
+    {
+        // Настраиваем мок IMessageHandler на основе реального MessageHandler
+        var realHandler = Build();
+        
+        // Настраиваем прокси-вызовы к реальному MessageHandler
+        _messageHandlerMock.Setup(x => x.DeleteAndReportMessage(It.IsAny<Message>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, string, bool, CancellationToken>((msg, reason, silent, ct) => 
+                realHandler.DeleteAndReportMessage(msg, reason, silent, ct));
+                
+        _messageHandlerMock.Setup(x => x.DeleteAndReportToLogChat(It.IsAny<Message>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, string, CancellationToken>((msg, reason, ct) => 
+                realHandler.DeleteAndReportToLogChat(msg, reason, ct));
+                
+        _messageHandlerMock.Setup(x => x.DontDeleteButReportMessage(It.IsAny<Message>(), It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, User, bool, CancellationToken>((msg, user, silent, ct) => 
+                realHandler.DontDeleteButReportMessage(msg, user, silent, ct));
+                
+        _messageHandlerMock.Setup(x => x.SendSuspiciousMessageWithButtons(It.IsAny<Message>(), It.IsAny<User>(), It.IsAny<SuspiciousMessageNotificationData>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, User, SuspiciousMessageNotificationData, bool, CancellationToken>((msg, user, data, silent, ct) => 
+                realHandler.SendSuspiciousMessageWithButtons(msg, user, data, silent, ct));
+                
+        _messageHandlerMock.Setup(x => x.HandleNewMembersAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, CancellationToken>((msg, ct) => 
+                realHandler.HandleNewMembersAsync(msg, ct));
+                
+        _messageHandlerMock.Setup(x => x.ProcessNewUserAsync(It.IsAny<Message>(), It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, User, CancellationToken>((msg, user, ct) => 
+                realHandler.ProcessNewUserAsync(msg, user, ct));
+                
+        _messageHandlerMock.Setup(x => x.CanHandle(It.IsAny<Message>()))
+            .Returns<Message>(msg => realHandler.CanHandle(msg));
+            
+        _messageHandlerMock.Setup(x => x.HandleAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
+            .Returns<Message, CancellationToken>((msg, ct) => 
+                realHandler.HandleAsync(msg, ct));
+        
+        return _messageHandlerMock;
     }
 
     /// <summary>

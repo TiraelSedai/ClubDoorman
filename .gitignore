@@ -48,3 +48,4 @@ test_bot.sh
 *.env
 secrets.*
 tokens.*
+scripts/internal

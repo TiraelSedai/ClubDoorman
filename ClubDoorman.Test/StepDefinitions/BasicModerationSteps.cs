@@ -15,48 +15,25 @@ namespace ClubDoorman.Test.StepDefinitions
     [Category("BDD")]
     public class BasicModerationSteps
     {
+        // BDD test state
         private Message _testMessage = null!;
         private ModerationResult _moderationResult = null!;
         private Exception? _thrownException;
-        private Mock<ILogger<ModerationService>> _mockLogger = null!;
-        private Mock<IUserManager> _mockUserManager = null!;
-        private Mock<SpamHamClassifier> _mockClassifier = null!;
-        private ModerationService _moderationService = null!;
+        
+        // Унифицированный setup через TestKit.Specialized.ModerationScenarios
+        private TK.Specialized.ModerationScenarios.ModerationSetup _setup = null!;
+        
+        // Удобные ссылки на компоненты setup'а (для совместимости с BDD steps)
+        private Mock<ILogger<ModerationService>> _mockLogger => _setup.LoggerMock;
+        private Mock<IUserManager> _mockUserManager => _setup.UserManagerMock;
+        private Mock<SpamHamClassifier> _mockClassifier => TK.CreateMock<SpamHamClassifier>(); // BDD специфичный мок
+        private ModerationService _moderationService => _setup.Service;
 
         [Given(@"the moderation system is initialized")]
         public void GivenTheModerationSystemIsInitialized()
         {
-            // Create mocks
-            _mockLogger = new Mock<ILogger<ModerationService>>();
-            var mockSpamLogger = new Mock<ILogger<SpamHamClassifier>>();
-            var mockMimicryLogger = new Mock<ILogger<MimicryClassifier>>();
-            var mockAiLogger = new Mock<ILogger<AiChecks>>();
-            var mockSuspiciousLogger = new Mock<ILogger<SuspiciousUsersStorage>>();
-            _mockUserManager = new Mock<IUserManager>();
-            _mockClassifier = new Mock<SpamHamClassifier>();
-
-            // Create real instances for classes that can't be mocked (sealed classes or classes without parameterless constructors)
-            var realBadMessageManager = new BadMessageManager();
-            var realSpamHamClassifier = new SpamHamClassifier(mockSpamLogger.Object);
-            var realMimicryClassifier = new MimicryClassifier(mockMimicryLogger.Object);
-            var realSuspiciousStorage = new SuspiciousUsersStorage(mockSuspiciousLogger.Object);
-            
-            // Create a real TelegramBotClient with a test token for testing
-            var realBotClient = new TelegramBotClient("1234567890:TEST_TOKEN_FOR_TESTS");
-            var realAiChecks = new AiChecks(new TelegramBotClientWrapper(realBotClient), mockAiLogger.Object, AppConfigTestFactory.CreateDefault());
-
-            // Create ModerationService with correct constructor
-            _moderationService = new ModerationService(
-                realSpamHamClassifier,
-                realMimicryClassifier,
-                realBadMessageManager,
-                _mockUserManager.Object,
-                realAiChecks,
-                realSuspiciousStorage,
-                realBotClient,
-                new Mock<IMessageService>().Object,
-                _mockLogger.Object
-            );
+            // Заменяем ~30 строк дублированного кода на один вызов TestKit scenarios
+            _setup = TK.Specialized.ModerationScenarios.CompleteSetup();
         }
 
         [Given(@"user with ID (.*) is not approved in the chat")]

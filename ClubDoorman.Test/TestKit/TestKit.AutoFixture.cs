@@ -4,6 +4,7 @@ using ClubDoorman.Services;
 using ClubDoorman.Models;
 using ClubDoorman.Handlers;
 using ClubDoorman.Infrastructure;
+using ClubDoorman.Test.TestKit.Infra;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -15,222 +16,152 @@ namespace ClubDoorman.Test.TestKit;
 /// </summary>
 public static class TestKitAutoFixture
 {
-    private static readonly IFixture _fixture = CreateFixture();
-
     /// <summary>
     /// Создает настроенный AutoFixture с кастомизациями для Telegram-типов
     /// <tags>autofixture, customization, telegram, test-infrastructure</tags>
     /// </summary>
-    public static IFixture CreateFixture()
-    {
-        var fixture = new Fixture()
-            .Customize(new AutoMoqCustomization { ConfigureMembers = true });
+    public static IFixture CreateFixture() => Infra.TestKitAutoFixture.CreateFixture();
 
-        // Кастомизации для Telegram-типов
-        fixture.Customize<Telegram.Bot.Types.User>(composer => composer
-            .FromFactory(() => TestKitBogus.CreateRealisticUser())
-            .OmitAutoProperties());
-
-        fixture.Customize<Telegram.Bot.Types.Chat>(composer => composer
-            .FromFactory(() => TestKitBogus.CreateRealisticGroup())
-            .OmitAutoProperties());
-
-        fixture.Customize<Telegram.Bot.Types.Message>(composer => composer
-            .FromFactory(() => TestKitBogus.CreateRealisticMessage())
-            .OmitAutoProperties());
-
-        // Кастомизации для наших сервисов
-        fixture.Customize<ILogger<MessageHandler>>(composer => composer
-            .FromFactory(() => NullLogger<MessageHandler>.Instance));
-
-        fixture.Customize<ILogger<ModerationService>>(composer => composer
-            .FromFactory(() => NullLogger<ModerationService>.Instance));
-
-        fixture.Customize<ILogger<CaptchaService>>(composer => composer
-            .FromFactory(() => NullLogger<CaptchaService>.Instance));
-
-        // Кастомизации для конфигурации
-        fixture.Customize<IAppConfig>(composer => composer
-            .FromFactory(() => CreateTestAppConfig()));
-
-        // Умные кастомизации для моков сервисов
-        fixture.Customize<IModerationService>(composer => composer
-            .FromFactory(() => CreateSmartModerationServiceMock()));
-
-        return fixture;
-    }
+    /// <summary>
+    /// Получает глобальный экземпляр AutoFixture
+    /// <tags>autofixture, global, singleton, test-infrastructure</tags>
+    /// </summary>
+    public static IFixture GetFixture() => Infra.TestKitAutoFixture.GetFixture();
 
     /// <summary>
     /// Создает объект любого типа с автоматической генерацией зависимостей
     /// <tags>autofixture, auto-generation, generic, test-infrastructure</tags>
     /// </summary>
-    public static T Create<T>()
-    {
-        return _fixture.Create<T>();
-    }
+    public static T Create<T>() => Infra.TestKitAutoFixture.Create<T>();
 
     /// <summary>
-    /// Создает объект с замоканными зависимостями
-    /// <tags>autofixture, mocks, dependencies, test-infrastructure</tags>
+    /// Создает коллекцию объектов указанного типа
+    /// <tags>autofixture, create-many, collection, test-infrastructure</tags>
     /// </summary>
-    public static T CreateWithMocks<T>() where T : class
-    {
-        return _fixture.Create<T>();
-    }
+    public static IEnumerable<T> CreateMany<T>(int count = 3) => Infra.TestKitAutoFixture.CreateMany<T>(count);
 
     /// <summary>
-    /// Создает объект и возвращает его вместе с fixture для дальнейшей настройки
+    /// Заполняет свойства существующего объекта
+    /// <tags>autofixture, populate, fill-properties, test-infrastructure</tags>
+    /// </summary>
+    public static T Populate<T>(T item) where T : class => Infra.TestKitAutoFixture.Populate(item);
+
+    /// <summary>
+    /// Создает MessageHandler с автозависимостями
+    /// <tags>autofixture, message-handler, dependencies, test-infrastructure</tags>
+    /// </summary>
+    public static MessageHandler CreateMessageHandler() => Infra.TestKitAutoFixture.CreateMessageHandler();
+
+    /// <summary>
+    /// Создает ModerationService с автозависимостями
+    /// <tags>autofixture, moderation-service, dependencies, test-infrastructure</tags>
+    /// </summary>
+    public static ModerationService CreateModerationService() => Infra.TestKitAutoFixture.CreateModerationService();
+
+    /// <summary>
+    /// Создает список реалистичных пользователей
+    /// <tags>autofixture, users, realistic, test-infrastructure</tags>
+    /// </summary>
+    public static List<Telegram.Bot.Types.User> CreateRealisticUsers(int count = 3) => Infra.TestKitAutoFixture.CreateRealisticUsers(count);
+
+    /// <summary>
+    /// Создает список реалистичных сообщений
+    /// <tags>autofixture, messages, realistic, test-infrastructure</tags>
+    /// </summary>
+    public static List<Telegram.Bot.Types.Message> CreateRealisticMessages(int count = 3) => Infra.TestKitAutoFixture.CreateRealisticMessages(count);
+
+    /// <summary>
+    /// Создает тестовый сценарий с пользователем, чатом и сообщением
+    /// <tags>autofixture, scenario, user-chat-message, test-infrastructure</tags>
+    /// </summary>
+    public static (Telegram.Bot.Types.User User, Telegram.Bot.Types.Chat Chat, Telegram.Bot.Types.Message Message) CreateTestScenario() => 
+        Infra.TestKitAutoFixture.CreateTestScenario();
+
+    /// <summary>
+    /// Создает произвольное количество объектов (от 1 до 5)
+    /// <tags>autofixture, random-count, flexible, test-infrastructure</tags>
+    /// </summary>
+    public static IEnumerable<T> CreateSome<T>() => Infra.TestKitAutoFixture.CreateSome<T>();
+
+    /// <summary>
+    /// Создает объект с переопределенными свойствами
+    /// <tags>autofixture, override, customization, test-infrastructure</tags>
+    /// </summary>
+    public static T CreateWith<T>(Action<T> customization) where T : class => Infra.TestKitAutoFixture.CreateWith(customization);
+
+    /// <summary>
+    /// Замораживает фиксированные значения для воспроизводимых тестов
+    /// <tags>autofixture, freeze, reproducible, test-infrastructure</tags>
+    /// </summary>
+    public static T Freeze<T>() => Infra.TestKitAutoFixture.Freeze<T>();
+
+    /// <summary>
+    /// Регистрирует кастомную фабрику для типа
+    /// <tags>autofixture, customize, factory, test-infrastructure</tags>
+    /// </summary>
+    public static void CustomizeWith<T>(Func<T> factory) => Infra.TestKitAutoFixture.CustomizeWith(factory);
+
+    /// <summary>
+    /// Инжектирует конкретный экземпляр для типа
+    /// <tags>autofixture, inject, singleton, test-infrastructure</tags>
+    /// </summary>
+    public static void Inject<T>(T instance) => Infra.TestKitAutoFixture.Inject(instance);
+    
+    #region Backward Compatibility Methods
+    
+    /// <summary>
+    /// Создает CaptchaService с автозависимостями
+    /// <tags>autofixture, captcha-service, dependencies, test-infrastructure</tags>
+    /// </summary>
+    public static ICaptchaService CreateCaptchaService() => Infra.TestKitAutoFixture.CreateCaptchaService();
+    
+    /// <summary>
+    /// Создает UserManager с автозависимостями
+    /// <tags>autofixture, user-manager, dependencies, test-infrastructure</tags>
+    /// </summary>
+    public static IUserManager CreateUserManager() => Infra.TestKitAutoFixture.CreateUserManager();
+    
+    /// <summary>
+    /// Создает Update объект
+    /// <tags>autofixture, update, telegram, test-infrastructure</tags>
+    /// </summary>
+    public static Telegram.Bot.Types.Update CreateUpdate() => Infra.TestKitAutoFixture.CreateUpdate();
+    
+    /// <summary>
+    /// Создает MessageUpdate
+    /// <tags>autofixture, message-update, telegram, test-infrastructure</tags>
+    /// </summary>
+    public static Telegram.Bot.Types.Update CreateMessageUpdate() => Infra.TestKitAutoFixture.CreateMessageUpdate();
+    
+    /// <summary>
+    /// Создает CallbackQueryUpdate
+    /// <tags>autofixture, callback-query-update, telegram, test-infrastructure</tags>
+    /// </summary>
+    public static Telegram.Bot.Types.Update CreateCallbackQueryUpdate() => Infra.TestKitAutoFixture.CreateCallbackQueryUpdate();
+    
+    /// <summary>
+    /// Создает много сообщений
+    /// <tags>autofixture, many-messages, collection, test-infrastructure</tags>
+    /// </summary>
+    public static List<Telegram.Bot.Types.Message> CreateManyMessages(int count = 3) => Infra.TestKitAutoFixture.CreateManyMessages(count);
+    
+    /// <summary>
+    /// Создает много пользователей
+    /// <tags>autofixture, many-users, collection, test-infrastructure</tags>
+    /// </summary>
+    public static List<Telegram.Bot.Types.User> CreateManyUsers(int count = 3) => Infra.TestKitAutoFixture.CreateManyUsers(count);
+    
+    /// <summary>
+    /// Создает много спам-сообщений
+    /// <tags>autofixture, many-spam-messages, collection, test-infrastructure</tags>
+    /// </summary>
+    public static List<Telegram.Bot.Types.Message> CreateManySpamMessages(int count = 3) => Infra.TestKitAutoFixture.CreateManySpamMessages(count);
+    
+    /// <summary>
+    /// Создает объект с фикстурой для кастомизации
     /// <tags>autofixture, customization, fixture, test-infrastructure</tags>
     /// </summary>
-    public static (T sut, IFixture fixture) CreateWithFixture<T>()
-    {
-        var fixture = CreateFixture();
-        return (fixture.Create<T>(), fixture);
-    }
-
-    /// <summary>
-    /// Создает MessageHandler с автоматически сгенерированными зависимостями
-    /// <tags>autofixture, message-handler, auto-generation, test-infrastructure</tags>
-    /// </summary>
-    public static MessageHandler CreateMessageHandler()
-    {
-        return _fixture.Create<MessageHandler>();
-    }
-
-    /// <summary>
-    /// Создает ModerationService с автоматически сгенерированными зависимостями
-    /// <tags>autofixture, moderation-service, auto-generation, test-infrastructure</tags>
-    /// </summary>
-    public static ModerationService CreateModerationService()
-    {
-        return _fixture.Create<ModerationService>();
-    }
-
-    /// <summary>
-    /// Создает CaptchaService с автоматически сгенерированными зависимостями
-    /// </summary>
-    public static CaptchaService CreateCaptchaService()
-    {
-        return _fixture.Create<CaptchaService>();
-    }
-
-    /// <summary>
-    /// Создает UserManager с автоматически сгенерированными зависимостями
-    /// </summary>
-    public static IUserManager CreateUserManager()
-    {
-        return _fixture.Create<IUserManager>();
-    }
-
-    /// <summary>
-    /// Создает Update с автоматически сгенерированным сообщением
-    /// </summary>
-    public static Telegram.Bot.Types.Update CreateUpdate()
-    {
-        return _fixture.Create<Telegram.Bot.Types.Update>();
-    }
-
-    /// <summary>
-    /// Создает Update с сообщением
-    /// </summary>
-    public static Telegram.Bot.Types.Update CreateMessageUpdate()
-    {
-        var update = _fixture.Create<Telegram.Bot.Types.Update>();
-        update.Message = TestKitBogus.CreateRealisticMessage();
-        return update;
-    }
-
-    /// <summary>
-    /// Создает Update с CallbackQuery
-    /// </summary>
-    public static Telegram.Bot.Types.Update CreateCallbackQueryUpdate()
-    {
-        var update = _fixture.Create<Telegram.Bot.Types.Update>();
-        update.CallbackQuery = TestKit.CreateValidCallbackQuery();
-        return update;
-    }
-
-    /// <summary>
-    /// Создает коллекцию объектов
-    /// </summary>
-    public static IEnumerable<T> CreateMany<T>(int count = 3)
-    {
-        return _fixture.CreateMany<T>(count);
-    }
-
-    /// <summary>
-    /// Создает коллекцию сообщений
-    /// </summary>
-    public static IEnumerable<Telegram.Bot.Types.Message> CreateManyMessages(int count = 3)
-    {
-        return Enumerable.Range(0, count)
-            .Select(_ => TestKitBogus.CreateRealisticMessage())
-            .ToList();
-    }
-
-    /// <summary>
-    /// Создает коллекцию пользователей
-    /// </summary>
-    public static IEnumerable<Telegram.Bot.Types.User> CreateManyUsers(int count = 3)
-    {
-        return Enumerable.Range(0, count)
-            .Select(_ => TestKitBogus.CreateRealisticUser())
-            .ToList();
-    }
-
-    /// <summary>
-    /// Создает коллекцию спам-сообщений
-    /// </summary>
-    public static IEnumerable<Telegram.Bot.Types.Message> CreateManySpamMessages(int count = 3)
-    {
-        return Enumerable.Range(0, count)
-            .Select(_ => TestKitBogus.CreateRealisticSpamMessage())
-            .ToList();
-    }
-
-    #region Helper Methods
-
-    private static IAppConfig CreateTestAppConfig()
-    {
-        var mock = new Moq.Mock<IAppConfig>();
-        mock.Setup(x => x.NoCaptchaGroups).Returns(new HashSet<long>());
-        mock.Setup(x => x.NoVpnAdGroups).Returns(new HashSet<long>());
-        mock.Setup(x => x.IsChatAllowed(It.IsAny<long>())).Returns(true);
-        mock.Setup(x => x.DisabledChats).Returns(new HashSet<long>());
-        mock.Setup(x => x.AdminChatId).Returns(123456789);
-        mock.Setup(x => x.LogAdminChatId).Returns(987654321);
-        return mock.Object;
-    }
-
-    #endregion
-
-    #region Smart Mock Factories
-
-    /// <summary>
-    /// Создает умный мок IModerationService с разумными настройками по умолчанию
-    /// </summary>
-    private static IModerationService CreateSmartModerationServiceMock()
-    {
-        var mock = new Moq.Mock<IModerationService>();
-        
-        // По умолчанию разрешаем сообщения
-        mock.Setup(x => x.CheckMessageAsync(It.IsAny<Telegram.Bot.Types.Message>()))
-            .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Valid message"));
-        
-        // Умная логика для спам-сообщений
-        mock.Setup(x => x.CheckMessageAsync(It.Is<Telegram.Bot.Types.Message>(m => 
-            m.Text != null && TestKitBogus.IsSpamText(m.Text))))
-            .ReturnsAsync(new ModerationResult(ModerationAction.Delete, "Spam detected"));
-        
-        // Умная логика для пустых сообщений
-        mock.Setup(x => x.CheckMessageAsync(It.Is<Telegram.Bot.Types.Message>(m => 
-            string.IsNullOrEmpty(m.Text))))
-            .ReturnsAsync(new ModerationResult(ModerationAction.Allow, "Empty message allowed"));
-        
-        return mock.Object;
-    }
-
-
+    public static (T sut, IFixture fixture) CreateWithFixture<T>() => Infra.TestKitAutoFixture.CreateWithFixture<T>();
 
     #endregion
 } 

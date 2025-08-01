@@ -9,6 +9,7 @@ namespace ClubDoorman.Test;
 /// Демонстрационные тесты для новых возможностей Этапа 3
 /// </summary>
 [TestFixture]
+[Category(TestCategories.Demo)]
 public class TestKitStage3DemoTests
 {
     [Test, Category(TestCategories.Fast)]
