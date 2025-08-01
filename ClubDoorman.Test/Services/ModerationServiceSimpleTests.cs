@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using ClubDoorman.Models.Notifications;
+using Telegram.Bot.Extensions;
 
 namespace ClubDoorman.Test.Services;
 
@@ -267,6 +268,7 @@ public class ModerationServiceSimpleTests
             It.Is<Chat>(chat => chat.Id == 123),
             It.Is<UserNotificationType>(type => type == UserNotificationType.ModerationWarning),
             It.IsAny<object>(),
+            It.IsAny<ReplyParameters>(),
             It.IsAny<CancellationToken>()), Times.Once);
         
         // Проверяем логи для отладки
