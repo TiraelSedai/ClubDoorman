@@ -145,6 +145,46 @@ public class MessageService : IMessageService
     }
 
     /// <summary>
+    /// Отправляет пользовательское уведомление как реплай на сообщение и возвращает отправленное сообщение
+    /// </summary>
+    public async Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, ReplyParameters replyParameters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var template = _templates.GetUserTemplate(type);
+            string message;
+            
+            // Если data является NotificationData, используем FormatNotificationTemplate
+            if (data is NotificationData notificationData)
+            {
+                message = _templates.FormatNotificationTemplate(template, notificationData);
+            }
+            else
+            {
+                message = _templates.FormatTemplate(template, data);
+            }
+            
+            var sent = await _bot.SendMessage(
+                chat.Id,
+                message,
+                parseMode: ParseMode.Html,
+                replyParameters: replyParameters,
+                cancellationToken: cancellationToken
+            );
+            
+            _logger.LogDebug("Отправлено уведомление с реплаем на сообщение {ReplyMessageId} пользователю {UserId} в чате {ChatId} типа {Type}", 
+                replyParameters.MessageId, user.Id, chat.Id, type);
+            return sent;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при отправке уведомления с реплаем на сообщение {ReplyMessageId} пользователю {UserId} в чате {ChatId} типа {Type}", 
+                replyParameters.MessageId, user.Id, chat.Id, type);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
     public async Task<Message?> SendWelcomeMessageAsync(SendWelcomeMessageRequest request)

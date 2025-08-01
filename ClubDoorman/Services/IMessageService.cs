@@ -31,6 +31,11 @@ public interface IMessageService
     Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Отправляет пользовательское уведомление как реплай на сообщение и возвращает отправленное сообщение
+    /// </summary>
+    Task<Message> SendUserNotificationWithReplyAsync(User user, Chat chat, UserNotificationType type, object data, ReplyParameters replyParameters, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Отправляет приветственное сообщение используя Request объект
     /// </summary>
     Task<Message?> SendWelcomeMessageAsync(SendWelcomeMessageRequest request);
