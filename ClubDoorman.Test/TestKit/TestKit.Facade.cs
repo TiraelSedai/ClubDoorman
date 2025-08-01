@@ -3,6 +3,7 @@ using ClubDoorman.Services;
 using ClubDoorman.Test.TestInfrastructure;
 using ClubDoorman.Test.TestData;
 using ClubDoorman.Handlers;
+using ClubDoorman.Test.TestKit.Builders;
 using Telegram.Bot.Types;
 using AutoFixture;
 using AutoFixture.AutoMoq;
@@ -202,6 +203,34 @@ namespace ClubDoorman.Test.TestKit
     /// </summary>
     public static Telegram.Bot.Types.Message CreateBogusSpamMessage() => 
         TestKitBogus.CreateRealisticSpamMessage();
+
+    #endregion
+
+    #region Builder Methods
+
+    /// <summary>
+    /// Создает builder для сообщения Telegram
+    /// <tags>builders, message, telegram, fluent-api</tags>
+    /// </summary>
+    public static Builders.MessageBuilder CreateMessageBuilder() => Builders.TestKitBuilders.CreateMessage();
+    
+    /// <summary>
+    /// Создает builder для пользователя Telegram
+    /// <tags>builders, user, telegram, fluent-api</tags>
+    /// </summary>
+    public static Builders.UserBuilder CreateUserBuilder() => Builders.TestKitBuilders.CreateUser();
+    
+    /// <summary>
+    /// Создает builder для чата Telegram
+    /// <tags>builders, chat, telegram, fluent-api</tags>
+    /// </summary>
+    public static Builders.ChatBuilder CreateChatBuilder() => Builders.TestKitBuilders.CreateChat();
+    
+    /// <summary>
+    /// Создает builder для результата модерации
+    /// <tags>builders, moderation-result, moderation, fluent-api</tags>
+    /// </summary>
+    public static Builders.ModerationResultBuilder CreateModerationResultBuilder() => Builders.TestKitBuilders.CreateModerationResult();
 
     #endregion
 
