@@ -56,4 +56,16 @@ public interface IMessageHandler
     /// <tags>handle-message, processing</tags>
     /// </summary>
     Task HandleAsync(Message message, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Обрабатывает команду
+    /// <tags>command, processing</tags>
+    /// </summary>
+    Task HandleCommandAsync(Message message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Обрабатывает сообщение от канала
+    /// <tags>channel, moderation</tags>
+    /// </summary>
+    Task HandleChannelMessageAsync(Message message, CancellationToken cancellationToken);
 } 
