@@ -2,9 +2,19 @@
 
 ## 🚀 Быстрый старт
 
-### Запуск всех тестов
+### Основной запуск (исключая демо-тесты)
 ```bash
-dotnet test ClubDoorman.Test --verbosity normal
+# С .runsettings (рекомендуется)
+dotnet test ClubDoorman.Test --settings ClubDoorman.Test/.runsettings --verbosity normal
+
+# Или явно исключая демо
+dotnet test ClubDoorman.Test --filter="Category!=demo&Category!=Demo" --verbosity normal
+```
+
+### Демо-тесты (примеры использования TestKit)
+```bash
+# Только демо-тесты
+dotnet test ClubDoorman.Test --filter="Category=demo" --verbosity normal
 ```
 
 ### Запуск конкретного теста
@@ -16,6 +26,10 @@ dotnet test ClubDoorman.Test --filter "MessageHandlerDeletionTest_TraceProblem" 
 ```bash
 dotnet test ClubDoorman.Test --collect:"XPlat Code Coverage"
 ```
+
+> 💡 **Демо-тесты исключены по умолчанию** через `.runsettings`, так как они предназначены для демонстрации возможностей TestKit и могут быть нестабильными.
+> 
+> 📖 **Больше команд:** `scripts/test-commands.md`
 
 ## 📚 Документация
 

@@ -189,15 +189,15 @@ namespace ClubDoorman.Test.TestKit
             #region Bogus Methods
 
     /// <summary>
-    /// Создает пользователя с помощью Bogus
+    /// Создает реалистичного пользователя с помощью Bogus
     /// </summary>
-    public static Telegram.Bot.Types.User CreateUser(long? userId = null) => 
+    public static Telegram.Bot.Types.User CreateRealisticUser(long? userId = null) => 
         Infra.TestKitBogus.CreateRealisticUser(userId);
 
     /// <summary>
-    /// Создает сообщение с помощью Bogus
+    /// Создает реалистичное сообщение с помощью Bogus
     /// </summary>
-    public static Telegram.Bot.Types.Message CreateMessage() => 
+    public static Telegram.Bot.Types.Message CreateRealisticMessage() => 
         Infra.TestKitBogus.CreateRealisticMessage();
 
     /// <summary>
@@ -214,25 +214,25 @@ namespace ClubDoorman.Test.TestKit
     /// Создает builder для сообщения Telegram
     /// <tags>builders, message, telegram, fluent-api</tags>
     /// </summary>
-    public static Builders.MessageBuilder CreateMessageBuilder() => Builders.TestKitBuilders.CreateMessage();
+    public static Builders.MessageBuilder BuildMessage() => Builders.TestKitBuilders.CreateMessage();
     
     /// <summary>
     /// Создает builder для пользователя Telegram
     /// <tags>builders, user, telegram, fluent-api</tags>
     /// </summary>
-    public static Builders.UserBuilder CreateUserBuilder() => Builders.TestKitBuilders.CreateUser();
+    public static Builders.UserBuilder BuildUser() => Builders.TestKitBuilders.CreateUser();
     
     /// <summary>
     /// Создает builder для чата Telegram
     /// <tags>builders, chat, telegram, fluent-api</tags>
     /// </summary>
-    public static Builders.ChatBuilder CreateChatBuilder() => Builders.TestKitBuilders.CreateChat();
+    public static Builders.ChatBuilder BuildChat() => Builders.TestKitBuilders.CreateChat();
     
     /// <summary>
     /// Создает builder для результата модерации
     /// <tags>builders, moderation-result, moderation, fluent-api</tags>
     /// </summary>
-    public static Builders.ModerationResultBuilder CreateModerationResultBuilder() => Builders.TestKitBuilders.CreateModerationResult();
+    public static Builders.ModerationResultBuilder BuildModerationResult() => Builders.TestKitBuilders.CreateModerationResult();
 
     #endregion
 

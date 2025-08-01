@@ -72,6 +72,18 @@ namespace ClubDoorman.Test.TestKit
         public static User CreateAnonymousUser() => TestDataFactory.CreateAnonymousUser();
 
         /// <summary>
+        /// Создает базовое сообщение (алиас к CreateValidMessage для удобства)
+        /// <tags>message, basic, alias</tags>
+        /// </summary>
+        public static Message CreateMessage() => CreateValidMessage();
+
+        /// <summary>
+        /// Создает базового пользователя (алиас к CreateValidUser для удобства)
+        /// <tags>user, basic, alias</tags>
+        /// </summary>
+        public static User CreateUser() => CreateValidUser();
+
+        /// <summary>
         /// Создает групповой чат
         /// <tags>chat, group, basic, telegram</tags>
         /// </summary>

@@ -181,7 +181,7 @@ namespace ClubDoorman.Test.Unit.Handlers
         public async Task HandleAsync_EmptyTextMessage_CoversNullCoalescingMutations()
         {
             // Arrange
-            var user = TK.CreateUser(userId: 11111);
+            var user = TK.CreateRealisticUser(userId: 11111);
             var chat = TK.CreateGroupChat();
             var message = TK.CreateValidMessage();
             message.From = user;
@@ -214,7 +214,7 @@ namespace ClubDoorman.Test.Unit.Handlers
         public async Task HandleAsync_WhitespaceTextMessage_CoversNullCoalescingMutations()
         {
             // Arrange
-            var user = TK.CreateUser(userId: 22222);
+            var user = TK.CreateRealisticUser(userId: 22222);
             var chat = TK.CreateGroupChat();
             var message = TK.CreateValidMessage();
             message.From = user;
@@ -251,7 +251,7 @@ namespace ClubDoorman.Test.Unit.Handlers
         public async Task HandleAsync_ExactLengthTextMessage_CoversNullCoalescingMutations()
         {
             // Arrange
-            var user = TK.CreateUser(userId: 33333);
+            var user = TK.CreateRealisticUser(userId: 33333);
             var chat = TK.CreateGroupChat();
             var message = TK.CreateValidMessage();
             message.From = user;
@@ -284,7 +284,7 @@ namespace ClubDoorman.Test.Unit.Handlers
         public async Task HandleAsync_NearLimitTextMessage_CoversNullCoalescingMutations()
         {
             // Arrange
-            var user = TK.CreateUser(userId: 44444);
+            var user = TK.CreateRealisticUser(userId: 44444);
             var chat = TK.CreateGroupChat();
             var message = TK.CreateValidMessage();
             message.From = user;
@@ -317,7 +317,7 @@ namespace ClubDoorman.Test.Unit.Handlers
         public async Task HandleAsync_OverLimitTextMessage_CoversNullCoalescingMutations()
         {
             // Arrange
-            var user = TK.CreateUser(userId: 55555);
+            var user = TK.CreateRealisticUser(userId: 55555);
             var chat = TK.CreateGroupChat();
             var message = TK.CreateValidMessage();
             message.From = user;

@@ -218,7 +218,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) TextOnlyScenario()
                 {
-                    var user = TK.CreateUser(userId: 55555);
+                    var user = TK.CreateRealisticUser(userId: 55555);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -235,7 +235,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) CaptionOnlyScenario()
                 {
-                    var user = TK.CreateUser(userId: 66666);
+                    var user = TK.CreateRealisticUser(userId: 66666);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -252,7 +252,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) NoTextScenario()
                 {
-                    var user = TK.CreateUser(userId: 77777);
+                    var user = TK.CreateRealisticUser(userId: 77777);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -270,7 +270,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) LongTextScenario()
                 {
-                    var user = TK.CreateUser(userId: 88888);
+                    var user = TK.CreateRealisticUser(userId: 88888);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -287,7 +287,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) LongCaptionScenario()
                 {
-                    var user = TK.CreateUser(userId: 99999);
+                    var user = TK.CreateRealisticUser(userId: 99999);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -327,7 +327,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message, TimeSpan BanDuration, string Reason) TemporaryBanScenario()
                 {
-                    var user = TK.CreateUser(userId: 12345);
+                    var user = TK.CreateRealisticUser(userId: 12345);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateNewUserJoinMessage(user.Id);
                     message.Chat = chat;
@@ -341,7 +341,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message, TimeSpan? BanDuration, string Reason) PermanentBanScenario()
                 {
-                    var user = TK.CreateUser(userId: 67890);
+                    var user = TK.CreateRealisticUser(userId: 67890);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateNewUserJoinMessage(user.Id);
                     message.Chat = chat;
@@ -355,7 +355,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message, TimeSpan BanDuration, string Reason) PrivateChatBanScenario()
                 {
-                    var user = TK.CreateUser(userId: 11111);
+                    var user = TK.CreateRealisticUser(userId: 11111);
                     var chat = TK.CreatePrivateChat();
                     var message = TK.CreateNewUserJoinMessage(user.Id);
                     message.Chat = chat;
@@ -369,7 +369,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) BlacklistBanScenario()
                 {
-                    var user = TK.CreateUser(userId: 22222);
+                    var user = TK.CreateRealisticUser(userId: 22222);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateNewUserJoinMessage(user.Id);
                     message.Chat = chat;
@@ -398,7 +398,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message, string Reason) AutoBanScenario()
                 {
-                    var user = TK.CreateUser(userId: 33333);
+                    var user = TK.CreateRealisticUser(userId: 33333);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -413,7 +413,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) HandleBlacklistBanScenario()
                 {
-                    var user = TK.CreateUser(userId: 44444);
+                    var user = TK.CreateRealisticUser(userId: 44444);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -428,7 +428,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) HandleBlacklistBanLongTextScenario()
                 {
-                    var user = TK.CreateUser(userId: 55555);
+                    var user = TK.CreateRealisticUser(userId: 55555);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -444,7 +444,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) HandleBlacklistBanMediaScenario()
                 {
-                    var user = TK.CreateUser(userId: 66666);
+                    var user = TK.CreateRealisticUser(userId: 66666);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;
@@ -462,7 +462,7 @@ namespace ClubDoorman.Test.TestKit
                 /// </summary>
                 public static (User User, Chat Chat, Message Message) HandleBlacklistBanApprovedUserScenario()
                 {
-                    var user = TK.CreateUser(userId: 77777);
+                    var user = TK.CreateRealisticUser(userId: 77777);
                     var chat = TK.CreateGroupChat();
                     var message = TK.CreateValidMessage();
                     message.From = user;

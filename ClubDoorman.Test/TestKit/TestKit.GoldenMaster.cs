@@ -201,7 +201,7 @@ public class BanScenarioBuilder
     /// </summary>
     public BanScenario CreateTemporaryBanScenario()
     {
-        var user = TestKitBuilders.CreateUser()
+        var user = TK.BuildUser()
             .WithId(_faker.Random.Long(100000000, 999999999))
             .WithFirstName(_faker.Name.FirstName())
             .WithUsername(_faker.Internet.UserName())
@@ -213,10 +213,10 @@ public class BanScenarioBuilder
             .WithTitle(_faker.Company.CompanyName())
             .Build();
 
-        var message = TestKitBuilders.CreateMessage()
+        var message = TK.BuildMessage()
             .FromUser(user)
             .InChat(chat)
-            .WithMessageId(_faker.Random.Int(1, 99999))
+
             .WithText(_faker.Lorem.Sentence())
             .Build();
 
@@ -238,7 +238,7 @@ public class BanScenarioBuilder
     /// </summary>
     public BanScenario CreatePermanentBanScenario()
     {
-        var user = TestKitBuilders.CreateUser()
+        var user = TK.BuildUser()
             .WithId(_faker.Random.Long(100000000, 999999999))
             .WithFirstName(_faker.Name.FirstName())
             .WithUsername(_faker.Internet.UserName())
@@ -250,10 +250,10 @@ public class BanScenarioBuilder
             .WithTitle(_faker.Company.CompanyName())
             .Build();
 
-        var message = TestKitBuilders.CreateMessage()
+        var message = TK.BuildMessage()
             .FromUser(user)
             .InChat(chat)
-            .WithMessageId(_faker.Random.Int(1, 99999))
+
             .WithText(_faker.Lorem.Sentence())
             .Build();
 
@@ -275,7 +275,7 @@ public class BanScenarioBuilder
     /// </summary>
     public BanScenario CreatePrivateChatBanScenario()
     {
-        var user = TestKitBuilders.CreateUser()
+        var user = TK.BuildUser()
             .WithId(_faker.Random.Long(100000000, 999999999))
             .WithFirstName(_faker.Name.FirstName())
             .WithUsername(_faker.Internet.UserName())
@@ -286,10 +286,10 @@ public class BanScenarioBuilder
             .WithType(ChatType.Private)
             .Build();
 
-        var message = TestKitBuilders.CreateMessage()
+        var message = TK.BuildMessage()
             .FromUser(user)
             .InChat(chat)
-            .WithMessageId(_faker.Random.Int(1, 99999))
+
             .WithText(_faker.Lorem.Sentence())
             .Build();
 
@@ -311,7 +311,7 @@ public class BanScenarioBuilder
     /// </summary>
     public BanScenario CreateNullMessageBanScenario()
     {
-        var user = TestKitBuilders.CreateUser()
+        var user = TK.BuildUser()
             .WithId(_faker.Random.Long(100000000, 999999999))
             .WithFirstName(_faker.Name.FirstName())
             .WithUsername(_faker.Internet.UserName())
@@ -341,7 +341,7 @@ public class BanScenarioBuilder
     /// </summary>
     public BanScenario CreateBotBanScenario()
     {
-        var user = TestKitBuilders.CreateUser()
+        var user = TK.BuildUser()
             .WithId(_faker.Random.Long(100000000, 999999999))
             .WithFirstName(_faker.Name.FirstName())
             .WithUsername(_faker.Internet.UserName())
@@ -354,10 +354,10 @@ public class BanScenarioBuilder
             .WithTitle(_faker.Company.CompanyName())
             .Build();
 
-        var message = TestKitBuilders.CreateMessage()
+        var message = TK.BuildMessage()
             .FromUser(user)
             .InChat(chat)
-            .WithMessageId(_faker.Random.Int(1, 99999))
+
             .WithText(_faker.Lorem.Sentence())
             .Build();
 
