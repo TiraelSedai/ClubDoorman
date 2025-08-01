@@ -61,27 +61,7 @@ public class UserBanServiceTests
         _chatLinkFormatterMock = new Mock<IChatLinkFormatter>();
         _botPermissionsServiceMock = new Mock<IBotPermissionsService>();
 
-        // Создаем MessageHandler для делегирования (эталонная версия)
-        var messageHandler = new MessageHandler(
-            _botMock.Object,                      // ITelegramBotClientWrapper bot
-            _moderationServiceMock.Object,        // IModerationService moderationService
-            _captchaServiceMock.Object,           // ICaptchaService captchaService
-            _userManagerMock.Object,              // IUserManager userManager
-            _classifierMock.Object,               // ISpamHamClassifier classifier
-            _badMessageManagerMock.Object,        // IBadMessageManager badMessageManager
-            _aiServiceMock.Object,                // IAiChecks aiChecks
-            _globalStatsManagerMock.Object,       // GlobalStatsManager globalStatsManager
-            _statisticsServiceMock.Object,        // IStatisticsService statisticsService
-            _serviceProviderMock.Object,          // IServiceProvider serviceProvider
-            _userFlowLoggerMock.Object,           // IUserFlowLogger userFlowLogger
-            _messageServiceMock.Object,           // IMessageService messageService
-            _chatLinkFormatterMock.Object,        // IChatLinkFormatter chatLinkFormatter
-            _botPermissionsServiceMock.Object,    // IBotPermissionsService botPermissionsService
-            _appConfigMock.Object,                // IAppConfig appConfig
-            _violationTrackerMock.Object,         // IViolationTracker violationTracker
-            new Mock<ILogger<MessageHandler>>().Object, // ILogger<MessageHandler> logger
-            null                                  // IUserBanService userBanService = null
-        );
+        // MessageHandler больше не нужен в этих тестах - тестируем UserBanService напрямую
         
         // UserBanService теперь содержит реальную логику
         _userBanService = new UserBanService(
