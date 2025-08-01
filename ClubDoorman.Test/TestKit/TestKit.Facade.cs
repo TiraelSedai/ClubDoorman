@@ -5,6 +5,7 @@ using ClubDoorman.Test.TestData;
 using ClubDoorman.Handlers;
 using ClubDoorman.Test.TestKit.Builders;
 using ClubDoorman.Test.TestKit.Builders.MockBuilders;
+using ClubDoorman.Test.TestKit.Infra;
 using Telegram.Bot.Types;
 using AutoFixture;
 using AutoFixture.AutoMoq;
@@ -164,13 +165,13 @@ namespace ClubDoorman.Test.TestKit
         /// Создает экземпляр типа T с автоматически сгенерированными зависимостями
         /// <tags>autofixture, auto-generation, dependencies, test-infrastructure</tags>
         /// </summary>
-        public static T Create<T>() => TestKitAutoFixture.Create<T>();
+        public static T Create<T>() => Infra.TestKitAutoFixture.Create<T>();
 
         /// <summary>
         /// Создает коллекцию экземпляров типа T
         /// <tags>autofixture, collection, auto-generation, test-infrastructure</tags>
         /// </summary>
-        public static IEnumerable<T> CreateMany<T>(int count = 3) => TestKitAutoFixture.CreateMany<T>(count);
+        public static IEnumerable<T> CreateMany<T>(int count = 3) => Infra.TestKitAutoFixture.CreateMany<T>(count);
 
         /// <summary>
         /// Создает экземпляр типа T с фикстурой для кастомизации
@@ -191,13 +192,13 @@ namespace ClubDoorman.Test.TestKit
     /// Создает пользователя с помощью Bogus
     /// </summary>
     public static Telegram.Bot.Types.User CreateUser(long? userId = null) => 
-        TestKitBogus.CreateRealisticUser(userId);
+        Infra.TestKitBogus.CreateRealisticUser(userId);
 
     /// <summary>
     /// Создает сообщение с помощью Bogus
     /// </summary>
     public static Telegram.Bot.Types.Message CreateMessage() => 
-        TestKitBogus.CreateRealisticMessage();
+        Infra.TestKitBogus.CreateRealisticMessage();
 
     /// <summary>
     /// Создает спам-сообщение с помощью Bogus
