@@ -86,4 +86,72 @@ public static class SimpleFilters
         
         return hasUrls || hasHtmlLinks;
     }
+    
+    /// <summary>
+    /// Проверяет, является ли сообщение банальным приветствием
+    /// </summary>
+    /// <param name="message">Текст сообщения</param>
+    /// <returns>true, если сообщение является банальным приветствием</returns>
+    public static bool IsBoringGreeting(string message)
+    {
+        if (message == null) throw new ArgumentNullException(nameof(message));
+        
+        var normalizedMessage = message.Trim().ToLowerInvariant();
+        
+        // Убираем знаки препинания и лишние пробелы
+        var cleanMessage = Regex.Replace(normalizedMessage, @"[^\w\s]", "").Trim();
+        cleanMessage = Regex.Replace(cleanMessage, @"\s+", " ");
+        
+        // Банальные приветствия
+        var boringGreetings = new[]
+        {
+            "привет", "приветик", "привки", "прив", "приффки",
+            "хай", "хайло", "хэй", "хелло", "hello", "hi", "hey",
+            "добро утро", "доброе утро", "утро", "утречко",
+            "добрый день", "день добрый", "дня доброго",
+            "добрый вечер", "вечер добрый", "вечера доброго",
+            "добро пожаловать", "добропожаловать",
+            "здарова", "здарово", "здравствуйте", "здравствуй",
+            "ку", "кукус", "кукусики",
+            "йо", "йоу", "yo",
+            "салам", "салом", "салют",
+            "дратути", "драсте", "драсти"
+        };
+        
+        // Проверяем точные совпадения
+        if (boringGreetings.Contains(cleanMessage))
+            return true;
+            
+        // Проверяем если сообщение состоит только из одного-двух слов и одно из них - приветствие
+        var words = cleanMessage.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length <= 2)
+        {
+            foreach (var word in words)
+            {
+                if (boringGreetings.Contains(word))
+                    return true;
+            }
+        }
+        
+        // Проверяем только эмодзи (включая несколько подряд)
+        var emojiOnlyPattern = @"^[\s\p{So}\p{Sk}\u200d\ufe0f\u2600-\u27bf\ud800-\udfff]+$";
+        if (Regex.IsMatch(normalizedMessage, emojiOnlyPattern) && normalizedMessage.Trim().Length > 0)
+        {
+            // Если сообщение содержит только эмодзи и не слишком длинное
+            if (normalizedMessage.Trim().Length <= 20)
+                return true;
+        }
+        
+        // Проверяем комбинации типа "привет 🙂" или "👋 привет"
+        if (words.Length <= 3)
+        {
+            var hasGreeting = words.Any(word => boringGreetings.Contains(word));
+            var hasEmoji = Regex.IsMatch(normalizedMessage, @"[\p{So}\p{Sk}\u2600-\u27bf\ud800-\udfff]");
+            
+            if (hasGreeting && hasEmoji)
+                return true;
+        }
+        
+        return false;
+    }
 }

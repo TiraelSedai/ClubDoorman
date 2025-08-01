@@ -691,6 +691,17 @@ public class ModerationService : IModerationService
             return new ModerationResult(ModerationAction.Delete, "В этом сообщении есть стоп-слова");
         }
 
+        // 8.5. Проверка банальных приветствий
+        var isBoringGreeting = SimpleFilters.IsBoringGreeting(text);
+        _logger.LogDebug("Проверка банальных приветствий: текст='{Text}', банальное={IsBoringGreeting}", 
+            text.Length > 50 ? text.Substring(0, 50) + "..." : text, isBoringGreeting);
+        
+        if (isBoringGreeting)
+        {
+            _logger.LogInformation("Обнаружено банальное приветствие: '{Text}'", text);
+            return new ModerationResult(ModerationAction.Delete, "Банальное приветствие");
+        }
+
         // 9. ML классификация спама
         var (spam, score) = await _classifier.IsSpam(normalized).WaitAsync(TimeSpan.FromSeconds(15));
         _logger.LogDebug("ML анализ: текст='{Text}', спам={Spam}, скор={Score}", normalized, spam, score);

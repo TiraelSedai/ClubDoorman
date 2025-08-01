@@ -811,8 +811,8 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                 _logger.LogInformation("Удаление сообщения: {Reason}", moderationResult.Reason);
                 try
                 {
-                    // Специальная обработка для ссылок - отправляем в лог-чат без предупреждения пользователю
-                    if (moderationResult.Reason.Contains("Ссылки запрещены"))
+                    // Специальная обработка для ссылок и банальных приветствий - отправляем в лог-чат без предупреждения пользователю
+                    if (moderationResult.Reason.Contains("Ссылки запрещены") || moderationResult.Reason.Contains("Банальное приветствие"))
                     {
                         await DeleteAndReportToLogChat(message, moderationResult.Reason, cancellationToken);
                     }
@@ -894,10 +894,18 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
                 }
             });
 
+            // Определяем заголовок в зависимости от причины
+            var actionDescription = reason switch
+            {
+                var r when r.Contains("Ссылки запрещены") => "Удаление за ссылки",
+                var r when r.Contains("Банальное приветствие") => "Удаление банального приветствия",
+                _ => $"Удаление: {reason}"
+            };
+            
             var deletionData = new AutoBanNotificationData(
                 user, 
                 message.Chat, 
-                "Удаление за ссылки", 
+                actionDescription, 
                 reason, 
                 message.MessageId, 
                 LinkToMessage(message.Chat, message.MessageId)
@@ -951,11 +959,58 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             _logger.LogError(e, "Не удалось отправить уведомление в лог-чат");
         }
         
-        // Небольшая задержка перед удалением сообщения для избежания race condition
+        // Небольшая задержка перед предупреждением для избежания race condition
         try
         {
             await Task.Delay(50, cancellationToken); // 50мс задержка
-            _logger.LogDebug("Выполнена задержка 50мс между пересылкой и удалением");
+            _logger.LogDebug("Выполнена задержка 50мс между пересылкой и предупреждением");
+        }
+        catch (OperationCanceledException)
+        {
+            // Игнорируем отмену операции
+        }
+
+        // Отправляем предупреждение пользователю как реплай на оригинальное сообщение
+        Message? warningMessage = null;
+        var warningKey = $"warning_{message.Chat.Id}_{user.Id}";
+        var existingWarning = MemoryCache.Default.Get(warningKey);
+        
+        if (existingWarning == null)
+        {
+            try
+            {
+                var warningData = new SimpleNotificationData(user, message.Chat, reason);
+                // Отправляем стандартное предупреждение новичку как реплай на сообщение, которое будет удалено
+                warningMessage = await _messageService.SendUserNotificationWithReplyAsync(
+                    user, 
+                    message.Chat, 
+                    UserNotificationType.ModerationWarning, 
+                    warningData, 
+                    new ReplyParameters { MessageId = message.MessageId },
+                    cancellationToken
+                );
+                
+                // Сохраняем ID предупреждающего сообщения в кэше (на 10 минут, чтобы не спамить)
+                MemoryCache.Default.Add(warningKey, warningMessage.MessageId, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(10) });
+                
+                DeleteMessageLater(warningMessage, TimeSpan.FromSeconds(40), cancellationToken);
+                _logger.LogDebug("Предупреждение отправлено пользователю и будет удалено через 40 секунд");
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Не удалось отправить предупреждение пользователю");
+            }
+        }
+        else
+        {
+            _logger.LogDebug("Предупреждение пользователю {UserId} в чате {ChatId} уже было отправлено недавно, пропускаем", user.Id, message.Chat.Id);
+        }
+
+        // Еще одна небольшая задержка перед удалением
+        try
+        {
+            await Task.Delay(100, cancellationToken); // 100мс задержка
+            _logger.LogDebug("Выполнена задержка 100мс между предупреждением и удалением");
         }
         catch (OperationCanceledException)
         {
@@ -1081,8 +1136,8 @@ public class MessageHandler : IUpdateHandler, IMessageHandler
             {
                 try
                 {
-                    var warningData = new SimpleNotificationData(user, message.Chat, "новичок в этом чате");
-                    // Отправляем предупреждение как реплай на сообщение, которое будет удалено
+                    var warningData = new SimpleNotificationData(user, message.Chat, reason);
+                    // Отправляем стандартное предупреждение новичку как реплай на сообщение, которое будет удалено
                     warningMessage = await _messageService.SendUserNotificationWithReplyAsync(
                         user, 
                         message.Chat, 

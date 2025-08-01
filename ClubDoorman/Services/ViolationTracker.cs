@@ -26,7 +26,12 @@ public enum ViolationType
     /// <summary>
     /// Lookalike символы
     /// </summary>
-    LookalikeSymbols
+    LookalikeSymbols,
+    
+    /// <summary>
+    /// Банальные приветствия
+    /// </summary>
+    BoringGreetings
 }
 
 /// <summary>
@@ -115,6 +120,7 @@ public class ViolationTracker : IViolationTracker
             ViolationType.StopWords => _appConfig.StopWordsViolationsBeforeBan,
             ViolationType.TooManyEmojis => _appConfig.EmojiViolationsBeforeBan,
             ViolationType.LookalikeSymbols => _appConfig.LookalikeViolationsBeforeBan,
+            ViolationType.BoringGreetings => _appConfig.BoringGreetingsViolationsBeforeBan,
             _ => 0
         };
     }
@@ -132,6 +138,7 @@ public class ViolationTracker : IViolationTracker
             ViolationType.StopWords => "стоп-слова",
             ViolationType.TooManyEmojis => "много эмодзи",
             ViolationType.LookalikeSymbols => "lookalike символы",
+            ViolationType.BoringGreetings => "банальные приветствия",
             _ => "неизвестное нарушение"
         };
     }

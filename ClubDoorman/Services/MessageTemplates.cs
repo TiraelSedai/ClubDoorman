@@ -176,7 +176,7 @@ public class MessageTemplates
             "👋 {UserMention}, вы пока <b>новичок</b> в этом чате.\n\n" +
             "<b>Первые 3 сообщения</b> проходят антиспам-проверку:\n" +
             "• нельзя эмодзи, рекламу и <b>стоп-слова</b>\n" +
-            "• работает ML-анализ",
+            "• работает ML-анализ{ReasonSuffix}",
             
         [UserNotificationType.MessageDeleted] = 
             "❌ Ваше сообщение удалено: {Reason}",
@@ -256,6 +256,7 @@ public class MessageTemplates
         result = result.Replace("{ChatId}", data.Chat.Id.ToString());
         result = result.Replace("{Reason}", data.Reason ?? "");
         result = result.Replace("{MessageId}", data.MessageId?.ToString() ?? "");
+        result = result.Replace("{ReasonSuffix}", !string.IsNullOrEmpty(data.Reason) ? $"\n\n<i>Ваше сообщение удалено: {data.Reason}</i>" : "");
         
         // Специфичные поля для разных типов данных
         if (data is AutoBanNotificationData autoBanData)

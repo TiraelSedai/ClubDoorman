@@ -116,6 +116,11 @@ public interface IAppConfig
     /// </summary>
     int LookalikeViolationsBeforeBan { get; }
     
+    /// <summary>
+    /// Количество повторных нарушений банальных приветствий перед баном
+    /// </summary>
+    int BoringGreetingsViolationsBeforeBan { get; }
+    
                 /// <summary>
     /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
     /// </summary>

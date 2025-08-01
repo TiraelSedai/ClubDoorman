@@ -157,6 +157,11 @@ namespace ClubDoorman.Infrastructure
     /// </summary>
     public static int LookalikeViolationsBeforeBan { get; } = GetEnvironmentInt("DOORMAN_LOOKALIKE_VIOLATIONS_BEFORE_BAN", 0);
     
+    /// <summary>
+    /// Количество повторных нарушений банальных приветствий перед баном (0 = отключено)
+    /// </summary>
+    public static int BoringGreetingsViolationsBeforeBan { get; } = GetEnvironmentInt("DOORMAN_BORING_GREETINGS_VIOLATIONS_BEFORE_BAN", 0);
+    
             /// <summary>
         /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
         /// </summary>

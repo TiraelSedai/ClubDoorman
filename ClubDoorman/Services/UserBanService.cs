@@ -155,6 +155,7 @@ public class UserBanService : IUserBanService
                 var r when r.Contains("стоп-слова") => ViolationType.StopWords,
                 var r when r.Contains("многовато эмоджи") => ViolationType.TooManyEmojis,
                 var r when r.Contains("lookalike") => ViolationType.LookalikeSymbols,
+                var r when r.Contains("Банальное приветствие") => ViolationType.BoringGreetings,
                 _ => null
             };
             

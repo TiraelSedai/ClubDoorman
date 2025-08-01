@@ -118,6 +118,11 @@ public class AppConfig : IAppConfig
     /// </summary>
     public int LookalikeViolationsBeforeBan => Config.LookalikeViolationsBeforeBan;
     
+    /// <summary>
+    /// Количество повторных нарушений банальных приветствий перед баном
+    /// </summary>
+    public int BoringGreetingsViolationsBeforeBan => Config.BoringGreetingsViolationsBeforeBan;
+    
             /// <summary>
         /// Отправлять уведомления о банах за повторные нарушения в админ-чат вместо лог-чата
         /// </summary>
