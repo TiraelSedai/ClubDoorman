@@ -57,17 +57,30 @@ namespace ClubDoorman.Test.TestKit
         {
             var mock = new Mock<ITelegramBotClient>();
             
-            // Настройка базовых методов
-            mock.Setup(x => x.GetMe(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new User 
-                { 
-                    Id = 123456789, 
-                    IsBot = true, 
-                    FirstName = "TestBot",
-                    Username = "test_bot"
-                });
+            // Примечание: GetMe - это extension метод и не может быть замокан
+            // Для тестирования используйте ITelegramBotClientWrapper или реальный TelegramBotClient
                 
             return mock;
+        }
+
+        /// <summary>
+        /// Создает реальный TelegramBotClient с унифицированным тестовым токеном
+        /// Заменяет различные hardcoded токены в тестах
+        /// <tags>telegram, bot-client, test-token, unified</tags>
+        /// </summary>
+        public static TelegramBotClient CreateTestBotClient()
+        {
+            return new TelegramBotClient(CreateTestToken());
+        }
+
+        /// <summary>
+        /// Возвращает стандартный тестовый токен для всех тестов
+        /// Унифицирует различные токены используемые в тестах
+        /// <tags>telegram, test-token, unified</tags>
+        /// </summary>
+        public static string CreateTestToken()
+        {
+            return "1234567890:TEST_TOKEN_FOR_UNIFIED_TESTING";
         }
 
         /// <summary>

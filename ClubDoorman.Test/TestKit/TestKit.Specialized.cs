@@ -1,5 +1,11 @@
 using ClubDoorman.Models;
+using ClubDoorman.Services;
+using ClubDoorman.Infrastructure;
 using ClubDoorman.Test.TestData;
+using ClubDoorman.Test.TestInfrastructure;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Moq;
 
@@ -535,6 +541,205 @@ namespace ClubDoorman.Test.TestKit
                     var chat = TestDataFactory.CreateGroupChat();
                     chat.Id = -1009876543210; // Чат, который не настроен как announcement
                     return chat;
+                }
+            }
+
+            /// <summary>
+            /// Scenarios для настройки ModerationService и связанных компонентов
+            /// Устраняет дублированный код в SetUp методах тестов
+            /// <tags>scenarios, moderation, setup, test-infrastructure</tags>
+            /// </summary>
+            public static class ModerationScenarios
+            {
+                /// <summary>
+                /// Результат полной настройки ModerationService со всеми зависимостями
+                /// </summary>
+                public class ModerationSetup
+                {
+                    public ModerationService Service { get; init; } = null!;
+                    public SpamHamClassifier SpamClassifier { get; init; } = null!;
+                    public MimicryClassifier MimicryClassifier { get; init; } = null!;
+                    public BadMessageManager BadMessageManager { get; init; } = null!;
+                    public SuspiciousUsersStorage SuspiciousUsersStorage { get; init; } = null!;
+                    public IAiChecks AiChecks { get; init; } = null!;
+                    
+                    // Моки для управления поведением
+                    public Mock<IUserManager> UserManagerMock { get; init; } = null!;
+                    public Mock<ITelegramBotClient> BotClientMock { get; init; } = null!;
+                    public Mock<IMessageService> MessageServiceMock { get; init; } = null!;
+                    public Mock<ILogger<ModerationService>> LoggerMock { get; init; } = null!;
+                    
+                    // Логгеры для отдельных компонентов
+                    public Mock<ILogger<SpamHamClassifier>> SpamLoggerMock { get; init; } = null!;
+                    public Mock<ILogger<MimicryClassifier>> MimicryLoggerMock { get; init; } = null!;
+                    public Mock<ILogger<SuspiciousUsersStorage>> SuspiciousLoggerMock { get; init; } = null!;
+                    public Mock<ILogger<AiChecks>> AiLoggerMock { get; init; } = null!;
+                }
+
+                /// <summary>
+                /// Создает полный setup ModerationService со всеми реальными и мокированными зависимостями
+                /// Заменяет ~45 строк дублированного кода в SetUp методах
+                /// </summary>
+                /// <returns>Полностью настроенный ModerationService и все его зависимости</returns>
+                public static ModerationSetup CompleteSetup()
+                {
+                    // Создаем моки логгеров
+                    var spamLoggerMock = CreateLoggerMock<SpamHamClassifier>();
+                    var mimicryLoggerMock = CreateLoggerMock<MimicryClassifier>();
+                    var suspiciousLoggerMock = CreateLoggerMock<SuspiciousUsersStorage>();
+                    var aiLoggerMock = CreateLoggerMock<AiChecks>();
+                    var moderationLoggerMock = CreateLoggerMock<ModerationService>();
+
+                    // Создаем реальные компоненты
+                    var spamClassifier = new SpamHamClassifier(spamLoggerMock.Object);
+                    var mimicryClassifier = new MimicryClassifier(mimicryLoggerMock.Object);
+                    var badMessageManager = new BadMessageManager();
+                    var suspiciousUsersStorage = new SuspiciousUsersStorage(suspiciousLoggerMock.Object);
+
+                    // Создаем мокированные зависимости
+                    var userManagerMock = CreateMockUserManager();
+                    var botClientMock = CreateMockBotClient();
+                    var messageServiceMock = CreateMockMessageService();
+
+                    // Создаем AiChecks с тестовым bot client и конфигурацией
+                    var testBotClient = CreateTestBotClient();
+                    var testConfig = CreateAppConfig();
+                    var aiChecks = new AiChecks(new TelegramBotClientWrapper(testBotClient), aiLoggerMock.Object, testConfig);
+
+                    // Создаем ModerationService
+                    var moderationService = new ModerationService(
+                        spamClassifier,
+                        mimicryClassifier,
+                        badMessageManager,
+                        userManagerMock.Object,
+                        aiChecks,
+                        suspiciousUsersStorage,
+                        botClientMock.Object,
+                        messageServiceMock.Object,
+                        moderationLoggerMock.Object
+                    );
+
+                    return new ModerationSetup
+                    {
+                        Service = moderationService,
+                        SpamClassifier = spamClassifier,
+                        MimicryClassifier = mimicryClassifier,
+                        BadMessageManager = badMessageManager,
+                        SuspiciousUsersStorage = suspiciousUsersStorage,
+                        AiChecks = aiChecks,
+                        UserManagerMock = userManagerMock,
+                        BotClientMock = botClientMock,
+                        MessageServiceMock = messageServiceMock,
+                        LoggerMock = moderationLoggerMock,
+                        SpamLoggerMock = spamLoggerMock,
+                        MimicryLoggerMock = mimicryLoggerMock,
+                        SuspiciousLoggerMock = suspiciousLoggerMock,
+                        AiLoggerMock = aiLoggerMock
+                    };
+                }
+
+                /// <summary>
+                /// Создает минимальный setup только с необходимыми компонентами
+                /// Для простых unit тестов где не нужны все зависимости
+                /// </summary>
+                /// <returns>Минимальный setup ModerationService</returns>
+                public static ModerationSetup MinimalSetup()
+                {
+                    var spamLoggerMock = CreateLoggerMock<SpamHamClassifier>();
+                    var mimicryLoggerMock = CreateLoggerMock<MimicryClassifier>();
+                    var moderationLoggerMock = CreateLoggerMock<ModerationService>();
+
+                    var spamClassifier = new SpamHamClassifier(spamLoggerMock.Object);
+                    var mimicryClassifier = new MimicryClassifier(mimicryLoggerMock.Object);
+                    var badMessageManager = new BadMessageManager();
+
+                    // Создаем минимальные моки и реальные объекты
+                    var userManagerMock = CreateMockUserManager();
+                    var botClientMock = CreateMockBotClient();
+                    var messageServiceMock = CreateMockMessageService();
+                    var suspiciousLoggerMock = CreateLoggerMock<SuspiciousUsersStorage>();
+                    var suspiciousUsersStorage = new SuspiciousUsersStorage(suspiciousLoggerMock.Object); // Реальный объект
+                    var aiChecksMock = CreateMockAiChecks();
+
+                    var moderationService = new ModerationService(
+                        spamClassifier,
+                        mimicryClassifier,
+                        badMessageManager,
+                        userManagerMock.Object,
+                        aiChecksMock.Object,
+                        suspiciousUsersStorage,
+                        botClientMock.Object,
+                        messageServiceMock.Object,
+                        moderationLoggerMock.Object
+                    );
+
+                    return new ModerationSetup
+                    {
+                        Service = moderationService,
+                        SpamClassifier = spamClassifier,
+                        MimicryClassifier = mimicryClassifier,
+                        BadMessageManager = badMessageManager,
+                        SuspiciousUsersStorage = suspiciousUsersStorage,
+                        AiChecks = aiChecksMock.Object,
+                        UserManagerMock = userManagerMock,
+                        BotClientMock = botClientMock,
+                        MessageServiceMock = messageServiceMock,
+                        LoggerMock = moderationLoggerMock,
+                        SpamLoggerMock = spamLoggerMock,
+                        MimicryLoggerMock = mimicryLoggerMock,
+                        SuspiciousLoggerMock = CreateMock<ILogger<SuspiciousUsersStorage>>(),
+                        AiLoggerMock = CreateMock<ILogger<AiChecks>>()
+                    };
+                }
+
+                /// <summary>
+                /// Создает setup с полностью мокированными сервисами для изолированного тестирования
+                /// Использует реальные объекты для sealed классов и моки для интерфейсов
+                /// </summary>
+                /// <returns>Setup с мокированными компонентами</returns>
+                public static (ModerationService service, Dictionary<string, Mock> mocks) MockedSetup()
+                {
+                    var mocks = new Dictionary<string, Mock>();
+
+                    // Создаем реальные объекты для sealed/невиртуальных классов
+                    var spamLoggerMock = CreateLoggerMock<SpamHamClassifier>();
+                    var mimicryLoggerMock = CreateLoggerMock<MimicryClassifier>();
+                    var spamClassifier = new SpamHamClassifier(spamLoggerMock.Object);
+                    var mimicryClassifier = new MimicryClassifier(mimicryLoggerMock.Object);
+                    var badMessageManager = new BadMessageManager(); // Нельзя мокать - sealed класс
+
+                    // Создаем моки для интерфейсов и реальные объекты для конкретных классов
+                    var userManagerMock = CreateMockUserManager();
+                    var aiChecksMock = CreateMockAiChecks();
+                    var suspiciousLoggerMock = CreateLoggerMock<SuspiciousUsersStorage>();
+                    var suspiciousUsersStorage = new SuspiciousUsersStorage(suspiciousLoggerMock.Object); // Реальный объект
+                    var botClientMock = CreateMockBotClient();
+                    var messageServiceMock = CreateMockMessageService();
+                    var loggerMock = CreateLoggerMock<ModerationService>();
+
+                    // Добавляем в словарь для удобного доступа (только моки)
+                    mocks["UserManager"] = userManagerMock;
+                    mocks["AiChecks"] = aiChecksMock;
+                    mocks["BotClient"] = botClientMock;
+                    mocks["MessageService"] = messageServiceMock;
+                    mocks["Logger"] = loggerMock;
+                    mocks["SpamLogger"] = spamLoggerMock;
+                    mocks["MimicryLogger"] = mimicryLoggerMock;
+                    mocks["SuspiciousLogger"] = suspiciousLoggerMock;
+
+                    var moderationService = new ModerationService(
+                        spamClassifier,
+                        mimicryClassifier,
+                        badMessageManager,
+                        userManagerMock.Object,
+                        aiChecksMock.Object,
+                        suspiciousUsersStorage,
+                        botClientMock.Object,
+                        messageServiceMock.Object,
+                        loggerMock.Object
+                    );
+
+                    return (moderationService, mocks);
                 }
             }
         }

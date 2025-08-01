@@ -5,6 +5,7 @@ using ClubDoorman.Test.TestKit;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace ClubDoorman.Test.TestKit;
@@ -177,5 +178,99 @@ public class TestKitBuilderTests
         // Assert
         Assert.That(handler, Is.Not.Null);
         Assert.That(handler, Is.InstanceOf<MessageHandler>());
+    }
+
+    [Test]
+    [Category(TestCategories.TestInfrastructure)]
+    [Category("scenarios")]
+    public void ModerationScenarios_CompleteSetup_WorksCorrectly()
+    {
+        // Act
+        var setup = TK.Specialized.ModerationScenarios.CompleteSetup();
+        
+        // Assert
+        Assert.That(setup.Service, Is.Not.Null);
+        Assert.That(setup.SpamClassifier, Is.Not.Null);
+        Assert.That(setup.MimicryClassifier, Is.Not.Null);  
+        Assert.That(setup.BadMessageManager, Is.Not.Null);
+        Assert.That(setup.SuspiciousUsersStorage, Is.Not.Null);
+        Assert.That(setup.AiChecks, Is.Not.Null);
+        
+        // Проверяем моки
+        Assert.That(setup.UserManagerMock, Is.Not.Null);
+        Assert.That(setup.BotClientMock, Is.Not.Null);
+        Assert.That(setup.MessageServiceMock, Is.Not.Null);
+        Assert.That(setup.LoggerMock, Is.Not.Null);
+    }
+
+    [Test]
+    [Category(TestCategories.TestInfrastructure)]
+    [Category("scenarios")]
+    public void ModerationScenarios_MinimalSetup_WorksCorrectly()
+    {
+        // Act
+        var setup = TK.Specialized.ModerationScenarios.MinimalSetup();
+        
+        // Assert
+        Assert.That(setup.Service, Is.Not.Null);
+        Assert.That(setup.SpamClassifier, Is.Not.Null);
+        Assert.That(setup.MimicryClassifier, Is.Not.Null);
+        Assert.That(setup.BadMessageManager, Is.Not.Null);
+        
+        // Минимальный setup использует моки для некоторых компонентов
+        Assert.That(setup.AiChecks, Is.Not.Null);
+        Assert.That(setup.SuspiciousUsersStorage, Is.Not.Null);
+    }
+
+    [Test]
+    [Category(TestCategories.TestInfrastructure)]
+    [Category("scenarios")]  
+    public void ModerationScenarios_MockedSetup_WorksCorrectly()
+    {
+        // Act
+        var (service, mocks) = TK.Specialized.ModerationScenarios.MockedSetup();
+        
+        // Assert
+        Assert.That(service, Is.Not.Null);
+        Assert.That(mocks, Is.Not.Null);
+        Assert.That(mocks.Count, Is.EqualTo(8)); // 8 моков в словаре (только интерфейсы)
+        
+        // Проверяем что все ожидаемые моки есть
+        Assert.That(mocks.ContainsKey("UserManager"), Is.True);
+        Assert.That(mocks.ContainsKey("AiChecks"), Is.True);
+        Assert.That(mocks.ContainsKey("Logger"), Is.True);
+        Assert.That(mocks.ContainsKey("BotClient"), Is.True);
+        Assert.That(mocks.ContainsKey("MessageService"), Is.True);
+        
+        // Sealed классы не мокаются, поэтому их нет в словаре
+        Assert.That(mocks.ContainsKey("BadMessageManager"), Is.False);
+    }
+
+    [Test]
+    [Category(TestCategories.TestInfrastructure)]
+    [Category("test-tokens")]
+    public void CreateTestBotClient_ReturnsValidClient()
+    {
+        // Act
+        var client = TK.CreateTestBotClient();
+        
+        // Assert
+        Assert.That(client, Is.Not.Null);
+        Assert.That(client, Is.InstanceOf<TelegramBotClient>());
+    }
+
+    [Test]
+    [Category(TestCategories.TestInfrastructure)]
+    [Category("test-tokens")]
+    public void CreateTestToken_ReturnsConsistentToken()
+    {
+        // Act
+        var token1 = TK.CreateTestToken();
+        var token2 = TK.CreateTestToken();
+        
+        // Assert
+        Assert.That(token1, Is.EqualTo(token2));
+        Assert.That(token1, Does.StartWith("1234567890:"));
+        Assert.That(token1, Does.Contain("TEST_TOKEN"));
     }
 } 

@@ -15,50 +15,28 @@ namespace ClubDoorman.Test;
 [TestFixture]
 public class ModerationServiceSimpleTests : TestBase
 {
-    private ModerationService _moderationService;
-    private SpamHamClassifier _classifier;
-    private MimicryClassifier _mimicryClassifier;
-    private BadMessageManager _badMessageManager;
-    private Mock<IUserManager> _mockUserManager;
-    private AiChecks _mockAiChecks;
-    private Mock<ILogger<ModerationService>> _mockLogger;
-    private SuspiciousUsersStorage _mockSuspiciousUsersStorage;
-    private Mock<ITelegramBotClient> _mockBotClient;
+    // Унифицированный setup через TestKit.Specialized.ModerationScenarios
+    private TK.Specialized.ModerationScenarios.ModerationSetup _setup = null!;
+    
+    // Удобные ссылки на компоненты setup'а (для совместимости с существующими тестами)
+    private ModerationService _moderationService => _setup.Service;
+    private SpamHamClassifier _classifier => _setup.SpamClassifier;
+    private MimicryClassifier _mimicryClassifier => _setup.MimicryClassifier;
+    private BadMessageManager _badMessageManager => _setup.BadMessageManager;
+    private Mock<IUserManager> _mockUserManager => _setup.UserManagerMock;
+    private IAiChecks _mockAiChecks => _setup.AiChecks;
+    private Mock<ILogger<ModerationService>> _mockLogger => _setup.LoggerMock;
+    private SuspiciousUsersStorage _mockSuspiciousUsersStorage => _setup.SuspiciousUsersStorage;
+    private Mock<ITelegramBotClient> _mockBotClient => _setup.BotClientMock;
 
     [SetUp]
     public void SetUp()
     {
         Console.WriteLine("Setting up test...");
-        var classifierLogger = new Mock<ILogger<SpamHamClassifier>>();
-        _classifier = new SpamHamClassifier(classifierLogger.Object);
-        var mimicryLogger = new Mock<ILogger<MimicryClassifier>>();
-        _mimicryClassifier = new MimicryClassifier(mimicryLogger.Object);
-        _badMessageManager = new BadMessageManager();
-        _mockUserManager = new Mock<IUserManager>();
-        _mockLogger = new Mock<ILogger<ModerationService>>();
         
-        // Создаем реальный SuspiciousUsersStorage с логгером
-        var mockSuspiciousLogger = new Mock<ILogger<SuspiciousUsersStorage>>();
-        _mockSuspiciousUsersStorage = new SuspiciousUsersStorage(mockSuspiciousLogger.Object);
+        // Заменяем 45 строк дублированного кода на один вызов TestKit scenarios
+        _setup = TK.Specialized.ModerationScenarios.CompleteSetup();
         
-        // Создаем реальный AiChecks с TelegramBotClient и логгером
-        var bot = new TelegramBotClient("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"); // Тестовый токен
-        var mockAiLogger = new Mock<ILogger<AiChecks>>();
-        _mockAiChecks = new AiChecks(new TelegramBotClientWrapper(bot), mockAiLogger.Object, AppConfigTestFactory.CreateDefault());
-        
-        _mockBotClient = new Mock<ITelegramBotClient>();
-
-        _moderationService = new ModerationService(
-            _classifier,
-            _mimicryClassifier,
-            _badMessageManager,
-            _mockUserManager.Object,
-            _mockAiChecks,
-            _mockSuspiciousUsersStorage,
-            _mockBotClient.Object,
-            new Mock<IMessageService>().Object,
-            _mockLogger.Object
-        );
         Console.WriteLine("Setup completed");
     }
 
