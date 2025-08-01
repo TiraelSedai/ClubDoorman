@@ -1,7 +1,7 @@
 using ClubDoorman.Services;
 using ClubDoorman.TestInfrastructure;
 using ClubDoorman.Test.TestInfrastructure;
-using ClubDoorman.Test.TestData;
+using ClubDoorman.Test.TestKit;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Telegram.Bot.Types;
@@ -508,8 +508,19 @@ public class AiAnalysisTests
         var realAppConfig = new AppConfig(); // Используем реальную конфигурацию
         var realAiChecks = new AiChecks(_fakeBot, _logger, realAppConfig);
         
-        var suspiciousUser = TestData.MessageTestData.SuspiciousUserDnekxpb();
-        var userChatInfo = TestData.MessageTestData.SuspiciousUserChatInfo();
+        var suspiciousUser = TK.CreateSuspiciousUser(987654321);
+        // Ручная настройка для конкретного пользователя @Dnekxpb
+        suspiciousUser.FirstName = "Manu";
+        suspiciousUser.LastName = "Чыфыс";
+        suspiciousUser.Username = "Dnekxpb";
+        
+        var userChatInfo = TK.BuildChatFullInfo()
+            .WithId(987654321)
+            .AsPrivate()
+            .WithUsername("Dnekxpb")
+            .WithBio("Митиман\n\nManu Чыфыс:\nПродам слона пиши с лс")
+            .WithPhoto("fake_small_photo_id", "fake_big_photo_id")
+            .Build();
 
         // Act - анализируем профиль пользователя @Dnekxpb с ретраем
         var result = await RetryAiAnalysis(async () => 
@@ -560,8 +571,19 @@ public class AiAnalysisTests
         
         var realAiChecks = new AiChecks(_fakeBot, _logger, realAppConfig);
         
-        var verySuspiciousUser = TestData.MessageTestData.VerySuspiciousUser();
-        var userChatInfo = TestData.MessageTestData.VerySuspiciousUserChatInfo();
+        var verySuspiciousUser = TK.CreateSuspiciousUser(111222333);
+        // Ручная настройка для очень подозрительного пользователя
+        verySuspiciousUser.FirstName = "🔥💰💎";
+        verySuspiciousUser.LastName = "ПРЕМИУМ";
+        verySuspiciousUser.Username = "premium_crypto_2024";
+        
+        var userChatInfo = TK.BuildChatFullInfo()
+            .WithId(111222333)
+            .AsPrivate()
+            .WithUsername("premium_crypto_2024")
+            .WithBio("🔥 ПРЕМИУМ КРИПТО ТРЕЙДИНГ 💰\n\n💎 ЗАРАБОТАЙ 1000$ В ДЕНЬ!\n🔥 НАЖМИ СЕЙЧАС!\n💰 БЕСПЛАТНО!\n\n📱 Telegram: @crypto_scam\n🌐 Сайт: scam.crypto")
+            .WithPhoto("fake_suspicious_small_photo_id", "fake_suspicious_big_photo_id")
+            .Build();
 
         // Настраиваем FakeTelegramClient для возврата фото для очень подозрительного пользователя
         var photoPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Images", "dnekxpb_profile_photo.jpg");
@@ -721,8 +743,19 @@ public class AiAnalysisTests
         
         var realAiChecks = new AiChecks(fakeBotWithPhoto, _logger, realAppConfig);
         
-        var suspiciousUser = TestData.MessageTestData.SuspiciousUserDnekxpb();
-        var userChatInfo = TestData.MessageTestData.SuspiciousUserChatInfo();
+        var suspiciousUser = TK.CreateSuspiciousUser(987654321);
+        // Ручная настройка для конкретного пользователя @Dnekxpb
+        suspiciousUser.FirstName = "Manu";
+        suspiciousUser.LastName = "Чыфыс";
+        suspiciousUser.Username = "Dnekxpb";
+        
+        var userChatInfo = TK.BuildChatFullInfo()
+            .WithId(987654321)
+            .AsPrivate()
+            .WithUsername("Dnekxpb")
+            .WithBio("Митиман\n\nManu Чыфыс:\nПродам слона пиши с лс")
+            .WithPhoto("fake_small_photo_id", "fake_big_photo_id")
+            .Build();
         
         // Настраиваем FakeTelegramClient для возврата ChatFullInfo с фото
         fakeBotWithPhoto.SetupGetChatFullInfo(suspiciousUser.Id, userChatInfo);
