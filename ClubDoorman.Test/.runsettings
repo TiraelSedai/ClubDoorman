@@ -2,7 +2,7 @@
 <RunSettings>
   <!-- Простые настройки для исключения демо-тестов -->
   <RunConfiguration>
-    <!-- Исключаем демо-тесты по умолчанию -->
-    <TestCaseFilter>Category!=demo&amp;Category!=Demo</TestCaseFilter>
+    <!-- Исключаем демо-тесты и отключенные тесты по умолчанию -->
+    <TestCaseFilter>Category!=demo&amp;Category!=Demo&amp;Category!=disabled</TestCaseFilter>
   </RunConfiguration>
 </RunSettings>

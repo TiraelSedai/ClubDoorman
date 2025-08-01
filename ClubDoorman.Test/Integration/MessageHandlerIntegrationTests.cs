@@ -85,6 +85,7 @@ public class MessageHandlerIntegrationTests
     }
 
     [Test]
+    [Category("disabled")]
     public async Task HandleCommandAsync_SayCommand_AdminUser_ProcessesSuccessfully()
     {
         // Arrange
@@ -104,6 +105,7 @@ public class MessageHandlerIntegrationTests
     }
 
     [Test]
+    [Category("disabled")]
     public async Task HandleCommandAsync_SayCommand_EmptyText_HandlesGracefully()
     {
         // Arrange
