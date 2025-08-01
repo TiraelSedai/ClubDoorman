@@ -326,8 +326,14 @@ public static class TestKitBogus
     public static bool IsSpamText(string? text)
     {
         if (string.IsNullOrEmpty(text)) return false;
-        var spamPatterns = new[] { "🔥", "💰", "🎁", "⚡", "💎", "🚀", "📱" };
-        return spamPatterns.Any(p => text.Contains(p));
+        
+        var spamEmojis = new[] { "🔥", "💰", "🎁", "⚡", "💎", "🚀", "📱", "❗️" };
+        var spamWords = new[] { "внимание", "заработал", "миллион", "деньги", "быстро", "срочно", "бесплатно", "скам", "bit.ly" };
+        
+        var lowerText = text.ToLowerInvariant();
+        
+        return spamEmojis.Any(p => text.Contains(p)) || 
+               spamWords.Any(word => lowerText.Contains(word));
     }
 
     #endregion

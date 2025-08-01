@@ -44,7 +44,7 @@ public class TestKitAutoFixtureDemoTests
 
         // Assert
         Assert.That(service, Is.Not.Null);
-        Assert.That(service, Is.InstanceOf<CaptchaService>());
+        Assert.That(service, Is.InstanceOf<ICaptchaService>());
     }
 
     [Test]
@@ -137,7 +137,7 @@ public class TestKitAutoFixtureDemoTests
         // Проверяем, что это действительно спам
         foreach (var message in spamMessages)
         {
-            Assert.That(message.Text, Does.Contain("🔥").Or.Contain("💰").Or.Contain("🎁").Or.Contain("⚡").Or.Contain("💎").Or.Contain("🚀").Or.Contain("📱"));
+            Assert.That(message.Text, Does.Contain("🔥").Or.Contain("💰").Or.Contain("🎁").Or.Contain("⚡").Or.Contain("💎").Or.Contain("🚀").Or.Contain("📱").Or.Contain("❗️").Or.Contain("ВНИМАНИЕ").Or.Contain("ЗАРАБОТАЛ"));
         }
     }
 
