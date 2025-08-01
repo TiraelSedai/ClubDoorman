@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Telegram.Bot.Types;
+using ClubDoorman.Test.TestKit.Builders.MockBuilders;
 
 namespace ClubDoorman.Test.TestKit;
 
@@ -62,7 +63,17 @@ public class UserJoinServiceBuilder
     /// </summary>
     public UserJoinServiceBuilder WithSuccessfulJoinScenario()
     {
-        // В будущем здесь будут настройки для успешного сценария
+        // Создаем MessageHandler с моками для успешного сценария
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .WithModerationService(builder => builder.ThatAllowsMessages())
+            .WithUserManager(builder => builder.ThatIsNotInBanlist(It.IsAny<long>()))
+            .WithCaptchaService(builder => builder.ThatSucceeds())
+            .WithTelegramBot(builder => builder.ThatSendsMessageSuccessfully())
+            .BuildMock();
+            
+        _messageHandlerMock = messageHandlerMock;
+        
         return this;
     }
 
@@ -72,7 +83,15 @@ public class UserJoinServiceBuilder
     /// </summary>
     public UserJoinServiceBuilder WithBlacklistedUserScenario()
     {
-        // В будущем здесь будут настройки для пользователя в блэклисте
+        // Создаем MessageHandler с моками для пользователя в блэклисте
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .WithUserManager(builder => builder.ThatIsInBanlist(It.IsAny<long>()))
+            .WithTelegramBot(builder => builder.ThatSendsMessageSuccessfully())
+            .BuildMock();
+            
+        _messageHandlerMock = messageHandlerMock;
+        
         return this;
     }
 
@@ -82,7 +101,87 @@ public class UserJoinServiceBuilder
     /// </summary>
     public UserJoinServiceBuilder WithCaptchaScenario()
     {
-        // В будущем здесь будут настройки для создания капчи
+        // Создаем MessageHandler с моками для создания капчи
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .WithModerationService(builder => builder.ThatAllowsMessages())
+            .WithUserManager(builder => builder.ThatIsNotInBanlist(It.IsAny<long>()))
+            .WithCaptchaService(builder => builder.ThatSucceeds())
+            .WithTelegramBot(builder => builder.ThatSendsMessageSuccessfully())
+            .BuildMock();
+            
+        _messageHandlerMock = messageHandlerMock;
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает моки для сценария длинного имени пользователя
+    /// <tags>builders, user-join-service, long-name-scenario, fluent-api</tags>
+    /// </summary>
+    public UserJoinServiceBuilder WithLongNameScenario()
+    {
+        // Создаем MessageHandler с моками для длинного имени
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .WithModerationService(builder => builder.ThatBansUsers())
+            .WithTelegramBot(builder => builder.ThatSendsMessageSuccessfully())
+            .BuildMock();
+            
+        _messageHandlerMock = messageHandlerMock;
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает моки для сценария клубного пользователя
+    /// <tags>builders, user-join-service, club-user-scenario, fluent-api</tags>
+    /// </summary>
+    public UserJoinServiceBuilder WithClubUserScenario()
+    {
+        // Создаем MessageHandler с моками для клубного пользователя
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .WithUserManager(builder => builder.ThatApprovesUser(It.IsAny<long>()))
+            .WithTelegramBot(builder => builder.ThatSendsMessageSuccessfully())
+            .BuildMock();
+            
+        _messageHandlerMock = messageHandlerMock;
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает моки для сценария ошибки внешнего сервиса
+    /// <tags>builders, user-join-service, error-scenario, fluent-api</tags>
+    /// </summary>
+    public UserJoinServiceBuilder WithErrorScenario()
+    {
+        // Создаем MessageHandler с моками, которые выбрасывают исключения
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .WithModerationService(builder => builder.ThatBansUsers("Error occurred"))
+            .WithTelegramBot(builder => builder.ThatSendsMessageSuccessfully())
+            .BuildMock();
+            
+        _messageHandlerMock = messageHandlerMock;
+        
+        return this;
+    }
+
+    /// <summary>
+    /// Настраивает моки для сценария с кастомными настройками
+    /// <tags>builders, user-join-service, custom-scenario, fluent-api</tags>
+    /// </summary>
+    public UserJoinServiceBuilder WithCustomScenario(Action<Mock<IMessageHandler>> customSetup)
+    {
+        var messageHandlerMock = TK.CreateMessageHandlerBuilder()
+            .WithStandardMocks()
+            .BuildMock();
+            
+        customSetup?.Invoke(messageHandlerMock);
+        _messageHandlerMock = messageHandlerMock;
+        
         return this;
     }
 
