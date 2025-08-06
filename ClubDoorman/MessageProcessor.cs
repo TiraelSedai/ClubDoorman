@@ -187,7 +187,24 @@ internal class MessageProcessor
         }
 
         if (_userManager.Approved(user.Id))
+        {
+            if (!_config.ApprovedUsersMlSpamCheck || string.IsNullOrWhiteSpace(text))
+                return;
+
+            var normalized_ = TextProcessor.NormalizeText(text);
+            var (spam_, score_) = await _classifier.IsSpam(normalized_);
+            if (!spam_)
+                return;
+
+            var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId);
+            await _bot.SendMessage(
+                _config.AdminChatId,
+                $"ML решил что это спам, скор {score_}, но пользователь в доверенных. Возможно стоит добавить в ham {Utils.LinkToMessage(chat, message.MessageId)}",
+                replyParameters: fwd
+            );
             return;
+        }
+
         _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
 
         // At this point we are believing we see first-timers, and we need to check for spam
@@ -501,21 +518,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;

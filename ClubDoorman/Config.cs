@@ -1,4 +1,4 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 
@@ -27,6 +27,7 @@ internal class Config
     public bool ApproveButtonEnabled { get; } = GetEnvironmentBool("DOORMAN_APPROVE_BUTTON");
     public bool ButtonAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BUTTON_AUTOBAN_DISABLE");
     public bool HighConfidenceAutoBan { get; } = !GetEnvironmentBool("DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE");
+    public bool ApprovedUsersMlSpamCheck { get; } = !GetEnvironmentBool("DOORMAN_APPROVED_ML_SPAM_CHECK_DISABLE");
     public string BotApi { get; } =
         Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new Exception("DOORMAN_BOT_API variable not set");
 
