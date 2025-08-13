@@ -62,6 +62,8 @@ internal class AiChecks
         }
     }
 
+    public ValueTask ClearCache(long userId) => _hybridCache.RemoveAsync(CacheKey(userId));
+
     private async ValueTask<SpamPhotoBio> GetEroticPhotoBaitProbability(
         Telegram.Bot.Types.User user,
         ChatFullInfo userChat,

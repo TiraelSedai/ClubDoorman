@@ -196,11 +196,12 @@ internal class MessageProcessor
             if (!spam_)
                 return;
 
-            var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId);
+            var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
                 _config.AdminChatId,
-                $"ML решил что это спам, скор {score_}, но пользователь в доверенных. Возможно стоит добавить в ham {Utils.LinkToMessage(chat, message.MessageId)}",
-                replyParameters: fwd
+                $"ML решил что это спам, скор {score_}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
+                replyParameters: fwd,
+                cancellationToken: stoppingToken
             );
             return;
         }
@@ -376,7 +377,15 @@ internal class MessageProcessor
                 && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
                 message.From,
-                x => DontDeleteButReportMessage(message, x, stoppingToken)
+                async x =>
+                {
+                    await _aiChecks.ClearCache(message.From.Id);
+                    var (ascore, p, b) = await _aiChecks.GetAttentionBaitProbability(message.From);
+                    if (ascore.Probability > Consts.LlmLowProbability)
+                        await AutoBan(message, $"{x}{Environment.NewLine}{ascore.Reason}", stoppingToken);
+                    else
+                        await DontDeleteButReportMessage(message, x, stoppingToken);
+                }
             );
             _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attention.Probability);
             if (attention.Probability >= Consts.LlmLowProbability)
@@ -518,21 +527,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
