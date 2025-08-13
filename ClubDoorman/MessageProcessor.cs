@@ -192,6 +192,8 @@ internal class MessageProcessor
                 return;
 
             var normalized_ = TextProcessor.NormalizeText(text);
+            if (normalized_.Length < 10)
+                return;
             var (spam_, score_) = await _classifier.IsSpam(normalized_);
             if (!spam_)
                 return;
@@ -322,7 +324,7 @@ internal class MessageProcessor
         {
             _logger.LogDebug("TooManyEmojis");
             const string reason = "В этом сообщении многовато эмоджи";
-            if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
