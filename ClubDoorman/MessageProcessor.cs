@@ -384,6 +384,9 @@ internal class MessageProcessor
                 message.From,
                 async x =>
                 {
+                    var alreadyBanned = await _userManager.InBanlist(message.From.Id);
+                    if (alreadyBanned)
+                        await AutoBan(message, $"{x}{Environment.NewLine}Теперь в банлисте", stoppingToken);
                     await _aiChecks.ClearCache(message.From.Id);
                     var (ascore, p, b) = await _aiChecks.GetAttentionBaitProbability(message.From);
                     if (ascore.Probability > Consts.LlmLowProbability)
