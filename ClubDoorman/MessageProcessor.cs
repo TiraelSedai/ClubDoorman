@@ -191,6 +191,9 @@ internal class MessageProcessor
             if (!_config.ApprovedUsersMlSpamCheck || string.IsNullOrWhiteSpace(text))
                 return;
 
+            if (!_config.NonFreeChat(message.Chat.Id))
+                return;
+
             var normalized_ = TextProcessor.NormalizeText(text);
             if (normalized_.Length < 10)
                 return;
