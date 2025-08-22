@@ -395,7 +395,7 @@ internal class MessageProcessor
                         await DontDeleteButReportMessage(message, x, stoppingToken);
                 }
             );
-            _logger.LogDebug("GetAttentionBaitProbability, result = {Prob}", attention.Probability);
+            _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
                 var keyboard = new List<InlineKeyboardButton>
