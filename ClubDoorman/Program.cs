@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting.Compact;
 using Telegram.Bot;
 
 namespace ClubDoorman;
@@ -11,21 +12,22 @@ public class Program
     {
         try
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .Enrich.FromLogContext()
+                .WriteTo.Console(new CompactJsonFormatter())
+                .CreateLogger();
+
             InitData();
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog(
-                    (_, _, config) =>
+                    (context, services, loggerConfig) =>
                     {
-                        config
+                        loggerConfig
                             .MinimumLevel.Debug()
                             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database", LogEventLevel.Warning)
                             .Enrich.FromLogContext()
-                            .WriteTo.Async(a =>
-                                a.Console(
-                                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Scope} {Message:lj}{NewLine}{Exception}"
-                                )
-                            );
+                            .WriteTo.Console(new CompactJsonFormatter());
                     }
                 )
                 .ConfigureServices(services =>
