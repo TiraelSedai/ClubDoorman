@@ -368,6 +368,8 @@ internal class AiChecks
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
         var cacheKey = $"llm_spam_prob:{text}";
+        if (cacheKey.Length > 1024)
+            cacheKey = cacheKey[..1000];
 
         return _hybridCache.GetOrCreateAsync(
             cacheKey,
