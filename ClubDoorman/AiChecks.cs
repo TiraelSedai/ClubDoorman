@@ -367,10 +367,7 @@ internal class AiChecks
         var text = message.Caption ?? message.Text;
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
-        var cacheKey = $"llm_spam_prob:{text}";
-        if (cacheKey.Length > 1024)
-            cacheKey = cacheKey[..500] + ":" + cacheKey[^500..];
-        using var logScope = _logger.BeginScope("Cache key {Key}", cacheKey);
+        var cacheKey = $"llm_spam_prob:{ShaHelper.ComputeSha256Hex(text)}";
 
         return _hybridCache.GetOrCreateAsync(
             cacheKey,
