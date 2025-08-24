@@ -369,7 +369,8 @@ internal class AiChecks
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
         var cacheKey = $"llm_spam_prob:{text}";
         if (cacheKey.Length > 1024)
-            cacheKey = cacheKey[..1000];
+            cacheKey = cacheKey[..500] + ":" + cacheKey[^500..];
+        using var logScope = _logger.BeginScope("Cache key {Key}", cacheKey);
 
         return _hybridCache.GetOrCreateAsync(
             cacheKey,
@@ -416,12 +417,26 @@ internal class AiChecks
                     {
                         probability = response.Value1;
                         _logger.LogInformation("LLM GetSpamProbability {@Prob}", probability);
+                        return probability;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("LLM GetSpamProbability resp {@Resp}", response);
                     }
                 }
                 catch (Exception e)
                 {
                     _logger.LogWarning(e, nameof(GetSpamProbability));
                 }
+                Task.Run(
+                        async () =>
+                        {
+                            await Task.Delay(TimeSpan.FromMilliseconds(100));
+                            await _hybridCache.RemoveAsync(cacheKey);
+                        },
+                        ct
+                    )
+                    .FireAndForget(_logger, "remove cache key " + cacheKey);
                 return probability;
             },
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) }
