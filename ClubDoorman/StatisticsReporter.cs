@@ -156,13 +156,16 @@ internal class StatisticsReporter
     private static string ChatToStatsString(Stats stats)
     {
         var sb = new StringBuilder();
-        sb.Append("В ");
+        sb.Append("В чате ");
         sb.Append(stats.ChatTitle);
         var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.Channels + stats.Autoban;
-        sb.Append($": {sum} раза сработала защита автоматом{Environment.NewLine}");
-        sb.Append(
-            $"По блеклистам известных спамеров забанено: {stats.BlacklistBanned}, не прошло капчу: {stats.StoppedCaptcha}, автобан (например: кнопки на сообщении, ML супер уверен, сообщения маскирующиеся под русские - а там греческие буквы): {stats.Autoban}, каналов с малым количеством подписчиков: {stats.Channels}, за строгому соответствию блеклистам спам сообщений: {stats.KnownBadMessage}"
-        );
+        sb.Append($": {sum} раз(а) сработала защита автоматом{Environment.NewLine}");
+        sb.Append($"{stats.StoppedCaptcha} не прошло капчу{Environment.NewLine}");
+        sb.Append($"{stats.BlacklistBanned} известных спамеров{Environment.NewLine}");
+        sb.Append($"{stats.KnownBadMessage} известных спам-сообщений{Environment.NewLine}");
+        sb.Append($"{stats.Channels} каналов с малым количеством подписчиков{Environment.NewLine}");
+        sb.Append($"{stats.Autoban} забанено автоматом по сумме эвристик.");
+
         return sb.ToString();
     }
 }
