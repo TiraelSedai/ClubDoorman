@@ -22,7 +22,7 @@ internal class MessageProcessor
     private readonly Config _config;
     private readonly ReactionHandler _reactionHandler;
     private readonly AdminCommandHandler _adminCommandHandler;
-
+    private readonly RecentMessagesStorage _recentMessagesStorage;
     private User? _me;
 
     public MessageProcessor(
@@ -36,7 +36,8 @@ internal class MessageProcessor
         StatisticsReporter statistics,
         Config config,
         ReactionHandler reactionHandler,
-        AdminCommandHandler adminCommandHandler
+        AdminCommandHandler adminCommandHandler,
+        RecentMessagesStorage recentMessagesStorage
     )
     {
         _bot = bot;
@@ -50,6 +51,7 @@ internal class MessageProcessor
         _config = config;
         _reactionHandler = reactionHandler;
         _adminCommandHandler = adminCommandHandler;
+        _recentMessagesStorage = recentMessagesStorage;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
@@ -123,6 +125,7 @@ internal class MessageProcessor
             if (linked != null && linked == message.SenderChat.Id)
                 return;
 
+            _recentMessagesStorage.Add(message.SenderChat.Id, chat.Id, message);
             if (!_config.ChannelsCheckExclusionChats.Contains(chat.Id))
             {
                 if (_config.ChannelAutoBan)
@@ -174,12 +177,6 @@ internal class MessageProcessor
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
 
-        if (text != null)
-            MemoryCache.Default.Set(
-                new CacheItem($"{chat.Id}_{user.Id}", text),
-                new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1) }
-            );
-
         if (_captchaManager.IsCaptchaNeeded(chat.Id, user))
         {
             await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
@@ -212,6 +209,7 @@ internal class MessageProcessor
         }
 
         _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
+        _recentMessagesStorage.Add(user.Id, chat.Id, message);
 
         // At this point we are believing we see first-timers, and we need to check for spam
         var name = await _userManager.GetClubUsername(user.Id);
@@ -398,9 +396,6 @@ internal class MessageProcessor
             _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
-                var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
-                _logger.LogDebug("Ban button data {CbData}", callbackDataBan);
-                MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
                 var keyboard = new List<InlineKeyboardButton>
                 {
                     new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
@@ -419,6 +414,15 @@ internal class MessageProcessor
                     );
                     replyParams = photoMsg;
                 }
+                else
+                {
+                    var textMsg = await _bot.SendMessage(
+                        admChat,
+                        $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
+                        cancellationToken: stoppingToken
+                    );
+                    replyParams = textMsg;
+                }
 
                 if (replyToRecentPost)
                     _logger.LogDebug("It's a reply to recent post, high alert");
@@ -430,7 +434,7 @@ internal class MessageProcessor
                     admChat,
                     $"{action}Вероятность что это профиль бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
-                    replyParameters: replyParams,
+                    replyParameters: null,
                     cancellationToken: stoppingToken
                 );
 
@@ -557,9 +561,10 @@ internal class MessageProcessor
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
                 var user = newChatMember.User;
-                var key = $"{chatMember.Chat.Id}_{user.Id}";
-                var lastMessage = MemoryCache.Default.Get(key) as string;
-                var tailMessage = string.IsNullOrWhiteSpace(lastMessage)
+                var messages = _recentMessagesStorage.Get(user.Id, chatMember.Chat.Id);
+                var lastMessage = messages.LastOrDefault();
+                var lastMessageText = lastMessage?.Text ?? lastMessage?.Caption;
+                var tailMessage = string.IsNullOrWhiteSpace(lastMessageText)
                     ? "Если его забанили за спам, а ML не распознал спам - киньте его сообщение сюда."
                     : $"Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
                 var mentionAt = user.Username != null ? $"@{user.Username}" : "";
@@ -579,7 +584,6 @@ internal class MessageProcessor
         var admChat = _config.GetAdminChat(message.Chat.Id);
         var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
         var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
-        MemoryCache.Default.Add(callbackData, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
 
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
         var reply = "";
@@ -634,7 +638,6 @@ internal class MessageProcessor
             return;
 
         var callbackDataBan = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
-        MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddDays(1) });
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
         var reply = "";
         if (message.ReplyToMessage != null)

@@ -12,6 +12,7 @@ internal class AdminCommandHandler
     private readonly SpamHamClassifier _classifier;
     private readonly Config _config;
     private readonly AiChecks _aiChecks;
+    private readonly RecentMessagesStorage _recentMessagesStorage;
     private readonly ILogger<AdminCommandHandler> _logger;
     private User? _me;
 
@@ -22,6 +23,7 @@ internal class AdminCommandHandler
         SpamHamClassifier classifier,
         Config config,
         AiChecks aiChecks,
+        RecentMessagesStorage recentMessagesStorage,
         ILogger<AdminCommandHandler> logger
     )
     {
@@ -31,6 +33,7 @@ internal class AdminCommandHandler
         _classifier = classifier;
         _config = config;
         _aiChecks = aiChecks;
+        _recentMessagesStorage = recentMessagesStorage;
         _logger = logger;
     }
 
@@ -66,10 +69,6 @@ internal class AdminCommandHandler
                     {
                         if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var userId))
                             return;
-                        var userMessage = MemoryCache.Default.Remove(cbData) as Message;
-                        var text = userMessage?.Caption ?? userMessage?.Text;
-                        if (!string.IsNullOrWhiteSpace(text))
-                            await _badMessageManager.MarkAsBad(text);
                         try
                         {
                             await _bot.BanChatMember(chatId, userId);
@@ -88,29 +87,13 @@ internal class AdminCommandHandler
                                 replyParameters: cb.Message?.MessageId
                             );
                         }
-                        try
-                        {
-                            if (userMessage != null)
-                            {
-                                _logger.LogDebug("Deleting message... {CbData}", cbData);
-                                await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
-                            }
-                            else
-                            {
-                                _logger.LogDebug("Could not find message {CbData} in cache", cbData);
-                            }
-                        }
-                        catch { }
+                        await DeleteAllRecentFrom(chatId, userId);
                     }
                     break;
                 case "banchan":
                     {
                         if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var fromChannelId))
                             return;
-                        var userMessage = MemoryCache.Default.Remove(cbData) as Message;
-                        var text = userMessage?.Caption ?? userMessage?.Text;
-                        if (!string.IsNullOrWhiteSpace(text))
-                            await _badMessageManager.MarkAsBad(text);
                         try
                         {
                             await _bot.BanChatSenderChat(chatId, fromChannelId);
@@ -129,12 +112,7 @@ internal class AdminCommandHandler
                                 replyParameters: cb.Message?.MessageId
                             );
                         }
-                        try
-                        {
-                            if (userMessage != null)
-                                await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
-                        }
-                        catch { }
+                        await DeleteAllRecentFrom(chatId, fromChannelId);
                     }
                     break;
             }
@@ -142,6 +120,25 @@ internal class AdminCommandHandler
         var msg = cb.Message;
         if (msg != null)
             await _bot.EditMessageReplyMarkup(msg.Chat.Id, msg.MessageId);
+    }
+
+    private async Task DeleteAllRecentFrom(long chatId, long fromChannelId)
+    {
+        var recent = _recentMessagesStorage.Get(fromChannelId, chatId);
+        foreach (var message in recent)
+        {
+            var text = message?.Caption ?? message?.Text;
+            if (!string.IsNullOrWhiteSpace(text))
+                await _badMessageManager.MarkAsBad(text);
+        }
+        try
+        {
+            await _bot.DeleteMessages(chatId, recent.Select(x => x.MessageId));
+        }
+        catch (Exception e)
+        {
+            _logger.LogDebug(e, "Cannot delete messages in ban admin callback");
+        }
     }
 
     public async Task AdminChatMessage(Message message)
