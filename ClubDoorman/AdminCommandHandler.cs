@@ -91,7 +91,14 @@ internal class AdminCommandHandler
                         try
                         {
                             if (userMessage != null)
+                            {
+                                _logger.LogDebug("Deleting message... {CbData}", cbData);
                                 await _bot.DeleteMessage(userMessage.Chat, userMessage.MessageId);
+                            }
+                            else
+                            {
+                                _logger.LogDebug("Could not find message {CbData} in cache", cbData);
+                            }
                         }
                         catch { }
                     }

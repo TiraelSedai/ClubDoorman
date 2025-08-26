@@ -379,7 +379,7 @@ internal class MessageProcessor
         {
             var replyToRecentPost =
                 message.ReplyToMessage?.IsAutomaticForward == true
-                && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(5);
+                && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(10);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
                 message.From,
                 async x =>
@@ -398,6 +398,9 @@ internal class MessageProcessor
             _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
+                var callbackDataBan = $"ban_{message.Chat.Id}_{user.Id}";
+                _logger.LogDebug("Ban button data {CbData}", callbackDataBan);
+                MemoryCache.Default.Add(callbackDataBan, message, new CacheItemPolicy { AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(12) });
                 var keyboard = new List<InlineKeyboardButton>
                 {
                     new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
@@ -421,11 +424,11 @@ internal class MessageProcessor
                     _logger.LogDebug("It's a reply to recent post, high alert");
                 var delete = attention.Probability >= Consts.LlmHighProbability || replyToRecentPost;
 
-                var action = delete ? "Даём ридонли на 10 минут" : "";
+                var action = delete ? "Даём ридонли на 10 минут; " : "";
                 var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что это профиль бейт спаммер {attention.Probability * 100}%. {action}{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
+                    $"{action}Вероятность что это профиль бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
                     replyParameters: replyParams,
                     cancellationToken: stoppingToken
