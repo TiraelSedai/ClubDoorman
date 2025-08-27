@@ -62,7 +62,6 @@ internal class StatisticsReporter
             Stats.Clear();
             var free = new List<string>();
             var assigned = new Dictionary<long, List<string>>();
-
             foreach (var (chatId, stats) in report)
             {
                 var list = free;
@@ -88,7 +87,7 @@ internal class StatisticsReporter
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
                     await _bot.SendMessage(
                         adminChat,
-                        $"За последние 24 часа - статистика того что даже не прилетало в админку:\n{string.Join('\n', list)}",
+                        $"За последние 24 часа - статистика того что даже не прилетало в админку:\n{string.Join("\n=============================\n", list)}",
                         cancellationToken: ct
                     );
                 }
@@ -97,7 +96,7 @@ internal class StatisticsReporter
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
                     await _bot.SendMessage(
                         _config.AdminChatId,
-                        $"В фри чатах за 24 часа:\n{string.Join('\n', chunk)}",
+                        $"В фри чатах за 24 часа:\n{string.Join("\n=============================\n", chunk)}",
                         cancellationToken: ct
                     );
                 }
