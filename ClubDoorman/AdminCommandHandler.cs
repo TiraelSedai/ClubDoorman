@@ -71,6 +71,7 @@ internal class AdminCommandHandler
                             return;
                         try
                         {
+                            _logger.LogDebug("Someone pressed button to ban chat {ChatId} user {UserId}", chatId, userId);
                             await _bot.BanChatMember(chatId, userId);
                             await _bot.SendMessage(
                                 admChat,
@@ -96,6 +97,7 @@ internal class AdminCommandHandler
                             return;
                         try
                         {
+                            _logger.LogDebug("Someone pressed button to ban chat {ChatId} chan {ChannelId}", chatId, fromChannelId);
                             await _bot.BanChatSenderChat(chatId, fromChannelId);
                             await _bot.SendMessage(
                                 admChat,
