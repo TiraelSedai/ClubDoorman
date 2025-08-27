@@ -373,6 +373,7 @@ internal class MessageProcessor
             return;
         }
 
+        var userAttentionSpammer = false;
         if (_config.OpenRouterApi != null && message.From != null && _config.NonFreeChat(message.Chat.Id))
         {
             var replyToRecentPost =
@@ -396,6 +397,7 @@ internal class MessageProcessor
             _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
             if (attention.Probability >= Consts.LlmLowProbability)
             {
+                userAttentionSpammer = true;
                 var keyboard = new List<InlineKeyboardButton>
                 {
                     new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
@@ -479,7 +481,7 @@ internal class MessageProcessor
         _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
 
         // Now we need a mechanism for users who have been writing non-spam for some time
-        if (update.Message != null)
+        if (update.Message != null && !userAttentionSpammer)
         {
             var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
             if (goodInteractions >= 3)
