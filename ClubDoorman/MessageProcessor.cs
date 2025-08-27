@@ -566,7 +566,7 @@ internal class MessageProcessor
                 var lastMessageText = lastMessage?.Text ?? lastMessage?.Caption;
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessageText)
                     ? "Если его забанили за спам, а ML не распознал спам - киньте его сообщение сюда."
-                    : $"Его/её последним сообщением было:{Environment.NewLine}{lastMessage}";
+                    : $"Его/её последним сообщением было:{Environment.NewLine}{lastMessageText}";
                 var mentionAt = user.Username != null ? $"@{user.Username}" : "";
                 await _bot.SendMessage(
                     _config.GetAdminChat(chatMember.Chat.Id),
