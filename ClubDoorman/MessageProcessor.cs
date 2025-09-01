@@ -405,6 +405,9 @@ internal class MessageProcessor
                 };
 
                 ReplyParameters? replyParams = null;
+                if (message.ReplyToMessage != null)
+                    text = $"{text}{Environment.NewLine}реплай на {Utils.LinkToMessage(message.Chat, message.ReplyToMessage.MessageId)}";
+                
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
