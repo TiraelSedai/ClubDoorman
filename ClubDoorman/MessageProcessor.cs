@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Runtime.Caching;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -81,6 +80,7 @@ internal class MessageProcessor
         {
             if (update.ChatMember.From.Id == _me.Id)
                 return;
+            _logger.LogDebug("Chat member updated {@ChatMember}", update.ChatMember);
             await HandleChatMemberUpdated(update);
             return;
         }
