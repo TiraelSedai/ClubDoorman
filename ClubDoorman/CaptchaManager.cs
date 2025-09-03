@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -22,6 +23,7 @@ internal class CaptchaManager
     }
 
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
+    private readonly ConcurrentDictionary<long, bool> _optoutChats = new();
     private readonly ITelegramBotClient _bot;
     private readonly UserManager _userManager;
     private readonly StatisticsReporter _statistics;
@@ -116,8 +118,11 @@ internal class CaptchaManager
         chat = userJoinMessage?.Chat ?? chat;
         Debug.Assert(chat != null);
         var chatId = chat.Id;
-
+        
         if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
+            return;
+        
+        if (_optoutChats.ContainsKey(chatId))
             return;
 
         var key = UserToKey(chatId, user);
@@ -159,15 +164,24 @@ internal class CaptchaManager
         if (_namesBlacklist.Any(fullNameLower.Contains) || (usernameLower != null && _namesBlacklist.Any(x => x == usernameLower)))
             fullName = "новый участник чата";
 
-        var del = await _bot.SendMessage(
-            chatId,
-            $"Привет, [{Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
-            parseMode: ParseMode.Markdown,
-            replyParameters: replyParams,
-            replyMarkup: new InlineKeyboardMarkup(keyboard)
-        );
+        try
+        {
+            var del = await _bot.SendMessage(
+                chatId,
+                $"Привет, [{Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
+                parseMode: ParseMode.Markdown,
+                replyParameters: replyParams,
+                replyMarkup: new InlineKeyboardMarkup(keyboard)
+            );
+            DeleteMessageLater(del, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
+        }
+        catch (ApiRequestException e) when (e.Message.Contains("TOPIC_CLOSED"))
+        {
+            _optoutChats.TryAdd(chatId, true);
+            _logger.LogInformation("Topic closed, chat = {Chat}", chat.Title);
+            return;
+        }
 
-        DeleteMessageLater(del, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
         captchaInfo.ChatId = chatId;
         captchaInfo.ChatTitle = chat.Title;
         captchaInfo.Timestamp = DateTime.UtcNow;

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -209,6 +210,7 @@ internal class MessageProcessor
         }
 
         _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
+        using var logScopeName = _logger.BeginScope("User {Usr}", Utils.FullName(user));
         _recentMessagesStorage.Add(user.Id, chat.Id, message);
 
         // At this point we are believing we see first-timers, and we need to check for spam
@@ -225,8 +227,22 @@ internal class MessageProcessor
             {
                 var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
                 stats.BlacklistBanned++;
-                await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
-                await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
+                try
+                {
+                    await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
+                }
+                catch (ApiRequestException e)
+                {
+                    _logger.LogInformation(e, "Cannot delete message");
+                }
+                try
+                {
+                    await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                }
+                catch (ApiRequestException e)
+                {
+                    _logger.LogInformation(e, "Cannot ban user");
+                }
             }
             else
             {
@@ -407,7 +423,7 @@ internal class MessageProcessor
                 ReplyParameters? replyParams = null;
                 if (message.ReplyToMessage != null)
                     text = $"{text}{Environment.NewLine}реплай на {Utils.LinkToMessage(message.Chat, message.ReplyToMessage.MessageId)}";
-                
+
                 if (photo.Length != 0)
                 {
                     using var ms = new MemoryStream(photo);
@@ -589,7 +605,15 @@ internal class MessageProcessor
         var fromChat = message.SenderChat;
         var user = message.From!;
         var admChat = _config.GetAdminChat(message.Chat.Id);
-        var forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        Message? forward = null;
+        try
+        {
+            forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        }
+        catch (ApiRequestException are)
+        {
+            _logger.LogInformation(are, "Cannot forward");
+        }
         var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
 
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
@@ -603,7 +627,7 @@ internal class MessageProcessor
         await _bot.SendMessage(
             admChat,
             $"{msg}. Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
-            replyParameters: forward.MessageId,
+            replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackData },
                 new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" }
@@ -621,7 +645,15 @@ internal class MessageProcessor
         var fromChat = message.SenderChat;
         Message? forward = null;
         if (_config.NonFreeChat(message.Chat.Id))
-            forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            try
+            {
+                forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            }
+            catch (ApiRequestException are)
+            {
+                _logger.LogInformation(are, "Cannot forward");
+            }
+
         var deletionMessagePart = reason;
         try
         {
@@ -663,7 +695,7 @@ internal class MessageProcessor
         await _bot.SendMessage(
             admChat,
             $"{deletionMessagePart}{Environment.NewLine}Юзер {Utils.FullName(user)}{username} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
-            replyParameters: forward!,
+            replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
         );
