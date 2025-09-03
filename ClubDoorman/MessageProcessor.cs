@@ -565,6 +565,8 @@ internal class MessageProcessor
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
+
+                var action = newChatMember.Status == ChatMemberStatus.Kicked ? "забанил(а)" : "дал(а) ридонли";
                 var user = newChatMember.User;
                 var messages = _recentMessagesStorage.Get(user.Id, chatMember.Chat.Id);
                 var lastMessage = messages.LastOrDefault();
@@ -572,10 +574,10 @@ internal class MessageProcessor
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessageText)
                     ? "Если его забанили за спам, а ML не распознал спам - киньте его сообщение сюда."
                     : $"Его/её последним сообщением было:{Environment.NewLine}{lastMessageText}";
-                var mentionAt = user.Username != null ? $"@{user.Username}" : "";
+                var mentionAt = user.Username != null ? $" @{user.Username}" : "";
                 await _bot.SendMessage(
                     _config.GetAdminChat(chatMember.Chat.Id),
-                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)} {mentionAt} дали ридонли или забанили. {tailMessage}"
+                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)}{mentionAt} {action} {Utils.FullName(chatMember.From)}. {tailMessage}"
                 );
                 break;
         }
