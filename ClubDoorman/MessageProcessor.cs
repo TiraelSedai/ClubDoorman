@@ -192,6 +192,9 @@ internal class MessageProcessor
             if (!_config.NonFreeChat(message.Chat.Id))
                 return;
 
+            if (text.Contains("http"))
+                return;
+
             var normalized_ = TextProcessor.NormalizeText(text);
             if (normalized_.Length < 10)
                 return;
