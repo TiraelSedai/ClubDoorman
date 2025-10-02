@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=TiraelSedai&project=ClubDoorman&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 ## Антиспам для телеграма
 
 Изначально разрабатывался чтобы решить проблему со спамерами в чатах Вастрик.Клуба, но может использоваться и в чатах других форков, да и просто в любых больших чатах.
