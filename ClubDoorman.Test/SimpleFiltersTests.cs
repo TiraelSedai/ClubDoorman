@@ -2,6 +2,7 @@ namespace ClubDoorman.Test;
 
 public class Tests
 {
+    [TestCase(">хром", false, TestName = "4ch quote")]
     [TestCase("привет", false, TestName = "CyrillicWord_NoLookAlikes")]
     [TestCase("приве7", false, TestName = "CyrillicWord_WithDigit")]
     [TestCase("вас3к", false, TestName = "CyrillicWord_WithMixedLookAlikes")]
