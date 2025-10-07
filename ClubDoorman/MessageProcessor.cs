@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
@@ -23,6 +26,7 @@ internal class MessageProcessor
     private readonly ReactionHandler _reactionHandler;
     private readonly AdminCommandHandler _adminCommandHandler;
     private readonly RecentMessagesStorage _recentMessagesStorage;
+    private readonly HybridCache _hybridCache;
     private User? _me;
 
     public MessageProcessor(
@@ -37,7 +41,8 @@ internal class MessageProcessor
         Config config,
         ReactionHandler reactionHandler,
         AdminCommandHandler adminCommandHandler,
-        RecentMessagesStorage recentMessagesStorage
+        RecentMessagesStorage recentMessagesStorage,
+        HybridCache hybridCache
     )
     {
         _bot = bot;
@@ -52,6 +57,7 @@ internal class MessageProcessor
         _reactionHandler = reactionHandler;
         _adminCommandHandler = adminCommandHandler;
         _recentMessagesStorage = recentMessagesStorage;
+        _hybridCache = hybridCache;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
@@ -505,6 +511,29 @@ internal class MessageProcessor
         // Now we need a mechanism for users who have been writing non-spam for some time
         if (update.Message != null && !userAttentionSpammer)
         {
+            // just one last check!
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(text));
+            var key = Convert.ToHexString(hash);
+            var justCreated = false;
+            var exists = await _hybridCache.GetOrCreateAsync(
+                key,
+                ct =>
+                {
+                    justCreated = true;
+                    return ValueTask.FromResult(message);
+                },
+                new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) },
+                cancellationToken: stoppingToken
+            );
+
+            if (!justCreated)
+            {
+                const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
+                await DontDeleteButReportMessage(message, reason, stoppingToken);
+                await DontDeleteButReportMessage(exists, reason, stoppingToken);
+                return;
+            }
+
             var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
             if (goodInteractions >= 3)
             {
