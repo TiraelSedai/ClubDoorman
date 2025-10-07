@@ -15,7 +15,7 @@ internal static class Utils
     private static string LinkToGroupWithNameMessage(Chat chat, long messageId) => $"https://t.me/{chat.Username}/{messageId}";
 
     public static string LinkToMessage(Chat chat, long messageId) =>
-        chat.Type == ChatType.Supergroup ? Utils.LinkToSuperGroupMessage(chat, messageId)
+        chat.Type == ChatType.Supergroup ? LinkToSuperGroupMessage(chat, messageId)
         : chat.Username == null ? ""
-        : Utils.LinkToGroupWithNameMessage(chat, messageId);
+        : LinkToGroupWithNameMessage(chat, messageId);
 }

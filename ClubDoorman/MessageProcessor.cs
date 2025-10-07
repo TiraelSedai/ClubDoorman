@@ -11,6 +11,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
 
+internal sealed record Msg(long ChatId, long MessageId, string UserFirst, string? UserLast, long UserId);
 internal class MessageProcessor
 {
     private readonly ITelegramBotClient _bot;
@@ -520,7 +521,7 @@ internal class MessageProcessor
                 ct =>
                 {
                     justCreated = true;
-                    return ValueTask.FromResult(message);
+                    return ValueTask.FromResult(new Msg(chat.Id, message.Id, user.FirstName, user.LastName, user.Id));
                 },
                 new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) },
                 cancellationToken: stoppingToken
@@ -530,7 +531,12 @@ internal class MessageProcessor
             {
                 const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
-                await DontDeleteButReportMessage(exists, reason, stoppingToken);
+                await DontDeleteButReportMessage(new Message
+                {
+                    Id = (int)exists.MessageId,
+                    Chat = new Chat { Id = chat.Id },
+                    From = new User { Id = exists.UserId, FirstName = user.FirstName, LastName = user.LastName },
+                }, reason, stoppingToken);
                 return;
             }
 
