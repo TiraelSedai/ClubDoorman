@@ -98,6 +98,7 @@ internal class MessageProcessor
             return;
 
         var chat = message.Chat;
+        using var _chatScope = _logger.BeginScope("Chat {ChatName}", chat.Title);
         if (chat.Type == ChatType.Private)
         {
             await _bot.SendMessage(
