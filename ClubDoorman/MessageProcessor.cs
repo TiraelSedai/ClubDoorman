@@ -513,32 +513,35 @@ internal class MessageProcessor
         // Now we need a mechanism for users who have been writing non-spam for some time
         if (update.Message != null && !userAttentionSpammer)
         {
-            // just one last check!
-            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(text));
-            var key = Convert.ToHexString(hash);
-            var justCreated = false;
-            var exists = await _hybridCache.GetOrCreateAsync(
-                key,
-                ct =>
-                {
-                    justCreated = true;
-                    return ValueTask.FromResult(new Msg(chat.Id, message.Id, user.FirstName, user.LastName, user.Id));
-                },
-                new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) },
-                cancellationToken: stoppingToken
-            );
-
-            if (!justCreated)
+            if (text.Length > 10)
             {
-                const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
-                await DontDeleteButReportMessage(message, reason, stoppingToken);
-                await DontDeleteButReportMessage(new Message
+                // just one last check!
+                var hash = SHA256.HashData(Encoding.UTF8.GetBytes(text));
+                var key = Convert.ToHexString(hash);
+                var justCreated = false;
+                var exists = await _hybridCache.GetOrCreateAsync(
+                    key,
+                    ct =>
+                    {
+                        justCreated = true;
+                        return ValueTask.FromResult(new Msg(chat.Id, message.Id, user.FirstName, user.LastName, user.Id));
+                    },
+                    new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) },
+                    cancellationToken: stoppingToken
+                );
+
+                if (!justCreated)
                 {
-                    Id = (int)exists.MessageId,
-                    Chat = new Chat { Id = chat.Id },
-                    From = new User { Id = exists.UserId, FirstName = user.FirstName, LastName = user.LastName },
-                }, reason, stoppingToken);
-                return;
+                    const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
+                    await DontDeleteButReportMessage(message, reason, stoppingToken);
+                    await DontDeleteButReportMessage(new Message
+                    {
+                        Id = (int)exists.MessageId,
+                        Chat = new Chat { Id = chat.Id },
+                        From = new User { Id = exists.UserId, FirstName = user.FirstName, LastName = user.LastName },
+                    }, reason, stoppingToken);
+                    return;
+                }
             }
 
             var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
