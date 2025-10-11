@@ -352,6 +352,12 @@ internal class MessageProcessor
         {
             _logger.LogDebug("TooManyEmojis");
             const string reason = "В этом сообщении многовато эмоджи";
+
+            List<string> usernameBlacklist = ["Василиса", "Юлия", "Регина"];
+            var firstLast = Utils.FullName(user);
+            if (usernameBlacklist.Any(x => x == firstLast))
+                await AutoBan(message, "много эмодзи и имя из блеклиста", stoppingToken);
+
             if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
@@ -537,7 +543,7 @@ internal class MessageProcessor
                     await DontDeleteButReportMessage(new Message
                     {
                         Id = (int)exists.MessageId,
-                        Chat = new Chat { Id = chat.Id },
+                        Chat = new Chat { Id = chat.Id, Title = chat.Title },
                         From = new User { Id = exists.UserId, FirstName = user.FirstName, LastName = user.LastName },
                     }, reason, stoppingToken);
                     return;
