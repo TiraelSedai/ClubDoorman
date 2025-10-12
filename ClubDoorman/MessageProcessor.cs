@@ -354,9 +354,8 @@ internal class MessageProcessor
             _logger.LogDebug("TooManyEmojis");
             const string reason = "В этом сообщении многовато эмоджи";
 
-            List<string> usernameBlacklist = ["Василиса", "Юлия", "Регина"];
             var firstLast = Utils.FullName(user);
-            if (usernameBlacklist.Any(x => x == firstLast))
+            if (SimpleFilters.InUsernameSuspiciousList(firstLast))
                 await AutoBan(message, "много эмодзи и имя из блеклиста", stoppingToken);
 
             if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
