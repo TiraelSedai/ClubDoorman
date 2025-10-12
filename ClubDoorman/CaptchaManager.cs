@@ -118,10 +118,10 @@ internal class CaptchaManager
         chat = userJoinMessage?.Chat ?? chat;
         Debug.Assert(chat != null);
         var chatId = chat.Id;
-        
+
         if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
             return;
-        
+
         if (_optoutChats.ContainsKey(chatId))
             return;
 

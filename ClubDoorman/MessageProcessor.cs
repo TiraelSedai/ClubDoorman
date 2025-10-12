@@ -12,6 +12,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace ClubDoorman;
 
 internal sealed record Msg(long ChatId, long MessageId, string UserFirst, string? UserLast, long UserId);
+
 internal class MessageProcessor
 {
     private readonly ITelegramBotClient _bot;
@@ -503,7 +504,7 @@ internal class MessageProcessor
         }
 
         // else - ham
-        if (score > -0.5 && _config.LowConfidenceHamForward && _config.NonFreeChat(message.Chat.Id))
+        if (score > -0.5 && _config.LowConfidenceHamForward && _config.NonFreeChat(chat.Id))
         {
             var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = Utils.LinkToMessage(chat, message.MessageId);
@@ -514,6 +515,12 @@ internal class MessageProcessor
                 cancellationToken: stoppingToken
             );
         }
+        if (!_config.NonFreeChat(chat.Id) && SimpleFilters.HasHelloStopWords(text))
+        {
+            await DontDeleteButReportMessage(message, "в этом сообщении написано привет и больше ничего, обычно это спамер", stoppingToken);
+            return;
+        }
+
         _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
 
         // Now we need a mechanism for users who have been writing non-spam for some time
@@ -540,12 +547,21 @@ internal class MessageProcessor
                 {
                     const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
                     await DontDeleteButReportMessage(message, reason, stoppingToken);
-                    await DontDeleteButReportMessage(new Message
-                    {
-                        Id = (int)exists.MessageId,
-                        Chat = new Chat { Id = chat.Id, Title = chat.Title },
-                        From = new User { Id = exists.UserId, FirstName = user.FirstName, LastName = user.LastName },
-                    }, reason, stoppingToken);
+                    await DontDeleteButReportMessage(
+                        new Message
+                        {
+                            Id = (int)exists.MessageId,
+                            Chat = new Chat { Id = chat.Id, Title = chat.Title },
+                            From = new User
+                            {
+                                Id = exists.UserId,
+                                FirstName = user.FirstName,
+                                LastName = user.LastName,
+                            },
+                        },
+                        reason,
+                        stoppingToken
+                    );
                     return;
                 }
             }

@@ -38,4 +38,21 @@ public class Tests
         var norm = TextProcessor.NormalizeText(spam);
         Assert.That(norm, Has.Length.LessThan(70));
     }
+
+    [TestCase("привет", false, TestName = "NoEmoji")]
+    [TestCase("♥️", true, TestName = "heart")]
+    [TestCase("🩷", true, TestName = "heart2")]
+    [TestCase("💧", true, TestName = "droplet")]
+    [TestCase("💧", true, TestName = "droplet")]
+    [TestCase("Поздравляю! 🔥🔥🔥", false, TestName = "three emoji")]
+    [TestCase(
+        "✅Получению водительских прав (новые или дубликат);\r\n✅Открытие категории;\r\n✅Миграционка;\r\n✅Регистратура;\r\n✅Патент;\r\n✅Чек;\r\n✅Мед книжка;\r\n✅Мед карта;",
+        "true",
+        TestName = "lots of emoji"
+    )]
+    public void Emoji_Tests(string word, bool expectedResult)
+    {
+        var result = SimpleFilters.TooManyEmojis(word);
+        Assert.That(result, Is.EqualTo(expectedResult), string.Join(", ", result));
+    }
 }
