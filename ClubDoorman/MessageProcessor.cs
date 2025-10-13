@@ -514,7 +514,7 @@ internal class MessageProcessor
                 cancellationToken: stoppingToken
             );
         }
-        if (!_config.NonFreeChat(chat.Id) && SimpleFilters.HasHelloStopWords(text))
+        if (!_config.NonFreeChat(chat.Id) && SimpleFilters.HasOnlyHelloWord(text))
         {
             await DontDeleteButReportMessage(message, "в этом сообщении написано привет и больше ничего, обычно это спамер", stoppingToken);
             return;

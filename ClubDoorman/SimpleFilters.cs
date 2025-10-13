@@ -7,8 +7,8 @@ public static class SimpleFilters
     private static readonly string[] StopWords = File.ReadAllLines("data/stop-words.txt");
     private static readonly string[] HelloWordsStop = ["привет", "hi", "الو", "سلام"];
 
-    public static bool HasHelloStopWords(string message) =>
-        HelloWordsStop.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
+    public static bool HasOnlyHelloWord(string message) =>
+        HelloWordsStop.Any(sw => message == sw);
 
     public static bool HasStopWords(string message) =>
         StopWords.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
