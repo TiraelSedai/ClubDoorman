@@ -5,7 +5,7 @@ namespace ClubDoorman;
 public static class SimpleFilters
 {
     private static readonly string[] StopWords = File.ReadAllLines("data/stop-words.txt");
-    private static readonly string[] HelloWordsStop = ["привет", "hi", "الو", "سلام"];
+    private static readonly string[] HelloWordsStop = ["привет", "hi", "hello", "الو", "سلام"];
 
     public static bool HasOnlyHelloWord(string message) =>
         HelloWordsStop.Any(sw => message == sw);
