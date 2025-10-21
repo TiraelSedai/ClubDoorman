@@ -25,6 +25,14 @@ public static class SimpleFilters
         return false;
     }
 
+    public static bool JustOneEmoji(string message)
+    {
+        if (message.Length > 4)
+            return false;
+        var (emojis, total) = CountEmojis(message);
+        return total == 1 && emojis == total;
+    }
+
     private static (int emoji, int total) CountEmojis(string text)
     {
         var enumerator = StringInfo.GetTextElementEnumerator(text);
@@ -83,7 +91,7 @@ public static class SimpleFilters
         return false;
     }
 
-    private static readonly List<string> _usernameBlacklist = ["Василиса", "Юлия", "Регина", "Аглая"];
+    private static readonly List<string> _usernameBlacklist = ["Василиса", "Юлия", "Регина", "Аглая", "Аврора", "Alina", "Кристина", "Стефания", "Алиночка", "Варвара"];
     public static bool InUsernameSuspiciousList(string name) => _usernameBlacklist.Contains(name);
 
     public static List<string> FindAllRussianWordsWithLookalikeSymbols(string message) =>

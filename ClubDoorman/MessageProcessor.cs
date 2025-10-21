@@ -355,8 +355,8 @@ internal class MessageProcessor
             const string reason = "В этом сообщении многовато эмоджи";
 
             var firstLast = Utils.FullName(user);
-            if (SimpleFilters.InUsernameSuspiciousList(firstLast))
-                await AutoBan(message, "много эмодзи и имя из блеклиста", stoppingToken);
+            if (SimpleFilters.JustOneEmoji(text) && SimpleFilters.InUsernameSuspiciousList(firstLast))
+                await AutoBan(message, "один эмодзи и имя из блеклиста", stoppingToken);
 
             if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
