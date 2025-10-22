@@ -48,7 +48,7 @@ internal class AiChecks
     {
         await _hybridCache.SetAsync(
             CacheKey(userId),
-            new SpamPhotoBio(new SpamProbability(), [], ""),
+            new SpamPhotoBio(new BioClassProbability(), [], ""),
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(100) },
             cancellationToken: ct
         );
@@ -71,8 +71,8 @@ internal class AiChecks
     )
     {
         if (_api == null)
-            return new SpamPhotoBio(new SpamProbability(), [], "");
-        var probability = new SpamProbability();
+            return new SpamPhotoBio(new BioClassProbability(), [], "");
+        var probability = new BioClassProbability();
         var pic = Array.Empty<byte>();
 
         try
@@ -103,7 +103,7 @@ internal class AiChecks
             );
             if (response.Value1 != null)
             {
-                probability = response.Value1;
+                probability.EroticProbability = response.Value1.Probability;
                 _logger.LogInformation("LLM GetEroticPhotoBaitProbability: {@Prob}", probability);
             }
         }
@@ -121,7 +121,7 @@ internal class AiChecks
     )
     {
         if (_api == null)
-            return ValueTask.FromResult(new SpamPhotoBio(new SpamProbability(), [], ""));
+            return ValueTask.FromResult(new SpamPhotoBio(new BioClassProbability(), [], ""));
         return _hybridCache.GetOrCreateAsync(
             CacheKey(user.Id),
             async ct =>
@@ -132,9 +132,9 @@ internal class AiChecks
                     .HalfApprovedUsers.AsNoTracking()
                     .SingleOrDefaultAsync(x => x.Id == user.Id, cancellationToken: ct);
                 if (halfApproved != default)
-                    return new SpamPhotoBio(new SpamProbability(), [], "");
+                    return new SpamPhotoBio(new BioClassProbability(), [], "");
 
-                var probability = new SpamProbability();
+                var probability = new BioClassProbability();
                 var pic = Array.Empty<byte>();
                 var nameBioUser = string.Empty;
 
@@ -149,7 +149,7 @@ internal class AiChecks
                         _logger.LogDebug("GetAttentionBaitProbability {User}: no bio, no channel", Utils.FullName(user));
                         if (userChat.Photo != null)
                             return await GetEroticPhotoBaitProbability(user, userChat, ct);
-                        return new SpamPhotoBio(new SpamProbability(), [], "");
+                        return new SpamPhotoBio(new BioClassProbability(), [], "");
                     }
 
                     _logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
@@ -181,7 +181,12 @@ internal class AiChecks
                     nameBioUser = sb.ToString();
                     var promptDebugString = nameBioUser;
                     var prompt =
-                        $"Проанализируй, выглядит ли этот Telegram-профиль как «продажный» и созданный с целью привлечения внимания. Отвечай вероятностью от 0 до 1. Особенно внимательно учитывай признаки:\nсексуализированные профили (эмодзи с двойным смыслом - 💦, 💋, 👄, 🍑, 🍆, 🍒, 🍓, 🍌 и прочих в имени, любой намёк на эротику и порно, голые фото), упоминания о курсах, заработке, трейдинге, арбитраже, привлечению трафика, ссылки на OnlyFans, соцсети. Обрати особенно внимание, если род занятий указан прямо в имени (например: HR, SMM, недвижимость, маркетинг). Обращай особое внимание на юзернеймы из бессмыслленого набора букв и цифр. Вот данные профиля:\n{nameBioUser}";
+                        "Проанализируй, выглядит ли этот Telegram-профиль как «продажный» и созданный с целью привлечения внимания. Отвечай вероятностью от 0 до 1.\n" +
+                        "В EroticProbability ответь, с какой вероятностью этот профиль сексуализирован, обрати внимание на эмодзи с двойным смыслом (💦💋👄🍑🍆🍒🍓🍌 и прочих) в имени, любой намёк на эротику и порно, голые фото, OnlyFans\n" +
+                        "В GamblingProbability ответь, с какой вероятностьюсвязан с предложениями рабогатеть - казино, гэмблинг, трейдинг, арбитаж, привлечению трафика, крипта\n" +
+                        $"В NonHumanProbability ответь, с какой вероятностью профиль даже не притворяется человеком (нет имени и фотографии человека), а сразу выглядит как бизнес-аккаунт или реклама\n" +
+                        "В SelfPromotionProbability ответь, с какой вероятностью профиль направлен на само-продвижение, особенно если у него род деятельности указан прямо в имени, если у него предложение вступить в группу, подписываться, бесплатные продукты, и другие способы привлечения" +
+                        $"\nВот данные профиля:\n{nameBioUser}";
 
                     var messages = new List<ChatCompletionRequestMessage>
                     {
@@ -281,7 +286,7 @@ internal class AiChecks
 
                     var response = await _retry.ExecuteAsync(
                         async token =>
-                            await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                            await _api.Chat.CreateChatCompletionAsAsync<BioClassProbability>(
                                 messages: messages,
                                 model: Model,
                                 strict: true,
@@ -293,7 +298,7 @@ internal class AiChecks
                     if (response.Value1 != null)
                     {
                         probability = response.Value1;
-                        if (probability.Probability < Consts.LlmLowProbability)
+                        if (probability.EroticProbability < Consts.LlmLowProbability && probability.NonHumanProbability < Consts.LlmLowProbability && probability.SelfPromotionProbability < Consts.LlmLowProbability && probability.GamblingProbability < Consts.LlmLowProbability)
                             pic = []; // cache optimization, don't store all user photos who are not spammers
                         _logger.LogInformation("LLM GetAttentionBaitProbability: {@Prob}", probability);
                     }
@@ -446,5 +451,15 @@ internal class AiChecks
         public string Reason { get; set; } = "";
     }
 
-    internal sealed record SpamPhotoBio(SpamProbability SpamProbability, byte[] Photo, string NameBio);
+    internal sealed class BioClassProbability()
+    {
+        public double EroticProbability { get; set; }
+        public double GamblingProbability { get; set; }
+        public double NonHumanProbability { get; set; }
+        public double SelfPromotionProbability { get; set; }
+        public string Reason { get; set; } = "";
+    }
+
+
+    internal sealed record SpamPhotoBio(BioClassProbability Probability, byte[] Photo, string NameBio);
 }

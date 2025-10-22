@@ -381,7 +381,7 @@ internal class MessageProcessor
         }
         _logger.LogDebug("Normalized:\n {Norm}", normalized);
         var (spam, score) = await _classifier.IsSpam(normalized);
-        if (spam)
+        if (score > 0.3)
         {
             var reason = $"ML решил что это спам, скор {score}";
             if (score > 3 && _config.HighConfidenceAutoBan)
@@ -420,15 +420,19 @@ internal class MessageProcessor
                     if (alreadyBanned)
                         await AutoBan(message, $"{x}{Environment.NewLine}Теперь в банлисте", stoppingToken);
                     await _aiChecks.ClearCache(message.From.Id);
-                    var (ascore, p, b) = await _aiChecks.GetAttentionBaitProbability(message.From);
-                    if (ascore.Probability > Consts.LlmLowProbability)
-                        await AutoBan(message, $"{x}{Environment.NewLine}{ascore.Reason}", stoppingToken);
+                    var (ascore, p, b) = await _aiChecks.GetAttentionBaitProbability(message.From, null, true);
+                    if (ascore.EroticProbability > Consts.LlmLowProbability)
+                        await AutoBan(message, $"{x}{Environment.NewLine}эротика или полиция нравов", stoppingToken);
                     else
                         await DontDeleteButReportMessage(message, x, stoppingToken);
                 }
             );
             _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
-            if (attention.Probability >= Consts.LlmLowProbability)
+            var erotic = attention.EroticProbability >= Consts.LlmLowProbability;
+            var money = attention.GamblingProbability >= Consts.LlmLowProbability;
+            var nonHuman = attention.NonHumanProbability >= Consts.LlmLowProbability;
+            var selfPromo = attention.SelfPromotionProbability >= Consts.LlmLowProbability;
+            if (erotic || money || nonHuman || selfPromo)
             {
                 userAttentionSpammer = true;
                 var keyboard = new List<InlineKeyboardButton>
@@ -436,6 +440,8 @@ internal class MessageProcessor
                     new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
                     new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" },
                 };
+                if (_config.ApproveButtonEnabled)
+                    keyboard.Add(new InlineKeyboardButton("🥰🥰🥰 approve") { CallbackData = $"approve_{user.Id}" });
 
                 ReplyParameters? replyParams = null;
                 if (message.ReplyToMessage != null)
@@ -464,13 +470,43 @@ internal class MessageProcessor
 
                 if (replyToRecentPost)
                     _logger.LogDebug("It's a reply to recent post, high alert");
-                var delete = attention.Probability >= Consts.LlmHighProbability || replyToRecentPost;
+                var bioInvite = bio.Contains("t.me/+");
+                var bioObscured = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(bio).Count > 0;
 
-                var action = delete ? "Даём ридонли на 10 минут; " : "";
+                bool highErotic = attention.EroticProbability > Consts.LlmHighProbability;
+                bool highGambling = attention.GamblingProbability > Consts.LlmHighProbability;
+                bool highNonHuman = attention.NonHumanProbability > Consts.LlmHighProbability;
+                bool highSelfPromo = (attention.SelfPromotionProbability > Consts.LlmLowProbability && (bioInvite || bioObscured));
+                var delete = highErotic || highGambling || highNonHuman || highSelfPromo;
+
                 var at = user.Username == null ? "" : $" @{user.Username} ";
+                var msg = "";
+                if (delete)
+                {
+                    msg = "Даём ридонли на 10 минутСообщение УДАЛЕНО, причина: ";
+                    if (highErotic)
+                        msg += "подозрение на эротику";
+                    if (highGambling)
+                        msg += "подозрение на быстрый заработок";
+                    if (highNonHuman)
+                        msg += "подозрение на бизнес-аккаунт";
+                    if (highSelfPromo)
+                        msg += "подозрение на селф-промо и ссылка на вступление в группу или маскировочные буквы в био";
+                }
+
+                if (attention.EroticProbability > Consts.LlmLowProbability)
+                    msg += $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
+                if (attention.GamblingProbability > Consts.LlmLowProbability)
+                    msg += $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок: {attention.GamblingProbability * 100}%";
+                if (attention.NonHumanProbability > Consts.LlmLowProbability)
+                    msg += $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок:  {attention.NonHumanProbability * 100} %";
+                if (attention.SelfPromotionProbability > Consts.LlmLowProbability)
+                    msg += $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
+                msg = $"{msg}{Environment.NewLine}{attention.Reason}";
+
                 await _bot.SendMessage(
                     admChat,
-                    $"{action}Вероятность что это профиль бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}",
+                    msg,
                     replyMarkup: new InlineKeyboardMarkup(keyboard),
                     replyParameters: null,
                     cancellationToken: stoppingToken
@@ -489,6 +525,7 @@ internal class MessageProcessor
                 }
             }
         }
+
         if (_config.OpenRouterApi != null && message.From != null && _config.NonFreeChat(message.Chat.Id))
         {
             var spamCheck = await _aiChecks.GetSpamProbability(message);
