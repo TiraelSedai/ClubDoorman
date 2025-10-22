@@ -480,10 +480,10 @@ internal class MessageProcessor
                 var delete = highErotic || highGambling || highNonHuman || highSelfPromo;
 
                 var at = user.Username == null ? "" : $" @{user.Username} ";
-                var msg = "";
+                var msg = "Сообщение НЕ удалено";
                 if (delete)
                 {
-                    msg = "Даём ридонли на 10 минутСообщение УДАЛЕНО, причина: ";
+                    msg = "Даём ридонли на 10 минут. Сообщение УДАЛЕНО, причина: ";
                     if (highErotic)
                         msg += "подозрение на эротику";
                     if (highGambling)
