@@ -69,8 +69,8 @@ internal class ReactionHandler
             _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", cache.ReactionCount, Utils.FullName(user), chat.Title);
             var admChat = _config.GetAdminChat(chat.Id);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user, null, true);
-            _logger.LogDebug("Reaction bait spam probability {Prob}", attention.Probability);
-            if (attention.Probability >= Consts.LlmLowProbability)
+            _logger.LogDebug("Reaction bait spam probability {Prob}", attention.EroticProbability);
+            if (attention.EroticProbability >= Consts.LlmLowProbability)
             {
                 var postLink = Utils.LinkToMessage(chat, reaction.MessageId);
                 ReplyParameters? replyParameters = null;
@@ -88,7 +88,7 @@ internal class ReactionHandler
                 var at = user.Username == null ? "" : $" @{user.Username} ";
                 await _bot.SendMessage(
                     admChat,
-                    $"Вероятность что реакцию поставил бейт спаммер {attention.Probability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{postLink}",
+                    $"Вероятность что реакцию поставил профиль эротического содержания {attention.EroticProbability * 100}%.{Environment.NewLine}{attention.Reason}{Environment.NewLine}Бан не сможет снять реакцию, если хотите - сходите по ссылке в посте и зарепортите его вручную.{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{postLink}",
                     replyParameters: replyParameters,
                     replyMarkup: new InlineKeyboardMarkup(keyboard)
                 );
