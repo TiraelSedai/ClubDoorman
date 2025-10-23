@@ -581,23 +581,24 @@ internal class MessageProcessor
 
                 if (!justCreated)
                 {
-                    const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
-                    await DontDeleteButReportMessage(message, reason, stoppingToken);
-                    await DontDeleteButReportMessage(
-                        new Message
-                        {
-                            Id = (int)exists.MessageId,
-                            Chat = new Chat { Id = chat.Id, Title = chat.Title },
-                            From = new User
-                            {
-                                Id = exists.UserId,
-                                FirstName = user.FirstName,
-                                LastName = user.LastName,
-                            },
-                        },
-                        reason,
-                        stoppingToken
-                    );
+                    // temporary disable this check cause sometimes it reports the SAME message as different message from other chat
+                    //const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
+                    //await DontDeleteButReportMessage(message, reason, stoppingToken);
+                    //await DontDeleteButReportMessage(
+                    //    new Message
+                    //    {
+                    //        Id = (int)exists.MessageId,
+                    //        Chat = new Chat { Id = chat.Id, Title = chat.Title },
+                    //        From = new User
+                    //        {
+                    //            Id = exists.UserId,
+                    //            FirstName = user.FirstName,
+                    //            LastName = user.LastName,
+                    //        },
+                    //    },
+                    //    reason,
+                    //    stoppingToken
+                    //);
                     return;
                 }
             }
