@@ -430,7 +430,7 @@ internal class MessageProcessor
             _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
             var erotic = attention.EroticProbability >= Consts.LlmLowProbability;
             var money = attention.GamblingProbability >= Consts.LlmLowProbability;
-            var nonHuman = attention.NonHumanProbability >= Consts.LlmLowProbability;
+            var nonHuman = attention.NonPersonProbability >= Consts.LlmLowProbability;
             var selfPromo = attention.SelfPromotionProbability >= Consts.LlmLowProbability;
             if (erotic || money || nonHuman || selfPromo)
             {
@@ -475,7 +475,7 @@ internal class MessageProcessor
 
                 bool highErotic = attention.EroticProbability > Consts.LlmHighProbability;
                 bool highGambling = attention.GamblingProbability > Consts.LlmHighProbability;
-                bool highNonHuman = attention.NonHumanProbability > Consts.LlmHighProbability;
+                bool highNonHuman = attention.NonPersonProbability > Consts.LlmHighProbability;
                 bool highSelfPromo = (attention.SelfPromotionProbability > Consts.LlmLowProbability && (bioInvite || bioObscured));
                 var delete = highErotic || highGambling || highNonHuman || highSelfPromo;
 
@@ -498,8 +498,8 @@ internal class MessageProcessor
                     msg += $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
                 if (attention.GamblingProbability > Consts.LlmLowProbability)
                     msg += $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок: {attention.GamblingProbability * 100}%";
-                if (attention.NonHumanProbability > Consts.LlmLowProbability)
-                    msg += $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок:  {attention.NonHumanProbability * 100} %";
+                if (attention.NonPersonProbability > Consts.LlmLowProbability)
+                    msg += $"{Environment.NewLine}Вероятность что этот профиль не человека, а бизнес-аккаунта:  {attention.NonPersonProbability * 100} %";
                 if (attention.SelfPromotionProbability > Consts.LlmLowProbability)
                     msg += $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
                 msg = $"{msg}{Environment.NewLine}{attention.Reason}";
