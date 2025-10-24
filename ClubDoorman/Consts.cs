@@ -7,4 +7,5 @@ internal class Consts
     public const double LlmHighProbability = 0.9;
     public const string BanButton = "❌❌❌ ban";
     public const string OkButton = "✅✅✅ ok";
+    public const string ApproveButton = "🥰🥰🥰 approve";
 }

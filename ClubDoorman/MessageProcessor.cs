@@ -441,7 +441,7 @@ internal class MessageProcessor
                     new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" },
                 };
                 if (_config.ApproveButtonEnabled)
-                    keyboard.Add(new InlineKeyboardButton("🥰🥰🥰 approve") { CallbackData = $"approve_{user.Id}" });
+                    keyboard.Add(new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{user.Id}" });
 
                 ReplyParameters? replyParams = null;
                 if (message.ReplyToMessage != null)
@@ -727,7 +727,7 @@ internal class MessageProcessor
             ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
         await _bot.SendMessage(
             admChat,
-            $"{msg}. Сообщение НЕ удалено.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
+            $"Сообщение НЕ удалено{Environment.NewLine}{msg}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
             replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackData },
@@ -771,7 +771,7 @@ internal class MessageProcessor
         catch (Exception e)
         {
             _logger.LogWarning(e, "Unable to delete");
-            deletionMessagePart += ", сообщение НЕ удалено (не хватило могущества?).";
+            deletionMessagePart += ", сообщение НЕ удалено или юзеру не дали ридонли (не хватило могущества?).";
         }
 
         if (!_config.NonFreeChat(message.Chat.Id))
@@ -790,7 +790,7 @@ internal class MessageProcessor
             ]
         );
         if (_config.ApproveButtonEnabled)
-            row.Add(new InlineKeyboardButton("🥰🥰🥰 approve") { CallbackData = $"approve_{user.Id}" });
+            row.Add(new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{user.Id}" });
 
         var username = user.Username == null ? "" : $" @{user.Username}";
         await _bot.SendMessage(
