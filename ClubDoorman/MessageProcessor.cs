@@ -473,10 +473,10 @@ internal class MessageProcessor
                 var bioInvite = bio.Contains("t.me/+");
                 var bioObscured = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(bio).Count > 0;
 
-                bool highErotic = attention.EroticProbability > Consts.LlmHighProbability;
-                bool highGambling = attention.GamblingProbability > Consts.LlmHighProbability;
-                bool highNonHuman = attention.NonPersonProbability > Consts.LlmHighProbability;
-                bool highSelfPromo = (attention.SelfPromotionProbability > Consts.LlmLowProbability && (bioInvite || bioObscured));
+                bool highErotic = attention.EroticProbability >= Consts.LlmHighProbability || (replyToRecentPost && attention.EroticProbability >= Consts.LlmLowProbability);
+                bool highGambling = attention.GamblingProbability >= Consts.LlmHighProbability;
+                bool highNonHuman = attention.NonPersonProbability >= Consts.LlmHighProbability;
+                bool highSelfPromo = (attention.SelfPromotionProbability >= Consts.LlmHighProbability && (bioInvite || bioObscured));
                 var delete = highErotic || highGambling || highNonHuman || highSelfPromo;
 
                 var at = user.Username == null ? "" : $" @{user.Username} ";
@@ -494,13 +494,13 @@ internal class MessageProcessor
                         msg += "подозрение на селф-промо и ссылка на вступление в группу или маскировочные буквы в био";
                 }
 
-                if (attention.EroticProbability > Consts.LlmLowProbability)
+                if (attention.EroticProbability >= Consts.LlmLowProbability)
                     msg += $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
-                if (attention.GamblingProbability > Consts.LlmLowProbability)
+                if (attention.GamblingProbability >= Consts.LlmLowProbability)
                     msg += $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок: {attention.GamblingProbability * 100}%";
-                if (attention.NonPersonProbability > Consts.LlmLowProbability)
+                if (attention.NonPersonProbability >= Consts.LlmLowProbability)
                     msg += $"{Environment.NewLine}Вероятность что этот профиль не человека, а бизнес-аккаунта:  {attention.NonPersonProbability * 100} %";
-                if (attention.SelfPromotionProbability > Consts.LlmLowProbability)
+                if (attention.SelfPromotionProbability >= Consts.LlmLowProbability)
                     msg += $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
                 msg = $"{msg}{Environment.NewLine}{attention.Reason}";
 
