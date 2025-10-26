@@ -91,7 +91,7 @@ public static class SimpleFilters
         return false;
     }
 
-    private static readonly List<string> _usernameBlacklist = ["Василиса", "Юлия", "Регина", "Аглая", "Аврора", "Alina", "Кристина", "Стефания", "Алиночка", "Варвара"];
+    private static readonly List<string> _usernameBlacklist = ["Василиса", "Vasilisa", "Юлия", "Регина", "Аглая", "Аврора", "Alina", "Кристина", "Стефания", "Алиночка", "Варвара"];
     public static bool InUsernameSuspiciousList(string name) => _usernameBlacklist.Contains(name);
 
     public static List<string> FindAllRussianWordsWithLookalikeSymbols(string message) =>
