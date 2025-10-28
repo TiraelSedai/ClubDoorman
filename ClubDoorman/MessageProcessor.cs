@@ -338,6 +338,12 @@ internal class MessageProcessor
         if (SimpleFilters.HasUnwantedChars(normalized))
         {
             const string reason = "В этом сообщении необычные буквы";
+
+            if (_config.MarketologsChats.Contains(chat.Id))
+            {
+                await DontDeleteButReportMessage(message, reason, stoppingToken);
+                return;
+            }
             if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
