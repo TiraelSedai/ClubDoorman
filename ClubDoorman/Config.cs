@@ -46,7 +46,7 @@ internal class Config
     private FrozenSet<long> GetChatsFromEnv(string env)
     {
         var list = new List<long>();
-        var items = Environment.GetEnvironmentVariable("env");
+        var items = Environment.GetEnvironmentVariable(env);
         if (items != null)
         {
             foreach (var ch in items.Split(','))
