@@ -356,7 +356,10 @@ internal class MessageProcessor
 
             var firstLast = Utils.FullName(user);
             if (SimpleFilters.JustOneEmoji(text) && SimpleFilters.InUsernameSuspiciousList(firstLast))
+            {
                 await AutoBan(message, "один эмодзи и имя из блеклиста", stoppingToken);
+                return;
+            }
 
             if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
