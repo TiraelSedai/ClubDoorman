@@ -408,9 +408,8 @@ internal class MessageProcessor
             if (score > 3 && _config.HighConfidenceAutoBan && !_config.MarketologsChats.Contains(chat.Id))
             {
                 await AutoBan(message, reason, stoppingToken);
-                return;
             }
-            if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            else if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
 
@@ -425,6 +424,7 @@ internal class MessageProcessor
             {
                 await DeleteAndReportMessage(message, reason, stoppingToken);
             }
+            return;
         }
 
         var userAttentionSpammer = false;
