@@ -17,7 +17,8 @@ internal class Config
         _logger = logger;
         MultiAdminChatMap = new Dictionary<long, long>().ToFrozenDictionary();
         _ = InitMultiAdminChatMap();
-        ChannelsCheckExclusionChats = GetChannelsCheckExclusionChats();
+        ChannelsCheckExclusionChats = GetChatsFromEnv("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION");
+        MarketologsChats = GetChatsFromEnv("DOORMAN_CHANNEL_MARKETOLOGY_EXCLUSION");
     }
 
     public bool BlacklistAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BLACKLIST_AUTOBAN_DISABLE");
@@ -38,13 +39,14 @@ internal class Config
 
     public FrozenDictionary<long, long> MultiAdminChatMap { get; private set; }
     public FrozenSet<long> ChannelsCheckExclusionChats { get; }
+    public FrozenSet<long> MarketologsChats { get; }
 
     public bool NonFreeChat(long chatId) => MultiAdminChatMap.Count == 0 || MultiAdminChatMap.ContainsKey(chatId);
 
-    private FrozenSet<long> GetChannelsCheckExclusionChats()
+    private FrozenSet<long> GetChatsFromEnv(string env)
     {
         var list = new List<long>();
-        var items = Environment.GetEnvironmentVariable("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION");
+        var items = Environment.GetEnvironmentVariable("env");
         if (items != null)
         {
             foreach (var ch in items.Split(','))
@@ -53,7 +55,7 @@ internal class Config
                     list.Add(group);
             }
         }
-        _logger.LogInformation("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION chats {@Chats}", list);
+        _logger.LogInformation("{Env} chats {@Chats}", env, list);
         return list.ToFrozenSet();
     }
 

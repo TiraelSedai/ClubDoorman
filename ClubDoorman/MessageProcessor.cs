@@ -296,7 +296,7 @@ internal class MessageProcessor
                 if (spamCheck.Probability >= Consts.LlmLowProbability)
                 {
                     var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
-                    if (spamCheck.Probability >= Consts.LlmHighProbability)
+                    if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                         await DeleteAndReportMessage(message, reason, stoppingToken);
                     else
                         await DontDeleteButReportMessage(message, reason, stoppingToken);
@@ -304,7 +304,11 @@ internal class MessageProcessor
             }
             else
             {
-                await DontDeleteButReportMessage(message, "картинка/видео/кружок/голосовуха без подписи", stoppingToken);
+                await DontDeleteButReportMessage(
+                    message,
+                    "пустое сообщение/подпись (вероятно картинка/видео/кружок/голосовуха)",
+                    stoppingToken
+                );
             }
             return;
         }
@@ -321,7 +325,7 @@ internal class MessageProcessor
             _logger.LogDebug("lookalike");
             var tailMessage = lookalike.Count > 5 ? ", и другие" : "";
             var reason = $"Были найдены слова маскирующиеся под русские: {string.Join(", ", lookalike.Take(5))}{tailMessage}";
-            if (!_config.LookAlikeAutoBan)
+            if (!_config.LookAlikeAutoBan || _config.MarketologsChats.Contains(chat.Id))
             {
                 await DeleteAndReportMessage(message, reason, stoppingToken);
                 return;
@@ -355,13 +359,21 @@ internal class MessageProcessor
             const string reason = "В этом сообщении многовато эмоджи";
 
             var firstLast = Utils.FullName(user);
-            if (SimpleFilters.JustOneEmoji(text) && SimpleFilters.InUsernameSuspiciousList(firstLast))
+            if (
+                SimpleFilters.JustOneEmoji(text)
+                && SimpleFilters.InUsernameSuspiciousList(firstLast)
+                && !_config.MarketologsChats.Contains(chat.Id)
+            )
             {
                 await AutoBan(message, "один эмодзи и имя из блеклиста", stoppingToken);
                 return;
             }
 
-            if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            if (_config.MarketologsChats.Contains(chat.Id))
+            {
+                await DontDeleteButReportMessage(message, reason, stoppingToken);
+            }
+            else if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
@@ -387,26 +399,26 @@ internal class MessageProcessor
         if (score > 0.3)
         {
             var reason = $"ML решил что это спам, скор {score}";
-            if (score > 3 && _config.HighConfidenceAutoBan)
+            if (score > 3 && _config.HighConfidenceAutoBan && !_config.MarketologsChats.Contains(chat.Id))
             {
                 await AutoBan(message, reason, stoppingToken);
+                return;
+            }
+            if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            {
+                var spamCheck = await _aiChecks.GetSpamProbability(message);
+
+                if (_config.MarketologsChats.Contains(chat.Id))
+                    await DontDeleteButReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                else if (spamCheck.Probability >= Consts.LlmHighProbability)
+                    await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                else
+                    await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
             }
             else
             {
-                if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
-                {
-                    var spamCheck = await _aiChecks.GetSpamProbability(message);
-                    if (spamCheck.Probability >= Consts.LlmHighProbability)
-                        await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                    else
-                        await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                }
-                else
-                {
-                    await DeleteAndReportMessage(message, reason, stoppingToken);
-                }
+                await DeleteAndReportMessage(message, reason, stoppingToken);
             }
-            return;
         }
 
         var userAttentionSpammer = false;
@@ -476,11 +488,15 @@ internal class MessageProcessor
                 var bioInvite = bio.Contains("t.me/+");
                 var bioObscured = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(bio).Count > 0;
 
-                bool highErotic = attention.EroticProbability >= Consts.LlmHighProbability || (replyToRecentPost && attention.EroticProbability >= Consts.LlmLowProbability);
+                bool highErotic =
+                    attention.EroticProbability >= Consts.LlmHighProbability
+                    || (replyToRecentPost && attention.EroticProbability >= Consts.LlmLowProbability);
                 bool highGambling = attention.GamblingProbability >= Consts.LlmHighProbability;
                 bool highNonHuman = attention.NonPersonProbability >= Consts.LlmHighProbability;
                 bool highSelfPromo = (attention.SelfPromotionProbability >= Consts.LlmHighProbability && (bioInvite || bioObscured));
                 var delete = highErotic || highGambling || highNonHuman || highSelfPromo;
+                if (_config.MarketologsChats.Contains(chat.Id))
+                    delete = highErotic || highGambling;
 
                 var at = user.Username == null ? "" : $" @{user.Username} ";
                 var msg = "Сообщение НЕ удалено";
@@ -498,13 +514,17 @@ internal class MessageProcessor
                 }
 
                 if (attention.EroticProbability >= Consts.LlmLowProbability)
-                    msg += $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
+                    msg +=
+                        $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
                 if (attention.GamblingProbability >= Consts.LlmLowProbability)
-                    msg += $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок: {attention.GamblingProbability * 100}%";
+                    msg +=
+                        $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок: {attention.GamblingProbability * 100}%";
                 if (attention.NonPersonProbability >= Consts.LlmLowProbability)
-                    msg += $"{Environment.NewLine}Вероятность что этот профиль не человека, а бизнес-аккаунта:  {attention.NonPersonProbability * 100} %";
+                    msg +=
+                        $"{Environment.NewLine}Вероятность что этот профиль не человека, а бизнес-аккаунта:  {attention.NonPersonProbability * 100} %";
                 if (attention.SelfPromotionProbability >= Consts.LlmLowProbability)
-                    msg += $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
+                    msg +=
+                        $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
                 msg = $"{msg}{Environment.NewLine}{attention.Reason}";
 
                 await _bot.SendMessage(
@@ -535,7 +555,7 @@ internal class MessageProcessor
             if (spamCheck.Probability >= Consts.LlmLowProbability)
             {
                 var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
-                if (spamCheck.Probability >= Consts.LlmHighProbability)
+                if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                     await DeleteAndReportMessage(message, reason, stoppingToken);
                 else
                     await DontDeleteButReportMessage(message, reason, stoppingToken);

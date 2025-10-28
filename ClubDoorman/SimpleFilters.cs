@@ -7,8 +7,7 @@ public static class SimpleFilters
     private static readonly string[] StopWords = File.ReadAllLines("data/stop-words.txt");
     private static readonly string[] HelloWordsStop = ["привет", "hi", "hello", "الو", "سلام"];
 
-    public static bool HasOnlyHelloWord(string message) =>
-        HelloWordsStop.Any(sw => message == sw);
+    public static bool HasOnlyHelloWord(string message) => HelloWordsStop.Any(sw => message == sw);
 
     public static bool HasStopWords(string message) =>
         StopWords.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
@@ -91,7 +90,21 @@ public static class SimpleFilters
         return false;
     }
 
-    private static readonly List<string> _usernameBlacklist = ["Василиса", "Vasilisa", "Юлия", "Регина", "Аглая", "Аврора", "Alina", "Кристина", "Стефания", "Алиночка", "Варвара"];
+    private static readonly List<string> _usernameBlacklist =
+    [
+        "Василиса",
+        "Vasilisa",
+        "Юлия",
+        "Регина",
+        "Аглая",
+        "Аврора",
+        "Alina",
+        "Кристина",
+        "Стефания",
+        "Алиночка",
+        "Варвара",
+    ];
+
     public static bool InUsernameSuspiciousList(string name) => _usernameBlacklist.Contains(name);
 
     public static List<string> FindAllRussianWordsWithLookalikeSymbols(string message) =>
