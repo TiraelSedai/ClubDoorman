@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
@@ -30,7 +31,11 @@ internal class CaptchaManager
     private readonly Config _config;
     private readonly ILogger<CaptchaManager> _logger;
 
-    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "ponr", "bot", "child", "chlid"];
+    [GeneratedRegex(".*p|п.*о|o|0.*([rрp].*[нn]|[нn].*[rрp]).*", RegexOptions.IgnoreCase)]
+    private static partial Regex _pornRegex();
+
+    [GeneratedRegex(".*b[oо0]t.*", RegexOptions.IgnoreCase)]
+    private static partial Regex _botRegex();
 
     public CaptchaManager(
         ITelegramBotClient bot,
@@ -161,7 +166,11 @@ internal class CaptchaManager
         var fullName = Utils.FullName(user);
         var fullNameLower = fullName.ToLowerInvariant();
         var usernameLower = user.Username?.ToLower();
-        if (_namesBlacklist.Any(fullNameLower.Contains) || (usernameLower != null && _namesBlacklist.Any(x => x == usernameLower)))
+        if (
+            _pornRegex().IsMatch(fullNameLower)
+            || _botRegex().IsMatch(fullNameLower)
+            || (usernameLower != null && (_pornRegex().IsMatch(usernameLower) || _botRegex().IsMatch(usernameLower)))
+        )
             fullName = "новый участник чата";
 
         try
