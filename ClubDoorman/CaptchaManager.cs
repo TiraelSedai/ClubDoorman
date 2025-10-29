@@ -31,7 +31,7 @@ internal partial class CaptchaManager
     private readonly Config _config;
     private readonly ILogger<CaptchaManager> _logger;
 
-    [GeneratedRegex(".*p|п.*о|o|0.*([rрp].*[нn]|[нn].*[rрp]).*", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(".*p|п.*о|o|0.*([rрp].*[hнn]|[hнn].*[rрp]).*", RegexOptions.IgnoreCase)]
     private static partial Regex _pornRegex();
 
     [GeneratedRegex(".*b[oо0]t.*", RegexOptions.IgnoreCase)]
