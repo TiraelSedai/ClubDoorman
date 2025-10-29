@@ -43,7 +43,7 @@ public class Tests
     [TestCase("♥️", true, TestName = "heart")]
     [TestCase("🩷", true, TestName = "heart2")]
     [TestCase("💧", true, TestName = "droplet")]
-    [TestCase("💧", true, TestName = "droplet")]
+    [TestCase("⁉️", true, TestName = "exclamation_question")]
     [TestCase("Поздравляю! 🔥🔥🔥", false, TestName = "three emoji")]
     [TestCase(
         "✅Получению водительских прав (новые или дубликат);\r\n✅Открытие категории;\r\n✅Миграционка;\r\n✅Регистратура;\r\n✅Патент;\r\n✅Чек;\r\n✅Мед книжка;\r\n✅Мед карта;",

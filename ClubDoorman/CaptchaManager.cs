@@ -10,7 +10,7 @@ using static Telegram.Bot.Extensions.Markdown;
 
 namespace ClubDoorman;
 
-internal class CaptchaManager
+internal partial class CaptchaManager
 {
     private sealed class CaptchaInfo
     {
