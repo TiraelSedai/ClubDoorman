@@ -332,7 +332,7 @@ internal class AiChecks
             var wait = TimeSpan.Zero;
             for (var i = 1; i <= 3; i++)
             {
-                wait += TimeSpan.FromMinutes(5 * i);
+                wait += TimeSpan.FromMinutes(Math.Exp(i) / 2);
                 await Task.Delay(wait);
                 var chat = await _bot.GetChat(userChat.Id);
                 if (chat.Photo?.BigFileUniqueId != userChat.Photo?.BigFileUniqueId)
