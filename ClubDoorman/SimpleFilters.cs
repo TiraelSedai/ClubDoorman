@@ -92,17 +92,19 @@ public static class SimpleFilters
 
     private static readonly List<string> _usernameBlacklist =
     [
+        "Аврора",
+        "Алиночка",
+        "Анечка",
+        "Аглая",
+        "Alina",
+        "Варвара",
         "Василиса",
         "Vasilisa",
-        "Юлия",
-        "Регина",
-        "Аглая",
-        "Аврора",
-        "Alina",
         "Кристина",
+        "Регина",
+        "Стася",
         "Стефания",
-        "Алиночка",
-        "Варвара",
+        "Юлия",
     ];
 
     public static bool InUsernameSuspiciousList(string name) => _usernameBlacklist.Contains(name);
