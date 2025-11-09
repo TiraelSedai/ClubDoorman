@@ -510,13 +510,13 @@ internal class MessageProcessor
                 {
                     msg = "Даём ридонли на 10 минут. Сообщение УДАЛЕНО, причина: ";
                     if (highErotic)
-                        msg += "подозрение на эротику";
+                        msg += "подозрение на эротику\n";
                     if (highGambling)
-                        msg += "подозрение на быстрый заработок";
+                        msg += "подозрение на быстрый заработок\n";
                     if (highNonHuman)
-                        msg += "подозрение на бизнес-аккаунт";
+                        msg += "подозрение на бизнес-аккаунт\n";
                     if (highSelfPromo)
-                        msg += "подозрение на селф-промо и ссылка на вступление в группу или маскировочные буквы в био";
+                        msg += "подозрение на селф-промо и ссылка на вступление в группу или маскировочные буквы в био\n";
                 }
 
                 if (attention.EroticProbability >= Consts.LlmLowProbability)
@@ -533,13 +533,30 @@ internal class MessageProcessor
                         $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
                 msg = $"{msg}{Environment.NewLine}{attention.Reason}";
 
-                await _bot.SendMessage(
-                    admChat,
-                    msg,
-                    replyMarkup: new InlineKeyboardMarkup(keyboard),
-                    replyParameters: null,
+                var reportCacheKey = $"user_reported_{chat.Id}_{user.Id}";
+                var shouldReport = await _hybridCache.GetOrCreateAsync(
+                    reportCacheKey,
+                    _ => ValueTask.FromResult(true),
+                    new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(8) },
                     cancellationToken: stoppingToken
                 );
+
+                if (shouldReport)
+                {
+                    await _bot.SendMessage(
+                        admChat,
+                        msg,
+                        replyMarkup: new InlineKeyboardMarkup(keyboard),
+                        replyParameters: null,
+                        cancellationToken: stoppingToken
+                    );
+                    await _hybridCache.SetAsync(
+                        reportCacheKey,
+                        false,
+                        new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(8) },
+                        cancellationToken: stoppingToken
+                    );
+                }
 
                 if (delete)
                 {

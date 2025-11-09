@@ -1,4 +1,4 @@
-﻿namespace ClubDoorman;
+namespace ClubDoorman;
 
 public static class Captcha
 {
