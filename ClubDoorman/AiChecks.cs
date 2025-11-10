@@ -488,10 +488,10 @@ internal class AiChecks
 
                     var fullPrompt = new StringBuilder();
                     fullPrompt.AppendLine(promt);
-                    fullPrompt.AppendLine();
+                    fullPrompt.AppendLine("###");
                     fullPrompt.AppendLine("Контекст сообщения:");
                     fullPrompt.AppendLine(contextBuilder.ToString());
-                    fullPrompt.AppendLine();
+                    fullPrompt.AppendLine("###");
                     fullPrompt.AppendLine($"Само сообщение, которое нужно проанализировать:\n{text}");
 
                     var fpString = fullPrompt.ToString();
