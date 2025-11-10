@@ -326,9 +326,11 @@ internal class AiChecks
         );
     }
 
-    private async ValueTask<(string?, ChatFullInfo?)> GetChatInfoAsync(long chatId, CancellationToken ct = default)
+    internal record ChatDescription(string Description, long? ChannelId);
+
+    private async ValueTask<ChatDescription?> GetChatInfoAsync(long chatId, CancellationToken ct = default)
     {
-        return await _hybridCache.GetOrCreateAsync(
+        return await _hybridCache.GetOrCreateAsync<ChatDescription?>(
             ChatInfoCacheKey(chatId),
             async ct =>
             {
@@ -340,12 +342,12 @@ internal class AiChecks
                     if (chat.Description != null)
                         info.AppendLine($"Описание чата: {chat.Description}");
 
-                    return (info.ToString(), chat);
+                    return new(info.ToString(), chat.LinkedChatId);
                 }
                 catch (Exception e)
                 {
                     _logger.LogWarning(e, "Failed to get chat info for {ChatId}", chatId);
-                    return ((string?)null, (ChatFullInfo?)null);
+                    return null;
                 }
             },
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
@@ -445,15 +447,16 @@ internal class AiChecks
                 {
                     var contextBuilder = new StringBuilder();
 
-                    var (chatInfoText, chat) = await GetChatInfoAsync(message.Chat.Id, ct);
-                    if (chatInfoText != null && chat != null)
+                    var info = await GetChatInfoAsync(message.Chat.Id, ct);
+                    if (info != null)
                     {
+                        var (chatInfoText, linked) = info;
                         contextBuilder.AppendLine(chatInfoText);
                         try
                         {
-                            if (chat.LinkedChatId.HasValue)
+                            if (linked.HasValue)
                             {
-                                var linkedChannelInfo = await GetLinkedChannelInfoAsync(chat.LinkedChatId.Value, ct);
+                                var linkedChannelInfo = await GetLinkedChannelInfoAsync(linked.Value, ct);
                                 contextBuilder.AppendLine(linkedChannelInfo);
                             }
                         }
