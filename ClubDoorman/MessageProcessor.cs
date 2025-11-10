@@ -829,12 +829,10 @@ internal class MessageProcessor
         if (message.ReplyToMessage != null)
             reply = $"{Environment.NewLine}реплай на {Utils.LinkToMessage(message.Chat, message.ReplyToMessage.MessageId)}";
 
-        var row = new List<InlineKeyboardButton>(
-            [
-                new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackDataBan },
-                new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" },
-            ]
-        );
+        var row = new List<InlineKeyboardButton>([
+            new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackDataBan },
+            new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" },
+        ]);
         if (_config.ApproveButtonEnabled)
             row.Add(new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{user.Id}" });
 

@@ -43,7 +43,9 @@ internal class AiChecks
     private readonly ILogger<AiChecks> _logger;
 
     private static string CacheKey(long userId) => $"attention:{userId}";
+
     private static string ChatInfoCacheKey(long chatId) => $"chat_info:{chatId}";
+
     private static string LinkedChannelInfoCacheKey(long channelId) => $"linked_channel_info:{channelId}";
 
     public async Task MarkUserOkay(long userId, CancellationToken ct = default)
