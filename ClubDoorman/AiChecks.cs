@@ -471,7 +471,7 @@ internal class AiChecks
                             if (message.ReplyToMessage?.IsAutomaticForward == true)
                                 contextBuilder.AppendLine($"Пост в канале, на который отвечают: {text}");
                             else
-                                contextBuilder.AppendLine($"Сообщение, на которое отвечают): {text}");
+                                contextBuilder.AppendLine($"Сообщение, на которое отвечают: {text}");
                         }
                     }
 
