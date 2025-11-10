@@ -43,6 +43,8 @@ internal class AiChecks
     private readonly ILogger<AiChecks> _logger;
 
     private static string CacheKey(long userId) => $"attention:{userId}";
+    private static string ChatInfoCacheKey(long chatId) => $"chat_info:{chatId}";
+    private static string LinkedChannelInfoCacheKey(long channelId) => $"linked_channel_info:{channelId}";
 
     public async Task MarkUserOkay(long userId, CancellationToken ct = default)
     {
@@ -114,15 +116,15 @@ internal class AiChecks
         return new SpamPhotoBio(probability, pic, Utils.FullName(user));
     }
 
-    public ValueTask<SpamPhotoBio> GetAttentionBaitProbability(
+    public async ValueTask<SpamPhotoBio> GetAttentionBaitProbability(
         Telegram.Bot.Types.User user,
         Func<string, Task>? ifChanged = default,
         bool checkJustErotic = false
     )
     {
         if (_api == null)
-            return ValueTask.FromResult(new SpamPhotoBio(new BioClassProbability(), [], ""));
-        return _hybridCache.GetOrCreateAsync(
+            return new SpamPhotoBio(new BioClassProbability(), [], "");
+        return await _hybridCache.GetOrCreateAsync(
             CacheKey(user.Id),
             async ct =>
             {
@@ -322,6 +324,60 @@ internal class AiChecks
         );
     }
 
+    private async ValueTask<(string?, ChatFullInfo?)> GetChatInfoAsync(long chatId, CancellationToken ct = default)
+    {
+        return await _hybridCache.GetOrCreateAsync(
+            ChatInfoCacheKey(chatId),
+            async ct =>
+            {
+                try
+                {
+                    var chat = await _bot.GetChat(chatId, cancellationToken: ct);
+                    var info = new StringBuilder();
+                    info.AppendLine($"Чат: {chat.Title}");
+                    if (chat.Description != null)
+                        info.AppendLine($"Описание чата: {chat.Description}");
+
+                    return (info.ToString(), chat);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Failed to get chat info for {ChatId}", chatId);
+                    return ((string?)null, (ChatFullInfo?)null);
+                }
+            },
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
+            cancellationToken: ct
+        );
+    }
+
+    private async ValueTask<string> GetLinkedChannelInfoAsync(long channelId, CancellationToken ct = default)
+    {
+        return await _hybridCache.GetOrCreateAsync(
+            LinkedChannelInfoCacheKey(channelId),
+            async ct =>
+            {
+                try
+                {
+                    var linkedChat = await _bot.GetChat(channelId, cancellationToken: ct);
+                    var info = new StringBuilder();
+                    info.AppendLine($"Этот чат - чат обсуждения для канала: {linkedChat.Title}");
+                    if (linkedChat.Description != null)
+                        info.AppendLine($"Описание канала: {linkedChat.Description}");
+
+                    return info.ToString();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Failed to get linked channel info for {ChannelId}", channelId);
+                    return string.Empty;
+                }
+            },
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
+            cancellationToken: ct
+        );
+    }
+
     private async Task CheckLater(ChatFullInfo userChat, Func<string, Task> ifChanged)
     {
         try
@@ -368,23 +424,52 @@ internal class AiChecks
         }
     }
 
-    public ValueTask<SpamProbability> GetSpamProbability(Message message)
+    public async ValueTask<SpamProbability> GetSpamProbability(Message message)
     {
         var probability = new SpamProbability();
         if (_api == null)
-            return ValueTask.FromResult(probability);
+            return probability;
 
         var text = message.Caption ?? message.Text;
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
         var cacheKey = $"llm_spam_prob:{ShaHelper.ComputeSha256Hex(text)}";
 
-        return _hybridCache.GetOrCreateAsync(
+        return await _hybridCache.GetOrCreateAsync(
             cacheKey,
             async ct =>
             {
                 try
                 {
+                    var contextBuilder = new StringBuilder();
+
+                    var (chatInfoText, chat) = await GetChatInfoAsync(message.Chat.Id, ct);
+                    if (chatInfoText != null && chat != null)
+                    {
+                        contextBuilder.AppendLine(chatInfoText);
+                        try
+                        {
+                            if (chat.LinkedChatId.HasValue)
+                            {
+                                var linkedChannelInfo = await GetLinkedChannelInfoAsync(chat.LinkedChatId.Value, ct);
+                                contextBuilder.AppendLine(linkedChannelInfo);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Failed to get linked channel for chat {ChatId}", message.Chat.Id);
+                        }
+
+                        var text = message.ReplyToMessage?.Text ?? message.ReplyToMessage?.Caption;
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            if (message.ReplyToMessage?.IsAutomaticForward == true)
+                                contextBuilder.AppendLine($"Пост в канале, на который отвечают: {text}");
+                            else
+                                contextBuilder.AppendLine($"Сообщение, на которое отвечают): {text}");
+                        }
+                    }
+
                     byte[]? imageBytes = null;
                     if (message.Photo != null)
                     {
@@ -394,12 +479,23 @@ internal class AiChecks
                     }
 
                     var promt =
-                        $"Проанализируй, выглядит ли это сообщение как спам или мошенничество, созданное с целью привлечения внимания и продвижения. Отвечай вероятностью от 0 до 1. Частые примеры: казино, гэмблинг, наркотики, эротика, порно, сексуализированные сообщения, схема заработка с обещаниями высокой прибыли, схема заработка без подробностей, неофициальное трудоустройство, срочный набор на работу, NFT, крипто, призыв перейти по ссылке, призыв писать в личные сообщения, услуги рассылки и продвижения, выпрашивание денег под жалобным предлогом, предложение поделиться ресурсами и книгами по трейдингу или инвестициям, промокоды, реклама, увеличение трафика или потока клиентов, подарочные сертификаты и другие цифровые промокоды со скидкой. Сообщение:\n";
+                        $"Проанализируй, выглядит ли это сообщение как спам или мошенничество, созданное с целью привлечения внимания и продвижения. Отвечай вероятностью от 0 до 1. Частые примеры: казино, гэмблинг, наркотики, эротика, порно, сексуализированные сообщения, схема заработка с обещаниями высокой прибыли, схема заработка без подробностей, неофициальное трудоустройство, срочный набор на работу, NFT, крипто, призыв перейти по ссылке, призыв писать в личные сообщения, услуги рассылки и продвижения, выпрашивание денег под жалобным предлогом, предложение поделиться ресурсами и книгами по трейдингу или инвестициям, промокоды, реклама, увеличение трафика или потока клиентов, подарочные сертификаты и другие цифровые промокоды со скидкой. Обрати внимание если язык на котором общаются в чате и язык сообщения не совпадают (например, в чате пишут по-русски, а в сообщении 'привет' по-арабски).";
+
+                    var fullPrompt = new StringBuilder();
+                    fullPrompt.AppendLine(promt);
+                    fullPrompt.AppendLine();
+                    fullPrompt.AppendLine("Контекст сообщения:");
+                    fullPrompt.AppendLine(contextBuilder.ToString());
+                    fullPrompt.AppendLine();
+                    fullPrompt.AppendLine($"Само сообщение, которое нужно проанализировать:\n{text}");
+
+                    var fpString = fullPrompt.ToString();
+                    _logger.LogDebug("Spam prompt {Prompt}", fpString);
 
                     var messages = new List<ChatCompletionRequestMessage>
                     {
                         "Ты — модератор Telegram-группы, оценивающий сообщения в чате на спам, мошенничество и продвижения сторонних ресурсов или услуг".AsSystemMessage(),
-                        (promt + text).AsUserMessage(),
+                        fpString.AsUserMessage(),
                     };
                     if (imageBytes != null)
                         messages.Add(
