@@ -475,26 +475,34 @@ internal class MessageProcessor
                 if (message.ReplyToMessage != null)
                     text = $"{text}{Environment.NewLine}реплай на {Utils.LinkToMessage(message.Chat, message.ReplyToMessage.MessageId)}";
 
-                if (photo.Length != 0)
-                {
-                    using var ms = new MemoryStream(photo);
-                    var photoMsg = await _bot.SendPhoto(
-                        admChat,
-                        new InputFileStream(ms),
-                        $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
-                        cancellationToken: stoppingToken
-                    );
-                    replyParams = photoMsg;
-                }
-                else
-                {
-                    var textMsg = await _bot.SendMessage(
-                        admChat,
-                        $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
-                        cancellationToken: stoppingToken
-                    );
-                    replyParams = textMsg;
-                }
+                var reportCacheKey = $"user_reported_{chat.Id}_{user.Id}";
+                var shouldReport = await _hybridCache.GetOrCreateAsync(
+                    reportCacheKey,
+                    _ => ValueTask.FromResult(true),
+                    new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(8) },
+                    cancellationToken: stoppingToken
+                );
+                if (shouldReport)
+                    if (photo.Length != 0)
+                    {
+                        using var ms = new MemoryStream(photo);
+                        var photoMsg = await _bot.SendPhoto(
+                            admChat,
+                            new InputFileStream(ms),
+                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
+                            cancellationToken: stoppingToken
+                        );
+                        replyParams = photoMsg;
+                    }
+                    else
+                    {
+                        var textMsg = await _bot.SendMessage(
+                            admChat,
+                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
+                            cancellationToken: stoppingToken
+                        );
+                        replyParams = textMsg;
+                    }
 
                 if (replyToRecentPost)
                     _logger.LogDebug("It's a reply to recent post, high alert");
@@ -540,21 +548,13 @@ internal class MessageProcessor
                         $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
                 msg = $"{msg}{Environment.NewLine}{attention.Reason}";
 
-                var reportCacheKey = $"user_reported_{chat.Id}_{user.Id}";
-                var shouldReport = await _hybridCache.GetOrCreateAsync(
-                    reportCacheKey,
-                    _ => ValueTask.FromResult(true),
-                    new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(8) },
-                    cancellationToken: stoppingToken
-                );
-
                 if (shouldReport)
                 {
                     await _bot.SendMessage(
                         admChat,
                         msg,
                         replyMarkup: new InlineKeyboardMarkup(keyboard),
-                        replyParameters: null,
+                        replyParameters: replyParams,
                         cancellationToken: stoppingToken
                     );
                     await _hybridCache.SetAsync(
@@ -717,21 +717,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
