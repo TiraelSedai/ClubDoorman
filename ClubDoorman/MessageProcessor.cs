@@ -104,10 +104,15 @@ internal class MessageProcessor
         {
             await _bot.SendMessage(
                 chat,
-                "Сорян, я не отвечаю в личке, если вы хотели написать создателю - в описании",
+                "Привет, я бот-антиспам. Для базовой защиты - просто добавь меня в группу и сделай админом. Для продвинутой - пиши @TiraelSedai",
                 replyParameters: message,
                 cancellationToken: stoppingToken
             );
+            return;
+        }
+        if (message.LeftChatMember != null)
+        {
+            await _bot.DeleteMessage(message.Chat, message.Id);
             return;
         }
         if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
