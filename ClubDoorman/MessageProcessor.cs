@@ -414,11 +414,18 @@ internal class MessageProcessor
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
 
                 if (_config.MarketologsChats.Contains(chat.Id))
+                {
                     await DontDeleteButReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                }
                 else if (spamCheck.Probability >= Consts.LlmHighProbability)
+                {
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                }
                 else
-                    await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                {
+                    var llmScore = $"{Environment.NewLine}LLM оценивает вероятность спама в {spamCheck.Probability * 100}%:";
+                    await DeleteAndReportMessage(message, $"{reason}{llmScore}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                }
             }
             else
             {
