@@ -468,6 +468,7 @@ internal class AiChecks
                         var text = message.ReplyToMessage?.Text ?? message.ReplyToMessage?.Caption;
                         if (!string.IsNullOrEmpty(text))
                         {
+                            contextBuilder.AppendLine("###");
                             if (message.ReplyToMessage?.IsAutomaticForward == true)
                                 contextBuilder.AppendLine("Пост в канале, на который отвечают:");
                             else
