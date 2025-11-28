@@ -188,6 +188,8 @@ internal class MessageProcessor
 
         var user = message.From!;
         var text = message.Text ?? message.Caption;
+        if (user.Id == _me.Id)
+            return;
 
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
@@ -722,21 +724,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
