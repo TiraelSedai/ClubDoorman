@@ -125,6 +125,9 @@ internal partial class CaptchaManager
         if (_optoutChats.ContainsKey(chatId))
             return;
 
+        if (_config.CaptchaDisabledChats.Contains(chatId))
+            return;
+
         var key = UserToKey(chatId, user);
 
         var justAdded = _captchaNeededUsers.TryAdd(key, new CaptchaInfo() { Timestamp = DateTime.MaxValue, User = user });
