@@ -62,11 +62,11 @@ internal class ReactionHandler
         {
             cache = reactionCache;
         }
-        cache.ReactionCount++;
+        var count = Interlocked.Increment(ref cache.ReactionCount);
 
-        if (cache.ReactionCount <= 1 && _config.MultiAdminChatMap.ContainsKey(chat.Id))
+        if (count <= 1 && _config.MultiAdminChatMap.ContainsKey(chat.Id))
         {
-            _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", cache.ReactionCount, Utils.FullName(user), chat.Title);
+            _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", count, Utils.FullName(user), chat.Title);
             var admChat = _config.GetAdminChat(chat.Id);
             var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user, null, true);
             _logger.LogDebug("Reaction bait spam probability {Prob}", attention.EroticProbability);
