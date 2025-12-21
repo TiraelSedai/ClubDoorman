@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-using CsvHelper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.Transforms.Text;
@@ -25,17 +23,18 @@ internal class MessagePrediction : MessageData
 
 public class SpamHamClassifier
 {
-    public SpamHamClassifier(ILogger<SpamHamClassifier> logger)
+    public SpamHamClassifier(ILogger<SpamHamClassifier> logger, IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
         Task.Run(Train);
         Task.Run(RetrainLoop);
     }
 
-    private const string SpamHamDataset = "data/spam-ham.txt";
     private readonly SemaphoreSlim _datasetLock = new(1);
     private readonly Lock _predictionLock = new();
     private readonly ILogger<SpamHamClassifier> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly MLContext _mlContext = new();
     private PredictionEngine<MessageData, MessagePrediction>? _engine;
     private bool _needsRetraining;
@@ -74,11 +73,11 @@ public class SpamHamClassifier
     private async Task AddSpamHam(string message, bool spam)
     {
         message = message.ReplaceLineEndings(" ");
-        message = message.Replace("\"", "\"\"");
-        message = $"\"{message}\", {spam}";
         using var token = await SemaphoreHelper.AwaitAsync(_datasetLock);
-        var utf8WithoutBom = new UTF8Encoding(false);
-        await File.AppendAllLinesAsync(SpamHamDataset, [message], utf8WithoutBom);
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.SpamHamRecords.Add(new SpamHamRecord { Text = message, IsSpam = spam });
+        await db.SaveChangesAsync();
         _needsRetraining = true;
     }
 
@@ -90,10 +89,11 @@ public class SpamHamClassifier
             var sw = Stopwatch.StartNew();
             var stopWords = (await File.ReadAllTextAsync("data/exclude-tokens.txt")).Split(',').Select(x => x.Trim()).ToArray();
 
-            List<MessageData> dataset;
-            using (var reader = new StreamReader(SpamHamDataset))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-                dataset = csv.GetRecords<MessageData>().ToList();
+            using var scope = _serviceScopeFactory.CreateScope();
+            await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var dataset = await db.SpamHamRecords
+                .Select(r => new MessageData { Text = r.Text, Label = r.IsSpam })
+                .ToListAsync();
 
             foreach (var item in dataset)
                 item.Text = TextProcessor.NormalizeText(item.Text);

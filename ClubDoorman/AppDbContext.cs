@@ -8,11 +8,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Stats> Stats { get; init; }
     public DbSet<BlacklistedUser> BlacklistedUsers { get; init; }
     public DbSet<HalfApprovedUser> HalfApprovedUsers { get; init; }
+    public DbSet<SpamHamRecord> SpamHamRecords { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // indexes
     }
+}
+
+public sealed class SpamHamRecord
+{
+    public int Id { get; set; }
+    public required string Text { get; set; }
+    public bool IsSpam { get; set; }
 }
 
 public sealed class BlacklistedUser
