@@ -40,7 +40,7 @@
 
 #### Спасибо
 - https://lols.bot/ за борьбу со спамерами и API для бан-листов
-- https://github.com/umputun/tg-spam/ за некоторые идеи и три четверти датасета
+- https://github.com/umputun/tg-spam/ за некоторые идеи и начальный датасет
 
 ### Translation
 If you're willing to do the heavy lifting of translating all the text of this bot to other languages, please let me know first before running headfirst and creating a PR.

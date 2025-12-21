@@ -1,3 +1,6 @@
+using System.Globalization;
+using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -56,6 +59,7 @@ public class Program
             {
                 using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 db.Database.Migrate();
+                SeedData(db);
             }
 
             await host.RunAsync();
@@ -86,4 +90,34 @@ public class Program
                 File.Copy(sourceFullPath, target);
         }
     }
+
+    private static void SeedData(AppDbContext db)
+    {
+        if (db.SpamHamRecords.Any())
+            return;
+
+        var basePath = AppDomain.CurrentDomain.BaseDirectory;
+        var dataFile = Path.Combine(basePath, "data", "spam-ham.txt");
+        if (!File.Exists(dataFile))
+            return;
+
+        Log.Information("No spam-ham records detected in the database, starting initial seeding from text file");
+        using var reader = new StreamReader(dataFile);
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            PrepareHeaderForMatch = args => args.Header.ToLower(),
+        });
+
+        var records = csv.GetRecords<CsvRow>().Select(r => new SpamHamRecord
+        {
+            Text = r.Text,
+            IsSpam = r.Label
+        });
+
+        db.SpamHamRecords.AddRange(records);
+        db.SaveChanges();
+        Log.Information("Seeded SpamHamRecords from {File}", dataFile);
+    }
+
+    private sealed record CsvRow(string Text, bool Label);
 }
