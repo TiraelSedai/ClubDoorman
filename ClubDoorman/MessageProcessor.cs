@@ -160,13 +160,6 @@ internal class MessageProcessor
                         await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
                         var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
                         stats.Channels++;
-                        if (_config.NonFreeChat(chat.Id))
-                            await _bot.SendMessage(
-                                _config.AdminChatId,
-                                $"Сообщение удалено, в чате {chat.Title} забанен канал {message.SenderChat.Title}",
-                                replyParameters: fwd!,
-                                cancellationToken: stoppingToken
-                            );
                     }
                     catch (Exception e)
                     {
