@@ -663,6 +663,15 @@ internal class MessageProcessor
                 }
             }
 
+            var fullName = Utils.FullName(user);
+            var lookalikeInName = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(fullName);
+            if (lookalikeInName.Count > 0)
+            {
+                var reason = $"В имени пользователя найдены слова с маскирующимися символами: {string.Join(", ", lookalikeInName)}";
+                await DontDeleteButReportMessage(message, reason, stoppingToken);
+                return;
+            }
+
             var goodInteractions = _goodUserMessages.AddOrUpdate(user.Id, 1, (_, oldValue) => oldValue + 1);
             if (goodInteractions >= 3)
             {

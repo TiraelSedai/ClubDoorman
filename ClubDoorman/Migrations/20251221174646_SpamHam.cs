@@ -14,22 +14,21 @@ namespace ClubDoorman.Migrations
                 name: "SpamHamRecords",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                    Id = table.Column<int>(type: "INTEGER", nullable: false).Annotation("Sqlite:Autoincrement", true),
                     Text = table.Column<string>(type: "TEXT", nullable: false),
-                    IsSpam = table.Column<bool>(type: "INTEGER", nullable: false)
+                    IsSpam = table.Column<bool>(type: "INTEGER", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SpamHamRecords", x => x.Id);
-                });
+                }
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "SpamHamRecords");
+            migrationBuilder.DropTable(name: "SpamHamRecords");
         }
     }
 }

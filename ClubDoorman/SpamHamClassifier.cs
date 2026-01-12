@@ -91,9 +91,7 @@ public class SpamHamClassifier
 
             using var scope = _serviceScopeFactory.CreateScope();
             await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var dataset = await db.SpamHamRecords
-                .Select(r => new MessageData { Text = r.Text, Label = r.IsSpam })
-                .ToListAsync();
+            var dataset = await db.SpamHamRecords.Select(r => new MessageData { Text = r.Text, Label = r.IsSpam }).ToListAsync();
 
             foreach (var item in dataset)
                 item.Text = TextProcessor.NormalizeText(item.Text);
