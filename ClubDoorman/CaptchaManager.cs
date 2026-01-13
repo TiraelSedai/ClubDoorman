@@ -19,7 +19,6 @@ internal partial class CaptchaManager
         public required User User { get; set; }
         public int CorrectAnswer { get; set; }
         public CancellationTokenSource Cts { get; } = new();
-        public Message? UserJoinedMessage { get; set; }
     }
 
     private readonly ConcurrentDictionary<string, CaptchaInfo> _captchaNeededUsers = new();
@@ -101,13 +100,11 @@ internal partial class CaptchaManager
             var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
             stats.StoppedCaptcha++;
             await _bot.BanChatMember(chat, userId, DateTime.UtcNow + TimeSpan.FromMinutes(10), revokeMessages: false);
-            if (info.UserJoinedMessage != null)
-                await _bot.DeleteMessage(chat, info.UserJoinedMessage.MessageId);
             UnbanUserLater(chat, userId);
         }
     }
 
-    public async ValueTask IntroFlow(Message? userJoinMessage, User user, Chat? chat = default)
+    public async ValueTask IntroFlow(User user, Chat chat)
     {
         if (_userManager.Approved(user.Id))
             return;
@@ -115,11 +112,9 @@ internal partial class CaptchaManager
         if (clubUser != null)
             return;
 
-        chat = userJoinMessage?.Chat ?? chat;
-        Debug.Assert(chat != null);
         var chatId = chat.Id;
 
-        if (await BanIfBlacklisted(user, userJoinMessage?.Chat ?? chat))
+        if (await BanIfBlacklisted(user, chat))
             return;
 
         if (_optoutChats.ContainsKey(chatId))
@@ -135,11 +130,6 @@ internal partial class CaptchaManager
         if (!justAdded)
         {
             _logger.LogDebug("This user is already awaiting captcha challenge");
-            if (userJoinMessage != null)
-            {
-                captchaInfo.UserJoinedMessage = userJoinMessage;
-                DeleteMessageLater(userJoinMessage, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
-            }
             return;
         }
 
@@ -157,10 +147,6 @@ internal partial class CaptchaManager
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"cap_{user.Id}_{x}" })
             .ToList();
 
-        ReplyParameters? replyParams = null;
-        if (userJoinMessage != null)
-            replyParams = userJoinMessage;
-
         var fullName = Utils.FullName(user);
         var fullNameLower = fullName.ToLowerInvariant();
         var usernameLower = user.Username?.ToLower();
@@ -173,7 +159,6 @@ internal partial class CaptchaManager
                 chatId,
                 $"Привет, [{Escape(fullName)}](tg://user?id={user.Id})! Антиспам: на какой кнопке {Captcha.CaptchaList[correctAnswer].Description}?",
                 parseMode: ParseMode.Markdown,
-                replyParameters: replyParams,
                 replyMarkup: new InlineKeyboardMarkup(keyboard)
             );
             DeleteMessageLater(del, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
@@ -189,11 +174,6 @@ internal partial class CaptchaManager
         captchaInfo.ChatTitle = chat.Title;
         captchaInfo.Timestamp = DateTime.UtcNow;
         captchaInfo.CorrectAnswer = correctAnswer;
-        if (userJoinMessage != null)
-        {
-            captchaInfo.UserJoinedMessage = userJoinMessage;
-            DeleteMessageLater(userJoinMessage, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
-        }
 
         return;
     }

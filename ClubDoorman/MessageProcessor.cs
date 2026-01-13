@@ -117,8 +117,8 @@ internal class MessageProcessor
         }
         if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
-            foreach (var newUser in message.NewChatMembers.Where(x => !x.IsBot))
-                await _captchaManager.IntroFlow(message, newUser);
+            foreach (var newUser in message.NewChatMembers)
+                _bot.DeleteMessage(message.Chat, message.Id, stoppingToken);
             return;
         }
         if (chat.Id == _config.AdminChatId || _config.MultiAdminChatMap.Values.Contains(chat.Id))
@@ -737,7 +737,7 @@ internal class MessageProcessor
                         newChatMember.User.Username,
                         newChatMember.User.Id
                     );
-                    await _captchaManager.IntroFlow(null, newChatMember.User, chatMember.Chat);
+                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
                 }
                 break;
             }
