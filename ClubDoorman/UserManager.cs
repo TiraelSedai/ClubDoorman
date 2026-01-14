@@ -134,6 +134,7 @@ internal sealed class UserManager
         var count = await db.BlacklistedUsers.Where(x => x.Id == userId).ExecuteDeleteAsync(cancellationToken: ct);
         await db.SaveChangesAsync(ct);
         await _cache.RemoveAsync(key, ct);
+        await Approve([userId]);
     }
 
     private async ValueTask<bool> GetUserBanned(long userId)
