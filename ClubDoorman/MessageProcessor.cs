@@ -117,8 +117,7 @@ internal class MessageProcessor
         }
         if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
-            foreach (var newUser in message.NewChatMembers)
-                _bot.DeleteMessage(message.Chat, message.Id, stoppingToken);
+            await _bot.DeleteMessage(message.Chat, message.Id, stoppingToken);
             return;
         }
         if (chat.Id == _config.AdminChatId || _config.MultiAdminChatMap.Values.Contains(chat.Id))
@@ -153,9 +152,6 @@ internal class MessageProcessor
                             _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
                             return;
                         }
-                        Message? fwd = null;
-                        if (_config.NonFreeChat(chat.Id))
-                            fwd = await _bot.ForwardMessage(_config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
                         await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                         await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
                         var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
@@ -726,21 +722,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
