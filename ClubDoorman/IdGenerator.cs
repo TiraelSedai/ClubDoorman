@@ -1,5 +1,3 @@
-using IdGen;
-
 namespace ClubDoorman;
 
 internal static class IdGenerator
