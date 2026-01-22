@@ -1,4 +1,4 @@
-using System.Runtime.Caching;
+using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -13,6 +13,7 @@ internal class AdminCommandHandler
     private readonly Config _config;
     private readonly AiChecks _aiChecks;
     private readonly RecentMessagesStorage _recentMessagesStorage;
+    private readonly HybridCache _hybridCache;
     private readonly ILogger<AdminCommandHandler> _logger;
     private User? _me;
 
@@ -24,6 +25,7 @@ internal class AdminCommandHandler
         Config config,
         AiChecks aiChecks,
         RecentMessagesStorage recentMessagesStorage,
+        HybridCache hybridCache,
         ILogger<AdminCommandHandler> logger
     )
     {
@@ -34,6 +36,7 @@ internal class AdminCommandHandler
         _config = config;
         _aiChecks = aiChecks;
         _recentMessagesStorage = recentMessagesStorage;
+        _hybridCache = hybridCache;
         _logger = logger;
     }
 
@@ -49,11 +52,24 @@ internal class AdminCommandHandler
                     if (!long.TryParse(split[1], out var approveUserId))
                         return;
                     await _userManager.Approve(approveUserId);
-                    await _bot.SendMessage(
-                        admChat,
-                        $"{Utils.FullName(cb.From)} добавил пользователя в список доверенных",
-                        replyParameters: cb.Message?.MessageId
-                    );
+                    var msgText = $"{Utils.FullName(cb.From)} добавил пользователя в список доверенных";
+
+                    if (split.Count > 3 && split[2] == "restore")
+                    {
+                        var restoreKey = $"{split[2]}_{split[3]}";
+                        var deletedInfo = await _hybridCache.GetOrCreateAsync<DeletedMessageInfo?>(
+                            restoreKey,
+                            _ => ValueTask.FromResult<DeletedMessageInfo?>(null),
+                            cancellationToken: default
+                        );
+                        if (deletedInfo != null)
+                        {
+                            if (await RestoreMessage(deletedInfo, cb.Message, admChat))
+                                msgText += " и восстановил сообщение";
+                        }
+                    }
+
+                    await _bot.SendMessage(admChat, msgText, replyParameters: cb.Message?.MessageId);
                     break;
                 case "attOk":
                     if (!long.TryParse(split[1], out var attOkUserId))
@@ -115,6 +131,38 @@ internal class AdminCommandHandler
                             );
                         }
                         await DeleteAllRecentFrom(chatId, fromChannelId);
+                    }
+                    break;
+                case "restore":
+                    {
+                        if (split.Count < 2)
+                            return;
+                        var restoreKey = cbData;
+                        var deletedInfo = await _hybridCache.GetOrCreateAsync<DeletedMessageInfo?>(
+                            restoreKey,
+                            _ => ValueTask.FromResult<DeletedMessageInfo?>(null),
+                            cancellationToken: default
+                        );
+                        if (deletedInfo == null)
+                        {
+                            await _bot.SendMessage(
+                                admChat,
+                                "Не могу восстановить: информация о сообщении не найдена (возможно, истёк срок хранения)",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                            return;
+                        }
+
+                        await _aiChecks.MarkUserOkay(deletedInfo.UserId);
+
+                        if (await RestoreMessage(deletedInfo, cb.Message, admChat))
+                        {
+                            await _bot.SendMessage(
+                                admChat,
+                                $"{Utils.FullName(cb.From)} восстановил сообщение",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
                     }
                     break;
             }
@@ -216,6 +264,60 @@ internal class AdminCommandHandler
                         break;
                 }
             }
+        }
+    }
+
+    private async Task<bool> RestoreMessage(DeletedMessageInfo deletedInfo, Message? adminMessageForReply, long admChat)
+    {
+        try
+        {
+            var username = string.IsNullOrWhiteSpace(deletedInfo.Username) ? "" : $"@{deletedInfo.Username}";
+            var restoredText =
+                $"Антиспам ошибочно удалил сообщение от {username}:{Environment.NewLine}{deletedInfo.Text ?? deletedInfo.Caption ?? "[медиа без текста]"}";
+
+            if (!string.IsNullOrWhiteSpace(deletedInfo.PhotoFileId))
+            {
+                await _bot.SendPhoto(
+                    deletedInfo.ChatId,
+                    new InputFileId(deletedInfo.PhotoFileId),
+                    caption: restoredText,
+                    replyParameters: deletedInfo.ReplyToMessageId.HasValue
+                        ? new ReplyParameters { MessageId = deletedInfo.ReplyToMessageId.Value }
+                        : null
+                );
+            }
+            else if (!string.IsNullOrWhiteSpace(deletedInfo.VideoFileId))
+            {
+                await _bot.SendVideo(
+                    deletedInfo.ChatId,
+                    new InputFileId(deletedInfo.VideoFileId),
+                    caption: restoredText,
+                    replyParameters: deletedInfo.ReplyToMessageId.HasValue
+                        ? new ReplyParameters { MessageId = deletedInfo.ReplyToMessageId.Value }
+                        : null
+                );
+            }
+            else
+            {
+                await _bot.SendMessage(
+                    deletedInfo.ChatId,
+                    restoredText,
+                    replyParameters: deletedInfo.ReplyToMessageId.HasValue
+                        ? new ReplyParameters { MessageId = deletedInfo.ReplyToMessageId.Value }
+                        : null
+                );
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Unable to restore message");
+            await _bot.SendMessage(
+                admChat,
+                $"Не могу восстановить сообщение: {e.Message}",
+                replyParameters: adminMessageForReply?.MessageId
+            );
+            return false;
         }
     }
 }
