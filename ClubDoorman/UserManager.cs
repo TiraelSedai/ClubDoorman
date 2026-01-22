@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +19,13 @@ internal sealed class UserManager
         _cache = cache;
         _config = config;
         _logger = logger;
+
+        using var scope = serviceScopeFactory.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        _approved = new ConcurrentDictionary<long, byte>(
+            db.ApprovedUsers.Select(u => u.Id).ToList().Select(id => new KeyValuePair<long, byte>(id, 0))
+        );
+
         Task.Run(InjestChatHistories);
         if (_config.ClubServiceToken == null)
             _logger.LogWarning("DOORMAN_CLUB_SERVICE_TOKEN variable is not set, additional club checks disabled");
@@ -26,13 +33,11 @@ internal sealed class UserManager
             _clubHttpClient.DefaultRequestHeaders.Add("X-Service-Token", _config.ClubServiceToken);
     }
 
-    private const string Path = "data/approved-users.txt";
-    private readonly SemaphoreSlim _semaphore = new(1);
-    private readonly HashSet<long> _approved = [.. File.ReadAllLines(Path).Select(long.Parse)];
+    private readonly ConcurrentDictionary<long, byte> _approved;
     private readonly HttpClient _clubHttpClient = new();
     private readonly HttpClient _httpClient = new();
 
-    public bool Approved(long userId) => _approved.Contains(userId);
+    public bool Approved(long userId) => _approved.ContainsKey(userId);
 
     private async Task InjestChatHistories()
     {
@@ -90,10 +95,12 @@ internal sealed class UserManager
 
     public async ValueTask Approve(long userId)
     {
-        if (_approved.Add(userId))
+        if (_approved.TryAdd(userId, 0))
         {
-            using var token = await SemaphoreHelper.AwaitAsync(_semaphore);
-            await File.AppendAllLinesAsync(Path, [userId.ToString(CultureInfo.InvariantCulture)]);
+            using var scope = _serviceScopeFactory.CreateScope();
+            await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ApprovedUsers.Add(new ApprovedUser { Id = userId });
+            await db.SaveChangesAsync();
         }
     }
 
@@ -101,11 +108,14 @@ internal sealed class UserManager
     {
         var newGuys = new HashSet<long>();
         foreach (var id in userId)
-            if (_approved.Add(id))
+            if (_approved.TryAdd(id, 0))
                 newGuys.Add(id);
-        var lines = newGuys.Select(x => x.ToString(CultureInfo.InvariantCulture)).ToList();
-        using var token = await SemaphoreHelper.AwaitAsync(_semaphore);
-        await File.AppendAllLinesAsync(Path, lines);
+        if (newGuys.Count == 0)
+            return;
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.ApprovedUsers.AddRange(newGuys.Select(id => new ApprovedUser { Id = id }));
+        await db.SaveChangesAsync();
     }
 
     public async ValueTask<bool> InBanlist(long userId)

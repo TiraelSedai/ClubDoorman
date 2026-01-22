@@ -9,11 +9,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<BlacklistedUser> BlacklistedUsers { get; init; }
     public DbSet<HalfApprovedUser> HalfApprovedUsers { get; init; }
     public DbSet<SpamHamRecord> SpamHamRecords { get; init; }
+    public DbSet<ApprovedUser> ApprovedUsers { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // indexes
     }
+}
+
+public sealed class ApprovedUser
+{
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public long Id { get; set; }
 }
 
 public sealed class SpamHamRecord

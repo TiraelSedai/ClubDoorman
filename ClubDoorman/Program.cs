@@ -93,26 +93,43 @@ public class Program
 
     private static void SeedData(AppDbContext db)
     {
-        if (db.SpamHamRecords.Any())
-            return;
-
         var basePath = AppDomain.CurrentDomain.BaseDirectory;
-        var dataFile = Path.Combine(basePath, "data", "spam-ham.txt");
-        if (!File.Exists(dataFile))
-            return;
 
-        Log.Information("No spam-ham records detected in the database, starting initial seeding from text file");
-        using var reader = new StreamReader(dataFile);
-        using var csv = new CsvReader(
-            reader,
-            new CsvConfiguration(CultureInfo.InvariantCulture) { PrepareHeaderForMatch = args => args.Header.ToLower() }
-        );
+        if (!db.SpamHamRecords.Any())
+        {
+            var dataFile = Path.Combine(basePath, "data", "spam-ham.txt");
+            if (File.Exists(dataFile))
+            {
+                Log.Information("No spam-ham records detected in the database, starting initial seeding from text file");
+                using var reader = new StreamReader(dataFile);
+                using var csv = new CsvReader(
+                    reader,
+                    new CsvConfiguration(CultureInfo.InvariantCulture) { PrepareHeaderForMatch = args => args.Header.ToLower() }
+                );
 
-        var records = csv.GetRecords<CsvRow>().Select(r => new SpamHamRecord { Text = r.Text, IsSpam = r.Label });
+                var records = csv.GetRecords<CsvRow>().Select(r => new SpamHamRecord { Text = r.Text, IsSpam = r.Label });
 
-        db.SpamHamRecords.AddRange(records);
-        db.SaveChanges();
-        Log.Information("Seeded SpamHamRecords from {File}", dataFile);
+                db.SpamHamRecords.AddRange(records);
+                db.SaveChanges();
+                Log.Information("Seeded SpamHamRecords from {File}", dataFile);
+            }
+        }
+
+        if (!db.ApprovedUsers.Any())
+        {
+            var dataFile = Path.Combine(basePath, "data", "approved-users.txt");
+            if (File.Exists(dataFile))
+            {
+                Log.Information("No approved users detected in the database, starting initial seeding from text file");
+                var userIds = File.ReadAllLines(dataFile)
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .Select(line => new ApprovedUser { Id = long.Parse(line) });
+
+                db.ApprovedUsers.AddRange(userIds);
+                db.SaveChanges();
+                Log.Information("Seeded ApprovedUsers from {File}", dataFile);
+            }
+        }
     }
 
     private sealed record CsvRow(string Text, bool Label);
