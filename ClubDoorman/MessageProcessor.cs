@@ -654,7 +654,7 @@ internal class MessageProcessor
 
             var fullName = Utils.FullName(user);
             var lookalikeInName = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(fullName);
-            if (lookalikeInName.Count > 0)
+            if (lookalikeInName.Count > 0 && _config.NonFreeChat(chat.Id))
             {
                 var reason = $"В имени пользователя найдены слова с маскирующимися символами: {string.Join(", ", lookalikeInName)}";
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
