@@ -32,7 +32,6 @@
 - DOORMAN_BLACKLIST_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил людей (не из Клуба, не approved, из блеклиста) при заходе сразу
 - DOORMAN_LOW_CONFIDENCE_HAM_ENABLE: Установить в true или 1 чтобы отсылать в админку не-спам который имеет низкий конфиденс скор, полезно для чатов где спамеры постоянно проверяют качество ML на прочность
 - DOORMAN_CHANNELS_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил сообщения от имени каналов (кроме тех, которые привязаны к текущей группе)
-- DOORMAN_APPROVE_BUTTON: Установить в true или 1 чтобы к каждому удалённому сообщению добавлялась опция "это свой, знакомый, завсегдатай"
 - DOORMAN_LOOKALIKE_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил сообщения где есть слова, маскирующиеся под русские
 - DOORMAN_BUTTON_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил сообщения где есть кнопки
 - DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил сообщения где ML-классификатор достаточно уверен в спаме
@@ -44,4 +43,3 @@
 
 ### Translation
 If you're willing to do the heavy lifting of translating all the text of this bot to other languages, please let me know first before running headfirst and creating a PR.
-

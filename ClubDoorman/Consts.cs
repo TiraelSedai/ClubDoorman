@@ -8,4 +8,5 @@ internal class Consts
     public const string BanButton = "❌❌❌ ban";
     public const string OkButton = "✅✅✅ ok";
     public const string ApproveButton = "🥰🥰🥰 approve";
+    public const string RestoreButton = "♻️♻️♻️ restore";
 }

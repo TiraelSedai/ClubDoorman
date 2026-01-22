@@ -459,13 +459,6 @@ internal class MessageProcessor
             if (erotic || money || nonHuman || selfPromo)
             {
                 userAttentionSpammer = true;
-                var keyboard = new List<InlineKeyboardButton>
-                {
-                    new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
-                    new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" },
-                };
-                if (_config.ApproveButtonEnabled)
-                    keyboard.Add(new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{user.Id}" });
 
                 ReplyParameters? replyParams = null;
                 if (message.ReplyToMessage != null)
@@ -544,6 +537,20 @@ internal class MessageProcessor
                         $"{Environment.NewLine}Вероятность что этот профиль имеет элементы само-продвижения (включая невинные, типа личного блога): {attention.SelfPromotionProbability * 100} %";
                 msg = $"{msg}{Environment.NewLine}{attention.Reason}";
 
+                string? restoreKey = null;
+                if (delete)
+                    restoreKey = $"restore_{IdGenerator.NextBase62()}";
+                var keyboard = new List<InlineKeyboardButton>
+                {
+                    new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
+                };
+                if (delete)
+                    keyboard.Add(new InlineKeyboardButton(Consts.RestoreButton) { CallbackData = restoreKey });
+                else
+                    keyboard.Add(new(Consts.OkButton) { CallbackData = $"attOk_{user.Id}" });
+                var approveData = delete ? $"approve_{user.Id}_{restoreKey}" : $"approve_{user.Id}";
+                keyboard.Add(new(Consts.ApproveButton) { CallbackData = approveData });
+
                 if (shouldReport)
                 {
                     await _bot.SendMessage(
@@ -563,6 +570,25 @@ internal class MessageProcessor
 
                 if (delete)
                 {
+                    var deletedInfo = new DeletedMessageInfo(
+                        restoreKey!,
+                        chat.Id,
+                        user.Id,
+                        user.FirstName,
+                        user.LastName,
+                        user.Username,
+                        message.Text,
+                        message.Caption,
+                        message.Photo?.LastOrDefault()?.FileId,
+                        message.Video?.FileId,
+                        message.ReplyToMessage?.MessageId
+                    );
+                    await _hybridCache.SetAsync(
+                        restoreKey!,
+                        deletedInfo,
+                        new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
+                        cancellationToken: stoppingToken
+                    );
                     await _bot.DeleteMessage(chat, message.Id, cancellationToken: stoppingToken);
                     await _bot.RestrictChatMember(
                         chat,
@@ -613,7 +639,6 @@ internal class MessageProcessor
         {
             if (text.Length > 10)
             {
-                // just one last check!
                 var hash = SHA256.HashData(Encoding.UTF8.GetBytes(text));
                 var key = Convert.ToHexString(hash);
                 var justCreated = false;
@@ -633,19 +658,19 @@ internal class MessageProcessor
                     const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
                     await DontDeleteButReportMessage(message, reason, stoppingToken);
                     await DontDeleteButReportMessage(
-                       new Message
-                       {
-                           Id = (int)exists.MessageId,
-                           Chat = new Chat { Id = chat.Id, Title = chat.Title },
-                           From = new User
-                           {
-                               Id = exists.UserId,
-                               FirstName = user.FirstName,
-                               LastName = user.LastName,
-                           },
-                       },
-                       reason,
-                       stoppingToken
+                        new Message
+                        {
+                            Id = (int)exists.MessageId,
+                            Chat = new Chat { Id = chat.Id, Title = chat.Title },
+                            From = new User
+                            {
+                                Id = exists.UserId,
+                                FirstName = user.FirstName,
+                                LastName = user.LastName,
+                            },
+                        },
+                        reason,
+                        stoppingToken
                     );
                     return;
                 }
@@ -721,21 +746,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
@@ -812,6 +837,27 @@ internal class MessageProcessor
                 _logger.LogInformation(are, "Cannot forward");
             }
 
+        var restoreKey = $"restore_{IdGenerator.NextBase62()}";
+        var deletedInfo = new DeletedMessageInfo(
+            restoreKey,
+            message.Chat.Id,
+            user.Id,
+            user.FirstName,
+            user.LastName,
+            user.Username,
+            message.Text,
+            message.Caption,
+            message.Photo?.LastOrDefault()?.FileId,
+            message.Video?.FileId,
+            message.ReplyToMessage?.MessageId
+        );
+        await _hybridCache.SetAsync(
+            restoreKey,
+            deletedInfo,
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
+            cancellationToken: stoppingToken
+        );
+
         var deletionMessagePart = reason;
         try
         {
@@ -842,10 +888,9 @@ internal class MessageProcessor
 
         var row = new List<InlineKeyboardButton>([
             new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackDataBan },
-            new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" },
+            new InlineKeyboardButton(Consts.RestoreButton) { CallbackData = restoreKey },
+            new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{user.Id}_{restoreKey}" },
         ]);
-        if (_config.ApproveButtonEnabled)
-            row.Add(new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{user.Id}" });
 
         var username = user.Username == null ? "" : $" @{user.Username}";
         await _bot.SendMessage(
