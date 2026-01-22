@@ -8,20 +8,13 @@ internal static class IdGenerator
     private const string Base62Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     public static string NextBase62() => ToBase62(Generator.CreateId());
 
-    private static string ToBase62(long value)
-    {
-        if (value == 0)
-            return "0";
-
-        var result = new char[11];
-        var i = result.Length;
-
-        while (value > 0)
+    private static string ToBase62(long value) =>
+        string.Create(11, value, static (span, val) =>
         {
-            result[--i] = Base62Chars[(int)(value % 62)];
-            value /= 62;
-        }
-
-        return new string(result, i, result.Length - i);
-    }
+            for (var i = span.Length - 1; i >= 0; i--)
+            {
+                span[i] = Base62Chars[(int)(val % 62)];
+                val /= 62;
+            }
+        });
 }
