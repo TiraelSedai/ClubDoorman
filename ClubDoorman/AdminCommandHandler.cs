@@ -272,8 +272,10 @@ internal class AdminCommandHandler
         try
         {
             var username = string.IsNullOrWhiteSpace(deletedInfo.Username) ? "" : $"@{deletedInfo.Username}";
+            var parts = new[] { deletedInfo.UserFirstName, deletedInfo.UserLastName, username };
+            var full = string.Join(" ", parts.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
             var restoredText =
-                $"Антиспам ошибочно удалил сообщение от {username}:{Environment.NewLine}{deletedInfo.Text ?? deletedInfo.Caption ?? "[медиа без текста]"}";
+                $"Антиспам ошибочно удалил сообщение от {full}:{Environment.NewLine}{deletedInfo.Text ?? deletedInfo.Caption ?? "[медиа без текста]"}";
 
             if (!string.IsNullOrWhiteSpace(deletedInfo.PhotoFileId))
             {
