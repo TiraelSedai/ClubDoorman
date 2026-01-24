@@ -39,6 +39,13 @@ internal sealed class UserManager
 
     public bool Approved(long userId) => _approved.ContainsKey(userId);
 
+    public async ValueTask<bool> IsHalfApproved(long userId)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await db.HalfApprovedUsers.AsNoTracking().AnyAsync(x => x.Id == userId);
+    }
+
     private async Task InjestChatHistories()
     {
         var jsons = Directory.EnumerateFiles("data", "*.json");

@@ -678,10 +678,10 @@ internal class MessageProcessor
 
             var fullName = Utils.FullName(user);
             var lookalikeInName = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(fullName);
-            if (lookalikeInName.Count > 0 && _config.NonFreeChat(chat.Id))
+            if (lookalikeInName.Count > 0 && _config.NonFreeChat(chat.Id) && !await _userManager.IsHalfApproved(user.Id))
             {
                 var reason = $"В имени пользователя найдены слова с маскирующимися символами: {string.Join(", ", lookalikeInName)}";
-                await DontDeleteButReportMessage(message, reason, stoppingToken);
+                await DontDeleteButReportMessageWithApprove(message, user.Id, reason, stoppingToken);
                 return;
             }
 
@@ -814,6 +814,44 @@ internal class MessageProcessor
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackData },
                 new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" }
+            ),
+            cancellationToken: stoppingToken
+        );
+    }
+
+    private async Task DontDeleteButReportMessageWithApprove(Message message, long userId, string? reason = null, CancellationToken stoppingToken = default)
+    {
+        _logger.LogDebug("DontDeleteButReportMessageWithApprove");
+        var fromChat = message.SenderChat;
+        var user = message.From!;
+        var admChat = _config.GetAdminChat(message.Chat.Id);
+        Message? forward = null;
+        try
+        {
+            forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        }
+        catch (ApiRequestException are)
+        {
+            _logger.LogInformation(are, "Cannot forward");
+        }
+        var callbackDataBan = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
+
+        var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
+        var reply = "";
+        if (message.ReplyToMessage != null)
+            reply = $"{Environment.NewLine}реплай на {Utils.LinkToMessage(message.Chat, message.ReplyToMessage.MessageId)}";
+
+        var msg =
+            reason
+            ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
+        await _bot.SendMessage(
+            admChat,
+            $"Сообщение НЕ удалено{Environment.NewLine}{msg}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
+            replyParameters: forward,
+            replyMarkup: new InlineKeyboardMarkup(
+                new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackDataBan },
+                new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" },
+                new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{userId}" }
             ),
             cancellationToken: stoppingToken
         );
