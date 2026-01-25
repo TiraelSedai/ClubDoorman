@@ -478,7 +478,7 @@ internal class MessageProcessor
                         var photoMsg = await _bot.SendPhoto(
                             admChat,
                             new InputFileStream(ms),
-                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
+                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}{Environment.NewLine}{Utils.LinkToMessage(message.Chat, message.MessageId)}",
                             cancellationToken: stoppingToken
                         );
                         replyParams = photoMsg;
@@ -487,7 +487,7 @@ internal class MessageProcessor
                     {
                         var textMsg = await _bot.SendMessage(
                             admChat,
-                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}",
+                            $"{bio}{Environment.NewLine}Сообщение:{Environment.NewLine}{text}{Environment.NewLine}{Utils.LinkToMessage(message.Chat, message.MessageId)}",
                             cancellationToken: stoppingToken
                         );
                         replyParams = textMsg;
