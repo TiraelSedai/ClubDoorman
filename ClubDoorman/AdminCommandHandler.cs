@@ -107,6 +107,31 @@ internal class AdminCommandHandler
                         await DeleteAllRecentFrom(chatId, userId);
                     }
                     break;
+                case "banNoMark":
+                    {
+                        if (split.Count < 3 || !long.TryParse(split[1], out var chatIdNoMark) || !long.TryParse(split[2], out var userIdNoMark))
+                            return;
+                        try
+                        {
+                            _logger.LogDebug("Someone pressed button to ban (no mark) chat {ChatId} user {UserId}", chatIdNoMark, userIdNoMark);
+                            await _bot.BanChatMember(chatIdNoMark, userIdNoMark);
+                            await _bot.SendMessage(
+                                admChat,
+                                $"{Utils.FullName(cb.From)} забанил",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Unable to ban");
+                            await _bot.SendMessage(
+                                admChat,
+                                $"Не могу забанить. Не хватает могущества? Сходите забаньте руками",
+                                replyParameters: cb.Message?.MessageId
+                            );
+                        }
+                    }
+                    break;
                 case "banchan":
                     {
                         if (split.Count < 3 || !long.TryParse(split[1], out var chatId) || !long.TryParse(split[2], out var fromChannelId))

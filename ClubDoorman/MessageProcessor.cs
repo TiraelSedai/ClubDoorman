@@ -542,7 +542,7 @@ internal class MessageProcessor
                     restoreKey = $"restore_{IdGenerator.NextBase62()}";
                 var keyboard = new List<InlineKeyboardButton>
                 {
-                    new(Consts.BanButton) { CallbackData = $"ban_{message.Chat.Id}_{user.Id}" },
+                    new(Consts.BanButton) { CallbackData = $"banNoMark_{message.Chat.Id}_{user.Id}" },
                 };
                 if (delete)
                     keyboard.Add(new InlineKeyboardButton(Consts.RestoreButton) { CallbackData = restoreKey });
