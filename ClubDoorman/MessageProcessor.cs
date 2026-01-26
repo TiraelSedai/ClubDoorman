@@ -13,6 +13,12 @@ namespace ClubDoorman;
 
 internal sealed record Msg(long ChatId, long MessageId, string UserFirst, string? UserLast, long UserId);
 
+internal sealed class ChatIgnoreState
+{
+    public int FailureCount { get; set; }
+    public DateTime IgnoreUntil { get; set; }
+}
+
 internal class MessageProcessor
 {
     private readonly ITelegramBotClient _bot;
@@ -23,6 +29,7 @@ internal class MessageProcessor
     private readonly AiChecks _aiChecks;
     private readonly CaptchaManager _captchaManager;
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
+    private readonly ConcurrentDictionary<long, ChatIgnoreState> _ignoredChats = new();
     private readonly StatisticsReporter _statistics;
     private readonly Config _config;
     private readonly ReactionHandler _reactionHandler;
@@ -100,6 +107,12 @@ internal class MessageProcessor
 
         var chat = message.Chat;
         using var _chatScope = _logger.BeginScope("Chat {ChatName}", chat.Title);
+
+        if (_ignoredChats.TryGetValue(chat.Id, out var ignoreState) && DateTime.UtcNow < ignoreState.IgnoreUntil)
+        {
+            _logger.LogDebug("Ignoring chat {ChatId} until {IgnoreUntil} due to repeated failures", chat.Id, ignoreState.IgnoreUntil);
+            return;
+        }
         if (chat.Type == ChatType.Private)
         {
             await _bot.SendMessage(
@@ -235,6 +248,8 @@ internal class MessageProcessor
             {
                 var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
                 stats.BlacklistBanned++;
+                var deleteFailed = false;
+                var banFailed = false;
                 try
                 {
                     await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
@@ -242,6 +257,7 @@ internal class MessageProcessor
                 catch (ApiRequestException e)
                 {
                     _logger.LogInformation(e, "Cannot delete message");
+                    deleteFailed = true;
                 }
                 try
                 {
@@ -250,6 +266,28 @@ internal class MessageProcessor
                 catch (ApiRequestException e)
                 {
                     _logger.LogInformation(e, "Cannot ban user");
+                    banFailed = true;
+                }
+
+                if (deleteFailed && banFailed && !_config.NonFreeChat(chat.Id))
+                {
+                    var state = _ignoredChats.AddOrUpdate(
+                        chat.Id,
+                        _ => new ChatIgnoreState { FailureCount = 1, IgnoreUntil = DateTime.UtcNow.AddHours(1) },
+                        (_, existing) =>
+                        {
+                            existing.FailureCount++;
+                            existing.IgnoreUntil = DateTime.UtcNow.AddHours(existing.FailureCount);
+                            return existing;
+                        }
+                    );
+                    _logger.LogWarning(
+                        "Both delete and ban failed for free chat {ChatId} {ChatTitle}. Ignoring for {Hours} hour(s) until {IgnoreUntil}",
+                        chat.Id,
+                        chat.Title,
+                        state.FailureCount,
+                        state.IgnoreUntil
+                    );
                 }
             }
             else
