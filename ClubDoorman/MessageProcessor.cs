@@ -857,7 +857,12 @@ internal class MessageProcessor
         );
     }
 
-    private async Task DontDeleteButReportMessageWithApprove(Message message, long userId, string? reason = null, CancellationToken stoppingToken = default)
+    private async Task DontDeleteButReportMessageWithApprove(
+        Message message,
+        long userId,
+        string? reason = null,
+        CancellationToken stoppingToken = default
+    )
     {
         _logger.LogDebug("DontDeleteButReportMessageWithApprove");
         var fromChat = message.SenderChat;

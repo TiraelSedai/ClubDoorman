@@ -7,12 +7,16 @@ internal static class IdGenerator
     public static string NextBase62() => ToBase62(Generator.CreateId());
 
     private static string ToBase62(long value) =>
-        string.Create(11, value, static (span, val) =>
-        {
-            for (var i = span.Length - 1; i >= 0; i--)
+        string.Create(
+            11,
+            value,
+            static (span, val) =>
             {
-                span[i] = Base62Chars[(int)(val % 62)];
-                val /= 62;
+                for (var i = span.Length - 1; i >= 0; i--)
+                {
+                    span[i] = Base62Chars[(int)(val % 62)];
+                    val /= 62;
+                }
             }
-        });
+        );
 }

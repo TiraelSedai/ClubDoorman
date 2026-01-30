@@ -109,17 +109,21 @@ internal class AdminCommandHandler
                     break;
                 case "banNoMark":
                     {
-                        if (split.Count < 3 || !long.TryParse(split[1], out var chatIdNoMark) || !long.TryParse(split[2], out var userIdNoMark))
+                        if (
+                            split.Count < 3
+                            || !long.TryParse(split[1], out var chatIdNoMark)
+                            || !long.TryParse(split[2], out var userIdNoMark)
+                        )
                             return;
                         try
                         {
-                            _logger.LogDebug("Someone pressed button to ban (no mark) chat {ChatId} user {UserId}", chatIdNoMark, userIdNoMark);
-                            await _bot.BanChatMember(chatIdNoMark, userIdNoMark);
-                            await _bot.SendMessage(
-                                admChat,
-                                $"{Utils.FullName(cb.From)} забанил",
-                                replyParameters: cb.Message?.MessageId
+                            _logger.LogDebug(
+                                "Someone pressed button to ban (no mark) chat {ChatId} user {UserId}",
+                                chatIdNoMark,
+                                userIdNoMark
                             );
+                            await _bot.BanChatMember(chatIdNoMark, userIdNoMark);
+                            await _bot.SendMessage(admChat, $"{Utils.FullName(cb.From)} забанил", replyParameters: cb.Message?.MessageId);
                         }
                         catch (Exception e)
                         {
@@ -253,24 +257,24 @@ internal class AdminCommandHandler
                 switch (message.Text)
                 {
                     case "/check":
-                        {
-                            var emojis = SimpleFilters.TooManyEmojis(text);
-                            var normalized = TextProcessor.NormalizeText(text);
-                            var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
-                            var hasStopWords = SimpleFilters.HasStopWords(normalized);
-                            var (spam, score) = await _classifier.IsSpam(normalized);
-                            var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
-                            var msg =
-                                $"Результат:{Environment.NewLine}"
-                                + $"Много эмодзи: {emojis}{Environment.NewLine}"
-                                + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
-                                + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
-                                + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
-                                + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
-                                + $"Нормализованный текст: {normalized}";
-                            await _bot.SendMessage(message.Chat.Id, msg);
-                            break;
-                        }
+                    {
+                        var emojis = SimpleFilters.TooManyEmojis(text);
+                        var normalized = TextProcessor.NormalizeText(text);
+                        var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
+                        var hasStopWords = SimpleFilters.HasStopWords(normalized);
+                        var (spam, score) = await _classifier.IsSpam(normalized);
+                        var lookAlikeMsg = lookalike.Count == 0 ? "отсутствуют" : string.Join(", ", lookalike);
+                        var msg =
+                            $"Результат:{Environment.NewLine}"
+                            + $"Много эмодзи: {emojis}{Environment.NewLine}"
+                            + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
+                            + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
+                            + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
+                            + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
+                            + $"Нормализованный текст: {normalized}";
+                        await _bot.SendMessage(message.Chat.Id, msg);
+                        break;
+                    }
                     case "/spam":
                         await _classifier.AddSpam(text);
                         await _badMessageManager.MarkAsBad(text);

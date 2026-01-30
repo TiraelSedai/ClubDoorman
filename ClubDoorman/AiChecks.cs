@@ -434,9 +434,16 @@ internal class AiChecks
         if (_api == null)
             return probability;
 
-        var text = message.Caption ?? message.Text;
+        var text = message.Caption ?? message.Text ?? "";
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
+
+        if (string.IsNullOrWhiteSpace(text) && message.Photo == null)
+        {
+            _logger.LogDebug("GetSpamProbability: No text or photo to analyze, returning 0");
+            return new SpamProbability();
+        }
+
         var cacheKey = $"llm_spam_prob:{ShaHelper.ComputeSha256Hex(text)}";
 
         return await _hybridCache.GetOrCreateAsync(
@@ -495,10 +502,20 @@ internal class AiChecks
                     fullPrompt.AppendLine("Контекст сообщения:");
                     fullPrompt.AppendLine(contextBuilder.ToString());
                     fullPrompt.AppendLine("###");
-                    fullPrompt.AppendLine($"Само сообщение, которое нужно проанализировать:\n{text}");
+                    if (!string.IsNullOrWhiteSpace(text))
+                        fullPrompt.AppendLine($"Само сообщение, которое нужно проанализировать:\n{text}");
+                    else
+                        fullPrompt.AppendLine("Само сообщение не содержит текста, только изображение.");
 
                     var fpString = fullPrompt.ToString();
-                    _logger.LogDebug("Spam prompt {Prompt}", fpString);
+                    const string systemMessage =
+                        "Ты — модератор Telegram-группы, оценивающий сообщения в чате на спам, мошенничество и продвижения сторонних ресурсов или услуг";
+                    _logger.LogInformation(
+                        "GetSpamProbability full prompt - System: {System}, User: {User}, HasImage: {HasImage}",
+                        systemMessage,
+                        fpString,
+                        message.Photo != null
+                    );
 
                     var messages = new List<ChatCompletionRequestMessage>
                     {
@@ -509,7 +526,7 @@ internal class AiChecks
                         messages.Add(
                             imageBytes.AsUserMessage(
                                 mimeType: "image/jpg",
-                                detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
+                                detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.High
                             )
                         );
 
