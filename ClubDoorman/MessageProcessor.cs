@@ -888,7 +888,7 @@ internal class MessageProcessor
             replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackDataBan },
-                new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" },
+                new InlineKeyboardButton(Consts.OkButton) { CallbackData = $"attOk_{userId}" },
                 new InlineKeyboardButton(Consts.ApproveButton) { CallbackData = $"approve_{userId}" }
             ),
             cancellationToken: stoppingToken
