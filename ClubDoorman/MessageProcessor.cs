@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Text;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;

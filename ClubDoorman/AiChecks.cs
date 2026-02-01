@@ -402,7 +402,7 @@ internal class AiChecks
                 }
                 if (chat.Bio != userChat.Bio)
                 {
-                    _ = ifChanged.Invoke("пользователь сменил био");
+                    _ = ifChanged.Invoke($"пользователь сменил био.{Environment.NewLine}новое: {chat.Bio}{Environment.NewLine}старое: {userChat.Bio}");
                     return;
                 }
                 if (chat.LinkedChatId != userChat.LinkedChatId)
@@ -412,12 +412,12 @@ internal class AiChecks
                 }
                 if (chat.FirstName != userChat.FirstName)
                 {
-                    _ = ifChanged.Invoke("пользователь сменил имя");
+                    _ = ifChanged.Invoke($"пользователь сменил имя{Environment.NewLine}новое: {chat.FirstName}");
                     return;
                 }
                 if (chat.LastName != userChat.LastName)
                 {
-                    _ = ifChanged.Invoke("пользователь сменил фамилию");
+                    _ = ifChanged.Invoke($"пользователь сменил фамилию{Environment.NewLine}новая: {chat.LastName}");
                     return;
                 }
             }
