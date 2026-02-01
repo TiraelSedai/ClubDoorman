@@ -14,6 +14,7 @@ internal class AdminCommandHandler
     private readonly AiChecks _aiChecks;
     private readonly RecentMessagesStorage _recentMessagesStorage;
     private readonly HybridCache _hybridCache;
+    private readonly SpamDeduplicationCache _spamDeduplicationCache;
     private readonly ILogger<AdminCommandHandler> _logger;
     private User? _me;
 
@@ -26,6 +27,7 @@ internal class AdminCommandHandler
         AiChecks aiChecks,
         RecentMessagesStorage recentMessagesStorage,
         HybridCache hybridCache,
+        SpamDeduplicationCache spamDeduplicationCache,
         ILogger<AdminCommandHandler> logger
     )
     {
@@ -37,6 +39,7 @@ internal class AdminCommandHandler
         _aiChecks = aiChecks;
         _recentMessagesStorage = recentMessagesStorage;
         _hybridCache = hybridCache;
+        _spamDeduplicationCache = spamDeduplicationCache;
         _logger = logger;
     }
 
@@ -209,7 +212,10 @@ internal class AdminCommandHandler
         {
             var text = message?.Caption ?? message?.Text;
             if (!string.IsNullOrWhiteSpace(text))
+            {
                 await _badMessageManager.MarkAsBad(text);
+                _spamDeduplicationCache.Remove(text);
+            }
         }
         try
         {

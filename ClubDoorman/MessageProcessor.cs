@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
@@ -10,8 +9,6 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
-
-internal sealed record Msg(long ChatId, long MessageId, string UserFirst, string? UserLast, long UserId);
 
 internal sealed class ChatIgnoreState
 {
@@ -36,6 +33,7 @@ internal class MessageProcessor
     private readonly AdminCommandHandler _adminCommandHandler;
     private readonly RecentMessagesStorage _recentMessagesStorage;
     private readonly HybridCache _hybridCache;
+    private readonly SpamDeduplicationCache _spamDeduplicationCache;
     private User? _me;
 
     public MessageProcessor(
@@ -51,7 +49,8 @@ internal class MessageProcessor
         ReactionHandler reactionHandler,
         AdminCommandHandler adminCommandHandler,
         RecentMessagesStorage recentMessagesStorage,
-        HybridCache hybridCache
+        HybridCache hybridCache,
+        SpamDeduplicationCache spamDeduplicationCache
     )
     {
         _bot = bot;
@@ -67,6 +66,7 @@ internal class MessageProcessor
         _adminCommandHandler = adminCommandHandler;
         _recentMessagesStorage = recentMessagesStorage;
         _hybridCache = hybridCache;
+        _spamDeduplicationCache = spamDeduplicationCache;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
@@ -677,39 +677,40 @@ internal class MessageProcessor
         {
             if (text.Length > 10)
             {
-                var hash = SHA256.HashData(Encoding.UTF8.GetBytes(text));
-                var key = Convert.ToHexString(hash);
-                var justCreated = false;
-                var exists = await _hybridCache.GetOrCreateAsync(
-                    key,
-                    ct =>
-                    {
-                        justCreated = true;
-                        return ValueTask.FromResult(new Msg(chat.Id, message.Id, user.FirstName, user.LastName, user.Id));
-                    },
-                    new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) },
-                    cancellationToken: stoppingToken
+                var duplicates = _spamDeduplicationCache.AddAndCheck(
+                    text,
+                    chat.Id,
+                    chat.Title,
+                    message.Id,
+                    user.Id,
+                    user.FirstName,
+                    user.LastName
                 );
 
-                if (!justCreated)
+                if (duplicates.Count > 0)
                 {
-                    const string reason = "точно такое же сообщение было недавно в других чатах, в котрых есть Швейцар, это подозрительно";
+                    const string reason = "точно такое же сообщение было недавно в других чатах, в которых есть Швейцар, это подозрительно";
+
                     await DontDeleteButReportMessage(message, reason, stoppingToken);
-                    await DontDeleteButReportMessage(
-                        new Message
-                        {
-                            Id = (int)exists.MessageId,
-                            Chat = new Chat { Id = chat.Id, Title = chat.Title },
-                            From = new User
+
+                    foreach (var dup in duplicates)
+                    {
+                        await DontDeleteButReportMessage(
+                            new Message
                             {
-                                Id = exists.UserId,
-                                FirstName = user.FirstName,
-                                LastName = user.LastName,
+                                Id = (int)dup.MessageId,
+                                Chat = new Chat { Id = dup.ChatId, Title = dup.ChatTitle },
+                                From = new User
+                                {
+                                    Id = dup.UserId,
+                                    FirstName = dup.UserFirstName,
+                                    LastName = dup.UserLastName,
+                                },
                             },
-                        },
-                        reason,
-                        stoppingToken
-                    );
+                            reason,
+                            stoppingToken
+                        );
+                    }
                     return;
                 }
             }
@@ -784,21 +785,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
