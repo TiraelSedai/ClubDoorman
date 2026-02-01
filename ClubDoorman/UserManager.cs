@@ -68,7 +68,7 @@ internal sealed class UserManager
         }
         _ = Task.Run(async () =>
         {
-            await Task.Delay(TimeSpan.FromMinutes(15));
+            await Task.Delay(TimeSpan.FromMinutes(5));
             _ = InjestChatHistories();
         });
     }

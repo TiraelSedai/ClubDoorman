@@ -8,6 +8,7 @@ internal sealed class Worker(
     CaptchaManager captchaManager,
     MessageProcessor messageProcessor,
     StatisticsReporter statisticsReporter,
+    MaintenanceService maintenanceService,
     ILogger<Worker> logger
 ) : BackgroundService
 {
@@ -15,6 +16,7 @@ internal sealed class Worker(
     {
         _ = captchaManager.CaptchaLoop(stoppingToken);
         _ = statisticsReporter.MainStatisticsLoop(stoppingToken);
+        _ = maintenanceService.MaintenanceLoop(stoppingToken);
         const string offsetPath = "data/offset.txt";
         var offset = 0;
         if (File.Exists(offsetPath))

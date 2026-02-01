@@ -50,6 +50,7 @@ public class Program
                     services.AddSingleton<BadMessageManager>();
                     services.AddSingleton<AiChecks>();
                     services.AddSingleton<RecentMessagesStorage>();
+                    services.AddSingleton<MaintenanceService>();
                     services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
                     services.AddHybridCache();
                 })
