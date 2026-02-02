@@ -402,7 +402,9 @@ internal class AiChecks
                 }
                 if (chat.Bio != userChat.Bio)
                 {
-                    _ = ifChanged.Invoke($"пользователь сменил био.{Environment.NewLine}новое: {chat.Bio}{Environment.NewLine}старое: {userChat.Bio}");
+                    _ = ifChanged.Invoke(
+                        $"пользователь сменил био.{Environment.NewLine}новое: {chat.Bio}{Environment.NewLine}старое: {userChat.Bio}"
+                    );
                     return;
                 }
                 if (chat.LinkedChatId != userChat.LinkedChatId)

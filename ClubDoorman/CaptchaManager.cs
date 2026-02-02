@@ -29,7 +29,21 @@ internal partial class CaptchaManager
     private readonly Config _config;
     private readonly ILogger<CaptchaManager> _logger;
 
-    private readonly List<string> _namesBlacklist = ["p0rn", "porn", "порн", "п0рн", "pоrn", "пoрн", "ponr", "bot", "child", "chlid"];
+    private readonly List<string> _namesBlacklist =
+    [
+        "p0rn",
+        "porn",
+        "порн",
+        "п0рн",
+        "pоrn",
+        "пoрн",
+        "орно",
+        "ponr",
+        "bot",
+        "вот",
+        "child",
+        "chlid",
+    ];
 
     public CaptchaManager(
         ITelegramBotClient bot,
@@ -150,7 +164,12 @@ internal partial class CaptchaManager
         var fullName = Utils.FullName(user);
         var fullNameLower = fullName.ToLowerInvariant();
         var usernameLower = user.Username?.ToLower();
-        if (_namesBlacklist.Any(fullNameLower.Contains) || (usernameLower != null && _namesBlacklist.Any(usernameLower.Contains)))
+        if (
+            _namesBlacklist.Any(fullNameLower.Contains)
+            || (usernameLower != null && _namesBlacklist.Any(usernameLower.Contains))
+            || SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(fullNameLower).Any()
+            || (usernameLower != null && SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(usernameLower).Any())
+        )
             fullName = "новый участник чата";
 
         try
