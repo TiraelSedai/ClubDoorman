@@ -116,7 +116,7 @@ internal class MessageProcessor
         {
             await _bot.SendMessage(
                 chat,
-                "Привет, я бот-антиспам. Для базовой защиты - просто добавь меня в группу и сделай админом. Для продвинутой - пиши @TiraelSedai",
+                "Привет, я бот-антиспам. Для базовой защиты - просто добавь меня в группу и сделай админом. Для продвинутой - разверни свою копию на сервере https://github.com/TiraelSedai/ClubDoorman",
                 replyParameters: message,
                 cancellationToken: stoppingToken
             );
