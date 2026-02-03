@@ -20,6 +20,7 @@ internal class Config
         ChannelsCheckExclusionChats = GetChatsFromEnv("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION");
         MarketologsChats = GetChatsFromEnv("DOORMAN_CHANNEL_MARKETOLOGY_EXCLUSION");
         CaptchaDisabledChats = GetChatsFromEnv("DOORMAN_CAPTCHA_DISABLE");
+        IgnoreReportChannels = GetChatsFromEnv("DOORMAN_CHANNELS_IGNORE_REPORT");
     }
 
     public bool BlacklistAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BLACKLIST_AUTOBAN_DISABLE");
@@ -41,6 +42,8 @@ internal class Config
     public FrozenSet<long> ChannelsCheckExclusionChats { get; }
     public FrozenSet<long> MarketologsChats { get; }
     public FrozenSet<long> CaptchaDisabledChats { get; }
+    public FrozenSet<long> IgnoreReportChannels { get; }
+
 
     public bool NonFreeChat(long chatId) => MultiAdminChatMap.Count == 0 || MultiAdminChatMap.ContainsKey(chatId);
 
