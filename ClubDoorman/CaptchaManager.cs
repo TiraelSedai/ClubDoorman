@@ -40,7 +40,9 @@ internal partial class CaptchaManager
         "орно",
         "ponr",
         "bot",
+        "b0t",
         "вот",
+        "в0т",
         "child",
         "chlid",
     ];
