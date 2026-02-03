@@ -36,6 +36,7 @@
 - DOORMAN_BUTTON_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил сообщения где есть кнопки
 - DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE: Установить в true или 1 чтобы бот не банил сообщения где ML-классификатор достаточно уверен в спаме
 - DOORMAN_CHANNEL_AUTOBAN_EXCLUSION: Через запятую группы в которых каналы не банятся
+- DOORMAN_CHANNELS_IGNORE_REPORT: Через запятую каналы, о сообщениях которых не пишется в админском чате
 
 #### Спасибо
 - https://lols.bot/ за борьбу со спамерами и API для бан-листов
