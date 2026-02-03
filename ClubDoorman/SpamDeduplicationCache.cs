@@ -53,9 +53,7 @@ public sealed class SpamDeduplicationCache
                 _store[key] = list;
             }
 
-            var duplicates = list
-                .Where(e => !(e.UserId == userId && e.ChatId == chatId))
-                .ToList();
+            var duplicates = list.Where(e => !(e.UserId == userId && e.ChatId == chatId)).ToList();
 
             list.Add(entry);
             return duplicates;

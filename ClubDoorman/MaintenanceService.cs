@@ -2,10 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClubDoorman;
 
-internal sealed class MaintenanceService(
-    IServiceScopeFactory serviceScopeFactory,
-    ILogger<MaintenanceService> logger
-)
+internal sealed class MaintenanceService(IServiceScopeFactory serviceScopeFactory, ILogger<MaintenanceService> logger)
 {
     public async Task MaintenanceLoop(CancellationToken stoppingToken)
     {
@@ -14,7 +11,7 @@ internal sealed class MaintenanceService(
             var now = DateTime.UtcNow;
             var nextMidnight = now.Date.AddDays(1);
             var delay = nextMidnight - now;
-            
+
             await Task.Delay(delay, stoppingToken);
 
             try
@@ -44,17 +41,12 @@ internal sealed class MaintenanceService(
         using var scope = serviceScopeFactory.CreateScope();
         await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var approvedUserIds = await db.ApprovedUsers
-            .AsNoTracking()
-            .Select(u => u.Id)
-            .ToListAsync(ct);
+        var approvedUserIds = await db.ApprovedUsers.AsNoTracking().Select(u => u.Id).ToListAsync(ct);
 
         if (approvedUserIds.Count == 0)
             return 0;
 
-        var deleted = await db.HalfApprovedUsers
-            .Where(h => approvedUserIds.Contains(h.Id))
-            .ExecuteDeleteAsync(ct);
+        var deleted = await db.HalfApprovedUsers.Where(h => approvedUserIds.Contains(h.Id)).ExecuteDeleteAsync(ct);
 
         return deleted;
     }
