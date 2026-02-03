@@ -222,9 +222,9 @@ internal class MessageProcessor
             if (!spam_)
                 return;
 
-            var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
+            var fwd = await _bot.ForwardMessage(admChat, message.Chat, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
-                _config.AdminChatId,
+                admChat,
                 $"ML решил что это спам, скор {score_}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
                 replyParameters: fwd,
                 cancellationToken: stoppingToken
@@ -657,10 +657,10 @@ internal class MessageProcessor
         // else - ham
         if (score > -0.5 && _config.LowConfidenceHamForward && _config.NonFreeChat(chat.Id))
         {
-            var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+            var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             var postLink = Utils.LinkToMessage(chat, message.MessageId);
             await _bot.SendMessage(
-                _config.AdminChatId,
+                admChat,
                 $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}{Environment.NewLine}{postLink}",
                 replyParameters: forward,
                 cancellationToken: stoppingToken
@@ -746,9 +746,9 @@ internal class MessageProcessor
         var fullName = Utils.FullName(user);
         var chat = message.Chat;
         _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", chat.Title, chat.Id, fullName);
-        var admChat = _config.AdminChatId;
         if (_config.NonFreeChat(chat.Id))
         {
+            var admChat = _config.GetAdminChat(chat.Id);
             var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
                 admChat,
