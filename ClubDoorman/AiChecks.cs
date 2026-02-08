@@ -430,13 +430,15 @@ internal class AiChecks
         }
     }
 
-    public async ValueTask<SpamProbability> GetSpamProbability(Message message)
+    public async ValueTask<SpamProbability> GetSpamProbability(Message message, bool free = false)
     {
         var probability = new SpamProbability();
         if (_api == null)
             return probability;
 
         var text = message.Caption ?? message.Text ?? "";
+        if (message.Poll?.Question != null)
+            text = $"Опрос: {message.Poll.Question}{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", message.Poll.Options.Select(o => o.Text))}";
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
 
@@ -446,7 +448,8 @@ internal class AiChecks
             return new SpamProbability();
         }
 
-        var cacheKey = $"llm_spam_prob:{ShaHelper.ComputeSha256Hex(text)}";
+        var modelToUse = free ? "openrouter/free" : Model;
+        var cacheKey = $"llm_spam_prob:{modelToUse}:{ShaHelper.ComputeSha256Hex(text)}";
 
         return await _hybridCache.GetOrCreateAsync(
             cacheKey,
@@ -513,10 +516,11 @@ internal class AiChecks
                     const string systemMessage =
                         "Ты — модератор Telegram-группы, оценивающий сообщения в чате на спам, мошенничество и продвижения сторонних ресурсов или услуг";
                     _logger.LogInformation(
-                        "GetSpamProbability full prompt - System: {System}, User: {User}, HasImage: {HasImage}",
+                        "GetSpamProbability full prompt - System: {System}, User: {User}, HasImage: {HasImage}, Model: {Model}",
                         systemMessage,
                         fpString,
-                        message.Photo != null
+                        message.Photo != null,
+                        modelToUse
                     );
 
                     var messages = new List<ChatCompletionRequestMessage>
@@ -536,7 +540,7 @@ internal class AiChecks
                         async token =>
                             await _api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                                 messages: messages,
-                                model: Model,
+                                model: modelToUse,
                                 strict: true,
                                 jsonSerializerOptions: jso,
                                 cancellationToken: token

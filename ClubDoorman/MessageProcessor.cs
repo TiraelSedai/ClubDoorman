@@ -324,11 +324,9 @@ internal class MessageProcessor
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            if (!_config.NonFreeChat(chat.Id))
-                return;
             if (message.Photo != null && _config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message);
+                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
                 if (spamCheck.Probability >= Consts.LlmLowProbability)
                 {
                     var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
@@ -337,6 +335,10 @@ internal class MessageProcessor
                     else
                         await DontDeleteButReportMessage(message, reason, stoppingToken);
                 }
+            }
+            else if (!_config.NonFreeChat(chat.Id))
+            {
+                return;
             }
             else
             {
@@ -380,9 +382,9 @@ internal class MessageProcessor
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
                 return;
             }
-            if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            if (_config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message);
+                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
                 else
@@ -415,9 +417,9 @@ internal class MessageProcessor
             {
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
             }
-            else if (text.Length > 10 && _config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            else if (text.Length > 10 && _config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message);
+                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
                 else
@@ -445,9 +447,9 @@ internal class MessageProcessor
             {
                 await AutoBan(message, reason, stoppingToken);
             }
-            else if (_config.OpenRouterApi != null && _config.NonFreeChat(chat.Id))
+            else if (_config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message);
+                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
 
                 if (_config.MarketologsChats.Contains(chat.Id))
                 {
@@ -641,9 +643,9 @@ internal class MessageProcessor
             }
         }
 
-        if (_config.OpenRouterApi != null && message.From != null && _config.NonFreeChat(message.Chat.Id))
+        if (_config.OpenRouterApi != null && message.From != null)
         {
-            var spamCheck = await _aiChecks.GetSpamProbability(message);
+            var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(message.Chat.Id));
             if (spamCheck.Probability >= Consts.LlmLowProbability)
             {
                 var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
@@ -787,21 +789,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
