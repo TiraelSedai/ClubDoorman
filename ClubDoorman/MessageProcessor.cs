@@ -825,6 +825,8 @@ internal class MessageProcessor
     private async Task DontDeleteButReportMessage(Message message, string? reason = null, CancellationToken stoppingToken = default)
     {
         _logger.LogDebug("DontDeleteButReportMessage");
+        if (!_config.NonFreeChat(message.Chat.Id))
+            return;
         var fromChat = message.SenderChat;
         var user = message.From!;
         var admChat = _config.GetAdminChat(message.Chat.Id);
