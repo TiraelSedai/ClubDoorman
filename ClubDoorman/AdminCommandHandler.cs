@@ -192,7 +192,7 @@ internal class AdminCommandHandler
                         {
                             await _bot.SendMessage(
                                 admChat,
-                                $"{Utils.FullName(cb.From)} восстановил сообщение",
+                                $"{Utils.FullName(cb.From)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются) и восстановил сообщение",
                                 replyParameters: cb.Message?.MessageId
                             );
                         }
