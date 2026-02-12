@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
@@ -27,6 +28,7 @@ internal partial class CaptchaManager
     private readonly UserManager _userManager;
     private readonly StatisticsReporter _statistics;
     private readonly Config _config;
+    private readonly HybridCache _cache;
     private readonly ILogger<CaptchaManager> _logger;
 
     private readonly List<string> _namesBlacklist =
@@ -52,6 +54,7 @@ internal partial class CaptchaManager
         UserManager userManager,
         StatisticsReporter statistics,
         Config config,
+        HybridCache cache,
         ILogger<CaptchaManager> logger
     )
     {
@@ -59,6 +62,7 @@ internal partial class CaptchaManager
         _userManager = userManager;
         _statistics = statistics;
         _config = config;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -137,6 +141,9 @@ internal partial class CaptchaManager
             return;
 
         if (_config.CaptchaDisabledChats.Contains(chatId))
+            return;
+
+        if (await IsDiscussionChatAsync(chatId) == true)
             return;
 
         var key = UserToKey(chatId, user);
@@ -284,4 +291,28 @@ internal partial class CaptchaManager
     }
 
     private static string UserToKey(long chatId, User user) => $"{chatId}_{user.Id}";
+
+    private static string DiscussionChatCacheKey(long chatId) => $"discussion_chat:{chatId}";
+
+    private async ValueTask<bool?> IsDiscussionChatAsync(long chatId, CancellationToken ct = default)
+    {
+        return await _cache.GetOrCreateAsync<bool?>(
+            DiscussionChatCacheKey(chatId),
+            async ct =>
+            {
+                try
+                {
+                    var chat = await _bot.GetChat(chatId, cancellationToken: ct);
+                    return chat.LinkedChatId != null;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Failed to check if chat {ChatId} is discussion chat", chatId);
+                    return null;
+                }
+            },
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
+            cancellationToken: ct
+        );
+    }
 }
