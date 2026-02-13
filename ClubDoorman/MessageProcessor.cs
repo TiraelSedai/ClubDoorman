@@ -124,12 +124,19 @@ internal class MessageProcessor
         }
         if (message.LeftChatMember != null)
         {
-            await _bot.DeleteMessage(message.Chat, message.Id);
+            await _bot.DeleteMessage(message.Chat, message.Id, cancellationToken: stoppingToken);
             return;
         }
         if (message.NewChatMembers != null && chat.Id != _config.AdminChatId && !_config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
-            await _bot.DeleteMessage(message.Chat, message.Id, stoppingToken);
+            try
+            {
+                await _bot.DeleteMessage(message.Chat, message.Id, stoppingToken);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Cannot delete join message");
+            }
             return;
         }
         if (chat.Id == _config.AdminChatId || _config.MultiAdminChatMap.Values.Contains(chat.Id))

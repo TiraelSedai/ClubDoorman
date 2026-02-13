@@ -176,8 +176,8 @@ internal partial class CaptchaManager
         if (
             _namesBlacklist.Any(fullNameLower.Contains)
             || (usernameLower != null && _namesBlacklist.Any(usernameLower.Contains))
-            || SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(fullNameLower).Any()
-            || (usernameLower != null && SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(usernameLower).Any())
+            || SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(fullNameLower).Count != 0
+            || (usernameLower != null && SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(usernameLower).Count != 0)
         )
             fullName = "новый участник чата";
 
