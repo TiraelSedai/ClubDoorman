@@ -629,6 +629,8 @@ internal class MessageProcessor
                         message.Video?.FileId,
                         message.ReplyToMessage?.MessageId
                     );
+                    _logger.LogDebug("Storing deletedInfo in cache: key={RestoreKey}, chatId={ChatId}, userId={UserId}", 
+                        restoreKey, chat.Id, user.Id);
                     await _hybridCache.SetAsync(
                         restoreKey!,
                         deletedInfo,
@@ -930,6 +932,7 @@ internal class MessageProcessor
             }
 
         var restoreKey = $"restore_{IdGenerator.NextBase62()}";
+        _logger.LogDebug("DeleteAndReportMessage: generated restoreKey={RestoreKey}", restoreKey);
         var deletedInfo = new DeletedMessageInfo(
             restoreKey,
             message.Chat.Id,
@@ -949,6 +952,8 @@ internal class MessageProcessor
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
             cancellationToken: stoppingToken
         );
+        _logger.LogDebug("Stored deletedInfo in cache: key={RestoreKey}, chatId={ChatId}, userId={UserId}", 
+            restoreKey, message.Chat.Id, user.Id);
 
         var deletionMessagePart = reason;
         try

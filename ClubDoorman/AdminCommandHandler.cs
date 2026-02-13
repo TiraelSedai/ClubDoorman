@@ -54,12 +54,15 @@ internal class AdminCommandHandler
                 case "approve":
                     if (!long.TryParse(split[1], out var approveUserId))
                         return;
+                    _logger.LogDebug("Approve callback: userId={UserId}, splitCount={SplitCount}, parts=[{Parts}]", 
+                        approveUserId, split.Count, string.Join(", ", split));
                     await _userManager.Approve(approveUserId);
                     var msgText = $"{Utils.FullName(cb.From)} добавил пользователя в список доверенных";
 
                     if (split.Count > 3 && split[2] == "restore")
                     {
                         var restoreKey = $"{split[2]}_{split[3]}";
+                        _logger.LogDebug("Attempting to restore message with key: {RestoreKey}", restoreKey);
                         var deletedInfo = await _hybridCache.GetOrCreateAsync<DeletedMessageInfo?>(
                             restoreKey,
                             _ => ValueTask.FromResult<DeletedMessageInfo?>(null),
@@ -67,9 +70,19 @@ internal class AdminCommandHandler
                         );
                         if (deletedInfo != null)
                         {
+                            _logger.LogDebug("Found deletedInfo for key {RestoreKey}, chatId={ChatId}, text length={TextLength}", 
+                                restoreKey, deletedInfo.ChatId, (deletedInfo.Text ?? deletedInfo.Caption)?.Length ?? 0);
                             if (await RestoreMessage(deletedInfo, cb.Message, admChat))
                                 msgText += " и восстановил сообщение";
                         }
+                        else
+                        {
+                            _logger.LogWarning("deletedInfo not found in cache for key {RestoreKey}", restoreKey);
+                        }
+                    }
+                    else if (split.Count > 2)
+                    {
+                        _logger.LogDebug("Not restoring: splitCount={SplitCount}, split[2]='{Split2}'", split.Count, split.Count > 2 ? split[2] : "N/A");
                     }
 
                     await _bot.SendMessage(admChat, msgText, replyParameters: cb.Message?.MessageId);
@@ -305,6 +318,10 @@ internal class AdminCommandHandler
 
     private async Task<bool> RestoreMessage(DeletedMessageInfo deletedInfo, Message? adminMessageForReply, long admChat)
     {
+        _logger.LogDebug("RestoreMessage called: chatId={ChatId}, userId={UserId}, hasPhoto={HasPhoto}, hasVideo={HasVideo}", 
+            deletedInfo.ChatId, deletedInfo.UserId, 
+            !string.IsNullOrWhiteSpace(deletedInfo.PhotoFileId), 
+            !string.IsNullOrWhiteSpace(deletedInfo.VideoFileId));
         try
         {
             var username = string.IsNullOrWhiteSpace(deletedInfo.Username) ? "" : $"@{deletedInfo.Username}";
