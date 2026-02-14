@@ -1,5 +1,11 @@
 namespace ClubDoorman;
 
+internal enum DeletionReason
+{
+    MessageContent,
+    UserProfile
+}
+
 internal sealed record DeletedMessageInfo(
     string Key,
     long ChatId,
@@ -11,5 +17,6 @@ internal sealed record DeletedMessageInfo(
     string? Caption,
     string? PhotoFileId,
     string? VideoFileId,
-    int? ReplyToMessageId
+    int? ReplyToMessageId,
+    DeletionReason Reason = DeletionReason.MessageContent
 );
