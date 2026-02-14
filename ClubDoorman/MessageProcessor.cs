@@ -122,9 +122,13 @@ internal class MessageProcessor
         var user = message.From!;
         if (_userManager.Approved(user.Id))
         {
-            _logger.LogDebug("User {UserId} is approved", user.Id);
             var approvedText = message.Text ?? message.Caption;
-            if (_config.ApprovedUsersMlSpamCheck && !string.IsNullOrWhiteSpace(approvedText) && _config.NonFreeChat(message.Chat.Id) && !approvedText.Contains("http"))
+            if (
+                _config.ApprovedUsersMlSpamCheck
+                && !string.IsNullOrWhiteSpace(approvedText)
+                && _config.NonFreeChat(message.Chat.Id)
+                && !approvedText.Contains("http")
+            )
             {
                 var normalized = TextProcessor.NormalizeText(approvedText);
                 if (normalized.Length >= 10)
@@ -132,7 +136,12 @@ internal class MessageProcessor
                     var (spam, score) = await _classifier.IsSpam(normalized);
                     if (spam)
                     {
-                        var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
+                        var fwd = await _bot.ForwardMessage(
+                            _config.AdminChatId,
+                            message.Chat,
+                            message.MessageId,
+                            cancellationToken: stoppingToken
+                        );
                         await _bot.SendMessage(
                             _config.AdminChatId,
                             $"ML решил что это спам, скор {score}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
@@ -142,6 +151,12 @@ internal class MessageProcessor
                     }
                 }
             }
+            return;
+        }
+        var clubUser = await _userManager.GetClubUsername(user.Id);
+        if (!string.IsNullOrEmpty(clubUser))
+        {
+            _logger.LogDebug("User is {Name} from club", clubUser);
             return;
         }
 
@@ -273,12 +288,6 @@ internal class MessageProcessor
             return CheckResult.NoMoreAction;
         }
 
-        var name = await _userManager.GetClubUsername(user.Id);
-        if (!string.IsNullOrEmpty(name))
-        {
-            _logger.LogDebug("User is {Name} from club", name);
-            return CheckResult.Pass;
-        }
         if (await _userManager.InBanlist(user.Id))
         {
             _logger.LogDebug("InBanlist");
@@ -311,7 +320,7 @@ internal class MessageProcessor
                 {
                     var state = _ignoredChats.AddOrUpdate(
                         chat.Id,
-                        _ => new ChatIgnoreState { FailureCount = 1, IgnoreUntil = DateTime.UtcNow.AddHours(1) },
+                        _ => new ChatIgnoreState { FailureCount = 1, IgnoreUntil = DateTime.UtcNow.AddHours(6) },
                         (_, existing) =>
                         {
                             existing.FailureCount++;
@@ -350,11 +359,6 @@ internal class MessageProcessor
             _logger.LogDebug("Stories");
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
             return CheckResult.NoMoreAction;
-        }
-        if (message.Sticker != null)
-        {
-            _logger.LogDebug("Sticker");
-            return CheckResult.Pass;
         }
 
         return CheckResult.Pass;
@@ -858,21 +862,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
