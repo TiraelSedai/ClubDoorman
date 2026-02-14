@@ -13,7 +13,7 @@ internal enum CheckResult
 {
     Pass,
     Suspicious,
-    Deleted
+    Deleted,
 }
 
 internal sealed class ChatIgnoreState
@@ -142,8 +142,16 @@ internal class MessageProcessor
         if (profileResult == CheckResult.Deleted)
             return;
 
-        if (update.Message != null && update.EditedMessage == null && basicResult == CheckResult.Pass && contentResult == CheckResult.Pass && profileResult == CheckResult.Pass)
+        if (
+            update.Message != null
+            && update.EditedMessage == null
+            && basicResult == CheckResult.Pass
+            && contentResult == CheckResult.Pass
+            && profileResult == CheckResult.Pass
+        )
+        {
             await HandleGoodUserCounter(message, user, chat, stoppingToken);
+        }
     }
 
     private async Task<CheckResult> CheckBasicFilters(Message message, Chat chat, CancellationToken stoppingToken)
@@ -356,7 +364,14 @@ internal class MessageProcessor
         return CheckResult.Pass;
     }
 
-    private async Task<CheckResult> CheckMessageContent(Message message, User user, string text, Chat chat, long admChat, CancellationToken stoppingToken)
+    private async Task<CheckResult> CheckMessageContent(
+        Message message,
+        User user,
+        string text,
+        Chat chat,
+        long admChat,
+        CancellationToken stoppingToken
+    )
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -589,14 +604,20 @@ internal class MessageProcessor
         return CheckResult.Pass;
     }
 
-    private async Task<CheckResult> CheckUserProfile(Message message, User user, string text, Chat chat, long admChat, CancellationToken stoppingToken)
+    private async Task<CheckResult> CheckUserProfile(
+        Message message,
+        User user,
+        string text,
+        Chat chat,
+        long admChat,
+        CancellationToken stoppingToken
+    )
     {
         if (_config.OpenRouterApi == null || message.From == null || !_config.NonFreeChat(message.Chat.Id))
             return CheckResult.Pass;
 
         var replyToRecentPost =
-            message.ReplyToMessage?.IsAutomaticForward == true
-            && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(10);
+            message.ReplyToMessage?.IsAutomaticForward == true && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(10);
         var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
             message.From,
             async x =>
@@ -684,8 +705,7 @@ internal class MessageProcessor
         }
 
         if (attention.EroticProbability >= Consts.LlmLowProbability)
-            msg +=
-                $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
+            msg += $"{Environment.NewLine}Вероятность что этот профиль связан с эротикой/порно: {attention.EroticProbability * 100}%";
         if (attention.GamblingProbability >= Consts.LlmLowProbability)
             msg +=
                 $"{Environment.NewLine}Вероятность что этот профиль предлагает быстрый заработок: {attention.GamblingProbability * 100}%";
@@ -700,10 +720,7 @@ internal class MessageProcessor
         string? restoreKey = null;
         if (delete)
             restoreKey = $"restore_{IdGenerator.NextBase62()}";
-        var keyboard = new List<InlineKeyboardButton>
-        {
-            new(Consts.BanButton) { CallbackData = $"banNoMark_{message.Chat.Id}_{user.Id}" },
-        };
+        var keyboard = new List<InlineKeyboardButton> { new(Consts.BanButton) { CallbackData = $"banNoMark_{message.Chat.Id}_{user.Id}" } };
         if (delete)
         {
             keyboard.Add(new InlineKeyboardButton(Consts.OkButton) { CallbackData = $"attOk_{user.Id}_{restoreKey}" });
@@ -748,8 +765,12 @@ internal class MessageProcessor
                 message.ReplyToMessage?.MessageId,
                 DeletionReason.UserProfile
             );
-            _logger.LogDebug("Storing deletedInfo in cache: key={RestoreKey}, chatId={ChatId}, userId={UserId}",
-                restoreKey, chat.Id, user.Id);
+            _logger.LogDebug(
+                "Storing deletedInfo in cache: key={RestoreKey}, chatId={ChatId}, userId={UserId}",
+                restoreKey,
+                chat.Id,
+                user.Id
+            );
             await _hybridCache.SetAsync(
                 restoreKey!,
                 deletedInfo,
@@ -841,21 +862,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
@@ -996,8 +1017,12 @@ internal class MessageProcessor
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromHours(24) },
             cancellationToken: stoppingToken
         );
-        _logger.LogDebug("Stored deletedInfo in cache: key={RestoreKey}, chatId={ChatId}, userId={UserId}",
-            restoreKey, message.Chat.Id, user.Id);
+        _logger.LogDebug(
+            "Stored deletedInfo in cache: key={RestoreKey}, chatId={ChatId}, userId={UserId}",
+            restoreKey,
+            message.Chat.Id,
+            user.Id
+        );
 
         var deletionMessagePart = reason;
         try

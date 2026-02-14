@@ -3,7 +3,7 @@ namespace ClubDoorman;
 internal enum DeletionReason
 {
     MessageContent,
-    UserProfile
+    UserProfile,
 }
 
 internal sealed record DeletedMessageInfo(
