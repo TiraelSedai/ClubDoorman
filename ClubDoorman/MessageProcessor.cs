@@ -160,61 +160,25 @@ internal class MessageProcessor
             return;
         }
 
-        var basicResult = await CheckBasicFilters(message, chat, stoppingToken);
-        if (basicResult == CheckResult.NoMoreAction)
-            return;
-
-        var text = message.Text ?? message.Caption;
-        if (message.Quote?.Text != null)
-            text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
-
-        _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
-        using var logScopeName = _logger.BeginScope("User {Usr}", Utils.FullName(user));
-        _recentMessagesStorage.Add(user.Id, chat.Id, message);
-
-        var admChat = _config.GetAdminChat(chat.Id);
-
-        var contentResult = await CheckMessageContent(message, user, text ?? "", chat, admChat, stoppingToken);
-        if (contentResult == CheckResult.NoMoreAction)
-            return;
-
-        var profileResult = await CheckUserProfile(message, user, text ?? "", chat, admChat, stoppingToken);
-        if (profileResult == CheckResult.NoMoreAction)
-            return;
-
-        if (
-            update.Message != null
-            && update.EditedMessage == null
-            && basicResult == CheckResult.Pass
-            && contentResult == CheckResult.Pass
-            && profileResult == CheckResult.Pass
-        )
-        {
-            await HandleGoodUserCounter(message, user, chat, stoppingToken);
-        }
-    }
-
-    private async Task<CheckResult> CheckBasicFilters(Message message, Chat chat, CancellationToken stoppingToken)
-    {
         if (_ignoredChats.TryGetValue(chat.Id, out var ignoreState) && DateTime.UtcNow < ignoreState.IgnoreUntil)
         {
             _logger.LogDebug("Ignoring chat {ChatId} until {IgnoreUntil} due to repeated failures", chat.Id, ignoreState.IgnoreUntil);
-            return CheckResult.NoMoreAction;
+            return;
         }
         if (chat.Type == ChatType.Private)
         {
             await _bot.SendMessage(
                 chat,
-                "Привет, я бот-антиспам. Для базовой защиты - просто добавь меня в группу и сделай админом. Для продвинутой - пиши @TiraelSedai",
+                "Привет, я бот-антиспам. Для базовой защиты - просто добавь меня в группу и сделай админом. Для продвинутой - пиши @TiraelSedai.\nhttps://antispam.burm.dev",
                 replyParameters: message,
                 cancellationToken: stoppingToken
             );
-            return CheckResult.NoMoreAction;
+            return;
         }
         if (message.LeftChatMember != null)
         {
             await _bot.DeleteMessage(message.Chat, message.Id, cancellationToken: stoppingToken);
-            return CheckResult.NoMoreAction;
+            return;
         }
         if (message.NewChatMembers != null)
         {
@@ -226,21 +190,20 @@ internal class MessageProcessor
             {
                 _logger.LogWarning(e, "Cannot delete join message");
             }
-            return CheckResult.NoMoreAction;
+            return;
         }
 
         var admChat = _config.GetAdminChat(chat.Id);
-
         if (message.SenderChat != null)
         {
             if (message.IsAutomaticForward)
-                return CheckResult.Pass;
+                return;
             if (message.SenderChat.Id == chat.Id)
-                return CheckResult.Pass;
+                return;
             var chatFull = await _bot.GetChat(chat, stoppingToken);
             var linked = chatFull.LinkedChatId;
             if (linked != null && linked == message.SenderChat.Id)
-                return CheckResult.Pass;
+                return;
 
             _recentMessagesStorage.Add(message.SenderChat.Id, chat.Id, message);
             if (!_config.ChannelsCheckExclusionChats.Contains(chat.Id))
@@ -253,7 +216,7 @@ internal class MessageProcessor
                         if (subs > Consts.BigChannelSubsCount)
                         {
                             _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
-                            return CheckResult.Pass;
+                            return;
                         }
                         await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
                         await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
@@ -270,22 +233,20 @@ internal class MessageProcessor
                                 cancellationToken: stoppingToken
                             );
                     }
-                    return CheckResult.NoMoreAction;
+                    return;
                 }
 
                 await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
-                return CheckResult.Suspicious;
             }
         }
 
-        var user = message.From!;
         if (_me != null && user.Id == _me.Id)
-            return CheckResult.Pass;
+            return;
 
         if (_captchaManager.IsCaptchaNeeded(chat.Id, user))
         {
             await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
-            return CheckResult.NoMoreAction;
+            return;
         }
 
         if (await _userManager.InBanlist(user.Id))
@@ -341,7 +302,7 @@ internal class MessageProcessor
             {
                 await DeleteAndReportMessage(message, "Пользователь в блеклисте спамеров", stoppingToken);
             }
-            return CheckResult.NoMoreAction;
+            return;
         }
 
         if (message.ReplyMarkup != null)
@@ -352,16 +313,40 @@ internal class MessageProcessor
                     ? AutoBan(message, "Сообщение с кнопками", stoppingToken)
                     : DeleteAndReportMessage(message, "Сообщение с кнопками", stoppingToken)
             );
-            return CheckResult.NoMoreAction;
+            return;
         }
         if (message.Story != null)
         {
             _logger.LogDebug("Stories");
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
-            return CheckResult.NoMoreAction;
+            return;
         }
 
-        return CheckResult.Pass;
+        var text = message.Text ?? message.Caption;
+        if (message.Quote?.Text != null)
+            text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
+
+        _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
+        using var logScopeName = _logger.BeginScope("User {Usr}", Utils.FullName(user));
+        _recentMessagesStorage.Add(user.Id, chat.Id, message);
+
+        var contentResult = await CheckMessageContent(message, user, text ?? "", chat, admChat, stoppingToken);
+        if (contentResult == CheckResult.NoMoreAction)
+            return;
+
+        var profileResult = await CheckUserProfile(message, user, text ?? "", chat, admChat, stoppingToken);
+        if (profileResult == CheckResult.NoMoreAction)
+            return;
+
+        if (
+            update.Message != null
+            && update.EditedMessage == null
+            && contentResult == CheckResult.Pass
+            && profileResult == CheckResult.Pass
+        )
+        {
+            await HandleGoodUserCounter(message, user, chat, stoppingToken);
+        }
     }
 
     private async Task<CheckResult> CheckMessageContent(
@@ -862,21 +847,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
