@@ -13,7 +13,7 @@ internal enum CheckResult
 {
     Pass,
     Suspicious,
-    Deleted,
+    NoMoreAction,
 }
 
 internal sealed class ChatIgnoreState
@@ -119,11 +119,36 @@ internal class MessageProcessor
             return;
         }
 
+        var user = message.From!;
+        if (_userManager.Approved(user.Id))
+        {
+            _logger.LogDebug("User {UserId} is approved", user.Id);
+            var approvedText = message.Text ?? message.Caption;
+            if (_config.ApprovedUsersMlSpamCheck && !string.IsNullOrWhiteSpace(approvedText) && _config.NonFreeChat(message.Chat.Id) && !approvedText.Contains("http"))
+            {
+                var normalized = TextProcessor.NormalizeText(approvedText);
+                if (normalized.Length >= 10)
+                {
+                    var (spam, score) = await _classifier.IsSpam(normalized);
+                    if (spam)
+                    {
+                        var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
+                        await _bot.SendMessage(
+                            _config.AdminChatId,
+                            $"ML решил что это спам, скор {score}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
+                            replyParameters: fwd,
+                            cancellationToken: stoppingToken
+                        );
+                    }
+                }
+            }
+            return;
+        }
+
         var basicResult = await CheckBasicFilters(message, chat, stoppingToken);
-        if (basicResult == CheckResult.Deleted)
+        if (basicResult == CheckResult.NoMoreAction)
             return;
 
-        var user = message.From!;
         var text = message.Text ?? message.Caption;
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
@@ -135,11 +160,11 @@ internal class MessageProcessor
         var admChat = _config.GetAdminChat(chat.Id);
 
         var contentResult = await CheckMessageContent(message, user, text ?? "", chat, admChat, stoppingToken);
-        if (contentResult == CheckResult.Deleted)
+        if (contentResult == CheckResult.NoMoreAction)
             return;
 
         var profileResult = await CheckUserProfile(message, user, text ?? "", chat, admChat, stoppingToken);
-        if (profileResult == CheckResult.Deleted)
+        if (profileResult == CheckResult.NoMoreAction)
             return;
 
         if (
@@ -159,7 +184,7 @@ internal class MessageProcessor
         if (_ignoredChats.TryGetValue(chat.Id, out var ignoreState) && DateTime.UtcNow < ignoreState.IgnoreUntil)
         {
             _logger.LogDebug("Ignoring chat {ChatId} until {IgnoreUntil} due to repeated failures", chat.Id, ignoreState.IgnoreUntil);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         if (chat.Type == ChatType.Private)
         {
@@ -169,12 +194,12 @@ internal class MessageProcessor
                 replyParameters: message,
                 cancellationToken: stoppingToken
             );
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         if (message.LeftChatMember != null)
         {
             await _bot.DeleteMessage(message.Chat, message.Id, cancellationToken: stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         if (message.NewChatMembers != null)
         {
@@ -186,7 +211,7 @@ internal class MessageProcessor
             {
                 _logger.LogWarning(e, "Cannot delete join message");
             }
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         var admChat = _config.GetAdminChat(chat.Id);
@@ -230,7 +255,7 @@ internal class MessageProcessor
                                 cancellationToken: stoppingToken
                             );
                     }
-                    return CheckResult.Deleted;
+                    return CheckResult.NoMoreAction;
                 }
 
                 await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
@@ -245,36 +270,7 @@ internal class MessageProcessor
         if (_captchaManager.IsCaptchaNeeded(chat.Id, user))
         {
             await _bot.DeleteMessage(chat.Id, message.MessageId, stoppingToken);
-            return CheckResult.Deleted;
-        }
-
-        if (_userManager.Approved(user.Id))
-        {
-            var text = message.Text ?? message.Caption;
-            if (!_config.ApprovedUsersMlSpamCheck || string.IsNullOrWhiteSpace(text))
-                return CheckResult.Pass;
-
-            if (!_config.NonFreeChat(message.Chat.Id))
-                return CheckResult.Pass;
-
-            if (text.Contains("http"))
-                return CheckResult.Pass;
-
-            var normalized_ = TextProcessor.NormalizeText(text);
-            if (normalized_.Length < 10)
-                return CheckResult.Pass;
-            var (spam_, score_) = await _classifier.IsSpam(normalized_);
-            if (!spam_)
-                return CheckResult.Pass;
-
-            var fwd = await _bot.ForwardMessage(_config.AdminChatId, message.Chat, message.MessageId, cancellationToken: stoppingToken);
-            await _bot.SendMessage(
-                _config.AdminChatId,
-                $"ML решил что это спам, скор {score_}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
-                replyParameters: fwd,
-                cancellationToken: stoppingToken
-            );
-            return CheckResult.Suspicious;
+            return CheckResult.NoMoreAction;
         }
 
         var name = await _userManager.GetClubUsername(user.Id);
@@ -336,7 +332,7 @@ internal class MessageProcessor
             {
                 await DeleteAndReportMessage(message, "Пользователь в блеклисте спамеров", stoppingToken);
             }
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         if (message.ReplyMarkup != null)
@@ -347,13 +343,13 @@ internal class MessageProcessor
                     ? AutoBan(message, "Сообщение с кнопками", stoppingToken)
                     : DeleteAndReportMessage(message, "Сообщение с кнопками", stoppingToken)
             );
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         if (message.Story != null)
         {
             _logger.LogDebug("Stories");
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         if (message.Sticker != null)
         {
@@ -385,7 +381,7 @@ internal class MessageProcessor
                     if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                     {
                         await DeleteAndReportMessage(message, reason, stoppingToken);
-                        return CheckResult.Deleted;
+                        return CheckResult.NoMoreAction;
                     }
                     await DontDeleteButReportMessage(message, reason, stoppingToken);
                     return CheckResult.Suspicious;
@@ -410,7 +406,7 @@ internal class MessageProcessor
         {
             _logger.LogDebug("KnownBadMessage");
             await HandleBadMessage(message, user, stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         var normalized = TextProcessor.NormalizeText(text);
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
@@ -422,11 +418,11 @@ internal class MessageProcessor
             if (!_config.LookAlikeAutoBan || _config.MarketologsChats.Contains(chat.Id))
             {
                 await DeleteAndReportMessage(message, reason, stoppingToken);
-                return CheckResult.Deleted;
+                return CheckResult.NoMoreAction;
             }
 
             await AutoBan(message, reason, stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         if (SimpleFilters.HasUnwantedChars(normalized))
@@ -444,13 +440,13 @@ internal class MessageProcessor
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                 {
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                    return CheckResult.Deleted;
+                    return CheckResult.NoMoreAction;
                 }
                 await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                return CheckResult.Deleted;
+                return CheckResult.NoMoreAction;
             }
             await DeleteAndReportMessage(message, reason, stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         if (SimpleFilters.TooManyEmojis(text))
@@ -466,7 +462,7 @@ internal class MessageProcessor
             )
             {
                 await AutoBan(message, "один эмодзи и имя из блеклиста", stoppingToken);
-                return CheckResult.Deleted;
+                return CheckResult.NoMoreAction;
             }
 
             if (_config.MarketologsChats.Contains(chat.Id))
@@ -480,19 +476,19 @@ internal class MessageProcessor
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                 {
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                    return CheckResult.Deleted;
+                    return CheckResult.NoMoreAction;
                 }
                 await DeleteAndReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                return CheckResult.Deleted;
+                return CheckResult.NoMoreAction;
             }
             await DeleteAndReportMessage(message, reason, stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         if (SimpleFilters.HasStopWords(normalized))
         {
             await DeleteAndReportMessage(message, "В этом сообщении есть стоп-слова", stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
         _logger.LogDebug("Normalized:\n {Norm}", normalized);
         var (spam, score) = await _classifier.IsSpam(normalized);
@@ -502,7 +498,7 @@ internal class MessageProcessor
             if (score > 3 && _config.HighConfidenceAutoBan && !_config.MarketologsChats.Contains(chat.Id))
             {
                 await AutoBan(message, reason, stoppingToken);
-                return CheckResult.Deleted;
+                return CheckResult.NoMoreAction;
             }
             if (_config.OpenRouterApi != null)
             {
@@ -516,14 +512,14 @@ internal class MessageProcessor
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                 {
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                    return CheckResult.Deleted;
+                    return CheckResult.NoMoreAction;
                 }
                 var llmScore = $"{Environment.NewLine}LLM оценивает вероятность спама в {spamCheck.Probability * 100}%:";
                 await DeleteAndReportMessage(message, $"{reason}{llmScore}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
-                return CheckResult.Deleted;
+                return CheckResult.NoMoreAction;
             }
             await DeleteAndReportMessage(message, reason, stoppingToken);
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         if (_config.OpenRouterApi != null && message.From != null)
@@ -535,7 +531,7 @@ internal class MessageProcessor
                 if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                 {
                     await DeleteAndReportMessage(message, reason, stoppingToken);
-                    return CheckResult.Deleted;
+                    return CheckResult.NoMoreAction;
                 }
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
                 return CheckResult.Suspicious;
@@ -785,7 +781,7 @@ internal class MessageProcessor
                 untilDate: DateTime.UtcNow.AddMinutes(10),
                 cancellationToken: stoppingToken
             );
-            return CheckResult.Deleted;
+            return CheckResult.NoMoreAction;
         }
 
         return CheckResult.Suspicious;
@@ -862,21 +858,21 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
