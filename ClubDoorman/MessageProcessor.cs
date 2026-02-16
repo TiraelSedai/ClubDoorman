@@ -119,6 +119,53 @@ internal class MessageProcessor
             return;
         }
 
+        var admChat = _config.GetAdminChat(chat.Id);
+        if (message.SenderChat != null)
+        {
+            if (message.IsAutomaticForward)
+                return;
+            if (message.SenderChat.Id == chat.Id)
+                return;
+            var chatFull = await _bot.GetChat(chat, stoppingToken);
+            var linked = chatFull.LinkedChatId;
+            if (linked != null && linked == message.SenderChat.Id)
+                return;
+
+            _recentMessagesStorage.Add(message.SenderChat.Id, chat.Id, message);
+            if (!_config.ChannelsCheckExclusionChats.Contains(chat.Id))
+            {
+                if (_config.ChannelAutoBan)
+                {
+                    try
+                    {
+                        var subs = await _bot.GetChatMemberCount(message.SenderChat.Id, cancellationToken: stoppingToken);
+                        if (subs > Consts.BigChannelSubsCount)
+                        {
+                            _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
+                            return;
+                        }
+                        await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
+                        await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
+                        var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
+                        stats.Channels++;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning(e, "Unable to ban");
+                        if (_config.NonFreeChat(chat.Id))
+                            await _bot.SendMessage(
+                                admChat,
+                                $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
+                                cancellationToken: stoppingToken
+                            );
+                    }
+                    return;
+                }
+
+                await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
+            }
+        }
+
         var user = message.From!;
         if (_userManager.Approved(user.Id))
         {
@@ -191,53 +238,6 @@ internal class MessageProcessor
                 _logger.LogWarning(e, "Cannot delete join message");
             }
             return;
-        }
-
-        var admChat = _config.GetAdminChat(chat.Id);
-        if (message.SenderChat != null)
-        {
-            if (message.IsAutomaticForward)
-                return;
-            if (message.SenderChat.Id == chat.Id)
-                return;
-            var chatFull = await _bot.GetChat(chat, stoppingToken);
-            var linked = chatFull.LinkedChatId;
-            if (linked != null && linked == message.SenderChat.Id)
-                return;
-
-            _recentMessagesStorage.Add(message.SenderChat.Id, chat.Id, message);
-            if (!_config.ChannelsCheckExclusionChats.Contains(chat.Id))
-            {
-                if (_config.ChannelAutoBan)
-                {
-                    try
-                    {
-                        var subs = await _bot.GetChatMemberCount(message.SenderChat.Id, cancellationToken: stoppingToken);
-                        if (subs > Consts.BigChannelSubsCount)
-                        {
-                            _logger.LogDebug("Popular channel {Ch}, not banning", message.SenderChat.Title);
-                            return;
-                        }
-                        await _bot.DeleteMessage(chat, message.MessageId, stoppingToken);
-                        await _bot.BanChatSenderChat(chat, message.SenderChat.Id, stoppingToken);
-                        var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
-                        stats.Channels++;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(e, "Unable to ban");
-                        if (_config.NonFreeChat(chat.Id))
-                            await _bot.SendMessage(
-                                admChat,
-                                $"Не могу удалить или забанить в чате {chat.Title} сообщение от имени канала {message.SenderChat.Title}. Не хватает могущества?",
-                                cancellationToken: stoppingToken
-                            );
-                    }
-                    return;
-                }
-
-                await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
-            }
         }
 
         if (_me != null && user.Id == _me.Id)
