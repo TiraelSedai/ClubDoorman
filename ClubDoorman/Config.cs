@@ -18,6 +18,7 @@ internal class Config
         MultiAdminChatMap = new Dictionary<long, long>().ToFrozenDictionary();
         _ = InitMultiAdminChatMap();
         ChannelsCheckExclusionChats = GetChatsFromEnv("DOORMAN_CHANNEL_AUTOBAN_EXCLUSION");
+        EmojiCheckDisabledChats = GetChatsFromEnv("DOORMAN_CHANNELS_EMOJI_DISABLE");
         MarketologsChats = GetChatsFromEnv("DOORMAN_CHANNEL_MARKETOLOGY_EXCLUSION");
         CaptchaDisabledChats = GetChatsFromEnv("DOORMAN_CAPTCHA_DISABLE");
     }
@@ -39,6 +40,7 @@ internal class Config
 
     public FrozenDictionary<long, long> MultiAdminChatMap { get; private set; }
     public FrozenSet<long> ChannelsCheckExclusionChats { get; }
+    public FrozenSet<long> EmojiCheckDisabledChats { get; }
     public FrozenSet<long> MarketologsChats { get; }
     public FrozenSet<long> CaptchaDisabledChats { get; }
 

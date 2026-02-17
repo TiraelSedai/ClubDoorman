@@ -438,7 +438,7 @@ internal class MessageProcessor
             return CheckResult.NoMoreAction;
         }
 
-        if (SimpleFilters.TooManyEmojis(text))
+        if (!_config.EmojiCheckDisabledChats.Contains(chat.Id) && SimpleFilters.TooManyEmojis(text))
         {
             _logger.LogDebug("TooManyEmojis");
             const string reason = "В этом сообщении многовато эмоджи";
