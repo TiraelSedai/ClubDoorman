@@ -19,6 +19,7 @@ internal class AiChecks
         Config config,
         HybridCache hybridCache,
         IServiceScopeFactory serviceScopeFactory,
+        UserManager userManager,
         ILogger<AiChecks> logger
     )
     {
@@ -26,6 +27,8 @@ internal class AiChecks
         _config = config;
         _hybridCache = hybridCache;
         _serviceScopeFactory = serviceScopeFactory;
+        _userManager = userManager;
+
         _logger = logger;
         _api = _config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_config.OpenRouterApi);
     }
@@ -40,6 +43,8 @@ internal class AiChecks
     private readonly Config _config;
     private readonly HybridCache _hybridCache;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly UserManager _userManager;
+
     private readonly ILogger<AiChecks> _logger;
 
     private static string CacheKey(long userId) => $"attention:{userId}";
@@ -146,7 +151,7 @@ internal class AiChecks
                 {
                     var userChat = await _bot.GetChat(user.Id, cancellationToken: ct);
                     if (ifChanged != default)
-                        _ = CheckLater(userChat, ifChanged);
+                        _ = CheckLater(userChat, ifChanged, ct);
 
                     if (checkJustErotic || (userChat.Bio == null && userChat.LinkedChatId == null))
                     {
@@ -382,7 +387,7 @@ internal class AiChecks
         );
     }
 
-    private async Task CheckLater(ChatFullInfo userChat, Func<string, Task> ifChanged)
+    private async Task CheckLater(ChatFullInfo userChat, Func<string, Task> ifChanged, CancellationToken ct = default)
     {
         try
         {
@@ -393,8 +398,14 @@ internal class AiChecks
             for (var i = 1; i <= 3; i++)
             {
                 wait += TimeSpan.FromMinutes(Math.Exp(i) / 2);
-                await Task.Delay(wait);
-                var chat = await _bot.GetChat(userChat.Id);
+                await Task.Delay(wait, ct);
+                if (await _userManager.InBanlist(userChat.Id))
+                {
+                    _ = ifChanged.Invoke("пользователь теперь в блеклисте спамеров");
+                    return;
+                }
+
+                var chat = await _bot.GetChat(userChat.Id, cancellationToken: ct);
                 if (chat.Photo?.BigFileUniqueId != userChat.Photo?.BigFileUniqueId)
                 {
                     _ = ifChanged.Invoke("пользователь сменил фото");
@@ -424,7 +435,7 @@ internal class AiChecks
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             _logger.LogWarning(e, nameof(CheckLater));
         }

@@ -24,6 +24,16 @@ internal sealed class ChatIgnoreState
 
 internal class MessageProcessor
 {
+    private static readonly TimeSpan[] NewcomerBanlistCheckAfterJoin =
+    [
+        TimeSpan.FromMinutes(15),
+        TimeSpan.FromMinutes(45),
+        TimeSpan.FromHours(2),
+        TimeSpan.FromHours(6),
+        TimeSpan.FromHours(12),
+        TimeSpan.FromHours(24),
+    ];
+
     private readonly ITelegramBotClient _bot;
     private readonly ILogger<MessageProcessor> _logger;
     private readonly SpamHamClassifier _classifier;
@@ -38,6 +48,7 @@ internal class MessageProcessor
     private readonly ReactionHandler _reactionHandler;
     private readonly AdminCommandHandler _adminCommandHandler;
     private readonly RecentMessagesStorage _recentMessagesStorage;
+    private readonly ConcurrentDictionary<(long ChatId, long UserId), CancellationTokenSource> _newcomersOnWatch = new();
     private readonly HybridCache _hybridCache;
     private readonly SpamDeduplicationCache _spamDeduplicationCache;
     private User? _me;
@@ -102,7 +113,7 @@ internal class MessageProcessor
             if (update.ChatMember.From.Id == _me.Id)
                 return;
             _logger.LogDebug("Chat member updated {@ChatMember}", update.ChatMember);
-            await HandleChatMemberUpdated(update);
+            await HandleChatMemberUpdated(update, stoppingToken);
             return;
         }
 
@@ -609,7 +620,10 @@ internal class MessageProcessor
             {
                 var alreadyBanned = await _userManager.InBanlist(message.From.Id);
                 if (alreadyBanned)
+                {
                     await AutoBan(message, $"{x}{Environment.NewLine}Теперь в банлисте", stoppingToken);
+                    return;
+                }
                 await _aiChecks.ClearCache(message.From.Id);
                 var (ascore, p, b) = await _aiChecks.GetAttentionBaitProbability(message.From, null, true);
                 if (ascore.EroticProbability > Consts.LlmLowProbability)
@@ -823,6 +837,95 @@ internal class MessageProcessor
         await _bot.BanChatMember(chat, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
     }
 
+    private void WatchNewcomer(Chat chat, User user, CancellationToken stoppingToken)
+    {
+        if (!_config.BlacklistAutoBan)
+            return;
+
+        var key = (chat.Id, user.Id);
+        StopWatchingNewcomer(key);
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        if (!_newcomersOnWatch.TryAdd(key, cts))
+        {
+            cts.Dispose();
+            return;
+        }
+
+        CheckNewcomerBanlistLater(chat, user, key, cts, cts.Token).FireAndForget(_logger, nameof(CheckNewcomerBanlistLater));
+    }
+
+    private void StopWatchingNewcomer((long ChatId, long UserId) key)
+    {
+        if (!_newcomersOnWatch.TryRemove(key, out var cts))
+            return;
+
+        cts.Cancel();
+        cts.Dispose();
+    }
+
+    private async Task CheckNewcomerBanlistLater(
+        Chat chat,
+        User user,
+        (long ChatId, long UserId) key,
+        CancellationTokenSource cts,
+        CancellationToken stoppingToken
+    )
+    {
+        try
+        {
+            var previousCheck = TimeSpan.Zero;
+            foreach (var checkAfter in NewcomerBanlistCheckAfterJoin)
+            {
+                await Task.Delay(checkAfter - previousCheck, stoppingToken);
+                previousCheck = checkAfter;
+
+                if (!await _userManager.InBanlist(user.Id))
+                    continue;
+
+                _logger.LogInformation(
+                    "Newcomer in banlist. Chat {ChatId} {ChatTitle}, User {UserId} {User}, Joined check {Hours}h",
+                    chat.Id,
+                    chat.Title,
+                    user.Id,
+                    Utils.FullName(user),
+                    checkAfter.TotalHours
+                );
+
+                try
+                {
+                    var stats = _statistics.Stats.GetOrAdd(chat.Id, new Stats(chat.Title) { Id = chat.Id });
+                    stats.BlacklistBanned++;
+                    await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false, cancellationToken: stoppingToken);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Unable to ban newcomer from delayed banlist check");
+                    if (_config.NonFreeChat(chat.Id))
+                    {
+                        await _bot.SendMessage(
+                            _config.GetAdminChat(chat.Id),
+                            $"Не могу забанить нового участника из блеклиста. Не хватает могущества? Сходите забаньте руками, чат {chat.Title}",
+                            cancellationToken: stoppingToken
+                        );
+                    }
+                }
+
+                return;
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, nameof(CheckNewcomerBanlistLater));
+        }
+        finally
+        {
+            if (_newcomersOnWatch.TryGetValue(key, out var currentCts) && ReferenceEquals(currentCts, cts))
+                _newcomersOnWatch.TryRemove(key, out _);
+            cts.Dispose();
+        }
+    }
+
     private async Task HandleBadMessage(Message message, User user, CancellationToken stoppingToken)
     {
         try
@@ -839,30 +942,33 @@ internal class MessageProcessor
         }
     }
 
-    private async Task HandleChatMemberUpdated(Update update)
+    private async Task HandleChatMemberUpdated(Update update, CancellationToken stoppingToken)
     {
         var chatMember = update.ChatMember;
         Debug.Assert(chatMember != null);
         var newChatMember = chatMember.NewChatMember;
+        var key = (chatMember.Chat.Id, newChatMember.User.Id);
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
+                StopWatchingNewcomer(key);
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
                     break;
 
@@ -879,6 +985,9 @@ internal class MessageProcessor
                     _config.GetAdminChat(chatMember.Chat.Id),
                     $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)}{mentionAt} {action} {Utils.FullName(chatMember.From)}. {tailMessage}"
                 );
+                break;
+            case ChatMemberStatus.Left:
+                StopWatchingNewcomer(key);
                 break;
         }
     }
