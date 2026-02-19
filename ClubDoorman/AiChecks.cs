@@ -91,10 +91,7 @@ internal class AiChecks
             await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms, cancellationToken: ct);
             var photoBytes = ms.ToArray();
             pic = photoBytes;
-            var photoMessage = photoBytes.AsUserMessage(
-                mimeType: "image/jpg",
-                detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-            );
+            var photoMessage = CreateContextImageMessage(photoBytes);
 
             var prompt =
                 "Проанализируй, выглядит ли эта аватарка пользователя сексуализированно или развратно. Отвечай вероятностью от 0 до 1.";
@@ -172,10 +169,7 @@ internal class AiChecks
                         await _bot.GetInfoAndDownloadFile(photo.BigFileId, ms, cancellationToken: ct);
                         photoBytes = ms.ToArray();
                         pic = photoBytes;
-                        photoMessage = photoBytes.AsUserMessage(
-                            mimeType: "image/jpg",
-                            detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-                        );
+                        photoMessage = CreateContextImageMessage(photoBytes);
                     }
 
                     var sb = new StringBuilder();
@@ -227,12 +221,7 @@ internal class AiChecks
                         promptDebugString += "\n" + sbStr;
                         messages.Add(sbStr.AsUserMessage());
                         if (channelPhoto != null)
-                            messages.Add(
-                                channelPhoto.AsUserMessage(
-                                    mimeType: "image/jpg",
-                                    detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-                                )
-                            );
+                            messages.Add(CreateContextImageMessage(channelPhoto));
                     }
 
                     if (userChat.Bio != null)
@@ -276,12 +265,7 @@ internal class AiChecks
                                     promptDebugString += "\n" + sbStr;
                                     messages.Add(sbStr.AsUserMessage());
                                     if (channelPhoto != null)
-                                        messages.Add(
-                                            channelPhoto.AsUserMessage(
-                                                mimeType: "image/jpg",
-                                                detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low
-                                            )
-                                        );
+                                        messages.Add(CreateContextImageMessage(channelPhoto));
                                 }
                                 catch (Exception e)
                                 {
@@ -461,7 +445,10 @@ internal class AiChecks
         }
 
         var modelToUse = free ? "openrouter/free" : Model;
+        var selectedPhoto = message.Photo?.Any() == true ? SelectHighestQualityPhoto(message.Photo) : null;
         var cacheKey = $"llm_spam_prob:{modelToUse}:{ShaHelper.ComputeSha256Hex(text)}";
+        if (string.IsNullOrWhiteSpace(text) && selectedPhoto != null)
+            cacheKey = $"llm_spam_prob:{modelToUse}:{selectedPhoto.FileUniqueId}";
 
         return await _hybridCache.GetOrCreateAsync(
             cacheKey,
@@ -503,10 +490,16 @@ internal class AiChecks
                     }
 
                     byte[]? imageBytes = null;
-                    if (message.Photo != null)
+                    if (selectedPhoto != null)
                     {
+                        _logger.LogDebug(
+                            "GetSpamProbability selected message photo {Width}x{Height}, file size {FileSize}",
+                            selectedPhoto.Width,
+                            selectedPhoto.Height,
+                            selectedPhoto.FileSize
+                        );
                         using var ms = new MemoryStream();
-                        await _bot.GetInfoAndDownloadFile(message.Photo.OrderBy(x => x.Width).First().FileId, ms, cancellationToken: ct);
+                        await _bot.GetInfoAndDownloadFile(selectedPhoto.FileId, ms, cancellationToken: ct);
                         imageBytes = ms.ToArray();
                     }
 
@@ -541,12 +534,7 @@ internal class AiChecks
                         fpString.AsUserMessage(),
                     };
                     if (imageBytes != null)
-                        messages.Add(
-                            imageBytes.AsUserMessage(
-                                mimeType: "image/jpg",
-                                detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.High
-                            )
-                        );
+                        messages.Add(CreateSpamImageMessage(imageBytes));
 
                     var response = await _retry.ExecuteAsync(
                         async token =>
@@ -587,6 +575,31 @@ internal class AiChecks
             },
             new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) }
         );
+    }
+
+    internal static ChatCompletionRequestUserMessage CreateContextImageMessage(byte[] imageBytes)
+    {
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        return imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low);
+    }
+
+    internal static ChatCompletionRequestUserMessage CreateSpamImageMessage(byte[] imageBytes)
+    {
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        return imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.High);
+    }
+
+    internal static PhotoSize SelectHighestQualityPhoto(IEnumerable<PhotoSize> photos)
+    {
+        ArgumentNullException.ThrowIfNull(photos);
+        var selectedPhoto = photos
+            .OrderByDescending(x => x.FileSize ?? 0)
+            .ThenByDescending(x => (long)x.Width * x.Height)
+            .ThenByDescending(x => x.Width)
+            .ThenByDescending(x => x.Height)
+            .FirstOrDefault();
+
+        return selectedPhoto ?? throw new ArgumentException("Photo collection cannot be empty", nameof(photos));
     }
 
     internal class SpamProbability()
