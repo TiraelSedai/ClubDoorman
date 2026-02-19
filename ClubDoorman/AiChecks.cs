@@ -577,30 +577,19 @@ internal class AiChecks
         );
     }
 
-    internal static ChatCompletionRequestUserMessage CreateContextImageMessage(byte[] imageBytes)
-    {
-        ArgumentNullException.ThrowIfNull(imageBytes);
-        return imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low);
-    }
+    internal static ChatCompletionRequestUserMessage CreateContextImageMessage(byte[] imageBytes) =>
+        imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low)!;
 
-    internal static ChatCompletionRequestUserMessage CreateSpamImageMessage(byte[] imageBytes)
-    {
-        ArgumentNullException.ThrowIfNull(imageBytes);
-        return imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.High);
-    }
+    internal static ChatCompletionRequestUserMessage CreateSpamImageMessage(byte[] imageBytes) =>
+        imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.High)!;
 
-    internal static PhotoSize SelectHighestQualityPhoto(IEnumerable<PhotoSize> photos)
-    {
-        ArgumentNullException.ThrowIfNull(photos);
-        var selectedPhoto = photos
-            .OrderByDescending(x => x.FileSize ?? 0)
-            .ThenByDescending(x => (long)x.Width * x.Height)
+    internal static PhotoSize SelectHighestQualityPhoto(IEnumerable<PhotoSize> photos) =>
+        photos
+            .OrderByDescending(x => x.Width * x.Height)
+            .ThenByDescending(x => x.FileSize ?? 0)
             .ThenByDescending(x => x.Width)
             .ThenByDescending(x => x.Height)
-            .FirstOrDefault();
-
-        return selectedPhoto ?? throw new ArgumentException("Photo collection cannot be empty", nameof(photos));
-    }
+            .First();
 
     internal class SpamProbability()
     {
