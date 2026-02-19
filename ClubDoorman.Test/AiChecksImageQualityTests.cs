@@ -6,30 +6,30 @@ namespace ClubDoorman.Test;
 public class AiChecksImageQualityTests
 {
     [Test]
-    public void SelectHighestQualityPhoto_PicksLargestByFileSize()
+    public void SelectHighestQualityPhoto_PicksLargestByResolution()
     {
         var photos = new[]
         {
             new PhotoSize
             {
-                FileId = "small",
-                FileUniqueId = "small-unique",
+                FileId = "mid",
+                FileUniqueId = "mid-unique",
                 Width = 640,
                 Height = 640,
-                FileSize = 8_000,
+                FileSize = 12_000,
             },
             new PhotoSize
             {
-                FileId = "largest",
-                FileUniqueId = "largest-unique",
+                FileId = "smallest_but_heavy",
+                FileUniqueId = "smallest_but_heavy-unique",
                 Width = 320,
                 Height = 320,
                 FileSize = 20_000,
             },
             new PhotoSize
             {
-                FileId = "mid",
-                FileUniqueId = "mid-unique",
+                FileId = "large",
+                FileUniqueId = "large-unique",
                 Width = 1280,
                 Height = 1280,
                 FileSize = 10_000,
@@ -38,7 +38,7 @@ public class AiChecksImageQualityTests
 
         var selected = AiChecks.SelectHighestQualityPhoto(photos);
 
-        Assert.That(selected.FileId, Is.EqualTo("largest"));
+        Assert.That(selected.FileId, Is.EqualTo("large"));
     }
 
     [Test]
@@ -80,7 +80,7 @@ public class AiChecksImageQualityTests
     [Test]
     public void SelectHighestQualityPhoto_ThrowsOnEmptyCollection()
     {
-        Assert.Throws<ArgumentException>(() => AiChecks.SelectHighestQualityPhoto(Array.Empty<PhotoSize>()));
+        Assert.Throws<InvalidOperationException>(() => AiChecks.SelectHighestQualityPhoto(Array.Empty<PhotoSize>()));
     }
 
     [Test]
