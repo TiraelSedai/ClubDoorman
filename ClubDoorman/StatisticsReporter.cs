@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
 
@@ -154,17 +153,23 @@ internal class StatisticsReporter
 
     private static string ChatToStatsString(Stats stats)
     {
-        var sb = new StringBuilder();
-        sb.Append("В чате ");
-        sb.Append(stats.ChatTitle);
         var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.Channels + stats.Autoban;
-        sb.Append($": {sum} раз(а) сработала защита автоматом{Environment.NewLine}");
-        sb.Append($"{stats.StoppedCaptcha} не прошло капчу{Environment.NewLine}");
-        sb.Append($"{stats.BlacklistBanned} известных спамеров{Environment.NewLine}");
-        sb.Append($"{stats.KnownBadMessage} известных спам-сообщений{Environment.NewLine}");
-        sb.Append($"{stats.Channels} каналов с малым количеством подписчиков{Environment.NewLine}");
-        sb.Append($"{stats.Autoban} забанено автоматом по сумме эвристик.");
+        var lines = new List<string>
+        {
+            $"В чате {stats.ChatTitle}: {sum} раз(а) сработала защита автоматом"
+        };
 
-        return sb.ToString();
+        if (stats.StoppedCaptcha > 0)
+            lines.Add($"{stats.StoppedCaptcha} не прошло капчу");
+        if (stats.BlacklistBanned > 0)
+            lines.Add($"{stats.BlacklistBanned} известных спамеров");
+        if (stats.KnownBadMessage > 0)
+            lines.Add($"{stats.KnownBadMessage} известных спам-сообщений");
+        if (stats.Channels > 0)
+            lines.Add($"{stats.Channels} каналов с малым количеством подписчиков");
+        if (stats.Autoban > 0)
+            lines.Add($"{stats.Autoban} забанено автоматом по сумме эвристик.");
+
+        return string.Join(Environment.NewLine, lines);
     }
 }
