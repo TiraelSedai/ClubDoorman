@@ -692,7 +692,7 @@ internal class MessageProcessor
         var msg = "Сообщение НЕ удалено";
         if (delete)
         {
-            msg = "Даём ридонли на 10 минут. Сообщение УДАЛЕНО, причина: ";
+            msg = "Сообщение УДАЛЕНО. Даём ридонли на 10 минут. Причина: ";
             if (highErotic)
                 msg += "подозрение на эротику\n";
             if (highGambling)
@@ -1119,11 +1119,10 @@ internal class MessageProcessor
             user.Id
         );
 
-        var deletionMessagePart = reason;
+        var deletionMessagePart = $"Причина: {reason}";
         try
         {
             await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            deletionMessagePart += ", сообщение удалено. Юзеру дали ридонли на 10 мин";
             await _bot.RestrictChatMember(
                 message.Chat.Id,
                 user!.Id,
@@ -1131,11 +1130,13 @@ internal class MessageProcessor
                 untilDate: DateTime.UtcNow.AddMinutes(10),
                 cancellationToken: stoppingToken
             );
+            deletionMessagePart = $"Сообщение УДАЛЕНО. Даём ридонли на 10 минут. {deletionMessagePart}";
         }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Unable to delete");
-            deletionMessagePart += ", сообщение НЕ удалено или юзеру не дали ридонли (не хватило могущества?).";
+            deletionMessagePart =
+                $"Сообщение НЕ удалено или юзеру не дали ридонли (не хватило могущества?). {deletionMessagePart}";
         }
 
         if (!_config.NonFreeChat(message.Chat.Id))
