@@ -1019,9 +1019,10 @@ internal class MessageProcessor
         var msg =
             reason
             ?? "Это подозрительное сообщение - например, картинка/видео/кружок/голосовуха без подписи от 'нового' юзера, или сообщение от канала";
+        var editedMessageNote = message.EditDate != null ? $"{Environment.NewLine}Проверка редактированного сообщения (не оригинала)" : "";
         await _bot.SendMessage(
             admChat,
-            $"Сообщение НЕ удалено{Environment.NewLine}{msg}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
+            $"Сообщение НЕ удалено{editedMessageNote}{Environment.NewLine}{msg}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
             replyParameters: forward,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackData },
