@@ -875,6 +875,8 @@ internal class MessageProcessor
     {
         if (!_config.BlacklistAutoBan)
             return;
+        if (_ignoredChats.ContainsKey(chat.Id))
+            return;
 
         var key = (chat.Id, user.Id);
         StopWatchingNewcomer(key);
