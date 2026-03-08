@@ -39,6 +39,19 @@ public class Tests
         Assert.That(norm, Has.Length.LessThan(70));
     }
 
+    [TestCase("🔥", true, TestName = "single emoji")]
+    [TestCase("🔥🔥🔥", true, TestName = "multiple emoji")]
+    [TestCase("🔥 🔥\n🔥", true, TestName = "emoji with whitespace")]
+    [TestCase("♥️", true, TestName = "emoji with variation selector")]
+    [TestCase("Поздравляю! 🔥", false, TestName = "text and emoji")]
+    [TestCase("🔥!", false, TestName = "emoji and punctuation")]
+    [TestCase("   \n\t", false, TestName = "whitespace only")]
+    public void HasOnlyEmojis_Tests(string word, bool expectedResult)
+    {
+        var result = SimpleFilters.HasOnlyEmojis(word);
+        Assert.That(result, Is.EqualTo(expectedResult), word);
+    }
+
     [TestCase("привет", false, TestName = "NoEmoji")]
     [TestCase("♥️", true, TestName = "heart")]
     [TestCase("🩷", true, TestName = "heart2")]

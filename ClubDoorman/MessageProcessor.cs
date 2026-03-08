@@ -24,6 +24,11 @@ internal sealed class ChatIgnoreState
 
 internal class MessageProcessor
 {
+    private static readonly TimeSpan EmojiOnlyCheckWait = TimeSpan.FromSeconds(30);
+    private const string EmojiOnlyCheckText =
+        "Антиспам, у вас одни эмоджи в сообщении. Лайкните моё сообщение чтобы доказать что вы не бот, у вас 30 секунд.";
+    private const string EmojiOnlyTimeoutReason = "В сообщении только эмоджи, пользователь не подтвердил что он не бот";
+
     private static readonly TimeSpan[] NewcomerBanlistCheckAfterJoin =
     [
         TimeSpan.FromMinutes(15),
@@ -333,7 +338,8 @@ internal class MessageProcessor
             return;
         }
 
-        var text = message.Text ?? message.Caption;
+        var rawText = message.Text ?? message.Caption;
+        var text = rawText;
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
 
@@ -341,7 +347,7 @@ internal class MessageProcessor
         using var logScopeName = _logger.BeginScope("User {Usr}", Utils.FullName(user));
         _recentMessagesStorage.Add(user.Id, chat.Id, message);
 
-        var contentResult = await CheckMessageContent(message, user, text ?? "", chat, admChat, stoppingToken);
+        var contentResult = await CheckMessageContent(message, user, rawText ?? "", text ?? "", chat, stoppingToken);
         if (contentResult == CheckResult.NoMoreAction)
             return;
 
@@ -363,9 +369,9 @@ internal class MessageProcessor
     private async Task<CheckResult> CheckMessageContent(
         Message message,
         User user,
+        string rawText,
         string text,
         Chat chat,
-        long admChat,
         CancellationToken stoppingToken
     )
     {
@@ -449,21 +455,16 @@ internal class MessageProcessor
             return CheckResult.NoMoreAction;
         }
 
+        if (!_config.EmojiCheckDisabledChats.Contains(chat.Id) && SimpleFilters.HasOnlyEmojis(rawText))
+        {
+            _logger.LogDebug("EmojiOnlyMessage");
+            return await HandleEmojiOnlyMessage(message, stoppingToken);
+        }
+
         if (!_config.EmojiCheckDisabledChats.Contains(chat.Id) && SimpleFilters.TooManyEmojis(text))
         {
             _logger.LogDebug("TooManyEmojis");
             const string reason = "В этом сообщении многовато эмоджи";
-
-            var firstLast = Utils.FullName(user);
-            if (
-                SimpleFilters.JustOneEmoji(text)
-                && SimpleFilters.InUsernameSuspiciousList(firstLast)
-                && !_config.MarketologsChats.Contains(chat.Id)
-            )
-            {
-                await AutoBan(message, "один эмодзи и имя из блеклиста", stoppingToken);
-                return CheckResult.NoMoreAction;
-            }
 
             if (_config.MarketologsChats.Contains(chat.Id))
             {
@@ -598,6 +599,39 @@ internal class MessageProcessor
         }
 
         return CheckResult.Pass;
+    }
+
+    private async Task<CheckResult> HandleEmojiOnlyMessage(Message message, CancellationToken stoppingToken)
+    {
+        Message? checkMessage;
+        try
+        {
+            checkMessage = await _bot.SendMessage(
+                message.Chat.Id,
+                EmojiOnlyCheckText,
+                replyParameters: message,
+                cancellationToken: stoppingToken
+            );
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogWarning(e, "Unable to send emoji-only check message");
+            await DeleteAndReportMessage(message, EmojiOnlyTimeoutReason, stoppingToken);
+            return CheckResult.NoMoreAction;
+        }
+
+        var checkTask = _reactionHandler.RegisterEmojiOnlyCheck(message.Chat.Id, checkMessage.MessageId, message.From!.Id);
+        var completed = await Task.WhenAny(checkTask, Task.Delay(EmojiOnlyCheckWait, stoppingToken));
+        var confirmed = completed == checkTask && checkTask.IsCompletedSuccessfully;
+
+        _reactionHandler.FinishEmojiOnlyCheck(message.Chat.Id, checkMessage.MessageId);
+        await DeleteMessageSafe(message.Chat.Id, checkMessage.MessageId, stoppingToken);
+
+        if (confirmed || stoppingToken.IsCancellationRequested)
+            return CheckResult.NoMoreAction;
+
+        await DeleteAndReportMessage(message, EmojiOnlyTimeoutReason, stoppingToken);
+        return CheckResult.NoMoreAction;
     }
 
     private async Task<CheckResult> CheckUserProfile(
@@ -951,22 +985,22 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                    WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                        WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 StopWatchingNewcomer(key);
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
@@ -1135,8 +1169,7 @@ internal class MessageProcessor
         catch (Exception e)
         {
             _logger.LogWarning(e, "Unable to delete");
-            deletionMessagePart =
-                $"Сообщение НЕ удалено или юзеру не дали ридонли (не хватило могущества?). {deletionMessagePart}";
+            deletionMessagePart = $"Сообщение НЕ удалено или юзеру не дали ридонли (не хватило могущества?). {deletionMessagePart}";
         }
 
         if (!_config.NonFreeChat(message.Chat.Id))
@@ -1162,5 +1195,18 @@ internal class MessageProcessor
             replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
         );
+    }
+
+    private async Task DeleteMessageSafe(ChatId chatId, int messageId, CancellationToken stoppingToken)
+    {
+        try
+        {
+            await _bot.DeleteMessage(chatId, messageId, cancellationToken: stoppingToken);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception e)
+        {
+            _logger.LogDebug(e, "Unable to delete message {MessageId} in chat {ChatId}", messageId, chatId);
+        }
     }
 }
