@@ -154,10 +154,7 @@ internal class StatisticsReporter
     private static string ChatToStatsString(Stats stats)
     {
         var sum = stats.KnownBadMessage + stats.BlacklistBanned + stats.StoppedCaptcha + stats.Channels + stats.Autoban;
-        var lines = new List<string>
-        {
-            $"В чате {stats.ChatTitle}: {sum} раз(а) сработала защита автоматом"
-        };
+        var lines = new List<string> { $"В чате {stats.ChatTitle}: {sum} раз(а) сработала защита автоматом" };
 
         if (stats.StoppedCaptcha > 0)
             lines.Add($"{stats.StoppedCaptcha} не прошло капчу");
