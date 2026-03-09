@@ -21,7 +21,7 @@ internal class MessagePrediction : MessageData
     public bool PredictedLabel { get; set; }
 }
 
-public class SpamHamClassifier
+public class SpamHamClassifier : IDisposable
 {
     public SpamHamClassifier(ILogger<SpamHamClassifier> logger, IServiceScopeFactory serviceScopeFactory)
     {
@@ -42,16 +42,14 @@ public class SpamHamClassifier
 
     private async Task RetrainLoop()
     {
-        while (true)
+        while (await _retrainTimer.WaitForNextTickAsync())
         {
-            await _retrainTimer.WaitForNextTickAsync();
             if (_needsRetraining)
             {
                 await Train();
                 _needsRetraining = false;
             }
         }
-        // ReSharper disable once FunctionNeverReturns
     }
 
     public async Task<(bool Spam, float Score)> IsSpam(string message)
@@ -124,5 +122,12 @@ public class SpamHamClassifier
         {
             _logger.LogError(e, "Exception during training");
         }
+    }
+
+    public void Dispose()
+    {
+        _retrainTimer.Dispose();
+        _datasetLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

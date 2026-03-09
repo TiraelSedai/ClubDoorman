@@ -987,22 +987,22 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                        WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 StopWatchingNewcomer(key);
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
@@ -1011,7 +1011,7 @@ internal class MessageProcessor
                 var action = newChatMember.Status == ChatMemberStatus.Kicked ? "забанил(а)" : "дал(а) ридонли";
                 var user = newChatMember.User;
                 var messages = _recentMessagesStorage.Get(user.Id, chatMember.Chat.Id);
-                var lastMessage = messages.LastOrDefault();
+                var lastMessage = messages.Count > 0 ? messages[^1] : null;
                 var lastMessageText = lastMessage?.Text ?? lastMessage?.Caption;
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessageText)
                     ? "Если его забанили за спам, а ML не распознал спам - киньте его сообщение сюда."
@@ -1019,7 +1019,8 @@ internal class MessageProcessor
                 var mentionAt = user.Username != null ? $" @{user.Username}" : "";
                 await _bot.SendMessage(
                     _config.GetAdminChat(chatMember.Chat.Id),
-                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)}{mentionAt} {action} {Utils.FullName(chatMember.From)}. {tailMessage}"
+                    $"В чате {chatMember.Chat.Title} юзеру {Utils.FullName(user)}{mentionAt} {action} {Utils.FullName(chatMember.From)}. {tailMessage}",
+                    cancellationToken: stoppingToken
                 );
                 break;
             case ChatMemberStatus.Left:

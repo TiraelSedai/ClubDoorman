@@ -9,7 +9,7 @@ internal static class TaskExtensions
             if (task.IsCompletedSuccessfully)
                 return;
             if (task.Exception != null && logger != null && !string.IsNullOrWhiteSpace(message))
-                logger.LogWarning(task.Exception.InnerException, message);
+                logger.LogWarning(task.Exception.InnerException, "{Message}", message);
         });
     }
 }

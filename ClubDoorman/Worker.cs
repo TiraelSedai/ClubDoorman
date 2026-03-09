@@ -1,3 +1,4 @@
+using System.Globalization;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 
@@ -32,7 +33,7 @@ internal sealed class Worker(
             {
                 offset = await UpdateLoop(offset, stoppingToken);
                 if (offset % 100 == 0)
-                    await File.WriteAllTextAsync(offsetPath, offset.ToString(), stoppingToken);
+                    await File.WriteAllTextAsync(offsetPath, offset.ToString(CultureInfo.InvariantCulture), stoppingToken);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {

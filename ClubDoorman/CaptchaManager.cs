@@ -172,7 +172,7 @@ internal partial class CaptchaManager
 
         var fullName = Utils.FullName(user);
         var fullNameLower = fullName.ToLowerInvariant();
-        var usernameLower = user.Username?.ToLower();
+        var usernameLower = user.Username?.ToLowerInvariant();
         if (
             _namesBlacklist.Any(fullNameLower.Contains)
             || (usernameLower != null && _namesBlacklist.Any(usernameLower.Contains))

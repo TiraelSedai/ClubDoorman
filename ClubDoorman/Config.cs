@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 
@@ -31,12 +32,16 @@ internal class Config
     public bool HighConfidenceAutoBan { get; } = !GetEnvironmentBool("DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE");
     public bool ApprovedUsersMlSpamCheck { get; } = !GetEnvironmentBool("DOORMAN_APPROVED_ML_SPAM_CHECK_DISABLE");
     public string BotApi { get; } =
-        Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new Exception("DOORMAN_BOT_API variable not set");
+        Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new InvalidOperationException("DOORMAN_BOT_API variable not set");
 
     public string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
 
     public long AdminChatId { get; } =
-        long.Parse(Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT") ?? throw new Exception("DOORMAN_ADMIN_CHAT variable not set"));
+        long.Parse(
+            Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT")
+                ?? throw new InvalidOperationException("DOORMAN_ADMIN_CHAT variable not set"),
+            CultureInfo.InvariantCulture
+        );
 
     public FrozenDictionary<long, long> MultiAdminChatMap { get; private set; }
     public FrozenSet<long> ChannelsCheckExclusionChats { get; }
@@ -143,7 +148,7 @@ internal class Config
         if (!url.EndsWith('/'))
             url += '/';
         if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
-            throw new Exception("DOORMAN_CLUB_URL variable is set to invalid URL");
+            throw new InvalidOperationException("DOORMAN_CLUB_URL variable is set to invalid URL");
         return url;
     }
 

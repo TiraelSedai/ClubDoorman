@@ -1,4 +1,5 @@
-﻿using Telegram.Bot.Types;
+﻿using System.Globalization;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace ClubDoorman;
@@ -10,7 +11,8 @@ internal static class Utils
 
     public static string FullName(User user) => FullName(user.FirstName, user.LastName);
 
-    private static string LinkToSuperGroupMessage(Chat chat, long messageId) => $"https://t.me/c/{chat.Id.ToString()[4..]}/{messageId}";
+    private static string LinkToSuperGroupMessage(Chat chat, long messageId) =>
+        $"https://t.me/c/{chat.Id.ToString(CultureInfo.InvariantCulture)[4..]}/{messageId}";
 
     private static string LinkToGroupWithNameMessage(Chat chat, long messageId) => $"https://t.me/{chat.Username}/{messageId}";
 

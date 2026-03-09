@@ -27,7 +27,7 @@ public sealed class Stats
     public int Channels { get; set; }
 }
 
-internal class StatisticsReporter
+internal class StatisticsReporter : IDisposable
 {
     private readonly ITelegramBotClient _bot;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -168,5 +168,11 @@ internal class StatisticsReporter
             lines.Add($"{stats.Autoban} забанено автоматом по сумме эвристик.");
 
         return string.Join(Environment.NewLine, lines);
+    }
+
+    public void Dispose()
+    {
+        _timer.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

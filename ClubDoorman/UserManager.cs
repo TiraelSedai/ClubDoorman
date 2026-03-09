@@ -6,7 +6,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace ClubDoorman;
 
-internal sealed class UserManager
+internal sealed class UserManager : IDisposable
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly HybridCache _cache;
@@ -89,15 +89,26 @@ internal sealed class UserManager
                 continue;
 
             var fromIdStr = fromIdProp.GetString();
-            if (fromIdStr == null || !fromIdStr.StartsWith("user") || !long.TryParse(fromIdStr.AsSpan(4), out var userId))
+            if (
+                fromIdStr == null
+                || !fromIdStr.StartsWith("user", StringComparison.Ordinal)
+                || !long.TryParse(fromIdStr.AsSpan(4), out var userId)
+            )
                 continue;
 
-            if (userMessageCounts.ContainsKey(userId))
-                userMessageCounts[userId]++;
+            if (userMessageCounts.TryGetValue(userId, out var messageCount))
+                userMessageCounts[userId] = messageCount + 1;
             else
                 userMessageCounts[userId] = 1;
         }
         return userMessageCounts.Where(x => x.Value >= 3).Select(x => x.Key).ToList();
+    }
+
+    public void Dispose()
+    {
+        _clubHttpClient.Dispose();
+        _httpClient.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public async ValueTask Approve(long userId)

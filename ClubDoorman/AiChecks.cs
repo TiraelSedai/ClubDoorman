@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -173,13 +174,13 @@ internal class AiChecks
                     }
 
                     var sb = new StringBuilder();
-                    sb.Append($"Имя: {Utils.FullName(user)}");
+                    sb.Append(CultureInfo.InvariantCulture, $"Имя: {Utils.FullName(user)}");
                     if (user.Username != null)
-                        sb.Append($"\nЮзернейм: @{user.Username}");
+                        sb.Append(CultureInfo.InvariantCulture, $"\nЮзернейм: @{user.Username}");
                     if (userChat.Bio != null)
-                        sb.Append($"\nОписание: {userChat.Bio}");
+                        sb.Append(CultureInfo.InvariantCulture, $"\nОписание: {userChat.Bio}");
                     if (photoBytes != null)
-                        sb.Append($"\nФото: ");
+                        sb.Append("\nФото: ");
 
                     nameBioUser = sb.ToString();
                     var promptDebugString = nameBioUser;
@@ -205,14 +206,14 @@ internal class AiChecks
                         byte[]? channelPhoto = null;
                         var linkedChat = await _bot.GetChat(linked, cancellationToken: ct);
                         var info = new StringBuilder();
-                        info.Append($"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
+                        info.Append(CultureInfo.InvariantCulture, $"Информация о привязанном канале:\nНазвание: {linkedChat.Title}");
                         if (linkedChat.Username != null)
-                            sb.Append($"\nЮзернейм: @{linkedChat.Username}");
+                            info.Append(CultureInfo.InvariantCulture, $"\nЮзернейм: @{linkedChat.Username}");
                         if (linkedChat.Description != null)
-                            info.Append($"\nОписание: {linkedChat.Description}");
+                            info.Append(CultureInfo.InvariantCulture, $"\nОписание: {linkedChat.Description}");
                         if (linkedChat.Photo != null)
                         {
-                            info.Append($"\nФото:");
+                            info.Append("\nФото:");
                             using var ms = new MemoryStream();
                             await _bot.GetInfoAndDownloadFile(linkedChat.Photo.BigFileId, ms, cancellationToken: ct);
                             channelPhoto = ms.ToArray();
@@ -249,14 +250,17 @@ internal class AiChecks
                                     byte[]? channelPhoto = null;
                                     var mentionedChat = await _bot.GetChat(username, cancellationToken: ct);
                                     var info = new StringBuilder();
-                                    info.Append($"Информация об упомянутом канале:\nНазвание: {mentionedChat.Title}");
+                                    info.Append(
+                                        CultureInfo.InvariantCulture,
+                                        $"Информация об упомянутом канале:\nНазвание: {mentionedChat.Title}"
+                                    );
                                     if (mentionedChat.Username != null)
-                                        info.Append($"\nЮзернейм: @{mentionedChat.Username}");
+                                        info.Append(CultureInfo.InvariantCulture, $"\nЮзернейм: @{mentionedChat.Username}");
                                     if (mentionedChat.Description != null)
-                                        info.Append($"\nОписание: {mentionedChat.Description}");
+                                        info.Append(CultureInfo.InvariantCulture, $"\nОписание: {mentionedChat.Description}");
                                     if (mentionedChat.Photo != null)
                                     {
-                                        info.Append($"\nФото:");
+                                        info.Append("\nФото:");
                                         using var ms = new MemoryStream();
                                         await _bot.GetInfoAndDownloadFile(mentionedChat.Photo.BigFileId, ms, cancellationToken: ct);
                                         channelPhoto = ms.ToArray();
@@ -327,9 +331,9 @@ internal class AiChecks
                 {
                     var chat = await _bot.GetChat(chatId, cancellationToken: ct);
                     var info = new StringBuilder();
-                    info.AppendLine($"Чат: {chat.Title}");
+                    info.AppendLine(CultureInfo.InvariantCulture, $"Чат: {chat.Title}");
                     if (chat.Description != null)
-                        info.AppendLine($"Описание чата: {chat.Description}");
+                        info.AppendLine(CultureInfo.InvariantCulture, $"Описание чата: {chat.Description}");
 
                     return new(info.ToString(), chat.LinkedChatId);
                 }
@@ -354,9 +358,9 @@ internal class AiChecks
                 {
                     var linkedChat = await _bot.GetChat(channelId, cancellationToken: ct);
                     var info = new StringBuilder();
-                    info.AppendLine($"Этот чат - чат обсуждения для канала: {linkedChat.Title}");
+                    info.AppendLine(CultureInfo.InvariantCulture, $"Этот чат - чат обсуждения для канала: {linkedChat.Title}");
                     if (linkedChat.Description != null)
-                        info.AppendLine($"Описание канала: {linkedChat.Description}");
+                        info.AppendLine(CultureInfo.InvariantCulture, $"Описание канала: {linkedChat.Description}");
 
                     return info.ToString();
                 }
@@ -445,7 +449,7 @@ internal class AiChecks
         }
 
         var modelToUse = free ? "openrouter/free" : Model;
-        var selectedPhoto = message.Photo?.Any() == true ? SelectHighestQualityPhoto(message.Photo) : null;
+        var selectedPhoto = message.Photo is { Length: > 0 } ? SelectHighestQualityPhoto(message.Photo) : null;
         var cacheKey = $"llm_spam_prob:{modelToUse}:{ShaHelper.ComputeSha256Hex(text)}";
         if (string.IsNullOrWhiteSpace(text) && selectedPhoto != null)
             cacheKey = $"llm_spam_prob:{modelToUse}:{selectedPhoto.FileUniqueId}";
@@ -513,7 +517,7 @@ internal class AiChecks
                     fullPrompt.AppendLine(contextBuilder.ToString());
                     fullPrompt.AppendLine("###");
                     if (!string.IsNullOrWhiteSpace(text))
-                        fullPrompt.AppendLine($"Само сообщение, которое нужно проанализировать:\n{text}");
+                        fullPrompt.AppendLine(CultureInfo.InvariantCulture, $"Само сообщение, которое нужно проанализировать:\n{text}");
                     else
                         fullPrompt.AppendLine("Само сообщение не содержит текста, только изображение.");
 

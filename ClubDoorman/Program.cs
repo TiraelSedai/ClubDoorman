@@ -106,7 +106,7 @@ public class Program
                 using var reader = new StreamReader(dataFile);
                 using var csv = new CsvReader(
                     reader,
-                    new CsvConfiguration(CultureInfo.InvariantCulture) { PrepareHeaderForMatch = args => args.Header.ToLower() }
+                    new CsvConfiguration(CultureInfo.InvariantCulture) { PrepareHeaderForMatch = args => args.Header.ToLowerInvariant() }
                 );
 
                 var records = csv.GetRecords<CsvRow>().Select(r => new SpamHamRecord { Text = r.Text, IsSpam = r.Label });
@@ -125,7 +125,7 @@ public class Program
                 Log.Information("No approved users detected in the database, starting initial seeding from text file");
                 var userIds = File.ReadAllLines(dataFile)
                     .Where(line => !string.IsNullOrWhiteSpace(line))
-                    .Select(line => new ApprovedUser { Id = long.Parse(line) });
+                    .Select(line => new ApprovedUser { Id = long.Parse(line, CultureInfo.InvariantCulture) });
 
                 db.ApprovedUsers.AddRange(userIds);
                 db.SaveChanges();

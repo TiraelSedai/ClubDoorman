@@ -270,7 +270,7 @@ internal class AdminCommandHandler
     {
         // TODO: this is not ideal, share getter with MessageProcessor
         _me ??= await _bot.GetMe();
-        if (message.Text != null && message.Text.StartsWith("/unban"))
+        if (message.Text != null && message.Text.StartsWith("/unban", StringComparison.Ordinal))
         {
             var split = message.Text.Split(' ');
             if (split.Length > 1 && long.TryParse(split[1], out var userId))

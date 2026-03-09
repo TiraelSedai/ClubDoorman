@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ClubDoorman;
@@ -13,7 +14,7 @@ internal static class ShaHelper
         var hash = SHA256.HashData(bytes);
         var sb = new StringBuilder(hash.Length * 2);
         foreach (byte b in hash)
-            sb.Append(b.ToString("x2"));
+            sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
         return sb.ToString();
     }
 }
