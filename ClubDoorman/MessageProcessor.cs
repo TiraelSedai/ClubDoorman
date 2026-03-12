@@ -854,9 +854,9 @@ internal class MessageProcessor
         var fullName = Utils.FullName(user);
         var chat = message.Chat;
         _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", chat.Title, chat.Id, fullName);
-        var admChat = _config.AdminChatId;
         if (_config.NonFreeChat(chat.Id))
         {
+            var admChat = _config.GetAdminChat(chat.Id);
             var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
                 admChat,
