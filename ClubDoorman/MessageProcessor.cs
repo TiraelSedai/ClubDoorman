@@ -854,9 +854,9 @@ internal class MessageProcessor
         var fullName = Utils.FullName(user);
         var chat = message.Chat;
         _logger.LogDebug("Autoban. Chat: {Chat} {Id} User: {User}", chat.Title, chat.Id, fullName);
+        var admChat = _config.AdminChatId;
         if (_config.NonFreeChat(chat.Id))
         {
-            var admChat = _config.GetAdminChat(chat.Id);
             var forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
             await _bot.SendMessage(
                 admChat,
@@ -987,22 +987,22 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
-            {
-                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    _logger.LogDebug(
-                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                        chatMember.Chat.Title,
-                        newChatMember.User.FirstName,
-                        newChatMember.User.LastName,
-                        newChatMember.User.Username,
-                        newChatMember.User.Id
-                    );
-                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                    WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
+                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
+                    {
+                        _logger.LogDebug(
+                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                            chatMember.Chat.Title,
+                            newChatMember.User.FirstName,
+                            newChatMember.User.LastName,
+                            newChatMember.User.Username,
+                            newChatMember.User.Id
+                        );
+                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                        WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
+                    }
+                    break;
                 }
-                break;
-            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 StopWatchingNewcomer(key);
                 if (!_config.NonFreeChat(chatMember.Chat.Id))
