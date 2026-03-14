@@ -178,7 +178,11 @@ internal class MessageProcessor
                     return;
                 }
 
-                await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
+                if (!_config.IgnoreReportChannels.Contains(message.SenderChat.Id))
+                {
+                    await DontDeleteButReportMessage(message, "сообщение от канала", stoppingToken);
+                }
+                return;
             }
         }
 
