@@ -22,40 +22,37 @@ public class Program
                 .CreateLogger();
 
             InitData();
-            var host = Host.CreateDefaultBuilder(args)
-                .UseSerilog(
-                    (context, services, loggerConfig) =>
-                    {
-                        loggerConfig
-                            .MinimumLevel.Debug()
-                            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                            .Enrich.FromLogContext()
-                            .WriteTo.Console(new CompactJsonFormatter());
-                    }
-                )
-                .ConfigureServices(services =>
+            var builder = Host.CreateApplicationBuilder(args);
+            builder.Services.AddSerilog(
+                (services, loggerConfig) =>
                 {
-                    services.AddHostedService<Worker>();
-                    services.AddSingleton<Config>();
-                    services.AddSingleton<ITelegramBotClient>(provider => new TelegramBotClient(
-                        provider.GetRequiredService<Config>().BotApi
-                    ));
-                    services.AddSingleton<CaptchaManager>();
-                    services.AddSingleton<MessageProcessor>();
-                    services.AddSingleton<StatisticsReporter>();
-                    services.AddSingleton<SpamHamClassifier>();
-                    services.AddSingleton<UserManager>();
-                    services.AddSingleton<AdminCommandHandler>();
-                    services.AddSingleton<ReactionHandler>();
-                    services.AddSingleton<BadMessageManager>();
-                    services.AddSingleton<AiChecks>();
-                    services.AddSingleton<RecentMessagesStorage>();
-                    services.AddSingleton<SpamDeduplicationCache>();
-                    services.AddSingleton<MaintenanceService>();
-                    services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
-                    services.AddHybridCache();
-                })
-                .Build();
+                    loggerConfig
+                        .MinimumLevel.Debug()
+                        .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                        .Enrich.FromLogContext()
+                        .WriteTo.Console(new CompactJsonFormatter());
+                }
+            );
+            builder.Services.AddHostedService<Worker>();
+            builder.Services.AddSingleton<Config>();
+            builder.Services.AddSingleton<ITelegramBotClient>(provider => new TelegramBotClient(
+                provider.GetRequiredService<Config>().BotApi
+            ));
+            builder.Services.AddSingleton<CaptchaManager>();
+            builder.Services.AddSingleton<MessageProcessor>();
+            builder.Services.AddSingleton<StatisticsReporter>();
+            builder.Services.AddSingleton<SpamHamClassifier>();
+            builder.Services.AddSingleton<UserManager>();
+            builder.Services.AddSingleton<AdminCommandHandler>();
+            builder.Services.AddSingleton<ReactionHandler>();
+            builder.Services.AddSingleton<BadMessageManager>();
+            builder.Services.AddSingleton<AiChecks>();
+            builder.Services.AddSingleton<RecentMessagesStorage>();
+            builder.Services.AddSingleton<SpamDeduplicationCache>();
+            builder.Services.AddSingleton<MaintenanceService>();
+            builder.Services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
+            builder.Services.AddHybridCache();
+            var host = builder.Build();
 
             using (var scope = host.Services.CreateScope())
             {

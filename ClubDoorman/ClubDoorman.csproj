@@ -8,6 +8,7 @@
     <TrimMode>partial</TrimMode>
     <InvariantGlobalization>false</InvariantGlobalization>
     <AnalysisMode>Recommended</AnalysisMode>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.*" />
