@@ -710,7 +710,7 @@ internal class MessageProcessor
 
         if (replyToRecentPost)
             _logger.LogDebug("It's a reply to recent post, high alert");
-        var bioInvite = bio.Contains("t.me/+");
+        var bioInvite = bio.Contains("t.me/+") || bio.Contains("bot?start");
         var bioObscured = SimpleFilters.FindAllRussianWordsWithLookalikeSymbols(bio).Count > 0;
 
         bool highErotic =
