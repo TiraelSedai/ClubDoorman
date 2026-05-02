@@ -429,7 +429,7 @@ internal class AiChecks
         }
     }
 
-    public async ValueTask<SpamProbability> GetSpamProbability(Message message, bool free = false)
+    public async ValueTask<SpamProbability> GetSpamProbability(Telegram.Bot.Types.Message message, bool free = false)
     {
         var probability = new SpamProbability();
         if (_api == null)
