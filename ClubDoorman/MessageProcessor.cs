@@ -303,7 +303,7 @@ internal class MessageProcessor
                         (_, existing) =>
                         {
                             existing.FailureCount++;
-                            existing.IgnoreUntil = DateTime.UtcNow.AddHours(existing.FailureCount);
+                            existing.IgnoreUntil = DateTime.UtcNow.AddHours(4 * existing.FailureCount);
                             return existing;
                         }
                     );
