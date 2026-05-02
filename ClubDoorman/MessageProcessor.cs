@@ -339,6 +339,11 @@ internal class MessageProcessor
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
             return;
         }
+        if (message.BoostAdded != null)
+        {
+            _logger.LogDebug("Boost");
+            return;
+        }
 
         var rawText = message.Text ?? message.Caption;
         var text = rawText;
