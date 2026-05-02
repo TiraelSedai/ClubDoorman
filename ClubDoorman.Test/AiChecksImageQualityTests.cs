@@ -109,9 +109,9 @@ public class AiChecksImageQualityTests
         Assert.That(message.Content.Value2, Has.Count.EqualTo(1), "Expected single image content part.");
 
         var part = message.Content.Value2.Single();
-        Assert.That(part.IsImageUrl, Is.True, "Expected image content part.");
-        Assert.That(part.ImageUrl, Is.Not.Null, "Expected image URL payload.");
-        Assert.That(part.ImageUrl!.ImageUrl, Is.Not.Null, "Expected nested image URL.");
-        return part.ImageUrl.ImageUrl!.Detail;
+        Assert.That(part.IsImageContentPart, Is.True, "Expected image content part.");
+        Assert.That(part.ImageContentPart, Is.Not.Null, "Expected image URL payload.");
+        Assert.That(part.ImageContentPart!.ImageUrl, Is.Not.Null, "Expected nested image URL.");
+        return part.ImageContentPart.ImageUrl!.Detail;
     }
 }

@@ -234,11 +234,11 @@ internal class AiChecks
                             if (!match.Success)
                                 continue;
                             var relevantGroups = match
-                                .Groups.Cast<Group>()
+                                .Groups.Cast<System.Text.RegularExpressions.Group>()
                                 .Skip(1) // 0th groups is full match
                                 .Where(g => g.Success);
 
-                            foreach (Group group in relevantGroups)
+                            foreach (System.Text.RegularExpressions.Group group in relevantGroups)
                             {
                                 try
                                 {
