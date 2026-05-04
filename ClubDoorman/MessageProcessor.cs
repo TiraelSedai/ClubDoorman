@@ -16,6 +16,20 @@ internal enum CheckResult
     NoMoreAction,
 }
 
+internal enum AdminForwardFallbackMessageKind
+{
+    Text,
+    Photo,
+    Video,
+}
+
+internal sealed record AdminForwardFallbackMessage(
+    AdminForwardFallbackMessageKind Kind,
+    string? Text = null,
+    string? FileId = null,
+    string? Caption = null
+);
+
 internal sealed class ChatIgnoreState
 {
     public int FailureCount { get; set; }
@@ -1072,15 +1086,7 @@ internal class MessageProcessor
         var fromChat = message.SenderChat;
         var user = message.From!;
         var admChat = _config.GetAdminChat(message.Chat.Id);
-        Message? forward = null;
-        try
-        {
-            forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        }
-        catch (ApiRequestException are)
-        {
-            _logger.LogInformation(are, "Cannot forward");
-        }
+        var forward = await ForwardOrSendAdminFallback(admChat, message, stoppingToken);
         var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
 
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
@@ -1114,15 +1120,7 @@ internal class MessageProcessor
         _logger.LogDebug("DontDeleteButReportMessageWithApprove");
         var user = message.From!;
         var admChat = _config.GetAdminChat(message.Chat.Id);
-        Message? forward = null;
-        try
-        {
-            forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        }
-        catch (ApiRequestException are)
-        {
-            _logger.LogInformation(are, "Cannot forward");
-        }
+        var forward = await ForwardOrSendAdminFallback(admChat, message, stoppingToken);
 
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
         var reply = "";
@@ -1154,14 +1152,7 @@ internal class MessageProcessor
         var fromChat = message.SenderChat;
         Message? forward = null;
         if (_config.NonFreeChat(message.Chat.Id))
-            try
-            {
-                forward = await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            }
-            catch (ApiRequestException are)
-            {
-                _logger.LogInformation(are, "Cannot forward");
-            }
+            forward = await ForwardOrSendAdminFallback(admChat, message, stoppingToken);
 
         var restoreKey = $"restore_{IdGenerator.NextBase62()}";
         _logger.LogDebug("DeleteAndReportMessage: generated restoreKey={RestoreKey}", restoreKey);
@@ -1233,6 +1224,67 @@ internal class MessageProcessor
             replyMarkup: new InlineKeyboardMarkup(row),
             cancellationToken: stoppingToken
         );
+    }
+
+    internal static AdminForwardFallbackMessage? BuildAdminForwardFallbackMessage(Message message)
+    {
+        if (message.Photo?.LastOrDefault()?.FileId is { Length: > 0 } photoFileId)
+            return new AdminForwardFallbackMessage(AdminForwardFallbackMessageKind.Photo, FileId: photoFileId, Caption: message.Caption);
+
+        if (message.Video?.FileId is { Length: > 0 } videoFileId)
+            return new AdminForwardFallbackMessage(AdminForwardFallbackMessageKind.Video, FileId: videoFileId, Caption: message.Caption);
+
+        if (message.Text is { Length: > 0 } text)
+            return new AdminForwardFallbackMessage(AdminForwardFallbackMessageKind.Text, Text: text);
+
+        if (message.Caption is { Length: > 0 } caption)
+            return new AdminForwardFallbackMessage(AdminForwardFallbackMessageKind.Text, Text: caption);
+
+        return null;
+    }
+
+    private async Task<Message?> ForwardOrSendAdminFallback(ChatId admChat, Message message, CancellationToken stoppingToken)
+    {
+        try
+        {
+            return await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        }
+        catch (ApiRequestException are)
+        {
+            _logger.LogInformation(are, "Cannot forward");
+        }
+
+        var fallback = BuildAdminForwardFallbackMessage(message);
+        if (fallback == null)
+        {
+            _logger.LogInformation("Cannot build fallback message for admin chat");
+            return null;
+        }
+
+        try
+        {
+            return fallback.Kind switch
+            {
+                AdminForwardFallbackMessageKind.Photo => await _bot.SendPhoto(
+                    admChat,
+                    new InputFileId(fallback.FileId!),
+                    caption: fallback.Caption,
+                    cancellationToken: stoppingToken
+                ),
+                AdminForwardFallbackMessageKind.Video => await _bot.SendVideo(
+                    admChat,
+                    new InputFileId(fallback.FileId!),
+                    caption: fallback.Caption,
+                    cancellationToken: stoppingToken
+                ),
+                _ => await _bot.SendMessage(admChat, fallback.Text!, cancellationToken: stoppingToken),
+            };
+        }
+        catch (ApiRequestException are)
+        {
+            _logger.LogInformation(are, "Cannot send fallback message to admin chat");
+            return null;
+        }
     }
 
     private async Task DeleteMessageSafe(ChatId chatId, int messageId, CancellationToken stoppingToken)
