@@ -303,7 +303,7 @@ internal class MessageProcessor
                         (_, existing) =>
                         {
                             existing.FailureCount++;
-                            existing.IgnoreUntil = DateTime.UtcNow.AddHours(existing.FailureCount);
+                            existing.IgnoreUntil = DateTime.UtcNow.AddHours(4 * existing.FailureCount);
                             return existing;
                         }
                     );
@@ -337,6 +337,11 @@ internal class MessageProcessor
         {
             _logger.LogDebug("Stories");
             await DeleteAndReportMessage(message, "Сторис", stoppingToken);
+            return;
+        }
+        if (message.BoostAdded != null)
+        {
+            _logger.LogDebug("Boost");
             return;
         }
 
@@ -1017,22 +1022,22 @@ internal class MessageProcessor
         switch (newChatMember.Status)
         {
             case ChatMemberStatus.Member:
+            {
+                if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
                 {
-                    if (chatMember.OldChatMember.Status == ChatMemberStatus.Left)
-                    {
-                        _logger.LogDebug(
-                            "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
-                            chatMember.Chat.Title,
-                            newChatMember.User.FirstName,
-                            newChatMember.User.LastName,
-                            newChatMember.User.Username,
-                            newChatMember.User.Id
-                        );
-                        await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
-                        WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
-                    }
-                    break;
+                    _logger.LogDebug(
+                        "New chat member in chat {Chat}: {First} {Last} @{Username}; Id = {Id}",
+                        chatMember.Chat.Title,
+                        newChatMember.User.FirstName,
+                        newChatMember.User.LastName,
+                        newChatMember.User.Username,
+                        newChatMember.User.Id
+                    );
+                    await _captchaManager.IntroFlow(newChatMember.User, chatMember.Chat);
+                    WatchNewcomer(chatMember.Chat, newChatMember.User, stoppingToken);
                 }
+                break;
+            }
             case ChatMemberStatus.Kicked or ChatMemberStatus.Restricted:
                 StopWatchingNewcomer(key);
                 if (!_config.NonFreeChat(chatMember.Chat.Id))

@@ -30,6 +30,16 @@ public class Tests
         Assert.That(result.Count > 0, Is.EqualTo(expectedResult), string.Join(", ", result));
     }
 
+    [TestCase("привет", true)]
+    [TestCase("hello", true)]
+    [TestCase("hola", true)]
+    [TestCase("hola!", false)]
+    public void HasOnlyHelloWord_Tests(string message, bool expectedResult)
+    {
+        var result = SimpleFilters.HasOnlyHelloWord(message);
+        Assert.That(result, Is.EqualTo(expectedResult));
+    }
+
     [TestCase]
     public void FormatStripped()
     {
