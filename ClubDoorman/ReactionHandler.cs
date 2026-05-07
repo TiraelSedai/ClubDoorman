@@ -50,6 +50,13 @@ internal class ReactionHandler
             {
                 await _bot.BanChatMember(chat.Id, user.Id);
                 _logger.LogDebug("Banned blacklisted user {FullName} @{Username} based on reaction", Utils.FullName(user), user.Username);
+                if (_config.NonFreeChat(chat.Id))
+                {
+                    await _bot.SendMessage(
+                        _config.GetAdminChat(chat.Id),
+                        BuildReactionAutobanNotificationMessage(chat, user, reaction.MessageId)
+                    );
+                }
             }
             catch { }
             return;
@@ -152,4 +159,10 @@ internal class ReactionHandler
         MemoryCache.Default.Contains(EmojiOnlyCheckIgnoreKey(chatId, messageId));
 
     private static string EmojiOnlyCheckIgnoreKey(long chatId, int messageId) => $"emoji_check_ignore:{chatId}:{messageId}";
+
+    internal static string BuildReactionAutobanNotificationMessage(Chat chat, User user, int messageId)
+    {
+        var at = user.Username == null ? "" : $" @{user.Username}";
+        return $"Авто-бан по реакции: пользователь из банлиста{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, messageId)}";
+    }
 }
