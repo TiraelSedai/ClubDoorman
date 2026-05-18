@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
@@ -57,47 +58,20 @@ internal class StatisticsReporter : IDisposable
                 continue;
             }
 
-            var report = Stats.ToArray();
+            var report = BuildStatisticsReportMessages(
+                Stats.ToArray(),
+                _config.MultiAdminChatMap,
+                _config.StatisticsFallbackAdminChats,
+                _config.AdminChatId
+            );
             Stats.Clear();
-            var free = new List<string>();
-            var assigned = new Dictionary<long, List<string>>();
-            foreach (var (chatId, stats) in report)
-            {
-                var list = free;
-                if (_config.MultiAdminChatMap.TryGetValue(chatId, out var adminChat))
-                {
-                    if (!assigned.TryGetValue(adminChat, out list))
-                    {
-                        list = [];
-                        assigned[adminChat] = list;
-                    }
-                }
-                else
-                {
-                    list.Add($"Unmapped ID {chatId} {stats.ChatTitle}");
-                }
-                list.Add(ChatToStatsString(stats));
-            }
 
             try
             {
-                foreach (var (adminChat, list) in assigned)
+                foreach (var message in report)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
-                    await _bot.SendMessage(
-                        adminChat,
-                        $"За последние 24 часа - статистика того что даже не прилетало в админку:\n{string.Join("\n=============================\n", list)}",
-                        cancellationToken: ct
-                    );
-                }
-                foreach (var chunk in free.Chunk(10))
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(5), ct);
-                    await _bot.SendMessage(
-                        _config.AdminChatId,
-                        $"В фри чатах за 24 часа:\n{string.Join("\n=============================\n", chunk)}",
-                        cancellationToken: ct
-                    );
+                    await _bot.SendMessage(message.AdminChatId, message.Text, cancellationToken: ct);
                 }
             }
             catch (Exception e)
@@ -141,6 +115,61 @@ internal class StatisticsReporter : IDisposable
 
         await db.SaveChangesAsync();
     }
+
+    internal static IReadOnlyList<StatisticsReportMessage> BuildStatisticsReportMessages(
+        IEnumerable<KeyValuePair<long, Stats>> report,
+        FrozenDictionary<long, long> multiAdminChatMap,
+        FrozenSet<long> fallbackAdminChats,
+        long defaultAdminChatId
+    )
+    {
+        var free = new List<string>();
+        var assigned = new Dictionary<long, List<string>>();
+        foreach (var (chatId, stats) in report)
+        {
+            var list = free;
+            if (multiAdminChatMap.TryGetValue(chatId, out var adminChat))
+            {
+                var targetAdminChat = fallbackAdminChats.Contains(adminChat) ? defaultAdminChatId : adminChat;
+
+                if (!assigned.TryGetValue(targetAdminChat, out list))
+                {
+                    list = [];
+                    assigned[targetAdminChat] = list;
+                }
+            }
+            else
+            {
+                list.Add($"Unmapped ID {chatId} {stats.ChatTitle}");
+            }
+            list.Add(ChatToStatsString(stats));
+        }
+
+        var messages = new List<StatisticsReportMessage>();
+        foreach (var (adminChat, list) in assigned)
+        {
+            messages.Add(
+                new StatisticsReportMessage(
+                    adminChat,
+                    $"За последние 24 часа - статистика того что даже не прилетало в админку:\n{string.Join("\n=============================\n", list)}"
+                )
+            );
+        }
+
+        foreach (var chunk in free.Chunk(10))
+        {
+            messages.Add(
+                new StatisticsReportMessage(
+                    defaultAdminChatId,
+                    $"В фри чатах за 24 часа:\n{string.Join("\n=============================\n", chunk)}"
+                )
+            );
+        }
+
+        return messages;
+    }
+
+    internal sealed record StatisticsReportMessage(long AdminChatId, string Text);
 
     private async Task Init()
     {

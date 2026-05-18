@@ -38,6 +38,7 @@
 - `DOORMAN_CLUB_URL` - базовый URL Клуба или форка, по умолчанию `https://vas3k.club/`
 - `DOORMAN_OPENROUTER_API` - включает LLM-проверки через OpenRouter
 - `DOORMAN_ADMIN_CHAT_MAP` - перенаправление сообщений из конкретных чатов в отдельные админ-чаты, формат `from=to,from=to`
+- `DOORMAN_STATISTICS_FALLBACK_ADMIN_CHATS` - админ-чаты, чью ежедневную статистику в 10:00 нужно отправлять в fallback-админку `DOORMAN_ADMIN_CHAT`, формат `chat,chat`
 - `DOORMAN_BLACKLIST_AUTOBAN_DISABLE` - отключает автобан пользователей из блеклиста
 - `DOORMAN_CHANNELS_AUTOBAN_DISABLE` - отключает автобан сообщений от каналов
 - `DOORMAN_CHANNEL_AUTOBAN_EXCLUSION` - чаты, в которых автобан каналов отключен

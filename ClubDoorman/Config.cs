@@ -22,6 +22,7 @@ internal class Config
         EmojiCheckDisabledChats = GetChatsFromEnv("DOORMAN_CHANNELS_EMOJI_DISABLE");
         MarketologsChats = GetChatsFromEnv("DOORMAN_CHANNEL_MARKETOLOGY_EXCLUSION");
         CaptchaDisabledChats = GetChatsFromEnv("DOORMAN_CAPTCHA_DISABLE");
+        StatisticsFallbackAdminChats = GetChatsFromEnv("DOORMAN_STATISTICS_FALLBACK_ADMIN_CHATS");
     }
 
     public bool BlacklistAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BLACKLIST_AUTOBAN_DISABLE");
@@ -48,22 +49,29 @@ internal class Config
     public FrozenSet<long> EmojiCheckDisabledChats { get; }
     public FrozenSet<long> MarketologsChats { get; }
     public FrozenSet<long> CaptchaDisabledChats { get; }
+    public FrozenSet<long> StatisticsFallbackAdminChats { get; }
 
     public bool NonFreeChat(long chatId) => MultiAdminChatMap.Count == 0 || MultiAdminChatMap.ContainsKey(chatId);
 
     private FrozenSet<long> GetChatsFromEnv(string env)
     {
+        var chats = ParseChatIdSet(Environment.GetEnvironmentVariable(env));
+        _logger.LogInformation("{Env} chats {@Chats}", env, chats);
+        return chats;
+    }
+
+    internal static FrozenSet<long> ParseChatIdSet(string? items)
+    {
+        if (items == null)
+            return FrozenSet<long>.Empty;
+
         var list = new List<long>();
-        var items = Environment.GetEnvironmentVariable(env);
-        if (items != null)
+        foreach (var ch in items.Split(','))
         {
-            foreach (var ch in items.Split(','))
-            {
-                if (long.TryParse(ch, out var group))
-                    list.Add(group);
-            }
+            if (long.TryParse(ch.Trim(), out var group))
+                list.Add(group);
         }
-        _logger.LogInformation("{Env} chats {@Chats}", env, list);
+
         return list.ToFrozenSet();
     }
 

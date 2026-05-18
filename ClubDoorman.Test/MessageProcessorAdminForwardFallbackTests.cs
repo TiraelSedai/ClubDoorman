@@ -12,11 +12,11 @@ public class MessageProcessorAdminForwardFallbackTests
         var fallback = MessageProcessor.BuildAdminForwardFallbackMessage(message);
 
         Assert.That(fallback, Is.Not.Null);
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(fallback!.Kind, Is.EqualTo(AdminForwardFallbackMessageKind.Text));
             Assert.That(fallback.Text, Is.EqualTo("spam text\nsecond line"));
-        });
+        }
     }
 
     [Test]
@@ -47,12 +47,12 @@ public class MessageProcessorAdminForwardFallbackTests
         var fallback = MessageProcessor.BuildAdminForwardFallbackMessage(message);
 
         Assert.That(fallback, Is.Not.Null);
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(fallback!.Kind, Is.EqualTo(AdminForwardFallbackMessageKind.Photo));
             Assert.That(fallback.FileId, Is.EqualTo("large"));
             Assert.That(fallback.Caption, Is.EqualTo("photo caption"));
-        });
+        }
     }
 
     [Test]
@@ -67,11 +67,11 @@ public class MessageProcessorAdminForwardFallbackTests
         var fallback = MessageProcessor.BuildAdminForwardFallbackMessage(message);
 
         Assert.That(fallback, Is.Not.Null);
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(fallback!.Kind, Is.EqualTo(AdminForwardFallbackMessageKind.Video));
             Assert.That(fallback.FileId, Is.EqualTo("video-file"));
             Assert.That(fallback.Caption, Is.EqualTo("video caption"));
-        });
+        }
     }
 }

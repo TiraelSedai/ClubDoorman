@@ -24,11 +24,11 @@ public class ReactionHandlerTests
 
         var message = ReactionHandler.BuildReactionAutobanNotificationMessage(chat, user, 123);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(message, Does.Contain("Авто-бан по реакции: пользователь из банлиста"));
             Assert.That(message, Does.Contain("Юзер Spam User @spam_user из чата Paid Chat"));
             Assert.That(message, Does.Contain("https://t.me/c/1234567890/123"));
-        });
+        }
     }
 }
