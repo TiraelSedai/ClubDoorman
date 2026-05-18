@@ -414,6 +414,10 @@ internal class MessageProcessor
                     return CheckResult.Suspicious;
                 }
             }
+            else if (message.Dice != null)
+            {
+                return CheckResult.Pass;
+            }
             else if (!_config.NonFreeChat(chat.Id))
             {
                 return CheckResult.Pass;
