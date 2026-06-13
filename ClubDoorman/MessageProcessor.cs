@@ -372,6 +372,10 @@ internal class MessageProcessor
         if (contentResult == CheckResult.NoMoreAction)
             return;
 
+        var bioResult = await CheckUserBio(message, user, stoppingToken);
+        if (bioResult == CheckResult.NoMoreAction)
+            return;
+
         var profileResult = await CheckUserProfile(message, user, text ?? "", chat, admChat, stoppingToken);
         if (profileResult == CheckResult.NoMoreAction)
             return;
@@ -685,6 +689,29 @@ internal class MessageProcessor
             _logger.LogWarning(e, "Unable to fetch chat info to detect reactions availability");
             return false;
         }
+    }
+
+    private async Task<CheckResult> CheckUserBio(Message message, User user, CancellationToken stoppingToken)
+    {
+        string? bio;
+        try
+        {
+            var userChat = await _bot.GetChat(user.Id, cancellationToken: stoppingToken);
+            bio = userChat.Bio;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogWarning(e, "Unable to fetch chat info for bio check");
+            return CheckResult.Pass;
+        }
+        if (string.IsNullOrEmpty(bio))
+            return CheckResult.Pass;
+        if (MyRegexes.CryptoPrivatkiBio().IsMatch(bio))
+        {
+            await AutoBan(message, "крипто-приватки в описании профиля", stoppingToken);
+            return CheckResult.NoMoreAction;
+        }
+        return CheckResult.Pass;
     }
 
     private async Task<CheckResult> CheckUserProfile(
