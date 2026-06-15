@@ -942,6 +942,8 @@ internal class MessageProcessor
         + "Дайте мне права на удаление и бан, или если больше не нуждаетесь в моих услугах "
         + "- удалите меня из чата. Спасибо.";
 
+    private static readonly TimeSpan NagSelfDeleteAfter = TimeSpan.FromMinutes(30);
+
     // Только для free-чатов: если автобан не смог удалить сообщение (нет прав), ждём 5 сек
     // (вдруг удалит другой бот), затем форвардим спам в админку как проверку существования —
     // если форвард прошёл, сообщение живо, постим публичный реплай с просьбой выдать права.
@@ -984,7 +986,9 @@ internal class MessageProcessor
 
         try
         {
-            await _bot.SendMessage(chat.Id, NoRightsNag, replyParameters: message, cancellationToken: stoppingToken);
+            var nag = await _bot.SendMessage(chat.Id, NoRightsNag, replyParameters: message, cancellationToken: stoppingToken);
+            DeleteMessageLater(chat.Id, nag.MessageId, NagSelfDeleteAfter, stoppingToken)
+                .FireAndForget(_logger, nameof(DeleteMessageLater));
         }
         catch (ApiRequestException e)
         {
@@ -1355,6 +1359,19 @@ internal class MessageProcessor
             _logger.LogInformation(are, "Cannot send fallback message to admin chat");
             return null;
         }
+    }
+
+    private async Task DeleteMessageLater(ChatId chatId, int messageId, TimeSpan delay, CancellationToken stoppingToken)
+    {
+        try
+        {
+            await Task.Delay(delay, stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        await DeleteMessageSafe(chatId, messageId, stoppingToken);
     }
 
     private async Task DeleteMessageSafe(ChatId chatId, int messageId, CancellationToken stoppingToken)
