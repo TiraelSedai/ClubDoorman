@@ -20,6 +20,4 @@ internal static class Utils
         chat.Type == ChatType.Supergroup ? LinkToSuperGroupMessage(chat, messageId)
         : chat.Username == null ? ""
         : LinkToGroupWithNameMessage(chat, messageId);
-
-    public static string LinkToChat(Chat chat) => chat.Username == null ? "" : $"https://t.me/{chat.Username}";
 }

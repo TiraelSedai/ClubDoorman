@@ -296,7 +296,7 @@ internal class MessageProcessor
                 }
 
                 if (deleteFailed)
-                    await NagForDeleteRights(message, "Пользователь в блеклисте спамеров", stoppingToken);
+                    await NagForDeleteRights(message, stoppingToken);
             }
             else
             {
@@ -934,7 +934,7 @@ internal class MessageProcessor
             _logger.LogInformation(e, "Autoban: cannot ban user");
         }
         if (deleteFailed)
-            await NagForDeleteRights(message, reason, stoppingToken);
+            await NagForDeleteRights(message, stoppingToken);
     }
 
     private const string NoRightsNag =
@@ -945,14 +945,14 @@ internal class MessageProcessor
     private static readonly TimeSpan NagSelfDeleteAfter = TimeSpan.FromMinutes(30);
 
     // Только для free-чатов: если автобан не смог удалить сообщение (нет прав), ждём 5 сек
-    // (вдруг удалит другой бот), затем форвардим спам в админку как проверку существования —
-    // если форвард прошёл, сообщение живо, постим публичный реплай с просьбой выдать права.
-    private async Task NagForDeleteRights(Message message, string reason, CancellationToken stoppingToken)
+    // (вдруг удалит другой бот), затем постим публичный реплай с просьбой выдать права.
+    // Реплай на исходный спам сам служит проверкой существования: если сообщение уже удалено,
+    // SendMessage бросит ApiRequestException и мы просто выйдем.
+    private async Task NagForDeleteRights(Message message, CancellationToken stoppingToken)
     {
         var chat = message.Chat;
         if (_config.NonFreeChat(chat.Id))
             return;
-        var user = message.From!;
 
         try
         {
@@ -962,27 +962,6 @@ internal class MessageProcessor
         {
             return;
         }
-
-        var admChat = _config.GetAdminChat(chat.Id);
-        Message forward;
-        try
-        {
-            forward = await _bot.ForwardMessage(admChat, chat.Id, message.MessageId, cancellationToken: stoppingToken);
-        }
-        catch (ApiRequestException)
-        {
-            _logger.LogDebug("Spam message {Id} in chat {Chat} is gone, skipping nag", message.MessageId, chat.Title);
-            return;
-        }
-
-        var text =
-            $"Распознал спам, но нет прав на удаление. Причина: {reason}{Environment.NewLine}"
-            + $"Юзер {Utils.FullName(user)} в чате {chat.Title}{Environment.NewLine}"
-            + Utils.LinkToMessage(chat, message.MessageId);
-        var chatLink = Utils.LinkToChat(chat);
-        if (!string.IsNullOrEmpty(chatLink))
-            text += Environment.NewLine + chatLink;
-        await _bot.SendMessage(admChat, text, replyParameters: forward, cancellationToken: stoppingToken);
 
         try
         {
