@@ -115,7 +115,14 @@ public class SpamHamClassifier : IDisposable
                 .Append(_mlContext.BinaryClassification.Trainers.SdcaLogisticRegression());
 
             var model = pipeline.Fit(data);
-            _engine = _mlContext.Model.CreatePredictionEngine<MessageData, MessagePrediction>(model);
+            var newEngine = _mlContext.Model.CreatePredictionEngine<MessageData, MessagePrediction>(model);
+            PredictionEngine<MessageData, MessagePrediction>? old;
+            lock (_predictionLock)
+            {
+                old = _engine;
+                _engine = newEngine;
+            }
+            old?.Dispose();
             _logger.LogDebug("Train ok in {Elapsed}ms", sw.ElapsedMilliseconds);
         }
         catch (Exception e)
@@ -128,6 +135,7 @@ public class SpamHamClassifier : IDisposable
     {
         _retrainTimer.Dispose();
         _datasetLock.Dispose();
+        _engine?.Dispose();
         GC.SuppressFinalize(this);
     }
 }
