@@ -6,7 +6,7 @@ partial class MyRegexes
     public static partial Regex TelegramUsername();
 
     [GeneratedRegex(
-        @"крипто.*приваток\s+в\s+одном\s+месте.*t\.me/\+",
+        @"крипто.*(?:приваток|випок)\s+(?:в\s+)?одном\s+(?:месте|канале).*t\.me/\+",
         RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant
     )]
     public static partial Regex CryptoPrivatkiBio();
