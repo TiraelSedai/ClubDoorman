@@ -140,7 +140,7 @@ internal class MessageProcessor
 
         if (chat.Id == _config.AdminChatId || _config.MultiAdminChatMap.Values.Contains(chat.Id))
         {
-            await _adminCommandHandler.AdminChatMessage(message);
+            await _adminCommandHandler.AdminChatMessage(message, stoppingToken);
             return;
         }
 

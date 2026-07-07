@@ -24,11 +24,21 @@ internal class MessagePrediction : MessageData
 public class SpamHamClassifier : IDisposable
 {
     public SpamHamClassifier(ILogger<SpamHamClassifier> logger, IServiceScopeFactory serviceScopeFactory)
+        : this(logger, serviceScopeFactory, SpamHamClassifierStartupMode.StartBackgroundTraining) { }
+
+    internal SpamHamClassifier(
+        ILogger<SpamHamClassifier> logger,
+        IServiceScopeFactory serviceScopeFactory,
+        SpamHamClassifierStartupMode startupMode
+    )
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
-        Task.Run(Train);
-        Task.Run(RetrainLoop);
+        if (startupMode == SpamHamClassifierStartupMode.StartBackgroundTraining)
+        {
+            Task.Run(Train);
+            Task.Run(RetrainLoop);
+        }
     }
 
     private readonly SemaphoreSlim _datasetLock = new(1);
@@ -46,8 +56,8 @@ public class SpamHamClassifier : IDisposable
         {
             if (_needsRetraining)
             {
-                await Train();
                 _needsRetraining = false;
+                await Train();
             }
         }
     }
@@ -67,6 +77,40 @@ public class SpamHamClassifier : IDisposable
     public Task AddSpam(string message) => AddSpamHam(message, true);
 
     public Task AddHam(string message) => AddSpamHam(message, false);
+
+    public async Task<IReadOnlyList<SpamHamRecord>> GetLatestSpamHamRecords(int count)
+    {
+        if (count <= 0)
+            return Array.Empty<SpamHamRecord>();
+
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await db.SpamHamRecords.AsNoTracking().OrderByDescending(r => r.Id).Take(count).ToListAsync();
+    }
+
+    public async Task<SpamHamRecord?> DeleteSpamHamRecord(int id)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        if (!await db.SpamHamRecords.AsNoTracking().AnyAsync(r => r.Id == id))
+            return null;
+
+        using var token = await SemaphoreHelper.AwaitAsync(_datasetLock);
+        var record = await db.SpamHamRecords.SingleOrDefaultAsync(r => r.Id == id);
+        if (record == null)
+            return null;
+
+        var deleted = new SpamHamRecord
+        {
+            Id = record.Id,
+            Text = record.Text,
+            IsSpam = record.IsSpam,
+        };
+        db.SpamHamRecords.Remove(record);
+        await db.SaveChangesAsync();
+        _needsRetraining = true;
+        return deleted;
+    }
 
     private async Task AddSpamHam(string message, bool spam)
     {
@@ -138,4 +182,10 @@ public class SpamHamClassifier : IDisposable
         _engine?.Dispose();
         GC.SuppressFinalize(this);
     }
+}
+
+internal enum SpamHamClassifierStartupMode
+{
+    StartBackgroundTraining,
+    SkipBackgroundTraining,
 }

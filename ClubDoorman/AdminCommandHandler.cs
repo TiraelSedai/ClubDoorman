@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -6,6 +7,11 @@ namespace ClubDoorman;
 
 internal class AdminCommandHandler
 {
+    private const int DefaultLatestSpamHamRecordCount = 10;
+    private const int DefaultUndoSpamHamPreviewLength = 500;
+    private const int TelegramMessageLimit = 4096;
+    private static readonly TimeSpan LatestSpamHamRecordDelay = TimeSpan.FromSeconds(5);
+
     private readonly ITelegramBotClient _bot;
     private readonly UserManager _userManager;
     private readonly BadMessageManager _badMessageManager;
@@ -266,21 +272,40 @@ internal class AdminCommandHandler
         }
     }
 
-    public async Task AdminChatMessage(Message message)
+    public async Task AdminChatMessage(Message message, CancellationToken cancellationToken = default)
     {
-        // TODO: this is not ideal, share getter with MessageProcessor
-        _me ??= await _bot.GetMe();
         if (message.Text != null && message.Text.StartsWith("/unban", StringComparison.Ordinal))
         {
             var split = message.Text.Split(' ');
             if (split.Length > 1 && long.TryParse(split[1], out var userId))
             {
-                await _userManager.Unban(userId);
-                await _bot.SendMessage(message.Chat.Id, $"Unbanned user {userId}", replyParameters: message);
+                await _userManager.Unban(userId, cancellationToken);
+                await _bot.SendMessage(
+                    message.Chat.Id,
+                    $"Unbanned user {userId}",
+                    replyParameters: message,
+                    cancellationToken: cancellationToken
+                );
                 return;
             }
         }
 
+        if (message.Text != null)
+        {
+            var command = message.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            switch (command)
+            {
+                case "/latest":
+                    await SendLatestSpamHamRecords(message, cancellationToken);
+                    return;
+                case "/undo":
+                    await UndoSpamHamRecord(message, cancellationToken);
+                    return;
+            }
+        }
+
+        // TODO: this is not ideal, share getter with MessageProcessor
+        _me ??= await _bot.GetMe(cancellationToken);
         if (message is { ReplyToMessage: { } replyToMessage, Text: "/spam" or "/ham" or "/check" })
         {
             if (replyToMessage.From?.Id == _me.Id && replyToMessage.ForwardDate == null)
@@ -288,7 +313,8 @@ internal class AdminCommandHandler
                 await _bot.SendMessage(
                     message.Chat.Id,
                     "Похоже что вы промахнулись и реплайнули на сообщение бота, а не форвард",
-                    replyParameters: replyToMessage
+                    replyParameters: replyToMessage,
+                    cancellationToken: cancellationToken
                 );
                 return;
             }
@@ -317,7 +343,7 @@ internal class AdminCommandHandler
                             + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
                             + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
                             + $"Нормализованный текст: {normalized}";
-                        await _bot.SendMessage(message.Chat.Id, msg);
+                        await _bot.SendMessage(message.Chat.Id, msg, cancellationToken: cancellationToken);
                         break;
                     }
                     case "/spam":
@@ -326,7 +352,8 @@ internal class AdminCommandHandler
                         await _bot.SendMessage(
                             message.Chat.Id,
                             "Сообщение добавлено как пример спама в датасет, а так же в список авто-бана",
-                            replyParameters: replyToMessage
+                            replyParameters: replyToMessage,
+                            cancellationToken: cancellationToken
                         );
                         break;
                     case "/ham":
@@ -334,12 +361,112 @@ internal class AdminCommandHandler
                         await _bot.SendMessage(
                             message.Chat.Id,
                             "Сообщение добавлено как пример НЕ-спама в датасет",
-                            replyParameters: replyToMessage
+                            replyParameters: replyToMessage,
+                            cancellationToken: cancellationToken
                         );
                         break;
                 }
             }
         }
+    }
+
+    private async Task SendLatestSpamHamRecords(Message message, CancellationToken cancellationToken)
+    {
+        var (ok, count, errorMessage) = ParseLatestSpamHamCount(message.Text!);
+        if (!ok)
+        {
+            await _bot.SendMessage(message.Chat.Id, errorMessage!, replyParameters: message, cancellationToken: cancellationToken);
+            return;
+        }
+
+        var records = await _classifier.GetLatestSpamHamRecords(count);
+        if (records.Count == 0)
+        {
+            await _bot.SendMessage(
+                message.Chat.Id,
+                "В spam-ham таблице нет записей",
+                replyParameters: message,
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        foreach (var record in records)
+        {
+            await _bot.SendMessage(message.Chat.Id, BuildSpamHamRecordMessage(record), cancellationToken: cancellationToken);
+            await Task.Delay(LatestSpamHamRecordDelay, cancellationToken);
+        }
+    }
+
+    private async Task UndoSpamHamRecord(Message message, CancellationToken cancellationToken)
+    {
+        var (ok, id, errorMessage) = ParseUndoSpamHamRecordId(message.Text!);
+        if (!ok)
+        {
+            await _bot.SendMessage(message.Chat.Id, errorMessage!, replyParameters: message, cancellationToken: cancellationToken);
+            return;
+        }
+
+        var deleted = await _classifier.DeleteSpamHamRecord(id);
+        if (deleted == null)
+        {
+            await _bot.SendMessage(
+                message.Chat.Id,
+                $"Запись #{id} не найдена",
+                replyParameters: message,
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        await _bot.SendMessage(
+            message.Chat.Id,
+            BuildDeletedSpamHamRecordMessage(deleted),
+            replyParameters: message,
+            cancellationToken: cancellationToken
+        );
+    }
+
+    internal static string BuildSpamHamRecordMessage(SpamHamRecord record, int maxLength = TelegramMessageLimit)
+    {
+        const string truncatedSuffix = "\n[truncated]";
+        var label = record.IsSpam ? "spam" : "ham";
+        var header = $"#{record.Id} {label}";
+        var message = $"{header}{Environment.NewLine}{record.Text}";
+        if (message.Length <= maxLength)
+            return message;
+
+        var availableTextLength = maxLength - header.Length - Environment.NewLine.Length - truncatedSuffix.Length;
+        return $"{header}{Environment.NewLine}{record.Text[..availableTextLength]}{truncatedSuffix}";
+    }
+
+    internal static string BuildDeletedSpamHamRecordMessage(SpamHamRecord record, int maxPreviewLength = DefaultUndoSpamHamPreviewLength)
+    {
+        var label = record.IsSpam ? "spam" : "ham";
+        var preview =
+            record.Text.Length <= maxPreviewLength ? record.Text : $"{record.Text[..maxPreviewLength]}{Environment.NewLine}[truncated]";
+        return $"Запись #{record.Id} {label} удалена, переобучение запланировано{Environment.NewLine}{preview}";
+    }
+
+    internal static (bool Ok, int Count, string? ErrorMessage) ParseLatestSpamHamCount(string text)
+    {
+        var split = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (split.Length == 1)
+            return (true, DefaultLatestSpamHamRecordCount, null);
+
+        if (split.Length == 2 && int.TryParse(split[1], NumberStyles.None, CultureInfo.InvariantCulture, out var count) && count > 0)
+            return (true, count, null);
+
+        return (false, 0, "Использование: /latest [count], где count - положительное целое число");
+    }
+
+    internal static (bool Ok, int Id, string? ErrorMessage) ParseUndoSpamHamRecordId(string text)
+    {
+        var split = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (split.Length == 2 && int.TryParse(split[1], NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0)
+            return (true, id, null);
+
+        return (false, 0, "Использование: /undo <id>, где id - положительное целое число");
     }
 
     private async Task<bool> RestoreMessage(DeletedMessageInfo deletedInfo, Message? adminMessageForReply, long admChat)
