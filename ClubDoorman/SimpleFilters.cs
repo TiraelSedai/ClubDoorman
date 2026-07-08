@@ -183,8 +183,6 @@ public static class SimpleFilters
                 || // Malayalam
                 (c >= 0x1000 && c <= 0x109F)
                 || // Myanmar
-                (c >= 0x10A0 && c <= 0x10FF)
-                || // Georgian
                 (c >= 0x1200 && c <= 0x137F)
                 || // Ethiopic
                 (c >= 0x13A0 && c <= 0x13FF)

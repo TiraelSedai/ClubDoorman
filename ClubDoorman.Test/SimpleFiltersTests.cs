@@ -40,6 +40,24 @@ public class Tests
         Assert.That(result, Is.EqualTo(expectedResult));
     }
 
+    [TestCase("ვიღებთ შეკვეთებს 3D ბეჭდვაზე!", false, TestName = "GeorgianOffer")]
+    [TestCase(
+        "ვბეჭდავთ ყველაფერს: ფიგურებს 🎭, ლითოფანიებს ✨, დეკორს 🏺, სათადარიგო ნაწილებს ⚙️, სამაგიდო თამაშებს 🎲, 18+ კატეგორიის ნივთებს 🔞, брелოკებს NFC ჩიპით და QR კოდით 📱 და კიდევ ბევრ სხვას!",
+        false,
+        TestName = "GeorgianOfferWithEmojiAndMixedText"
+    )]
+    [TestCase("ᲥᲐᲠᲗᲣᲚᲘ", false, TestName = "GeorgianMtavruli")]
+    [TestCase(
+        "Տիեզերական ճարտարապետություն, արտաքին տիեզերքում բնակեցված միջավայրեր նախագծելու և կառուցելու տեսությունն ու գործնական ոլորտ։ Այն օգտվում է ճարտարապետության տարբեր մասնագիտացված ուղղություններից՝ ապահովելու համար, որ մարդիկ կարողանան ապրել և աշխատել տիեզերքում",
+        false,
+        TestName = "ArmenianArticle"
+    )]
+    public void HasUnwantedChars_Tests(string message, bool expectedResult)
+    {
+        var result = SimpleFilters.HasUnwantedChars(message);
+        Assert.That(result, Is.EqualTo(expectedResult));
+    }
+
     [TestCase]
     public void FormatStripped()
     {
