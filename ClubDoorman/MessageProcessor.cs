@@ -490,7 +490,7 @@ internal class MessageProcessor
         }
         _logger.LogDebug("Normalized:\n {Norm}", normalized);
         var (spam, score) = await _classifier.IsSpam(normalized);
-        if (score > 0.3)
+        if (score > Consts.ClassifierSpamScoreThreshold)
         {
             var reason = $"ML решил что это спам, скор {score}";
             if (score > 3 && _config.HighConfidenceAutoBan && !_config.MarketologsChats.Contains(chat.Id))
@@ -526,6 +526,21 @@ internal class MessageProcessor
             if (spamCheck.Probability >= Consts.LlmLowProbability)
             {
                 var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
+                if (
+                    score < Consts.ClassifierSpamScoreThreshold
+                    && spamCheck.Probability >= Consts.LlmHighProbability
+                    && _config.LowConfidenceHamForward
+                    && _config.NonFreeChat(chat.Id)
+                )
+                    await ForwardToFallbackAdmin(
+                        message,
+                        user,
+                        $"LLM считает сообщение спамом с высокой уверенностью ({spamCheck.Probability * 100}%), "
+                            + $"но классифаер пока не считает его спамом: скор {score}. "
+                            + $"Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}"
+                            + $"Причина LLM: {spamCheck.Reason}",
+                        stoppingToken
+                    );
                 if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                 {
                     await DeleteAndReportMessage(message, reason, stoppingToken);
@@ -535,18 +550,14 @@ internal class MessageProcessor
                 return CheckResult.Suspicious;
             }
         }
-
         if (score > -0.5 && _config.LowConfidenceHamForward && _config.NonFreeChat(chat.Id))
-        {
-            var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
-            var postLink = Utils.LinkToMessage(chat, message.MessageId);
-            await _bot.SendMessage(
-                _config.AdminChatId,
-                $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}{Environment.NewLine}{postLink}",
-                replyParameters: forward,
-                cancellationToken: stoppingToken
+            await ForwardToFallbackAdmin(
+                message,
+                user,
+                $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. " + "Хорошая идея - добавить сообщение в датасет.",
+                stoppingToken
             );
-        }
+
         if (!_config.NonFreeChat(chat.Id) && SimpleFilters.HasOnlyHelloWord(text))
         {
             await DontDeleteButReportMessage(message, "в этом сообщении написано привет и больше ничего, обычно это спамер", stoppingToken);
@@ -1129,6 +1140,19 @@ internal class MessageProcessor
                 StopWatchingNewcomer(key);
                 break;
         }
+    }
+
+    private async Task ForwardToFallbackAdmin(Message message, User user, string reason, CancellationToken stoppingToken)
+    {
+        var chat = message.Chat;
+        var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        var postLink = Utils.LinkToMessage(chat, message.MessageId);
+        await _bot.SendMessage(
+            _config.AdminChatId,
+            $"{reason}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {chat.Title}{Environment.NewLine}{postLink}",
+            replyParameters: forward,
+            cancellationToken: stoppingToken
+        );
     }
 
     private async Task DontDeleteButReportMessage(Message message, string? reason = null, CancellationToken stoppingToken = default)
