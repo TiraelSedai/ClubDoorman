@@ -318,10 +318,10 @@ internal class AdminCommandHandler
                 );
                 return;
             }
-            var text = replyToMessage.Text ?? replyToMessage.Caption;
-
-            if (replyToMessage.Quote?.Text != null)
-                text = $"{replyToMessage.Quote.Text} {text}";
+            var quote = replyToMessage.Quote?.Text != null ? $"{replyToMessage.Quote.Text} " : "";
+            var text = $"{quote}{replyToMessage.Text ?? replyToMessage.Caption}";
+            // same split as MessageProcessor: hidden urls go to the ML dataset and checks, auto-ban keys stay on the visible text
+            var expandedText = $"{quote}{Utils.TextWithLinks(replyToMessage)}";
 
             if (!string.IsNullOrWhiteSpace(text))
             {
@@ -330,7 +330,7 @@ internal class AdminCommandHandler
                     case "/check":
                     {
                         var emojis = SimpleFilters.TooManyEmojis(text);
-                        var normalized = TextProcessor.NormalizeText(text);
+                        var normalized = TextProcessor.NormalizeText(expandedText);
                         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
                         var hasStopWords = SimpleFilters.HasStopWords(normalized);
                         var (spam, score) = await _classifier.IsSpam(normalized);
@@ -347,7 +347,7 @@ internal class AdminCommandHandler
                         break;
                     }
                     case "/spam":
-                        await _classifier.AddSpam(text);
+                        await _classifier.AddSpam(expandedText);
                         await _badMessageManager.MarkAsBad(text);
                         await _bot.SendMessage(
                             message.Chat.Id,
@@ -357,7 +357,7 @@ internal class AdminCommandHandler
                         );
                         break;
                     case "/ham":
-                        await _classifier.AddHam(text);
+                        await _classifier.AddHam(expandedText);
                         await _bot.SendMessage(
                             message.Chat.Id,
                             "Сообщение добавлено как пример НЕ-спама в датасет",

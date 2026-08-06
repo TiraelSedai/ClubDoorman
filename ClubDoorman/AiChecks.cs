@@ -435,7 +435,7 @@ internal class AiChecks
         if (_api == null)
             return probability;
 
-        var text = message.Caption ?? message.Text ?? "";
+        var text = Utils.TextWithLinks(message) ?? "";
         if (message.Poll?.Question != null)
             text =
                 $"Опрос: {message.Poll.Question}{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", message.Poll.Options.Select(o => o.Text))}";
@@ -480,7 +480,7 @@ internal class AiChecks
                             _logger.LogWarning(e, "Failed to get linked channel for chat {ChatId}", message.Chat.Id);
                         }
 
-                        var text = message.ReplyToMessage?.Text ?? message.ReplyToMessage?.Caption;
+                        var text = message.ReplyToMessage == null ? null : Utils.TextWithLinks(message.ReplyToMessage);
                         if (!string.IsNullOrEmpty(text))
                         {
                             contextBuilder.AppendLine("###");

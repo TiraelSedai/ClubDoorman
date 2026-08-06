@@ -202,7 +202,7 @@ internal class MessageProcessor
                 && !approvedText.Contains("http")
             )
             {
-                var normalized = TextProcessor.NormalizeText(approvedText);
+                var normalized = TextProcessor.NormalizeText(Utils.TextWithLinks(message)!);
                 if (normalized.Length >= 10)
                 {
                     var (spam, score) = await _classifier.IsSpam(normalized);
@@ -327,16 +327,18 @@ internal class MessageProcessor
             return;
         }
 
+        var quote = message.Quote?.Text != null ? $"> {message.Quote.Text}{Environment.NewLine}" : "";
         var rawText = message.Text ?? message.Caption;
-        var text = rawText;
-        if (message.Quote?.Text != null)
-            text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
+        var text = $"{quote}{rawText}";
+        // hidden urls belong in the ML/LLM checks, but not in the shape heuristics or in the auto-ban and dedup keys,
+        // which should still match a campaign that rotates its link per chat
+        var expandedText = $"{quote}{Utils.TextWithLinks(message)}";
 
         _logger.LogDebug("First-time message, chat {Chat} user {User}, message {Message}", chat.Title, Utils.FullName(user), text);
         using var logScopeName = _logger.BeginScope("User {Usr}", Utils.FullName(user));
         _recentMessagesStorage.Add(user.Id, chat.Id, message);
 
-        var contentResult = await CheckMessageContent(message, user, rawText ?? "", text ?? "", chat, stoppingToken);
+        var contentResult = await CheckMessageContent(message, user, rawText ?? "", text, expandedText, chat, stoppingToken);
         if (contentResult == CheckResult.NoMoreAction)
             return;
 
@@ -344,7 +346,7 @@ internal class MessageProcessor
         if (bioResult == CheckResult.NoMoreAction)
             return;
 
-        var profileResult = await CheckUserProfile(message, user, text ?? "", chat, admChat, stoppingToken);
+        var profileResult = await CheckUserProfile(message, user, text, chat, admChat, stoppingToken);
         if (profileResult == CheckResult.NoMoreAction)
             return;
 
@@ -364,6 +366,7 @@ internal class MessageProcessor
         User user,
         string rawText,
         string text,
+        string expandedText,
         Chat chat,
         CancellationToken stoppingToken
     )
@@ -411,7 +414,7 @@ internal class MessageProcessor
             await HandleBadMessage(message, user, stoppingToken);
             return CheckResult.NoMoreAction;
         }
-        var normalized = TextProcessor.NormalizeText(text);
+        var normalized = TextProcessor.NormalizeText(expandedText);
         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);
         if (lookalike.Count > 2)
         {
@@ -1125,7 +1128,7 @@ internal class MessageProcessor
                 var user = newChatMember.User;
                 var messages = _recentMessagesStorage.Get(user.Id, chatMember.Chat.Id);
                 var lastMessage = messages.Count > 0 ? messages[^1] : null;
-                var lastMessageText = lastMessage?.Text ?? lastMessage?.Caption;
+                var lastMessageText = lastMessage == null ? null : Utils.TextWithLinks(lastMessage);
                 var tailMessage = string.IsNullOrWhiteSpace(lastMessageText)
                     ? "Если его забанили за спам, а ML не распознал спам - киньте его сообщение сюда."
                     : $"Его/её последним сообщением было:{Environment.NewLine}{lastMessageText}";
