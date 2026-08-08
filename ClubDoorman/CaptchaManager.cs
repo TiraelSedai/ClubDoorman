@@ -97,7 +97,7 @@ internal partial class CaptchaManager
         }
 
         var ok = _captchaNeededUsers.TryRemove(key, out var info);
-        await DeleteMessageSafe(message);
+        await _bot.DeleteMessageSafe(message, _logger);
         if (!ok)
         {
             _logger.LogWarning("{Key} was not found in the dictionary _captchaNeededUsers", key);
@@ -157,7 +157,8 @@ internal partial class CaptchaManager
                 replyMarkup: keyboard,
                 receiverUserId: user.Id
             );
-            DeleteMessageLater(sent, TimeSpan.FromSeconds(45), captchaInfo.Cts.Token);
+            _bot.DeleteMessageLater(sent, TimeSpan.FromSeconds(45), _logger, captchaInfo.Cts.Token)
+                .FireAndForget(_logger, nameof(Utils.DeleteMessageLater));
         }
         catch (ApiRequestException e) when (e.Message.Contains("TOPIC_CLOSED"))
         {
@@ -189,7 +190,7 @@ internal partial class CaptchaManager
     public async Task<bool> ChallengeInChat(Message message, string prompt, TimeSpan wait, CancellationToken cancellationToken)
     {
         var user = message.From!;
-        // Keyed per challenged message: the same user may post several such messages before answering
+        // The same user may post several such messages before answering any of them
         var key = InlineChallengeKey(message.Chat.Id, user.Id, message.MessageId);
         var (correctAnswer, keyboard) = BuildChallenge(user.Id, message.MessageId);
         var challenge = new InlineChallenge(correctAnswer);
@@ -220,7 +221,7 @@ internal partial class CaptchaManager
             // Must cover the send too: nothing else ever removes from _inlineChallenges
             _inlineChallenges.TryRemove(key, out _);
             if (sent != null)
-                await DeleteMessageSafe(sent, cancellationToken);
+                await _bot.DeleteMessageSafe(sent, _logger, cancellationToken);
         }
     }
 
@@ -229,13 +230,9 @@ internal partial class CaptchaManager
         var prefix = challengedMessageId is null ? JoinCaptchaPrefix : InlineCaptchaPrefix;
         var suffix = challengedMessageId is { } id ? $"_{id}" : "";
         const int challengeLength = 8;
-        var challenge = new List<int>(challengeLength);
-        while (challenge.Count < challengeLength)
-        {
-            var rand = Random.Shared.Next(Captcha.CaptchaList.Count);
-            if (!challenge.Contains(rand))
-                challenge.Add(rand);
-        }
+        var indexes = Enumerable.Range(0, Captcha.CaptchaList.Count).ToArray();
+        Random.Shared.Shuffle(indexes);
+        var challenge = indexes[..challengeLength];
         var correctAnswer = challenge[Random.Shared.Next(challengeLength)];
         var keyboard = challenge
             .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"{prefix}_{userId}_{x}{suffix}" })
@@ -328,43 +325,6 @@ internal partial class CaptchaManager
                 _logger.LogWarning(e, nameof(UnbanUserLater));
             }
         });
-    }
-
-    private void DeleteMessageLater(Message message, TimeSpan after = default, CancellationToken cancellationToken = default)
-    {
-        if (after == default)
-            after = TimeSpan.FromMinutes(5);
-        _ = Task.Run(
-            async () =>
-            {
-                await Task.Delay(after, cancellationToken);
-                await DeleteMessageSafe(message, cancellationToken);
-            },
-            cancellationToken
-        );
-    }
-
-    private async Task DeleteMessageSafe(Message message, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Ephemeral messages have MessageId == 0 and live under their own id space
-            if (message.EphemeralMessageId is { } ephemeralMessageId)
-                await _bot.DeleteEphemeralMessage(message.Chat.Id, message.ReceiverUser!.Id, ephemeralMessageId, cancellationToken);
-            else
-                await _bot.DeleteMessage(message.Chat.Id, message.MessageId, cancellationToken);
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "DeleteMessage, chat = {Chat}, messageId = {MessageId}, ephemeralMessageId = {EphemeralMessageId}",
-                message.Chat.Id,
-                message.MessageId,
-                message.EphemeralMessageId
-            );
-        }
     }
 
     private const string JoinCaptchaPrefix = "cap";

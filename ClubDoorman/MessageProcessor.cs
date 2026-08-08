@@ -620,8 +620,7 @@ internal class MessageProcessor
         catch (Exception e) when (e is not OperationCanceledException)
         {
             _logger.LogWarning(e, "Unable to send emoji-only captcha");
-            await DeleteAndReportMessage(message, EmojiOnlyTimeoutReason, stoppingToken);
-            return CheckResult.NoMoreAction;
+            confirmed = false;
         }
 
         if (confirmed || stoppingToken.IsCancellationRequested)
@@ -938,8 +937,8 @@ internal class MessageProcessor
         try
         {
             var nag = await _bot.SendMessage(chat.Id, NoRightsNag, replyParameters: message, cancellationToken: stoppingToken);
-            DeleteMessageLater(chat.Id, nag.MessageId, NagSelfDeleteAfter, stoppingToken)
-                .FireAndForget(_logger, nameof(DeleteMessageLater));
+            _bot.DeleteMessageLater(nag, NagSelfDeleteAfter, _logger, stoppingToken)
+                .FireAndForget(_logger, nameof(Utils.DeleteMessageLater));
         }
         catch (ApiRequestException e)
         {
@@ -1322,32 +1321,6 @@ internal class MessageProcessor
         {
             _logger.LogInformation(are, "Cannot send fallback message to admin chat");
             return null;
-        }
-    }
-
-    private async Task DeleteMessageLater(ChatId chatId, int messageId, TimeSpan delay, CancellationToken stoppingToken)
-    {
-        try
-        {
-            await Task.Delay(delay, stoppingToken);
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-        await DeleteMessageSafe(chatId, messageId, stoppingToken);
-    }
-
-    private async Task DeleteMessageSafe(ChatId chatId, int messageId, CancellationToken stoppingToken)
-    {
-        try
-        {
-            await _bot.DeleteMessage(chatId, messageId, cancellationToken: stoppingToken);
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception e)
-        {
-            _logger.LogDebug(e, "Unable to delete message {MessageId} in chat {ChatId}", messageId, chatId);
         }
     }
 }

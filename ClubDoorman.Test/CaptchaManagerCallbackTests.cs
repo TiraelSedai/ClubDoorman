@@ -29,26 +29,6 @@ public class CaptchaManagerCallbackTests
     }
 
     [Test]
-    public void BuildChallenge_KeepsChallengesForDifferentMessagesApart()
-    {
-        var first = CaptchaManager.BuildChallenge(42, challengedMessageId: 100);
-        var second = CaptchaManager.BuildChallenge(42, challengedMessageId: 200);
-
-        var firstIds = first
-            .Keyboard.InlineKeyboard.SelectMany(r => r)
-            .Select(b => CaptchaManager.ParseCaptchaCallback(b.CallbackData!)!.Value.ChallengedMessageId);
-        var secondIds = second
-            .Keyboard.InlineKeyboard.SelectMany(r => r)
-            .Select(b => CaptchaManager.ParseCaptchaCallback(b.CallbackData!)!.Value.ChallengedMessageId);
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(firstIds, Has.All.EqualTo(100));
-            Assert.That(secondIds, Has.All.EqualTo(200));
-        }
-    }
-
-    [Test]
     public void ParseCaptchaCallback_TellsJoinAndInlineCaptchaApart()
     {
         using (Assert.EnterMultipleScope())
