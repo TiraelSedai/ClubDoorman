@@ -86,11 +86,11 @@ internal partial class CaptchaManager
         var chat = message.Chat;
         var key = UserToKey(chat.Id, cb.From);
 
-        if (answer.Inline)
+        if (answer.ChallengedMessageId is { } challengedMessageId)
         {
             await _bot.AnswerCallbackQuery(cb.Id);
             // ChallengeInChat owns the message and deletes it once the challenge is resolved
-            var inlineKey = InlineChallengeKey(chat.Id, cb.From.Id, answer.ChallengedMessageId);
+            var inlineKey = InlineChallengeKey(chat.Id, cb.From.Id, challengedMessageId);
             if (_inlineChallenges.TryGetValue(inlineKey, out var challenge))
                 challenge.Completion.TrySetResult(challenge.CorrectAnswer == answer.Chosen);
             return;
@@ -146,7 +146,7 @@ internal partial class CaptchaManager
             return;
         }
 
-        var (correctAnswer, keyboard) = BuildChallenge(user.Id, inline: false);
+        var (correctAnswer, keyboard) = BuildChallenge(user.Id, challengedMessageId: null);
 
         try
         {
@@ -191,7 +191,7 @@ internal partial class CaptchaManager
         var user = message.From!;
         // Keyed per challenged message: the same user may post several such messages before answering
         var key = InlineChallengeKey(message.Chat.Id, user.Id, message.MessageId);
-        var (correctAnswer, keyboard) = BuildChallenge(user.Id, inline: true, message.MessageId);
+        var (correctAnswer, keyboard) = BuildChallenge(user.Id, message.MessageId);
         var challenge = new InlineChallenge(correctAnswer);
         if (!_inlineChallenges.TryAdd(key, challenge))
         {
@@ -224,9 +224,10 @@ internal partial class CaptchaManager
         }
     }
 
-    internal static (int CorrectAnswer, InlineKeyboardMarkup Keyboard) BuildChallenge(long userId, bool inline, int challengedMessageId = 0)
+    internal static (int CorrectAnswer, InlineKeyboardMarkup Keyboard) BuildChallenge(long userId, int? challengedMessageId)
     {
-        var prefix = inline ? InlineCaptchaPrefix : JoinCaptchaPrefix;
+        var prefix = challengedMessageId is null ? JoinCaptchaPrefix : InlineCaptchaPrefix;
+        var suffix = challengedMessageId is { } id ? $"_{id}" : "";
         const int challengeLength = 8;
         var challenge = new List<int>(challengeLength);
         while (challenge.Count < challengeLength)
@@ -237,42 +238,33 @@ internal partial class CaptchaManager
         }
         var correctAnswer = challenge[Random.Shared.Next(challengeLength)];
         var keyboard = challenge
-            .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji)
-            {
-                CallbackData = $"{prefix}_{userId}_{x}_{challengedMessageId}",
-            })
+            .Select(x => new InlineKeyboardButton(Captcha.CaptchaList[x].Emoji) { CallbackData = $"{prefix}_{userId}_{x}{suffix}" })
             .ToList();
         return (correctAnswer, new InlineKeyboardMarkup(keyboard));
     }
 
-    /// <param name="ChallengedMessageId">The message the inline captcha guards; 0 for the join captcha.</param>
-    internal readonly record struct CaptchaAnswer(bool Inline, long UserId, int Chosen, int ChallengedMessageId);
+    /// <param name="ChallengedMessageId">The message an inline captcha guards; null for the join captcha.</param>
+    internal readonly record struct CaptchaAnswer(long UserId, int Chosen, int? ChallengedMessageId);
 
-    //$"cap_{user.Id}_{x}_0" for the join captcha, $"capi_{user.Id}_{x}_{messageId}" for the inline one
+    //$"cap_{user.Id}_{x}" for the join captcha, $"capi_{user.Id}_{x}_{messageId}" for the inline one
     internal static CaptchaAnswer? ParseCaptchaCallback(string cbData)
     {
         var split = cbData.Split('_');
-        if (split.Length < 4)
+        if (split.Length < 3)
             return null;
-        bool inline;
-        switch (split[0])
-        {
-            case InlineCaptchaPrefix:
-                inline = true;
-                break;
-            case JoinCaptchaPrefix:
-                inline = false;
-                break;
-            default:
-                return null;
-        }
         if (!long.TryParse(split[1], out var userId))
             return null;
         if (!int.TryParse(split[2], out var chosen))
             return null;
-        if (!int.TryParse(split[3], out var challengedMessageId))
-            return null;
-        return new CaptchaAnswer(inline, userId, chosen, challengedMessageId);
+        switch (split[0])
+        {
+            case JoinCaptchaPrefix:
+                return new CaptchaAnswer(userId, chosen, null);
+            case InlineCaptchaPrefix when split.Length > 3 && int.TryParse(split[3], out var challengedMessageId):
+                return new CaptchaAnswer(userId, chosen, challengedMessageId);
+            default:
+                return null;
+        }
     }
 
     private async Task<bool> BanIfBlacklisted(User user, Chat chat)
