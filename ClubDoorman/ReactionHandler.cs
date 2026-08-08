@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Runtime.Caching;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -8,14 +7,11 @@ namespace ClubDoorman;
 
 internal class ReactionHandler
 {
-    private static readonly TimeSpan EmojiCheckIgnoreFor = TimeSpan.FromMinutes(1);
-
     private readonly ITelegramBotClient _bot;
     private readonly UserManager _userManager;
     private readonly AiChecks _aiChecks;
     private readonly Config _config;
     private readonly ILogger<ReactionHandler> _logger;
-    private readonly ConcurrentDictionary<(long ChatId, int MessageId), EmojiOnlyCheck> _emojiOnlyChecks = new();
 
     public ReactionHandler(
         ITelegramBotClient bot,
@@ -39,11 +35,7 @@ internal class ReactionHandler
             return;
         var chat = reaction.Chat;
         if (_userManager.Approved(user.Id))
-        {
-            if (IsIgnoredEmojiOnlyCheck(chat.Id, reaction.MessageId))
-                return;
             return;
-        }
         if (await _userManager.InBanlist(user.Id))
         {
             try
@@ -61,8 +53,6 @@ internal class ReactionHandler
             catch { }
             return;
         }
-        if (TryHandleEmojiOnlyCheckReaction(chat.Id, reaction.MessageId, user.Id, reaction.NewReaction.Length != 0))
-            return;
         if (reaction.NewReaction.Length == 0)
             return;
 
@@ -117,48 +107,6 @@ internal class ReactionHandler
     {
         public int ReactionCount;
     }
-
-    private sealed class EmojiOnlyCheck(long userId)
-    {
-        public long UserId { get; } = userId;
-        public TaskCompletionSource<bool> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    }
-
-    public Task RegisterEmojiOnlyCheck(long chatId, int messageId, long userId)
-    {
-        var key = (chatId, messageId);
-        var state = new EmojiOnlyCheck(userId);
-        _emojiOnlyChecks[key] = state;
-        MemoryCache.Default.Remove(EmojiOnlyCheckIgnoreKey(chatId, messageId));
-        return state.Completion.Task;
-    }
-
-    public void FinishEmojiOnlyCheck(long chatId, int messageId)
-    {
-        _emojiOnlyChecks.TryRemove((chatId, messageId), out _);
-        MemoryCache.Default.Set(EmojiOnlyCheckIgnoreKey(chatId, messageId), true, DateTimeOffset.UtcNow.Add(EmojiCheckIgnoreFor));
-    }
-
-    private bool TryHandleEmojiOnlyCheckReaction(long chatId, int messageId, long reactingUserId, bool hasReaction)
-    {
-        var key = (chatId, messageId);
-        if (_emojiOnlyChecks.TryGetValue(key, out var check))
-        {
-            if (hasReaction && reactingUserId == check.UserId && _emojiOnlyChecks.TryRemove(key, out var activeCheck))
-            {
-                activeCheck.Completion.TrySetResult(true);
-                FinishEmojiOnlyCheck(chatId, messageId);
-            }
-            return true;
-        }
-
-        return IsIgnoredEmojiOnlyCheck(chatId, messageId);
-    }
-
-    private static bool IsIgnoredEmojiOnlyCheck(long chatId, int messageId) =>
-        MemoryCache.Default.Contains(EmojiOnlyCheckIgnoreKey(chatId, messageId));
-
-    private static string EmojiOnlyCheckIgnoreKey(long chatId, int messageId) => $"emoji_check_ignore:{chatId}:{messageId}";
 
     internal static string BuildReactionAutobanNotificationMessage(Chat chat, User user, int messageId)
     {
