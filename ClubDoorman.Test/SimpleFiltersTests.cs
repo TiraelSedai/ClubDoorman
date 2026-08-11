@@ -21,6 +21,7 @@ public class Tests
     [TestCase("хей", false, TestName = "IKratkoe")]
     [TestCase("адказ на пытанне хто вы з гэтай кнігі", false, TestName = "Belarus")]
     [TestCase("натомість використовують код альтернативних клієнтів", false, TestName = "Ukrainian")]
+    [TestCase("їжа", false, TestName = "UkrainianYi")]
     [TestCase("Велико Търново, Зелено дърво", false, TestName = "Bulgarian")]
     [TestCase("Дорћол, Љекар, Њега", false, TestName = "Serbian")]
     [TestCase("најмање, пријављено, територији, србије, критеријум", false, TestName = "Serbian2")]
