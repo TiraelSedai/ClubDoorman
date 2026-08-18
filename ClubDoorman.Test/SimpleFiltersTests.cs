@@ -24,6 +24,15 @@ public class Tests
     [TestCase("їжа", false, TestName = "UkrainianYi")]
     [TestCase("Велико Търново, Зелено дърво", false, TestName = "Bulgarian")]
     [TestCase("Дорћол, Љекар, Њега", false, TestName = "Serbian")]
+    [TestCase("1️⃣Документы 2️⃣Паспорт 3️⃣Нотариально", false, TestName = "KeycapEmojiBeforeWords")]
+    [TestCase("❗️❗️❗️ Дорогие абитуриенты", false, TestName = "EmojiBeforeWords")]
+    [TestCase("Документы✅️ Паспорт✅️", false, TestName = "EmojiAfterWords")]
+    [TestCase("\u2935\uFE0FПодробности \u2935\uFE0FЗаписаться \u2935\uFE0FКонтакты", false, TestName = "ArrowEmojiBeforeWords")]
+    [TestCase("\u2139\uFE0FПодробности \u2139\uFE0FЗаписаться \u2139\uFE0FКонтакты", false, TestName = "InfoEmojiBeforeWords")]
+    [TestCase("①Документы ②Паспорт ③Нотариально", false, TestName = "CircledDigitsBeforeWords")]
+    [TestCase("маникюр+педикюр стрижка+укладка брови+ресницы", false, TestName = "PlusBetweenWords")]
+    [TestCase("мо\u0301локо хоро\u0301шая пого\u0301да", false, TestName = "CombiningAccents")]
+    [TestCase("Аня\u3164", true, TestName = "HangulFillerHidesInWord")]
     [TestCase("најмање, пријављено, територији, србије, критеријум", false, TestName = "Serbian2")]
     public void HasLookAlikeSymbols_Tests(string word, bool expectedResult)
     {

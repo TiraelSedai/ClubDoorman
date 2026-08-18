@@ -100,17 +100,10 @@ public static class SimpleFilters
     }
 
     public static List<string> FindAllRussianWordsWithLookalikeSymbols(string message) =>
-        TextProcessor
-            .NormalizeText(message)
-            .Split(null)
-            .Where(word => IsRussianWord(word) && word.Any(c => !IsCyrillicLowercase(c) && !AllowedNonRussianCyrillicOrDigit(c)))
-            .ToList();
+        TextProcessor.NormalizeText(message).Split(null).Where(word => IsRussianWord(word) && word.Any(IsLookalikeLetter)).ToList();
 
     public static List<string> FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(string message) =>
-        message
-            .Split(null)
-            .Where(word => IsRussianWord(word) && word.Any(c => !IsCyrillicLowercase(c) && !AllowedNonRussianCyrillicOrDigit(c)))
-            .ToList();
+        message.Split(null).Where(word => IsRussianWord(word) && word.Any(IsLookalikeLetter)).ToList();
 
     private static bool IsRussianWord(string word)
     {
@@ -217,18 +210,12 @@ public static class SimpleFilters
         return false;
     }
 
-    private static bool AllowedNonRussianCyrillicOrDigit(char c) =>
-        c == 'ё'
-        || c == 'ë'
-        || c == 'i'
-        || c == 'і'
-        || c == 'ї'
-        || c == 'ћ'
-        || c == 'є'
-        || c == 'љ'
-        || c == 'њ'
-        || c == 'ј'
-        || (c >= '0' && c <= '9');
+    // masquerading means a foreign letter drawn like a Cyrillic one, so anything that is not a letter
+    // - digits, emoji, arrows, combining accents, math signs - can never be a lookalike
+    private static bool IsLookalikeLetter(char c) => char.IsLetter(c) && !IsCyrillicLowercase(c) && !AllowedNonRussianCyrillic(c);
+
+    private static bool AllowedNonRussianCyrillic(char c) =>
+        c == 'ё' || c == 'ë' || c == 'i' || c == 'і' || c == 'ї' || c == 'ћ' || c == 'є' || c == 'љ' || c == 'њ' || c == 'ј';
 
     private static bool IsCyrillicLowercase(char c) => c is >= 'а' and <= 'я';
 }

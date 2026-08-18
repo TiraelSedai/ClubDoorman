@@ -14,10 +14,10 @@ public static partial class TextProcessor
         return result;
     }
 
-    [GeneratedRegex(@"\p{Cf}", RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"[\p{Cf}\uFE0E\uFE0F]", RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
     private static partial Regex FormatCharacters();
 
-    [GeneratedRegex(@"(?!@)\p{P}|\p{So}|\p{Cs}|[|`=<>]", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?!@)\p{P}|\p{So}|\p{Cs}|[|`=<>\u20E3\u2139]", RegexOptions.CultureInvariant)]
     private static partial Regex UnwantedCharacters();
 
     [GeneratedRegex(@"\s+", RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
