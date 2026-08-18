@@ -17,7 +17,6 @@ internal class AdminCommandHandler
     private readonly BadMessageManager _badMessageManager;
     private readonly SpamHamClassifier _classifier;
     private readonly Config _config;
-    private readonly AiChecks _aiChecks;
     private readonly RecentMessagesStorage _recentMessagesStorage;
     private readonly HybridCache _hybridCache;
     private readonly SpamDeduplicationCache _spamDeduplicationCache;
@@ -30,7 +29,6 @@ internal class AdminCommandHandler
         BadMessageManager badMessageManager,
         SpamHamClassifier classifier,
         Config config,
-        AiChecks aiChecks,
         RecentMessagesStorage recentMessagesStorage,
         HybridCache hybridCache,
         SpamDeduplicationCache spamDeduplicationCache,
@@ -42,7 +40,6 @@ internal class AdminCommandHandler
         _badMessageManager = badMessageManager;
         _classifier = classifier;
         _config = config;
-        _aiChecks = aiChecks;
         _recentMessagesStorage = recentMessagesStorage;
         _hybridCache = hybridCache;
         _spamDeduplicationCache = spamDeduplicationCache;
@@ -87,7 +84,7 @@ internal class AdminCommandHandler
                                 (deletedInfo.Text ?? deletedInfo.Caption)?.Length ?? 0
                             );
                             if (deletedInfo.Reason == DeletionReason.UserProfile)
-                                await _aiChecks.MarkUserOkay(approveUserId);
+                                await _userManager.HalfApprove(approveUserId);
                             if (await RestoreMessage(deletedInfo, cb.Message, admChat))
                                 msgText += " и восстановил сообщение";
                         }
@@ -110,7 +107,7 @@ internal class AdminCommandHandler
                 case "attOk":
                     if (!long.TryParse(split[1], out var attOkUserId))
                         return;
-                    await _aiChecks.MarkUserOkay(attOkUserId);
+                    await _userManager.HalfApprove(attOkUserId);
 
                     var attOkMsgText =
                         $"{Utils.FullName(cb.From)} добавил пользователя в список тех чей профиль не в блеклисте (но ТЕКСТЫ его сообщений всё ещё проверяются)";

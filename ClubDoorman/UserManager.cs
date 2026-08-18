@@ -46,6 +46,16 @@ internal sealed class UserManager : IDisposable
         return await db.HalfApprovedUsers.AsNoTracking().AnyAsync(x => x.Id == userId);
     }
 
+    public async Task HalfApprove(long userId, CancellationToken ct = default)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        if (await db.HalfApprovedUsers.AsNoTracking().AnyAsync(x => x.Id == userId, cancellationToken: ct))
+            return;
+        db.Add(new HalfApprovedUser { Id = userId });
+        await db.SaveChangesAsync(ct);
+    }
+
     private async Task InjestChatHistories()
     {
         var jsons = Directory.EnumerateFiles("data", "*.json");

@@ -1,5 +1,3 @@
-@/home/tirael/.codex/RTK.md
-
 When writing any new code, definition of done for the task is when post-task-review skill is satisfied.
 
 In NUnit tests, use `using (Assert.EnterMultipleScope())` instead of `Assert.Multiple(() => ...)`.

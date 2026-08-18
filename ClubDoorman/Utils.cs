@@ -76,7 +76,7 @@ internal static class Utils
         return result.ToString();
     }
 
-    private static string FullName(string firstName, string? lastName) =>
+    public static string FullName(string firstName, string? lastName) =>
         string.IsNullOrEmpty(lastName) ? firstName : $"{firstName} {lastName}";
 
     public static string FullName(User user) => FullName(user.FirstName, user.LastName);

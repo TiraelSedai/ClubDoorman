@@ -56,26 +56,25 @@ internal class ReactionHandler
         if (reaction.NewReaction.Length == 0)
             return;
 
-        var userKey = $"attention:{user.Id}";
-        var cache = new ReactionCache();
-        if (
-            MemoryCache.Default.AddOrGetExisting(
-                userKey,
-                new ReactionCache(),
-                new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(1) }
-            )
-            is ReactionCache reactionCache
-        )
-        {
-            cache = reactionCache;
-        }
-        var count = Interlocked.Increment(ref cache.ReactionCount);
+        var count = CountReaction($"reactions:{user.Id}");
 
         if (count <= 1 && _config.MultiAdminChatMap.ContainsKey(chat.Id))
         {
             _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", count, Utils.FullName(user), chat.Title);
             var admChat = _config.GetAdminChat(chat.Id);
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user, null, true);
+            if (_config.OpenRouterApi == null)
+                return;
+            ChatFullInfo userChat;
+            try
+            {
+                userChat = await _bot.GetChat(user.Id);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Unable to fetch chat info for reaction bait check");
+                return;
+            }
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user, userChat);
             _logger.LogDebug("Reaction bait spam probability {Prob}", attention.EroticProbability);
             if (attention.EroticProbability >= Consts.LlmLowProbability)
             {
@@ -101,6 +100,19 @@ internal class ReactionHandler
                 );
             }
         }
+    }
+
+    /// <summary>Reactions seen from one user so far, counting this one. Starts at 1.</summary>
+    internal static int CountReaction(string userKey)
+    {
+        var fresh = new ReactionCache();
+        // AddOrGetExisting returns null when it inserts, so the fallback has to be the very instance we handed it:
+        // incrementing a throwaway would let the caller's "first reaction only" gate open twice
+        var counter =
+            MemoryCache.Default.AddOrGetExisting(userKey, fresh, new CacheItemPolicy { SlidingExpiration = TimeSpan.FromDays(1) })
+                as ReactionCache
+            ?? fresh;
+        return Interlocked.Increment(ref counter.ReactionCount);
     }
 
     private class ReactionCache

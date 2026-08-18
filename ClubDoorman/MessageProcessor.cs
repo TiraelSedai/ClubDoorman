@@ -340,11 +340,11 @@ internal class MessageProcessor
         if (contentResult == CheckResult.NoMoreAction)
             return;
 
-        var bioResult = await CheckUserBio(message, user, stoppingToken);
+        var (bioResult, userChat) = await CheckUserBio(message, user, stoppingToken);
         if (bioResult == CheckResult.NoMoreAction)
             return;
 
-        var profileResult = await CheckUserProfile(message, user, text, chat, admChat, stoppingToken);
+        var profileResult = await CheckUserProfile(message, user, userChat, text, chat, admChat, stoppingToken);
         if (profileResult == CheckResult.NoMoreAction)
             return;
 
@@ -630,32 +630,37 @@ internal class MessageProcessor
         return CheckResult.NoMoreAction;
     }
 
-    private async Task<CheckResult> CheckUserBio(Message message, User user, CancellationToken stoppingToken)
+    private async Task<(CheckResult Result, ChatFullInfo? UserChat)> CheckUserBio(
+        Message message,
+        User user,
+        CancellationToken stoppingToken
+    )
     {
-        string? bio;
+        ChatFullInfo userChat;
         try
         {
-            var userChat = await _bot.GetChat(user.Id, cancellationToken: stoppingToken);
-            bio = userChat.Bio;
+            userChat = await _bot.GetChat(user.Id, cancellationToken: stoppingToken);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
             _logger.LogWarning(e, "Unable to fetch chat info for bio check");
-            return CheckResult.Pass;
+            return (CheckResult.Pass, null);
         }
+        var bio = userChat.Bio;
         if (string.IsNullOrEmpty(bio))
-            return CheckResult.Pass;
+            return (CheckResult.Pass, userChat);
         if (MyRegexes.CryptoPrivatkiBio().IsMatch(bio))
         {
             await AutoBan(message, "крипто-приватки в описании профиля", stoppingToken);
-            return CheckResult.NoMoreAction;
+            return (CheckResult.NoMoreAction, userChat);
         }
-        return CheckResult.Pass;
+        return (CheckResult.Pass, userChat);
     }
 
     private async Task<CheckResult> CheckUserProfile(
         Message message,
         User user,
+        ChatFullInfo? userChat,
         string text,
         Chat chat,
         long admChat,
@@ -664,12 +669,16 @@ internal class MessageProcessor
     {
         if (_config.OpenRouterApi == null || message.From == null || !_config.NonFreeChat(message.Chat.Id))
             return CheckResult.Pass;
+        // the profile was never looked at, so this message must not count towards auto approval either
+        if (userChat == null)
+            return CheckResult.Suspicious;
 
         var replyToRecentPost =
             message.ReplyToMessage?.IsAutomaticForward == true && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(10);
         var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
             message.From,
-            async x =>
+            userChat,
+            async (x, changedChat) =>
             {
                 var alreadyBanned = await _userManager.InBanlist(message.From.Id);
                 if (alreadyBanned)
@@ -677,13 +686,18 @@ internal class MessageProcessor
                     await AutoBan(message, $"{x}{Environment.NewLine}Теперь в банлисте", stoppingToken);
                     return;
                 }
-                await _aiChecks.ClearCache(message.From.Id);
-                var (ascore, p, b) = await _aiChecks.GetAttentionBaitProbability(message.From, null, true);
+                // changedChat is the snapshot the watcher just fetched, so the re-check sees the new profile
+                var (ascore, _, _) = await _aiChecks.GetAttentionBaitProbability(
+                    message.From,
+                    changedChat,
+                    cancellationToken: stoppingToken
+                );
                 if (ascore.EroticProbability > Consts.LlmLowProbability)
                     await AutoBan(message, $"{x}{Environment.NewLine}эротика или полиция нравов", stoppingToken);
                 else
                     await DontDeleteButReportMessage(message, x, stoppingToken);
-            }
+            },
+            cancellationToken: stoppingToken
         );
         _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
         var erotic = attention.EroticProbability >= Consts.LlmLowProbability;
