@@ -10,8 +10,10 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 /// </summary>
 internal sealed class SqlitePragmaInterceptor : DbConnectionInterceptor
 {
-    // No mmap_size on purpose: these boxes have little RAM and no swap.
-    private const string Pragmas = "PRAGMA busy_timeout = 5000; PRAGMA cache_size = -20000;";
+    // No mmap_size on purpose: these boxes have little RAM and no swap. synchronous=NORMAL still
+    // fsyncs at every WAL checkpoint, so a crash or an OOM kill loses nothing; only losing the
+    // host itself can drop the last commits, and the file stays consistent either way.
+    private const string Pragmas = "PRAGMA busy_timeout = 5000; PRAGMA cache_size = -20000; PRAGMA synchronous = NORMAL;";
 
     public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData) => Apply(connection);
 
