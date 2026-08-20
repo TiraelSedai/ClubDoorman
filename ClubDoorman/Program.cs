@@ -50,7 +50,9 @@ public class Program
             builder.Services.AddSingleton<RecentMessagesStorage>();
             builder.Services.AddSingleton<SpamDeduplicationCache>();
             builder.Services.AddSingleton<MaintenanceService>();
-            builder.Services.AddDbContext<AppDbContext>(opts => opts.UseSqlite("Data Source=data/app.db"));
+            builder.Services.AddDbContext<AppDbContext>(opts =>
+                opts.UseSqlite("Data Source=data/app.db").AddInterceptors(new SqlitePragmaInterceptor())
+            );
             builder.Services.AddHybridCache();
             var host = builder.Build();
 
