@@ -443,7 +443,7 @@ internal class AiChecks
         }
     }
 
-    public async ValueTask<SpamProbability> GetSpamProbability(Telegram.Bot.Types.Message message, bool free = false)
+    public async ValueTask<SpamProbability> GetSpamProbability(Telegram.Bot.Types.Message message)
     {
         if (_api == null)
             return new SpamProbability();
@@ -461,7 +461,6 @@ internal class AiChecks
             return new SpamProbability();
         }
 
-        var modelToUse = free ? "openrouter/free" : Model;
         var selectedPhoto = message.Photo is { Length: > 0 } ? SelectHighestQualityPhoto(message.Photo) : null;
 
         try
@@ -474,13 +473,12 @@ internal class AiChecks
                 linkedInfo,
                 message.ReplyToMessage == null ? null : Utils.TextWithLinks(message.ReplyToMessage),
                 message.ReplyToMessage?.IsAutomaticForward == true,
-                selectedPhoto?.FileUniqueId,
-                modelToUse
+                selectedPhoto?.FileUniqueId
             );
 
             return await _hybridCache.GetOrCreateAsync(
                 prompt.Key,
-                async ct => await AskSpamLlm(prompt.Text, modelToUse, selectedPhoto, ct),
+                async ct => await AskSpamLlm(prompt.Text, selectedPhoto, ct),
                 new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) }
             );
         }
@@ -498,8 +496,7 @@ internal class AiChecks
         string? linkedInfo,
         string? replyTo,
         bool replyToIsChannelPost,
-        string? photoUniqueId,
-        string model
+        string? photoUniqueId
     )
     {
         var contextBuilder = new StringBuilder();
@@ -526,12 +523,11 @@ internal class AiChecks
             fullPrompt.AppendLine("Само сообщение не содержит текста, только изображение.");
 
         var promptText = fullPrompt.ToString();
-        // the picture is part of the input but not of the text, so it has to be part of the key,
-        // and the model is picked per chat, so a free verdict must not stand in for a paid one
-        return new SpamPrompt(promptText, $"llm_spam_prob:{ShaHelper.ComputeSha256Hex($"{model}\n{promptText}\nPhoto: {photoUniqueId}")}");
+        // the picture is part of the input but not of the text, so it has to be part of the key
+        return new SpamPrompt(promptText, $"llm_spam_prob:{ShaHelper.ComputeSha256Hex($"{Model}\n{promptText}\nPhoto: {photoUniqueId}")}");
     }
 
-    private async ValueTask<SpamProbability> AskSpamLlm(string prompt, string model, PhotoSize? photo, CancellationToken ct)
+    private async ValueTask<SpamProbability> AskSpamLlm(string prompt, PhotoSize? photo, CancellationToken ct)
     {
         byte[]? imageBytes = null;
         if (photo != null)
@@ -552,7 +548,7 @@ internal class AiChecks
             SpamSystemMessage,
             prompt,
             imageBytes != null,
-            model
+            Model
         );
 
         var messages = new List<ChatCompletionRequestMessage> { SpamSystemMessage.AsSystemMessage(), prompt.AsUserMessage() };
@@ -563,7 +559,7 @@ internal class AiChecks
             async token =>
                 await _api!.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                     messages: messages,
-                    model: model,
+                    model: Model,
                     strict: true,
                     jsonSerializerOptions: jso,
                     cancellationToken: token

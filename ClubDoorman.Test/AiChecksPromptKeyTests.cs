@@ -6,8 +6,6 @@ namespace ClubDoorman.Test;
 /// </summary>
 public class AiChecksPromptKeyTests
 {
-    private const string Model = "test/model";
-
     private static AiChecks.ProfileInputs Profile(
         long userId = 42,
         string fullName = "Настя Петрова",
@@ -139,8 +137,8 @@ public class AiChecksPromptKeyTests
     [Test]
     public void SpamKey_DiffersOnChatInfo()
     {
-        var a = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", null, null, false, null, Model);
-        var b = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Трейдинг", null, null, false, null, Model);
+        var a = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", null, null, false, null);
+        var b = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Трейдинг", null, null, false, null);
 
         Assert.That(a.Key, Is.Not.EqualTo(b.Key));
     }
@@ -148,17 +146,8 @@ public class AiChecksPromptKeyTests
     [Test]
     public void SpamKey_DiffersOnPhoto()
     {
-        var a = AiChecks.BuildSpamPrompt("Смотрите", null, null, null, false, "photo-one", Model);
-        var b = AiChecks.BuildSpamPrompt("Смотрите", null, null, null, false, "photo-two", Model);
-
-        Assert.That(a.Key, Is.Not.EqualTo(b.Key));
-    }
-
-    [Test]
-    public void SpamKey_DiffersOnModel()
-    {
-        var a = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", null, null, false, "photo", Model);
-        var b = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", null, null, false, "photo", "openrouter/free");
+        var a = AiChecks.BuildSpamPrompt("Смотрите", null, null, null, false, "photo-one");
+        var b = AiChecks.BuildSpamPrompt("Смотрите", null, null, null, false, "photo-two");
 
         Assert.That(a.Key, Is.Not.EqualTo(b.Key));
     }
@@ -166,8 +155,8 @@ public class AiChecksPromptKeyTests
     [Test]
     public void SpamKey_IsStableForEqualInputs()
     {
-        var a = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", "Канал", "Исходное сообщение", true, "photo", Model);
-        var b = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", "Канал", "Исходное сообщение", true, "photo", Model);
+        var a = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", "Канал", "Исходное сообщение", true, "photo");
+        var b = AiChecks.BuildSpamPrompt("Привет всем", "Чат: Про еду", "Канал", "Исходное сообщение", true, "photo");
 
         using (Assert.EnterMultipleScope())
         {

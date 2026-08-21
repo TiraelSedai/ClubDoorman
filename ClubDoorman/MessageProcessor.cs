@@ -374,7 +374,7 @@ internal class MessageProcessor
             _logger.LogDebug("Empty text/caption");
             if (message.Photo != null && _config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
+                var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmLowProbability)
                 {
                     var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
@@ -440,7 +440,7 @@ internal class MessageProcessor
             }
             if (_config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
+                var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                 {
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
@@ -471,7 +471,7 @@ internal class MessageProcessor
             }
             if (text.Length > 10 && _config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
+                var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
                 {
                     await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
@@ -501,7 +501,7 @@ internal class MessageProcessor
             }
             if (_config.OpenRouterApi != null)
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(chat.Id));
+                var spamCheck = await _aiChecks.GetSpamProbability(message);
 
                 if (_config.MarketologsChats.Contains(chat.Id))
                 {
@@ -523,7 +523,7 @@ internal class MessageProcessor
 
         if (_config.OpenRouterApi != null && message.From != null)
         {
-            var spamCheck = await _aiChecks.GetSpamProbability(message, free: !_config.NonFreeChat(message.Chat.Id));
+            var spamCheck = await _aiChecks.GetSpamProbability(message);
             if (spamCheck.Probability >= Consts.LlmLowProbability)
             {
                 var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
