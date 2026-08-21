@@ -53,6 +53,9 @@ internal class Config
 
     public bool NonFreeChat(long chatId) => MultiAdminChatMap.Count == 0 || MultiAdminChatMap.ContainsKey(chatId);
 
+    // free chats do not pay for the bot, so they do not get to spend tokens either
+    public bool LlmEnabled(long chatId) => OpenRouterApi != null && NonFreeChat(chatId);
+
     private FrozenSet<long> GetChatsFromEnv(string env)
     {
         var chats = ParseChatIdSet(Environment.GetEnvironmentVariable(env));

@@ -372,7 +372,7 @@ internal class MessageProcessor
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
-            if (message.Photo != null && _config.OpenRouterApi != null)
+            if (message.Photo != null && _config.LlmEnabled(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmLowProbability)
@@ -438,7 +438,7 @@ internal class MessageProcessor
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
                 return CheckResult.Suspicious;
             }
-            if (_config.OpenRouterApi != null)
+            if (_config.LlmEnabled(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
@@ -469,7 +469,7 @@ internal class MessageProcessor
                 await DontDeleteButReportMessage(message, reason, stoppingToken);
                 return CheckResult.Suspicious;
             }
-            if (text.Length > 10 && _config.OpenRouterApi != null)
+            if (text.Length > 10 && _config.LlmEnabled(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
                 if (spamCheck.Probability >= Consts.LlmHighProbability)
@@ -499,7 +499,7 @@ internal class MessageProcessor
                 await AutoBan(message, reason, stoppingToken);
                 return CheckResult.NoMoreAction;
             }
-            if (_config.OpenRouterApi != null)
+            if (_config.LlmEnabled(chat.Id))
             {
                 var spamCheck = await _aiChecks.GetSpamProbability(message);
 
@@ -521,7 +521,7 @@ internal class MessageProcessor
             return CheckResult.NoMoreAction;
         }
 
-        if (_config.OpenRouterApi != null && message.From != null)
+        if (_config.LlmEnabled(chat.Id) && message.From != null)
         {
             var spamCheck = await _aiChecks.GetSpamProbability(message);
             if (spamCheck.Probability >= Consts.LlmLowProbability)
@@ -531,7 +531,6 @@ internal class MessageProcessor
                     score < Consts.ClassifierSpamScoreThreshold
                     && spamCheck.Probability >= Consts.LlmHighProbability
                     && _config.LowConfidenceHamForward
-                    && _config.NonFreeChat(chat.Id)
                 )
                     await ForwardToFallbackAdmin(
                         message,
@@ -667,7 +666,7 @@ internal class MessageProcessor
         CancellationToken stoppingToken
     )
     {
-        if (_config.OpenRouterApi == null || message.From == null || !_config.NonFreeChat(message.Chat.Id))
+        if (!_config.LlmEnabled(message.Chat.Id) || message.From == null)
             return CheckResult.Pass;
         // the profile was never looked at, so this message must not count towards auto approval either
         if (userChat == null)
