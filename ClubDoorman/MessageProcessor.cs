@@ -344,6 +344,11 @@ internal class MessageProcessor
         if (bioResult == CheckResult.NoMoreAction)
             return;
 
+        // the message survived the ML check, so a free chat may now ask its own endpoint about it - without waiting,
+        // a local model takes minutes and all it can do afterwards is post a warning
+        if (_config.FreeLlmEnabled(chat.Id))
+            FreeChatLlmChecks(message, user, userChat, stoppingToken).FireAndForget(_logger, nameof(FreeChatLlmChecks));
+
         var profileResult = await CheckUserProfile(message, user, userChat, text, chat, admChat, stoppingToken);
         if (profileResult == CheckResult.NoMoreAction)
             return;
@@ -675,6 +680,7 @@ internal class MessageProcessor
         var replyToRecentPost =
             message.ReplyToMessage?.IsAutomaticForward == true && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(10);
         var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
+            message.Chat.Id,
             message.From,
             userChat,
             async (x, changedChat) =>
@@ -687,6 +693,7 @@ internal class MessageProcessor
                 }
                 // changedChat is the snapshot the watcher just fetched, so the re-check sees the new profile
                 var (ascore, _, _) = await _aiChecks.GetAttentionBaitProbability(
+                    message.Chat.Id,
                     message.From,
                     changedChat,
                     cancellationToken: stoppingToken
@@ -854,6 +861,77 @@ internal class MessageProcessor
         }
 
         return CheckResult.Suspicious;
+    }
+
+    private static readonly TimeSpan FreeChatWarningLifetime = TimeSpan.FromMinutes(5);
+
+    internal static string BuildFreeChatWarning(string reason) =>
+        $"{reason}{Environment.NewLine}Для более точного анализа переходите на платный тариф";
+
+    internal static string BuildFreeChatAdminReport(Chat chat, User user, int messageId, string reason)
+    {
+        var username = user.Username == null ? "" : $" @{user.Username}";
+        return $"Сработала LLM-проверка free-чата{Environment.NewLine}{reason}{Environment.NewLine}"
+            + $"Юзер {Utils.FullName(user)}{username} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, messageId)}";
+    }
+
+    /// <summary>
+    /// LLM checks for a free chat: a small local model is too dumb to ban or delete anything, so it only ever warns
+    /// the chat and reports to the fallback admin chat.
+    /// </summary>
+    private async Task FreeChatLlmChecks(Message message, User user, ChatFullInfo? userChat, CancellationToken stoppingToken)
+    {
+        if (userChat != null)
+        {
+            var (attention, _, _) = await _aiChecks.GetAttentionBaitProbability(
+                message.Chat.Id,
+                user,
+                userChat,
+                cancellationToken: stoppingToken
+            );
+            if (attention.EroticProbability >= Consts.LlmLowProbability)
+            {
+                await WarnFreeChat(message, user, $"Профиль с подозрением на эротику. {attention.Reason}", stoppingToken);
+                return;
+            }
+        }
+
+        var spamCheck = await _aiChecks.GetSpamProbability(message);
+        if (spamCheck.Probability >= Consts.LlmLowProbability)
+            await WarnFreeChat(message, user, $"Сообщение с подозрением на спам. {spamCheck.Reason}", stoppingToken);
+    }
+
+    private async Task WarnFreeChat(Message message, User user, string reason, CancellationToken stoppingToken)
+    {
+        var chat = message.Chat;
+        // the report goes first and starts with the forward: a forward that fails means the message is already gone,
+        // and then there is nothing left to reply to
+        Message forward;
+        try
+        {
+            forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        }
+        catch (ApiRequestException e)
+        {
+            _logger.LogInformation(e, "Free chat LLM warning: cannot forward the message, dropping the warning");
+            return;
+        }
+
+        await _bot.SendMessage(
+            _config.AdminChatId,
+            BuildFreeChatAdminReport(chat, user, message.MessageId, reason),
+            replyParameters: forward,
+            cancellationToken: stoppingToken
+        );
+
+        var warning = await _bot.SendMessage(
+            chat.Id,
+            BuildFreeChatWarning(reason),
+            replyParameters: message,
+            cancellationToken: stoppingToken
+        );
+        _bot.DeleteMessageLater(warning, FreeChatWarningLifetime, _logger, stoppingToken)
+            .FireAndForget(_logger, nameof(Utils.DeleteMessageLater));
     }
 
     private async Task HandleGoodUserCounter(Message message, User user, Chat chat, CancellationToken stoppingToken)

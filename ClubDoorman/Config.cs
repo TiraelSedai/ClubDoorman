@@ -37,6 +37,8 @@ internal class Config
 
     public string? OpenRouterApi { get; } = Environment.GetEnvironmentVariable("DOORMAN_OPENROUTER_API");
 
+    public FreeLlmSettings? FreeLlm { get; } = FreeLlmSettings.FromEnv();
+
     public long AdminChatId { get; } =
         long.Parse(
             Environment.GetEnvironmentVariable("DOORMAN_ADMIN_CHAT")
@@ -55,6 +57,9 @@ internal class Config
 
     // free chats do not pay for the bot, so they do not get to spend tokens either
     public bool LlmEnabled(long chatId) => OpenRouterApi != null && NonFreeChat(chatId);
+
+    // ...they get their own endpoint instead, if there is one: slow, dumb, and allowed to warn but never to ban
+    public bool FreeLlmEnabled(long chatId) => FreeLlm != null && !NonFreeChat(chatId);
 
     private FrozenSet<long> GetChatsFromEnv(string env)
     {
@@ -164,4 +169,21 @@ internal class Config
     }
 
     internal sealed record ChatInfo(long Id, string? Title);
+
+    /// <summary>OpenAI compatible endpoint used for the free chats. All three parts are required or there is no endpoint at all.</summary>
+    internal sealed record FreeLlmSettings(Uri BaseUrl, string ApiKey, string Model)
+    {
+        public static FreeLlmSettings? FromEnv()
+        {
+            var url = Environment.GetEnvironmentVariable("DOORMAN_FREE_LLM_URL");
+            if (url == null)
+                return null;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var baseUrl))
+                throw new InvalidOperationException("DOORMAN_FREE_LLM_URL variable is set to invalid URL");
+            var model = Environment.GetEnvironmentVariable("DOORMAN_FREE_LLM_MODEL");
+            if (string.IsNullOrWhiteSpace(model))
+                throw new InvalidOperationException("DOORMAN_FREE_LLM_URL is set, but DOORMAN_FREE_LLM_MODEL is not");
+            return new FreeLlmSettings(baseUrl, Environment.GetEnvironmentVariable("DOORMAN_FREE_LLM_API") ?? "", model);
+        }
+    }
 }

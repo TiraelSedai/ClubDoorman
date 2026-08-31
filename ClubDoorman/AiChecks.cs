@@ -22,14 +22,26 @@ internal class AiChecks
         _userManager = userManager;
 
         _logger = logger;
-        _api = _config.OpenRouterApi == null ? null : CustomProviders.OpenRouter(_config.OpenRouterApi);
+        _paid = _config.OpenRouterApi == null ? null : new(CustomProviders.OpenRouter(_config.OpenRouterApi), PaidModel, PaidRetry);
+        var free = _config.FreeLlm;
+        // a local model answers in minutes, not seconds, and a free chat is never in a hurry: wait long, never retry
+        _free =
+            free == null
+                ? null
+                : new(
+                    new OpenAiClient(free.ApiKey, new HttpClient { Timeout = FreeLlmTimeout }, baseUri: free.BaseUrl),
+                    free.Model,
+                    ResiliencePipeline.Empty
+                );
     }
 
-    private readonly ResiliencePipeline _retry = new ResiliencePipelineBuilder()
+    private static readonly ResiliencePipeline PaidRetry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
         .Build();
-    const string Model = "google/gemini-3.5-flash-lite";
-    private readonly OpenAiClient? _api;
+    private static readonly TimeSpan FreeLlmTimeout = TimeSpan.FromMinutes(10);
+    const string PaidModel = "google/gemini-3.5-flash-lite";
+    private readonly LlmEndpoint? _paid;
+    private readonly LlmEndpoint? _free;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
     private readonly ITelegramBotClient _bot;
     private readonly Config _config;
@@ -37,6 +49,9 @@ internal class AiChecks
     private readonly UserManager _userManager;
 
     private readonly ILogger<AiChecks> _logger;
+
+    /// <summary>Free chats go to their own endpoint, if one is configured; everyone else goes to the paid one.</summary>
+    private LlmEndpoint? EndpointFor(long chatId) => _config.NonFreeChat(chatId) ? _paid : _free;
 
     private const string ProfileSystemMessage =
         "Ты — модератор Telegram-группы. Твоя задача — по данным профиля определить, направлен ли аккаунт на само-продвижение или привлечение к сторонним платным/эротическим ресурсам";
@@ -67,13 +82,15 @@ internal class AiChecks
     private static string LinkedChannelInfoCacheKey(long channelId) => $"linked_channel_info:{channelId}";
 
     public async ValueTask<SpamPhotoBio> GetAttentionBaitProbability(
+        long chatId,
         Telegram.Bot.Types.User user,
         ChatFullInfo userChat,
         Func<string, ChatFullInfo, Task>? ifChanged = default,
         CancellationToken cancellationToken = default
     )
     {
-        if (_api == null)
+        var endpoint = EndpointFor(chatId);
+        if (endpoint == null)
             return NoBait;
         // whitelist is checked by user id, before the key: a content addressed key has nothing to overwrite
         if (await _userManager.IsHalfApproved(user.Id))
@@ -84,7 +101,7 @@ internal class AiChecks
             var inputs = await CollectProfileInputs(user, userChat, cancellationToken);
             var prompt = RenderProfilePrompt(inputs);
             return await _hybridCache.GetOrCreateAsync(
-                prompt.Key,
+                endpoint.CacheKey(prompt.Key),
                 async ct =>
                 {
                     SpamPhotoBio verdict;
@@ -96,7 +113,7 @@ internal class AiChecks
                     else
                     {
                         _logger.LogDebug("GetAttentionBaitProbability {User} cache miss, asking LLM", Utils.FullName(user));
-                        verdict = await AskProfileLlm(prompt, ct);
+                        verdict = await AskProfileLlm(prompt, endpoint, ct);
                     }
                     // the watcher starts only once there is a verdict to cache: the factory reruns on every message until
                     // it succeeds, so spawning above would leave one watcher per failed LLM call
@@ -232,8 +249,8 @@ internal class AiChecks
         }
 
         var keyMaterial = new StringBuilder();
-        keyMaterial.Append(inputs.UserId).Append('\n').Append(Model);
-        keyMaterial.Append('\n').Append(systemMessage);
+        // the model is not hashed in: the endpoint prefixes the key with its own model name
+        keyMaterial.Append(inputs.UserId).Append('\n').Append(systemMessage);
         foreach (var section in sections)
             keyMaterial.Append('\n').Append(section.Text).Append('\n').Append(section.PhotoUniqueId);
 
@@ -246,7 +263,7 @@ internal class AiChecks
         );
     }
 
-    private async ValueTask<SpamPhotoBio> AskProfileLlm(ProfilePrompt prompt, CancellationToken ct)
+    private async ValueTask<SpamPhotoBio> AskProfileLlm(ProfilePrompt prompt, LlmEndpoint endpoint, CancellationToken ct)
     {
         var messages = new List<ChatCompletionRequestMessage>();
         if (prompt.SystemMessage != null)
@@ -269,7 +286,7 @@ internal class AiChecks
         }
         _logger.LogDebug("LLM prompt: {Prompt}", string.Join('\n', prompt.Sections.Select(x => x.Text)));
 
-        var probability = await AskProfileModel(prompt.EroticOnly, messages, ct);
+        var probability = await AskProfileModel(prompt.EroticOnly, messages, endpoint, ct);
         if (
             probability.EroticProbability < Consts.LlmLowProbability
             && probability.NonPersonProbability < Consts.LlmLowProbability
@@ -283,16 +300,17 @@ internal class AiChecks
     private async Task<BioClassProbability> AskProfileModel(
         bool eroticOnly,
         List<ChatCompletionRequestMessage> messages,
+        LlmEndpoint endpoint,
         CancellationToken ct
     )
     {
         if (eroticOnly)
         {
-            var erotic = await _retry.ExecuteAsync(
+            var erotic = await endpoint.Retry.ExecuteAsync(
                 async token =>
-                    await _api!.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                    await endpoint.Api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                         messages: messages,
-                        model: Model,
+                        model: endpoint.Model,
                         strict: true,
                         jsonSerializerOptions: jso,
                         cancellationToken: token
@@ -309,11 +327,11 @@ internal class AiChecks
             return probability;
         }
 
-        var response = await _retry.ExecuteAsync(
+        var response = await endpoint.Retry.ExecuteAsync(
             async token =>
-                await _api!.Chat.CreateChatCompletionAsAsync<BioClassProbability>(
+                await endpoint.Api.Chat.CreateChatCompletionAsAsync<BioClassProbability>(
                     messages: messages,
-                    model: Model,
+                    model: endpoint.Model,
                     strict: true,
                     jsonSerializerOptions: jso,
                     cancellationToken: token
@@ -445,7 +463,8 @@ internal class AiChecks
 
     public async ValueTask<SpamProbability> GetSpamProbability(Telegram.Bot.Types.Message message)
     {
-        if (_api == null)
+        var endpoint = EndpointFor(message.Chat.Id);
+        if (endpoint == null)
             return new SpamProbability();
 
         var text = Utils.TextWithLinks(message) ?? "";
@@ -477,8 +496,8 @@ internal class AiChecks
             );
 
             return await _hybridCache.GetOrCreateAsync(
-                prompt.Key,
-                async ct => await AskSpamLlm(prompt.Text, selectedPhoto, ct),
+                endpoint.CacheKey(prompt.Key),
+                async ct => await AskSpamLlm(prompt.Text, selectedPhoto, endpoint, ct),
                 new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) }
             );
         }
@@ -524,10 +543,10 @@ internal class AiChecks
 
         var promptText = fullPrompt.ToString();
         // the picture is part of the input but not of the text, so it has to be part of the key
-        return new SpamPrompt(promptText, $"llm_spam_prob:{ShaHelper.ComputeSha256Hex($"{Model}\n{promptText}\nPhoto: {photoUniqueId}")}");
+        return new SpamPrompt(promptText, $"llm_spam_prob:{ShaHelper.ComputeSha256Hex($"{promptText}\nPhoto: {photoUniqueId}")}");
     }
 
-    private async ValueTask<SpamProbability> AskSpamLlm(string prompt, PhotoSize? photo, CancellationToken ct)
+    private async ValueTask<SpamProbability> AskSpamLlm(string prompt, PhotoSize? photo, LlmEndpoint endpoint, CancellationToken ct)
     {
         byte[]? imageBytes = null;
         if (photo != null)
@@ -548,18 +567,18 @@ internal class AiChecks
             SpamSystemMessage,
             prompt,
             imageBytes != null,
-            Model
+            endpoint.Model
         );
 
         var messages = new List<ChatCompletionRequestMessage> { SpamSystemMessage.AsSystemMessage(), prompt.AsUserMessage() };
         if (imageBytes != null)
             messages.Add(CreateSpamImageMessage(imageBytes));
 
-        var response = await _retry.ExecuteAsync(
+        var response = await endpoint.Retry.ExecuteAsync(
             async token =>
-                await _api!.Chat.CreateChatCompletionAsAsync<SpamProbability>(
+                await endpoint.Api.Chat.CreateChatCompletionAsAsync<SpamProbability>(
                     messages: messages,
-                    model: Model,
+                    model: endpoint.Model,
                     strict: true,
                     jsonSerializerOptions: jso,
                     cancellationToken: token
@@ -630,4 +649,10 @@ internal class AiChecks
     );
 
     internal sealed record SpamPrompt(string Text, string Key);
+
+    /// <summary>An OpenAI compatible endpoint together with the model to ask. Cached verdicts are keyed per model.</summary>
+    private sealed record LlmEndpoint(OpenAiClient Api, string Model, ResiliencePipeline Retry)
+    {
+        public string CacheKey(string promptKey) => $"{promptKey}:{Model}";
+    }
 }
