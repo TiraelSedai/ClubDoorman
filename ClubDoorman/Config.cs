@@ -175,8 +175,9 @@ internal class Config
     {
         public static FreeLlmSettings? FromEnv()
         {
+            // docker compose turns an unset ${DOORMAN_FREE_LLM_URL} into an empty value, which is still "not configured"
             var url = Environment.GetEnvironmentVariable("DOORMAN_FREE_LLM_URL");
-            if (url == null)
+            if (string.IsNullOrWhiteSpace(url))
                 return null;
             if (!Uri.TryCreate(url, UriKind.Absolute, out var baseUrl))
                 throw new InvalidOperationException("DOORMAN_FREE_LLM_URL variable is set to invalid URL");

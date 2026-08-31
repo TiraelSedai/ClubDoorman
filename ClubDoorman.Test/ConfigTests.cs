@@ -27,6 +27,15 @@ public class ConfigTests
     }
 
     [Test]
+    public void FreeLlm_IsNullWhenComposePassesAnEmptyUrl()
+    {
+        // - DOORMAN_FREE_LLM_URL=${DOORMAN_FREE_LLM_URL} with nothing to interpolate reaches us as an empty string
+        using var env = FreeLlmEnv(url: "", key: "", model: "");
+
+        Assert.That(Config.FreeLlmSettings.FromEnv(), Is.Null);
+    }
+
+    [Test]
     public void FreeLlm_ReadsUrlKeyAndModel()
     {
         using var env = FreeLlmEnv("http://127.0.0.1:8888/v1", "sk-test", "some/model");
