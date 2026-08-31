@@ -62,7 +62,7 @@ internal class ReactionHandler
         {
             _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", count, Utils.FullName(user), chat.Title);
             var admChat = _config.GetAdminChat(chat.Id);
-            if (_config.OpenRouterApi == null)
+            if (!_config.LlmEnabled(chat.Id))
                 return;
             ChatFullInfo userChat;
             try
@@ -74,7 +74,7 @@ internal class ReactionHandler
                 _logger.LogWarning(e, "Unable to fetch chat info for reaction bait check");
                 return;
             }
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(user, userChat);
+            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(chat.Id, user, userChat);
             _logger.LogDebug("Reaction bait spam probability {Prob}", attention.EroticProbability);
             if (attention.EroticProbability >= Consts.LlmLowProbability)
             {
