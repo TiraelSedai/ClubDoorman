@@ -54,6 +54,10 @@ internal class MessageProcessor
     private readonly AiChecks _aiChecks;
     private readonly CaptchaManager _captchaManager;
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
+
+    // ponytail: never pruned, one entry per user who ever tripped a free chat check - swap for a sweeping cache
+    // if free chats ever grow enough for that to matter
+    private readonly ConcurrentDictionary<(long ChatId, long UserId), DateTime> _freeChatWarnedAt = new();
     private readonly StatisticsReporter _statistics;
     private readonly Config _config;
     private readonly ReactionHandler _reactionHandler;
@@ -865,6 +869,27 @@ internal class MessageProcessor
 
     private static readonly TimeSpan FreeChatWarningLifetime = TimeSpan.FromMinutes(5);
 
+    private static readonly TimeSpan FreeChatWarningCooldown = TimeSpan.FromHours(8);
+
+    /// <summary>
+    /// The first warning about a user in a chat wins, the next one waits out the cooldown. Without this every later
+    /// message from the same user reposts the same warning: the profile verdict is cached for a week, so the check
+    /// stops asking the LLM and starts answering instantly, and a burst of messages resolves it all at once.
+    /// </summary>
+    internal static bool TryClaimWarning(
+        ConcurrentDictionary<(long ChatId, long UserId), DateTime> warnedAt,
+        (long ChatId, long UserId) key,
+        DateTime now,
+        TimeSpan cooldown
+    )
+    {
+        if (warnedAt.TryAdd(key, now))
+            return true;
+        if (!warnedAt.TryGetValue(key, out var last))
+            return warnedAt.TryAdd(key, now);
+        return now - last > cooldown && warnedAt.TryUpdate(key, now, last);
+    }
+
     internal static string BuildFreeChatWarning(string reason) =>
         $"{reason}{Environment.NewLine}Для более точного анализа переходите на платный тариф";
 
@@ -904,6 +929,13 @@ internal class MessageProcessor
     private async Task WarnFreeChat(Message message, User user, string reason, CancellationToken stoppingToken)
     {
         var chat = message.Chat;
+        var warned = (chat.Id, user.Id);
+        if (!TryClaimWarning(_freeChatWarnedAt, warned, DateTime.UtcNow, FreeChatWarningCooldown))
+        {
+            _logger.LogDebug("Free chat LLM warning: {User} was warned in {Chat} recently", Utils.FullName(user), chat.Title);
+            return;
+        }
+
         // the report goes first and starts with the forward: a forward that fails means the message is already gone,
         // and then there is nothing left to reply to
         Message forward;
@@ -913,6 +945,8 @@ internal class MessageProcessor
         }
         catch (ApiRequestException e)
         {
+            // somebody else deleted the message, that is not a warning we got to spend: give the claim back
+            _freeChatWarnedAt.TryRemove(warned, out _);
             _logger.LogInformation(e, "Free chat LLM warning: cannot forward the message, dropping the warning");
             return;
         }

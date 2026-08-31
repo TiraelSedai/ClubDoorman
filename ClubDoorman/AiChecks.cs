@@ -24,21 +24,23 @@ internal class AiChecks
         _logger = logger;
         _paid = _config.OpenRouterApi == null ? null : new(CustomProviders.OpenRouter(_config.OpenRouterApi), PaidModel, PaidRetry);
         var free = _config.FreeLlm;
-        // a local model answers in minutes, not seconds, and a free chat is never in a hurry: wait long, never retry
-        _free =
-            free == null
-                ? null
-                : new(
-                    new OpenAiClient(free.ApiKey, new HttpClient { Timeout = FreeLlmTimeout }, baseUri: free.BaseUrl),
-                    free.Model,
-                    ResiliencePipeline.Empty
-                );
+        // a local model answers in minutes, not seconds, and a free chat is never in a hurry: wait long, ask once
+        _free = free == null ? null : new(BuildFreeClient(free), free.Model, ResiliencePipeline.Empty);
     }
 
     private static readonly ResiliencePipeline PaidRetry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
         .Build();
     private static readonly TimeSpan FreeLlmTimeout = TimeSpan.FromMinutes(10);
+
+    internal static OpenAiClient BuildFreeClient(Config.FreeLlmSettings free)
+    {
+        var client = new OpenAiClient(free.ApiKey, new HttpClient { Timeout = FreeLlmTimeout }, baseUri: free.BaseUrl);
+        // the SDK retries three times on its own, and a local model that is down or overloaded stays that way
+        client.Options.Retry = new AutoSDKRetryOptions { MaxAttempts = 1 };
+        return client;
+    }
+
     const string PaidModel = "google/gemini-3.5-flash-lite";
     private readonly LlmEndpoint? _paid;
     private readonly LlmEndpoint? _free;
