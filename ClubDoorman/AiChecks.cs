@@ -130,7 +130,8 @@ internal class AiChecks
         catch (Exception e)
         {
             // nothing is cached when the factory throws, so the next message retries instead of reusing a zero verdict
-            _logger.LogWarning(e, nameof(GetAttentionBaitProbability));
+            // an LLM endpoint is optional by design, so failing to reach one is routine and must not read as a fault
+            _logger.Log(e is HttpRequestException ? LogLevel.Information : LogLevel.Warning, e, nameof(GetAttentionBaitProbability));
             return NoBait;
         }
     }
@@ -506,7 +507,8 @@ internal class AiChecks
         catch (Exception e)
         {
             // nothing is cached when the factory throws, so the next identical message asks the model again
-            _logger.LogWarning(e, nameof(GetSpamProbability));
+            // an LLM endpoint is optional by design, so failing to reach one is routine and must not read as a fault
+            _logger.Log(e is HttpRequestException ? LogLevel.Information : LogLevel.Warning, e, nameof(GetSpamProbability));
             return new SpamProbability();
         }
     }
