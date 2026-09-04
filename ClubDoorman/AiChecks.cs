@@ -24,15 +24,20 @@ internal class AiChecks
         _userManager = userManager;
 
         _logger = logger;
-        _paid = _config.OpenRouterApi == null ? null : new(CustomProviders.OpenRouter(_config.OpenRouterApi), PaidModel, PaidRetry);
+        _paid =
+            _config.OpenRouterApi == null
+                ? null
+                : new(CustomProviders.OpenRouter(_config.OpenRouterApi), PaidModel, PaidRetry, PaidProfileCacheLifetime);
         var free = _config.FreeLlm;
         // a local model answers in minutes, not seconds, and a free chat is never in a hurry: wait long, ask once
-        _free = free == null ? null : new(BuildFreeClient(free), free.Model, ResiliencePipeline.Empty);
+        _free = free == null ? null : new(BuildFreeClient(free), free.Model, ResiliencePipeline.Empty, FreeProfileCacheLifetime);
     }
 
     private static readonly ResiliencePipeline PaidRetry = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions() { Delay = TimeSpan.FromMilliseconds(50) })
         .Build();
+    private static readonly TimeSpan PaidProfileCacheLifetime = TimeSpan.FromDays(7);
+    private static readonly TimeSpan FreeProfileCacheLifetime = TimeSpan.FromHours(12);
     private static readonly TimeSpan FreeLlmTimeout = TimeSpan.FromMinutes(10);
 
     internal static OpenAiClient BuildFreeClient(Config.FreeLlmSettings free)
@@ -126,7 +131,7 @@ internal class AiChecks
                         _ = CheckLater(userChat, ifChanged, ct);
                     return verdict;
                 },
-                new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(7) },
+                new HybridCacheEntryOptions { LocalCacheExpiration = endpoint.ProfileCacheLifetime },
                 cancellationToken: cancellationToken
             );
         }
@@ -568,8 +573,8 @@ internal class AiChecks
 
     internal sealed record SpamPrompt(string Text, string Key);
 
-    /// <summary>An OpenAI compatible endpoint together with the model to ask. Cached verdicts are keyed per model.</summary>
-    private sealed record LlmEndpoint(OpenAiClient Api, string Model, ResiliencePipeline Retry)
+    /// <summary>An OpenAI compatible endpoint together with the model to ask and profile cache lifetime. Cached verdicts are keyed per model.</summary>
+    private sealed record LlmEndpoint(OpenAiClient Api, string Model, ResiliencePipeline Retry, TimeSpan ProfileCacheLifetime)
     {
         public string CacheKey(string promptKey) => $"{promptKey}:{Model}";
     }

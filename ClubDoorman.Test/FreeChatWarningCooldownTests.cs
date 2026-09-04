@@ -3,25 +3,23 @@ using System.Collections.Concurrent;
 namespace ClubDoorman.Test;
 
 /// <summary>
-/// A free chat gets one warning per user, not one per message: the profile verdict is cached for a week, so every
-/// later message resolves it instantly, and messages handled in parallel resolve it all at the same moment.
+/// A suspicious erotic profile in a free chat is reported at most once per twelve hours, even when cached verdicts
+/// make later messages resolve at the same moment.
 /// </summary>
 public class FreeChatWarningCooldownTests
 {
-    private static readonly TimeSpan Cooldown = TimeSpan.FromHours(8);
     private static readonly DateTime Now = new(2026, 8, 31, 12, 0, 0, DateTimeKind.Utc);
     private static readonly (long ChatId, long UserId) Key = (-1001234567890, 42);
 
     [Test]
-    public void SecondMessageFromTheSameUserDoesNotWarnAgain()
+    public void SameUserIsNotWarnedBeforeTwelveHours()
     {
         var warnedAt = new ConcurrentDictionary<(long ChatId, long UserId), DateTime>();
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now, Cooldown), Is.True);
-            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddSeconds(1), Cooldown), Is.False);
-            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now + Cooldown, Cooldown), Is.False);
+            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now), Is.True);
+            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddHours(11).AddMinutes(59)), Is.False);
         }
     }
 
@@ -29,21 +27,21 @@ public class FreeChatWarningCooldownTests
     public void AnotherUserInTheSameChatIsWarnedIndependently()
     {
         var warnedAt = new ConcurrentDictionary<(long ChatId, long UserId), DateTime>();
-        MessageProcessor.TryClaimWarning(warnedAt, Key, Now, Cooldown);
+        MessageProcessor.TryClaimWarning(warnedAt, Key, Now);
 
-        Assert.That(MessageProcessor.TryClaimWarning(warnedAt, (Key.ChatId, Key.UserId + 1), Now, Cooldown), Is.True);
+        Assert.That(MessageProcessor.TryClaimWarning(warnedAt, (Key.ChatId, Key.UserId + 1), Now), Is.True);
     }
 
     [Test]
-    public void TheUserIsWarnedAgainOnceTheCooldownIsOver()
+    public void TheUserIsWarnedAgainAtTheTwelveHourBoundary()
     {
         var warnedAt = new ConcurrentDictionary<(long ChatId, long UserId), DateTime>();
-        MessageProcessor.TryClaimWarning(warnedAt, Key, Now, Cooldown);
+        MessageProcessor.TryClaimWarning(warnedAt, Key, Now);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now + Cooldown.Add(TimeSpan.FromMinutes(1)), Cooldown), Is.True);
-            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now + Cooldown.Add(TimeSpan.FromMinutes(2)), Cooldown), Is.False);
+            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddHours(12)), Is.True);
+            Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddHours(12).AddMinutes(1)), Is.False);
         }
     }
 
@@ -52,10 +50,10 @@ public class FreeChatWarningCooldownTests
     {
         // the forward failed, so the message was already deleted and that warning was never actually spent
         var warnedAt = new ConcurrentDictionary<(long ChatId, long UserId), DateTime>();
-        MessageProcessor.TryClaimWarning(warnedAt, Key, Now, Cooldown);
+        MessageProcessor.TryClaimWarning(warnedAt, Key, Now);
         warnedAt.TryRemove(Key, out _);
 
-        Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddSeconds(1), Cooldown), Is.True);
+        Assert.That(MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddSeconds(1)), Is.True);
     }
 
     [Test]
@@ -71,7 +69,7 @@ public class FreeChatWarningCooldownTests
             64,
             i =>
             {
-                if (MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddTicks(i), Cooldown))
+                if (MessageProcessor.TryClaimWarning(warnedAt, Key, Now.AddTicks(i)))
                     Interlocked.Increment(ref claims);
             }
         );

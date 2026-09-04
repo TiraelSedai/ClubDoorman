@@ -867,15 +867,21 @@ internal class MessageProcessor
         return CheckResult.Suspicious;
     }
 
-    private static readonly TimeSpan FreeChatWarningLifetime = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan FreeChatWarningLifetime = TimeSpan.FromMinutes(15);
 
-    private static readonly TimeSpan FreeChatWarningCooldown = TimeSpan.FromHours(8);
+    private static readonly TimeSpan FreeChatWarningCooldown = TimeSpan.FromHours(12);
 
     /// <summary>
-    /// The first warning about a user in a chat wins, the next one waits out the cooldown. Without this every later
-    /// message from the same user reposts the same warning: the profile verdict is cached for a week, so the check
-    /// stops asking the LLM and starts answering instantly, and a burst of messages resolves it all at once.
+    /// The first warning about a user in a chat wins, the next one waits out twelve hours. Without this every later
+    /// message from the same user reposts the same warning: the profile verdict is cached in the free chat for twelve
+    /// hours, so the check stops asking the LLM during that period, and a burst of messages resolves it all at once.
     /// </summary>
+    internal static bool TryClaimWarning(
+        ConcurrentDictionary<(long ChatId, long UserId), DateTime> warnedAt,
+        (long ChatId, long UserId) key,
+        DateTime now
+    ) => TryClaimWarning(warnedAt, key, now, FreeChatWarningCooldown);
+
     internal static bool TryClaimWarning(
         ConcurrentDictionary<(long ChatId, long UserId), DateTime> warnedAt,
         (long ChatId, long UserId) key,
@@ -887,11 +893,11 @@ internal class MessageProcessor
             return true;
         if (!warnedAt.TryGetValue(key, out var last))
             return warnedAt.TryAdd(key, now);
-        return now - last > cooldown && warnedAt.TryUpdate(key, now, last);
+        return now - last >= cooldown && warnedAt.TryUpdate(key, now, last);
     }
 
     internal static string BuildFreeChatWarning(string reason) =>
-        $"{reason}{Environment.NewLine}Для более точного анализа переходите на платный тариф";
+        $"{reason}{Environment.NewLine}{Environment.NewLine}Проверки в базовом режиме выполняются легковесными моделями и могут содержать ошибки. Для более точного анализа переходите на PRO тариф.";
 
     internal static string BuildFreeChatAdminReport(Chat chat, User user, int messageId, string reason)
     {
@@ -930,7 +936,7 @@ internal class MessageProcessor
     {
         var chat = message.Chat;
         var warned = (chat.Id, user.Id);
-        if (!TryClaimWarning(_freeChatWarnedAt, warned, DateTime.UtcNow, FreeChatWarningCooldown))
+        if (!TryClaimWarning(_freeChatWarnedAt, warned, DateTime.UtcNow))
         {
             _logger.LogDebug("Free chat LLM warning: {User} was warned in {Chat} recently", Utils.FullName(user), chat.Title);
             return;
