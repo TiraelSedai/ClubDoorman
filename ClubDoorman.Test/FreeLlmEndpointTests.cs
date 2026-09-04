@@ -17,7 +17,7 @@ public class FreeLlmEndpointTests
         if (settings == null)
             Assert.Ignore("DOORMAN_FREE_LLM_URL is not set");
 
-        using var api = new OpenAiClient(settings!.ApiKey, baseUri: settings.BaseUrl);
+        using var api = AiChecks.BuildFreeClient(settings!);
         var prompt = AiChecks.BuildSpamPrompt(
             "ИЩУ 3-4 человек в новую команду! Доход от 200$ в день, обучение бесплатно, пиши в лс +",
             "Чат: Про еду",

@@ -42,7 +42,11 @@ internal class AiChecks
 
     internal static OpenAiClient BuildFreeClient(Config.FreeLlmSettings free)
     {
-        var client = new OpenAiClient(free.ApiKey, new HttpClient { Timeout = FreeLlmTimeout }, baseUri: free.BaseUrl);
+        var client = new OpenAiClient(
+            free.ApiKey,
+            new HttpClient(new FreeLlmRequestHandler()) { Timeout = FreeLlmTimeout },
+            baseUri: free.BaseUrl
+        );
         // the SDK retries three times on its own, and a local model that is down or overloaded stays that way
         client.Options.Retry = new AutoSDKRetryOptions { MaxAttempts = 1 };
         return client;
