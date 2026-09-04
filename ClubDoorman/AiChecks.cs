@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Polly;
 using Polly.Retry;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using tryAGI.OpenAI;
 
@@ -17,6 +18,7 @@ internal class AiChecks
     public AiChecks(ITelegramBotClient bot, Config config, HybridCache hybridCache, UserManager userManager, ILogger<AiChecks> logger)
     {
         _bot = bot;
+        _profileInputCollector = new ProfileInputCollector(bot, logger);
         _config = config;
         _hybridCache = hybridCache;
         _userManager = userManager;
@@ -46,6 +48,7 @@ internal class AiChecks
     private readonly LlmEndpoint? _free;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
     private readonly ITelegramBotClient _bot;
+    private readonly ProfileInputCollector _profileInputCollector;
     private readonly Config _config;
     private readonly HybridCache _hybridCache;
     private readonly UserManager _userManager;
@@ -100,7 +103,7 @@ internal class AiChecks
 
         try
         {
-            var inputs = await CollectProfileInputs(user, userChat, cancellationToken);
+            var inputs = await _profileInputCollector.Collect(user, userChat, cancellationToken);
             var prompt = RenderProfilePrompt(inputs);
             return await _hybridCache.GetOrCreateAsync(
                 endpoint.CacheKey(prompt.Key),
@@ -127,102 +130,13 @@ internal class AiChecks
                 cancellationToken: cancellationToken
             );
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             // nothing is cached when the factory throws, so the next message retries instead of reusing a zero verdict
             // an LLM endpoint is optional by design, so failing to reach one is routine and must not read as a fault
             _logger.Log(e is HttpRequestException ? LogLevel.Information : LogLevel.Warning, e, nameof(GetAttentionBaitProbability));
             return NoBait;
         }
-    }
-
-    private async Task<ProfileInputs> CollectProfileInputs(
-        Telegram.Bot.Types.User user,
-        ChatFullInfo userChat,
-        CancellationToken ct = default
-    )
-    {
-        var avatar = userChat.Photo;
-        // identity comes from the chat, not from the message: the callback path re-checks a profile that has since been renamed
-        var fullName = Utils.FullName(userChat.FirstName ?? user.FirstName, userChat.LastName);
-        var userName = userChat.Username ?? user.Username;
-
-        PromptSection? linkedChannel = null;
-        var linked = userChat.LinkedChatId;
-        if (linked != null)
-        {
-            try
-            {
-                linkedChannel = ChannelSection("Информация о привязанном канале:", await _bot.GetChat(linked, cancellationToken: ct));
-            }
-            catch (Exception e) when (e is not OperationCanceledException)
-            {
-                // a private linked channel is a 400 on every message, and a null section would silently downgrade
-                // the whole check to the erotic-only branch, so say it out loud instead
-                _logger.LogWarning(e, "Unable to fetch linked channel {ChannelId}", linked);
-                linkedChannel = new PromptSection($"Информация о привязанном канале: недоступна (id {linked})", null, null);
-            }
-        }
-
-        var mentioned = new List<PromptSection>();
-        if (userChat.Bio != null)
-        {
-            var alreadyIncluded = new List<string>();
-            var matches = MyRegexes.TelegramUsername().Matches(userChat.Bio);
-            foreach (Match match in matches)
-            {
-                if (!match.Success)
-                    continue;
-                var relevantGroups = match
-                    .Groups.Cast<System.Text.RegularExpressions.Group>()
-                    .Skip(1) // 0th groups is full match
-                    .Where(g => g.Success);
-
-                foreach (System.Text.RegularExpressions.Group group in relevantGroups)
-                {
-                    var username = $"@{group.Value}";
-                    if (alreadyIncluded.Contains(username))
-                        continue;
-                    if (alreadyIncluded.Count >= 3)
-                        break;
-                    alreadyIncluded.Add(username);
-                    try
-                    {
-                        var mentionedChat = await _bot.GetChat(username, cancellationToken: ct);
-                        mentioned.Add(ChannelSection("Информация об упомянутом канале:", mentionedChat));
-                    }
-                    catch (Exception e)
-                    {
-                        // an unresolvable username is normal in a bio, the rest of the profile is still worth checking
-                        _logger.LogWarning(e, "Unable to fetch mentioned channel {Username}", username);
-                    }
-                }
-            }
-        }
-
-        return new ProfileInputs(
-            user.Id,
-            fullName,
-            userName,
-            userChat.Bio,
-            avatar?.BigFileUniqueId,
-            avatar?.BigFileId,
-            linkedChannel,
-            mentioned
-        );
-    }
-
-    private static PromptSection ChannelSection(string header, ChatFullInfo chat)
-    {
-        var info = new StringBuilder();
-        info.Append(CultureInfo.InvariantCulture, $"{header}\nНазвание: {chat.Title}");
-        if (chat.Username != null)
-            info.Append(CultureInfo.InvariantCulture, $"\nЮзернейм: @{chat.Username}");
-        if (chat.Description != null)
-            info.Append(CultureInfo.InvariantCulture, $"\nОписание: {chat.Description}");
-        if (chat.Photo != null)
-            info.Append("\nФото:");
-        return new PromptSection(info.ToString(), chat.Photo?.BigFileUniqueId, chat.Photo?.BigFileId);
     }
 
     internal static ProfilePrompt RenderProfilePrompt(ProfileInputs inputs)
@@ -658,5 +572,97 @@ internal class AiChecks
     private sealed record LlmEndpoint(OpenAiClient Api, string Model, ResiliencePipeline Retry)
     {
         public string CacheKey(string promptKey) => $"{promptKey}:{Model}";
+    }
+}
+
+internal sealed class ProfileInputCollector(ITelegramBotClient bot, ILogger<AiChecks> logger)
+{
+    public async Task<AiChecks.ProfileInputs> Collect(Telegram.Bot.Types.User user, ChatFullInfo userChat, CancellationToken ct = default)
+    {
+        var avatar = userChat.Photo;
+        // identity comes from the chat, not from the message: the callback path re-checks a profile that has since been renamed
+        var fullName = Utils.FullName(userChat.FirstName ?? user.FirstName, userChat.LastName);
+        var userName = userChat.Username ?? user.Username;
+
+        AiChecks.PromptSection? linkedChannel = null;
+        var linked = userChat.LinkedChatId;
+        if (linked != null)
+        {
+            try
+            {
+                linkedChannel = ChannelSection("Информация о привязанном канале:", await bot.GetChat(linked, cancellationToken: ct));
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // a private linked channel is a 400 on every message, and a null section would silently downgrade
+                // the whole check to the erotic-only branch, so say it out loud instead
+                logger.LogWarning(e, "Unable to fetch linked channel {ChannelId}", linked);
+                linkedChannel = new AiChecks.PromptSection($"Информация о привязанном канале: недоступна (id {linked})", null, null);
+            }
+        }
+
+        var mentioned = new List<AiChecks.PromptSection>();
+        if (userChat.Bio != null)
+        {
+            var alreadyIncluded = new List<string>();
+            var matches = MyRegexes.TelegramUsername().Matches(userChat.Bio);
+            foreach (Match match in matches)
+            {
+                if (!match.Success)
+                    continue;
+                var relevantGroups = match
+                    .Groups.Cast<System.Text.RegularExpressions.Group>()
+                    .Skip(1) // 0th groups is full match
+                    .Where(g => g.Success);
+
+                foreach (System.Text.RegularExpressions.Group group in relevantGroups)
+                {
+                    var username = $"@{group.Value}";
+                    if (alreadyIncluded.Contains(username))
+                        continue;
+                    if (alreadyIncluded.Count >= 3)
+                        break;
+                    alreadyIncluded.Add(username);
+                    try
+                    {
+                        var mentionedChat = await bot.GetChat(username, cancellationToken: ct);
+                        mentioned.Add(ChannelSection("Информация об упомянутом канале:", mentionedChat));
+                    }
+                    catch (ApiRequestException e) when (e.ErrorCode == 400 && e.Message == "Bad Request: chat not found")
+                    {
+                        logger.LogInformation("Unable to fetch mentioned channel {Username}: chat not found", username);
+                    }
+                    catch (Exception e) when (e is not OperationCanceledException)
+                    {
+                        // one failed mention does not make the rest of the profile unusable
+                        logger.LogWarning(e, "Unable to fetch mentioned channel {Username}", username);
+                    }
+                }
+            }
+        }
+
+        return new AiChecks.ProfileInputs(
+            user.Id,
+            fullName,
+            userName,
+            userChat.Bio,
+            avatar?.BigFileUniqueId,
+            avatar?.BigFileId,
+            linkedChannel,
+            mentioned
+        );
+    }
+
+    private static AiChecks.PromptSection ChannelSection(string header, ChatFullInfo chat)
+    {
+        var info = new StringBuilder();
+        info.Append(CultureInfo.InvariantCulture, $"{header}\nНазвание: {chat.Title}");
+        if (chat.Username != null)
+            info.Append(CultureInfo.InvariantCulture, $"\nЮзернейм: @{chat.Username}");
+        if (chat.Description != null)
+            info.Append(CultureInfo.InvariantCulture, $"\nОписание: {chat.Description}");
+        if (chat.Photo != null)
+            info.Append("\nФото:");
+        return new AiChecks.PromptSection(info.ToString(), chat.Photo?.BigFileUniqueId, chat.Photo?.BigFileId);
     }
 }
