@@ -920,7 +920,7 @@ internal class MessageProcessor
                 userChat,
                 cancellationToken: stoppingToken
             );
-            if (attention.EroticProbability >= Consts.LlmLowProbability)
+            if (attention.EroticProbability >= Consts.LlmHighProbability)
             {
                 await WarnFreeChat(message, user, $"Профиль с подозрением на эротику. {attention.Reason}", stoppingToken);
                 return;
@@ -928,7 +928,7 @@ internal class MessageProcessor
         }
 
         var spamCheck = await _aiChecks.GetSpamProbability(message);
-        if (spamCheck.Probability >= Consts.LlmLowProbability)
+        if (spamCheck.Probability >= Consts.LlmHighProbability)
             await WarnFreeChat(message, user, $"Сообщение с подозрением на спам. {spamCheck.Reason}", stoppingToken);
     }
 
