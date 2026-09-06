@@ -867,7 +867,7 @@ internal class MessageProcessor
         return CheckResult.Suspicious;
     }
 
-    private static readonly TimeSpan FreeChatWarningLifetime = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan FreeChatWarningLifetime = TimeSpan.FromMinutes(30);
 
     private static readonly TimeSpan FreeChatWarningCooldown = TimeSpan.FromHours(12);
 
