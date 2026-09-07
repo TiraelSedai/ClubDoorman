@@ -26,6 +26,9 @@
   <ItemGroup>
     <ProjectReference Include="..\ClubDoorman\ClubDoorman.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <MakeDir Directories="$(TargetDir)data" />
     <Copy

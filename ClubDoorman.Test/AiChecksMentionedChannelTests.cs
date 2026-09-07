@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
@@ -19,7 +22,13 @@ public class AiChecksMentionedChannelTests
         var bot = new TelegramBotClient("123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi", httpClient);
         var logger = new RecordingLogger<AiChecks>();
 
-        var collector = new ProfileInputCollector(bot, logger);
+        using var services = PreviewServices();
+        var previews = new TelegramInvitePreviews(
+            httpClient,
+            services.GetRequiredService<HybridCache>(),
+            NullLogger<TelegramInvitePreviews>.Instance
+        );
+        var collector = new ProfileInputCollector(bot, logger, previews);
 
         var inputs = await collector.Collect(User(), UserChat("Mentioned channel: @missing_channel"));
 
@@ -45,7 +54,13 @@ public class AiChecksMentionedChannelTests
         var bot = new TelegramBotClient("123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi", httpClient);
         var logger = new RecordingLogger<AiChecks>();
 
-        var collector = new ProfileInputCollector(bot, logger);
+        using var services = PreviewServices();
+        var previews = new TelegramInvitePreviews(
+            httpClient,
+            services.GetRequiredService<HybridCache>(),
+            NullLogger<TelegramInvitePreviews>.Instance
+        );
+        var collector = new ProfileInputCollector(bot, logger, previews);
 
         var inputs = await collector.Collect(User(), UserChat("Mentioned channel: @moved_channel"));
 
@@ -73,7 +88,13 @@ public class AiChecksMentionedChannelTests
         var bot = new TelegramBotClient("123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi", httpClient);
         var logger = new RecordingLogger<AiChecks>();
 
-        var collector = new ProfileInputCollector(bot, logger);
+        using var services = PreviewServices();
+        var previews = new TelegramInvitePreviews(
+            httpClient,
+            services.GetRequiredService<HybridCache>(),
+            NullLogger<TelegramInvitePreviews>.Instance
+        );
+        var collector = new ProfileInputCollector(bot, logger, previews);
 
         var inputs = await collector.Collect(User(), UserChat("Missing @missing_channel, working @working_channel"));
 
@@ -97,7 +118,13 @@ public class AiChecksMentionedChannelTests
         using var httpClient = TelegramHttpClient((_, cancellationToken) => Task.FromCanceled<HttpResponseMessage>(cancellationToken));
         var bot = new TelegramBotClient("123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi", httpClient);
         var logger = new RecordingLogger<AiChecks>();
-        var collector = new ProfileInputCollector(bot, logger);
+        using var services = PreviewServices();
+        var previews = new TelegramInvitePreviews(
+            httpClient,
+            services.GetRequiredService<HybridCache>(),
+            NullLogger<TelegramInvitePreviews>.Instance
+        );
+        var collector = new ProfileInputCollector(bot, logger, previews);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -106,6 +133,14 @@ public class AiChecksMentionedChannelTests
             Throws.InstanceOf<OperationCanceledException>()
         );
         Assert.That(logger.Entries, Is.Empty);
+    }
+
+    private static ServiceProvider PreviewServices()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddHybridCache();
+        return services.BuildServiceProvider();
     }
 
     private static Telegram.Bot.Types.User User() => new() { Id = 42, FirstName = "Test" };

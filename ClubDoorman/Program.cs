@@ -49,6 +49,15 @@ public class Program
             builder.Services.AddSingleton<AiChecks>();
             builder.Services.AddSingleton<RecentMessagesStorage>();
             builder.Services.AddSingleton<SpamDeduplicationCache>();
+            builder.Services.AddSingleton(TimeProvider.System);
+            builder.Services.AddSingleton<BioInviteTracker>();
+            builder.Services.AddSingleton(_ => new HttpClient(
+                new SocketsHttpHandler { AllowAutoRedirect = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5) }
+            )
+            {
+                Timeout = TimeSpan.FromSeconds(10),
+            });
+            builder.Services.AddSingleton<TelegramInvitePreviews>();
             builder.Services.AddSingleton<MaintenanceService>();
             builder.Services.AddDbContext<AppDbContext>(opts =>
                 opts.UseSqlite("Data Source=data/app.db").AddInterceptors(new SqlitePragmaInterceptor())

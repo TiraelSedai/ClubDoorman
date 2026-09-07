@@ -66,6 +66,8 @@ internal class MessageProcessor
     private readonly ConcurrentDictionary<(long ChatId, long UserId), CancellationTokenSource> _newcomersOnWatch = new();
     private readonly HybridCache _hybridCache;
     private readonly SpamDeduplicationCache _spamDeduplicationCache;
+    private readonly BioInviteTracker _bioInviteTracker;
+    private readonly TelegramInvitePreviews _invitePreviews;
     private User? _me;
 
     public MessageProcessor(
@@ -82,7 +84,9 @@ internal class MessageProcessor
         AdminCommandHandler adminCommandHandler,
         RecentMessagesStorage recentMessagesStorage,
         HybridCache hybridCache,
-        SpamDeduplicationCache spamDeduplicationCache
+        SpamDeduplicationCache spamDeduplicationCache,
+        BioInviteTracker bioInviteTracker,
+        TelegramInvitePreviews invitePreviews
     )
     {
         _bot = bot;
@@ -99,6 +103,8 @@ internal class MessageProcessor
         _recentMessagesStorage = recentMessagesStorage;
         _hybridCache = hybridCache;
         _spamDeduplicationCache = spamDeduplicationCache;
+        _bioInviteTracker = bioInviteTracker;
+        _invitePreviews = invitePreviews;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
@@ -361,6 +367,7 @@ internal class MessageProcessor
             update.Message != null
             && update.EditedMessage == null
             && contentResult == CheckResult.Pass
+            && bioResult == CheckResult.Pass
             && profileResult == CheckResult.Pass
         )
         {
@@ -662,7 +669,20 @@ internal class MessageProcessor
             await AutoBan(message, "крипто-приватки в описании профиля", stoppingToken);
             return (CheckResult.NoMoreAction, userChat);
         }
-        return (CheckResult.Pass, userChat);
+        var invites = await _invitePreviews.GetFromBio(bio, stoppingToken);
+        var inviteResult = _bioInviteTracker.Observe(message, bio, invites);
+        try
+        {
+            await _bioInviteTracker.Report(
+                inviteResult,
+                warning => DontDeleteButReportMessage(warning.Message, warning.Reason, stoppingToken)
+            );
+        }
+        catch (Exception e) when (e is ApiRequestException or HttpRequestException)
+        {
+            _logger.LogWarning(e, "Unable to report shared bio invite warning");
+        }
+        return (inviteResult.IsShared ? CheckResult.Suspicious : CheckResult.Pass, userChat);
     }
 
     private async Task<CheckResult> CheckUserProfile(

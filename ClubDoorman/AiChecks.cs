@@ -15,10 +15,17 @@ namespace ClubDoorman;
 
 internal class AiChecks
 {
-    public AiChecks(ITelegramBotClient bot, Config config, HybridCache hybridCache, UserManager userManager, ILogger<AiChecks> logger)
+    public AiChecks(
+        ITelegramBotClient bot,
+        Config config,
+        HybridCache hybridCache,
+        UserManager userManager,
+        ILogger<AiChecks> logger,
+        TelegramInvitePreviews invitePreviews
+    )
     {
         _bot = bot;
-        _profileInputCollector = new ProfileInputCollector(bot, logger);
+        _profileInputCollector = new ProfileInputCollector(bot, logger, invitePreviews);
         _config = config;
         _hybridCache = hybridCache;
         _userManager = userManager;
@@ -191,25 +198,7 @@ internal class AiChecks
 
     private async ValueTask<SpamPhotoBio> AskProfileLlm(ProfilePrompt prompt, LlmEndpoint endpoint, CancellationToken ct)
     {
-        var messages = new List<ChatCompletionRequestMessage>();
-        if (prompt.SystemMessage != null)
-            messages.Add(prompt.SystemMessage.AsSystemMessage());
-
-        var pic = Array.Empty<byte>();
-        for (var i = 0; i < prompt.Sections.Count; i++)
-        {
-            var section = prompt.Sections[i];
-            messages.Add(section.Text.AsUserMessage());
-            if (section.PhotoBigFileId == null)
-                continue;
-            using var ms = new MemoryStream();
-            await _bot.GetInfoAndDownloadFile(section.PhotoBigFileId, ms, cancellationToken: ct);
-            var photoBytes = ms.ToArray();
-            // section 0 is the user themselves, so its photo is the avatar, the rest are channel photos
-            if (i == 0)
-                pic = photoBytes;
-            messages.Add(CreateContextImageMessage(photoBytes));
-        }
+        var (messages, pic) = await BuildProfileMessages(prompt, _bot, ct);
         _logger.LogDebug("LLM prompt: {Prompt}", string.Join('\n', prompt.Sections.Select(x => x.Text)));
 
         var probability = await AskProfileModel(prompt.EroticOnly, messages, endpoint, ct);
@@ -221,6 +210,38 @@ internal class AiChecks
         )
             pic = []; // cache optimization, don't store all user photos who are not spammers
         return new SpamPhotoBio(probability, pic, prompt.NameBio);
+    }
+
+    internal static async Task<(List<ChatCompletionRequestMessage> Messages, byte[] Avatar)> BuildProfileMessages(
+        ProfilePrompt prompt,
+        ITelegramBotClient bot,
+        CancellationToken ct = default
+    )
+    {
+        var messages = new List<ChatCompletionRequestMessage>();
+        if (prompt.SystemMessage != null)
+            messages.Add(prompt.SystemMessage.AsSystemMessage());
+
+        var pic = Array.Empty<byte>();
+        for (var i = 0; i < prompt.Sections.Count; i++)
+        {
+            var section = prompt.Sections[i];
+            messages.Add(section.Text.AsUserMessage());
+            var photoBytes = section.PhotoBytes;
+            if (photoBytes == null)
+            {
+                if (section.PhotoBigFileId == null)
+                    continue;
+                using var ms = new MemoryStream();
+                await bot.GetInfoAndDownloadFile(section.PhotoBigFileId, ms, cancellationToken: ct);
+                photoBytes = ms.ToArray();
+            }
+            // section 0 is the user themselves, so its photo is the avatar, the rest are channel photos
+            if (i == 0)
+                pic = photoBytes;
+            messages.Add(CreateContextImageMessage(photoBytes, section.PhotoMimeType));
+        }
+        return (messages, pic);
     }
 
     private async Task<BioClassProbability> AskProfileModel(
@@ -521,8 +542,8 @@ internal class AiChecks
         return response.Value1;
     }
 
-    internal static ChatCompletionRequestUserMessage CreateContextImageMessage(byte[] imageBytes) =>
-        imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low)!;
+    internal static ChatCompletionRequestUserMessage CreateContextImageMessage(byte[] imageBytes, string mimeType = "image/jpeg") =>
+        imageBytes.AsUserMessage(mimeType: mimeType, detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.Low)!;
 
     internal static ChatCompletionRequestUserMessage CreateSpamImageMessage(byte[] imageBytes) =>
         imageBytes.AsUserMessage(mimeType: "image/jpg", detail: ChatCompletionRequestMessageContentPartImageImageUrlDetail.High)!;
@@ -565,7 +586,26 @@ internal class AiChecks
     );
 
     /// <summary>One user message and the photo that follows it, if any.</summary>
-    internal sealed record PromptSection(string Text, string? PhotoUniqueId, string? PhotoBigFileId);
+    internal sealed record PromptSection(string Text, string? PhotoUniqueId, string? PhotoBigFileId)
+    {
+        public byte[]? PhotoBytes { get; private init; }
+        public string PhotoMimeType { get; private init; } = "image/jpeg";
+
+        public static PromptSection FromInvite(TelegramInvitePreview preview)
+        {
+            var content = preview.Content ?? throw new ArgumentException("Invite preview has no content", nameof(preview));
+            var text =
+                $"Информация о группе/канале по приглашению https://t.me/+{preview.Hash}:"
+                + $"\nНазвание: {content.Title}\nОписание: {content.Description}";
+            if (content.Photo != null)
+                text += "\nФото:";
+            return new PromptSection(text, content.PhotoHash, null)
+            {
+                PhotoBytes = content.Photo,
+                PhotoMimeType = content.PhotoMimeType ?? "image/jpeg",
+            };
+        }
+    }
 
     internal sealed record ProfilePrompt(
         string? SystemMessage,
@@ -584,7 +624,7 @@ internal class AiChecks
     }
 }
 
-internal sealed class ProfileInputCollector(ITelegramBotClient bot, ILogger<AiChecks> logger)
+internal sealed class ProfileInputCollector(ITelegramBotClient bot, ILogger<AiChecks> logger, TelegramInvitePreviews invitePreviews)
 {
     public async Task<AiChecks.ProfileInputs> Collect(Telegram.Bot.Types.User user, ChatFullInfo userChat, CancellationToken ct = default)
     {
@@ -649,6 +689,9 @@ internal sealed class ProfileInputCollector(ITelegramBotClient bot, ILogger<AiCh
                 }
             }
         }
+
+        var invites = await invitePreviews.GetFromBio(userChat.Bio, ct);
+        mentioned.AddRange(invites.Where(invite => invite.Content != null).Select(AiChecks.PromptSection.FromInvite));
 
         return new AiChecks.ProfileInputs(
             user.Id,
