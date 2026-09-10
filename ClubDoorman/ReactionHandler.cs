@@ -74,7 +74,14 @@ internal class ReactionHandler
                 _logger.LogWarning(e, "Unable to fetch chat info for reaction bait check");
                 return;
             }
-            var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(chat.Id, user, userChat);
+            var profile = await _aiChecks.GetAttentionBaitProbability(chat.Id, user, userChat);
+            if (profile.Review is { Confirmed: true } review)
+            {
+                await _bot.BanChatMember(chat.Id, user.Id, revokeMessages: false);
+                await _bot.SendMessage(admChat, BuildReactionAutobanNotificationMessage(chat, user, reaction.MessageId, review.Reason));
+                return;
+            }
+            var (attention, photo, bio) = profile;
             _logger.LogDebug("Reaction bait spam probability {Prob}", attention.EroticProbability);
             if (attention.EroticProbability >= Consts.LlmLowProbability)
             {
@@ -120,9 +127,14 @@ internal class ReactionHandler
         public int ReactionCount;
     }
 
-    internal static string BuildReactionAutobanNotificationMessage(Chat chat, User user, int messageId)
+    internal static string BuildReactionAutobanNotificationMessage(
+        Chat chat,
+        User user,
+        int messageId,
+        string reason = "пользователь из банлиста"
+    )
     {
         var at = user.Username == null ? "" : $" @{user.Username}";
-        return $"Авто-бан по реакции: пользователь из банлиста{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, messageId)}";
+        return $"Авто-бан по реакции: {reason}{Environment.NewLine}Юзер {Utils.FullName(user)}{at} из чата {chat.Title}{Environment.NewLine}{Utils.LinkToMessage(chat, messageId)}";
     }
 }

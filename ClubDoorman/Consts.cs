@@ -6,6 +6,7 @@ internal class Consts
     public const float ClassifierSpamScoreThreshold = 0.3f;
     public const double LlmLowProbability = 0.75;
     public const double LlmHighProbability = 0.9;
+    public const double LlmEroticReviewProbability = 0.85;
     public const string BanButton = "❌❌❌ ban";
     public const string OkButton = "✅✅✅ ok";
     public const string ApproveButton = "🥰🥰🥰 approve";

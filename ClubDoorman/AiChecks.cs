@@ -21,7 +21,9 @@ internal class AiChecks
         HybridCache hybridCache,
         UserManager userManager,
         ILogger<AiChecks> logger,
-        TelegramInvitePreviews invitePreviews
+        TelegramInvitePreviews invitePreviews,
+        OpenAiClient? paidApi = null,
+        OpenAiClient? freeApi = null
     )
     {
         _bot = bot;
@@ -34,10 +36,10 @@ internal class AiChecks
         _paid =
             _config.OpenRouterApi == null
                 ? null
-                : new(CustomProviders.OpenRouter(_config.OpenRouterApi), PaidModel, PaidRetry, PaidProfileCacheLifetime);
+                : new(paidApi ?? CustomProviders.OpenRouter(_config.OpenRouterApi), PaidModel, PaidRetry, PaidProfileCacheLifetime);
         var free = _config.FreeLlm;
         // a local model answers in minutes, not seconds, and a free chat is never in a hurry: wait long, ask once
-        _free = free == null ? null : new(BuildFreeClient(free), free.Model, ResiliencePipeline.Empty, FreeProfileCacheLifetime);
+        _free = free == null ? null : new(freeApi ?? BuildFreeClient(free), free.Model, ResiliencePipeline.Empty, FreeProfileCacheLifetime);
     }
 
     private static readonly ResiliencePipeline PaidRetry = new ResiliencePipelineBuilder()
@@ -60,6 +62,8 @@ internal class AiChecks
     }
 
     const string PaidModel = "google/gemini-3.5-flash-lite";
+    private const string GrokReviewModel = "x-ai/grok-4.6:floor";
+    private const string GeminiReviewModel = "google/gemini-3.8-flash:floor";
     private readonly LlmEndpoint? _paid;
     private readonly LlmEndpoint? _free;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
@@ -121,7 +125,7 @@ internal class AiChecks
         {
             var inputs = await _profileInputCollector.Collect(user, userChat, cancellationToken);
             var prompt = RenderProfilePrompt(inputs);
-            return await _hybridCache.GetOrCreateAsync(
+            var verdict = await _hybridCache.GetOrCreateAsync(
                 endpoint.CacheKey(prompt.Key),
                 async ct =>
                 {
@@ -145,6 +149,33 @@ internal class AiChecks
                 new HybridCacheEntryOptions { LocalCacheExpiration = endpoint.ProfileCacheLifetime },
                 cancellationToken: cancellationToken
             );
+            if (!_config.EroticAutoBan || endpoint != _paid || verdict.Probability.EroticProbability < Consts.LlmLowProbability)
+                return verdict;
+
+            try
+            {
+                var review = await _hybridCache.GetOrCreateAsync(
+                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{GrokReviewModel}:{GeminiReviewModel}",
+                    async ct =>
+                    {
+                        var (messages, _) = await BuildProfileMessages(prompt, _bot, ct);
+                        var results = await Task.WhenAll(
+                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = GrokReviewModel }, ct),
+                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = GeminiReviewModel }, ct)
+                        );
+                        return new EroticReview(results[0], results[1]);
+                    },
+                    new HybridCacheEntryOptions { LocalCacheExpiration = endpoint.ProfileCacheLifetime },
+                    cancellationToken: cancellationToken
+                );
+                return verdict with { Review = review };
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // Keep the initial moderation verdict; a failed review is not cached and the next message retries it.
+                _logger.LogWarning(e, "LLM erotic review failed for {ProfileKey}", prompt.Key);
+                return verdict;
+            }
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
@@ -251,6 +282,7 @@ internal class AiChecks
         CancellationToken ct
     )
     {
+        using var scope = _logger.BeginScope("Profile model {Model}", endpoint.Model);
         if (eroticOnly)
         {
             var erotic = await endpoint.Retry.ExecuteAsync(
@@ -571,7 +603,21 @@ internal class AiChecks
         public string Reason { get; set; } = "";
     }
 
-    internal sealed record SpamPhotoBio(BioClassProbability Probability, byte[] Photo, string NameBio);
+    internal sealed record SpamPhotoBio(BioClassProbability Probability, byte[] Photo, string NameBio)
+    {
+        public EroticReview? Review { get; init; }
+    }
+
+    internal sealed record EroticReview(BioClassProbability Grok, BioClassProbability Gemini)
+    {
+        public bool Confirmed =>
+            Grok.EroticProbability >= Consts.LlmEroticReviewProbability && Gemini.EroticProbability >= Consts.LlmEroticReviewProbability;
+
+        public string Reason =>
+            "Перепроверка эротического профиля:"
+            + $"\n{GrokReviewModel}: {Grok.EroticProbability:P0}. {Grok.Reason}"
+            + $"\n{GeminiReviewModel}: {Gemini.EroticProbability:P0}. {Gemini.Reason}";
+    }
 
     /// <summary>Everything the profile check takes from Telegram, already fetched. Channel sections arrive as ready made text.</summary>
     internal sealed record ProfileInputs(

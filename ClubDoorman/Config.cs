@@ -31,6 +31,7 @@ internal class Config
     public bool LowConfidenceHamForward { get; } = GetEnvironmentBool("DOORMAN_LOW_CONFIDENCE_HAM_ENABLE");
     public bool ButtonAutoBan { get; } = !GetEnvironmentBool("DOORMAN_BUTTON_AUTOBAN_DISABLE");
     public bool HighConfidenceAutoBan { get; } = !GetEnvironmentBool("DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE");
+    public bool EroticAutoBan { get; } = GetEnvironmentBool("DOORMAN_EROTIC_AUTOBAN_ENABLE");
     public bool ApprovedUsersMlSpamCheck { get; } = !GetEnvironmentBool("DOORMAN_APPROVED_ML_SPAM_CHECK_DISABLE");
     public string BotApi { get; } =
         Environment.GetEnvironmentVariable("DOORMAN_BOT_API") ?? throw new InvalidOperationException("DOORMAN_BOT_API variable not set");

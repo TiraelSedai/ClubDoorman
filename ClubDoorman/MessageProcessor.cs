@@ -685,7 +685,7 @@ internal class MessageProcessor
         return (inviteResult.IsShared ? CheckResult.Suspicious : CheckResult.Pass, userChat);
     }
 
-    private async Task<CheckResult> CheckUserProfile(
+    internal async Task<CheckResult> CheckUserProfile(
         Message message,
         User user,
         ChatFullInfo? userChat,
@@ -703,7 +703,7 @@ internal class MessageProcessor
 
         var replyToRecentPost =
             message.ReplyToMessage?.IsAutomaticForward == true && DateTime.UtcNow - message.ReplyToMessage.Date < TimeSpan.FromMinutes(10);
-        var (attention, photo, bio) = await _aiChecks.GetAttentionBaitProbability(
+        var profile = await _aiChecks.GetAttentionBaitProbability(
             message.Chat.Id,
             message.From,
             userChat,
@@ -729,6 +729,12 @@ internal class MessageProcessor
             },
             cancellationToken: stoppingToken
         );
+        if (profile.Review is { Confirmed: true } review)
+        {
+            await AutoBan(message, review.Reason, stoppingToken);
+            return CheckResult.NoMoreAction;
+        }
+        var (attention, photo, bio) = profile;
         _logger.LogDebug("GetAttentionBaitProbability, result = {@Prob}", attention);
         var erotic = attention.EroticProbability >= Consts.LlmLowProbability;
         var money = attention.GamblingProbability >= Consts.LlmLowProbability;
