@@ -524,12 +524,12 @@ internal class MessageProcessor
                     await DontDeleteButReportMessage(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
                     return CheckResult.Suspicious;
                 }
-                if (spamCheck.Probability >= Consts.LlmHighProbability)
+                var llmScore = $"{Environment.NewLine}LLM оценивает вероятность спама в {spamCheck.Probability * 100}%:";
+                if (ShouldAutoBanMlSpam(score, spamCheck.Probability))
                 {
-                    await AutoBan(message, $"{reason}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                    await AutoBan(message, $"{reason}{llmScore}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
                     return CheckResult.NoMoreAction;
                 }
-                var llmScore = $"{Environment.NewLine}LLM оценивает вероятность спама в {spamCheck.Probability * 100}%:";
                 await DeleteAndReportMessage(message, $"{reason}{llmScore}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
                 return CheckResult.NoMoreAction;
             }
@@ -1023,6 +1023,9 @@ internal class MessageProcessor
             _goodUserMessages.TryRemove(user.Id, out _);
         }
     }
+
+    internal static bool ShouldAutoBanMlSpam(float score, double llmProbability) =>
+        llmProbability >= Consts.LlmHighProbability || (score > 1f && llmProbability >= 0.85);
 
     private async Task AutoBan(Message message, string reason, CancellationToken stoppingToken)
     {
