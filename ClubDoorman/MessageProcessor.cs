@@ -525,6 +525,11 @@ internal class MessageProcessor
                     return CheckResult.Suspicious;
                 }
                 var llmScore = $"{Environment.NewLine}LLM оценивает вероятность спама в {spamCheck.Probability * 100}%:";
+                if (score < Consts.ClassifierLlmOverrideScoreThreshold && spamCheck.IsAvailable && spamCheck.Probability <= 0.1)
+                {
+                    await DontDeleteButReportMessage(message, $"{reason}{llmScore}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
+                    return CheckResult.Suspicious;
+                }
                 if (ShouldAutoBanMlSpam(score, spamCheck.Probability))
                 {
                     await AutoBan(message, $"{reason}{llmScore}{Environment.NewLine}{spamCheck.Reason}", stoppingToken);
@@ -949,6 +954,11 @@ internal class MessageProcessor
             if (attention.EroticProbability >= Consts.LlmHighProbability)
             {
                 await WarnFreeChat(message, user, $"Профиль с подозрением на эротику. {attention.Reason}", stoppingToken);
+                return;
+            }
+            if (attention.GamblingProbability >= Consts.LlmHighProbability)
+            {
+                await WarnFreeChat(message, user, $"Профиль с подозрением на быстрый заработок. {attention.Reason}", stoppingToken);
                 return;
             }
         }

@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace ClubDoorman.Test;
 
 /// <summary>
-/// A suspicious erotic profile in a free chat is reported at most once per twelve hours, even when cached verdicts
+/// An LLM warning for a user in a free chat is reported at most once per twelve hours, even when cached verdicts
 /// make later messages resolve at the same moment.
 /// </summary>
 public class FreeChatWarningCooldownTests

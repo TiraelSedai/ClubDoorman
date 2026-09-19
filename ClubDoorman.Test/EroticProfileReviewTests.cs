@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
@@ -30,6 +31,9 @@ public sealed class EroticProfileReviewTests
     private readonly ConcurrentQueue<JsonElement> _llmRequests = new();
     private readonly List<(string Method, string Body)> _telegramRequests = [];
     private readonly Dictionary<string, double> _scores = [];
+    private double _gamblingScore;
+    private double _nonPersonScore;
+    private double _selfPromotionScore;
     private SqliteConnection _db = null!;
     private ServiceProvider _services = null!;
     private HttpClient _telegramHttp = null!;
@@ -67,6 +71,9 @@ public sealed class EroticProfileReviewTests
         _scores[Lite] = 0.75;
         _scores[Luna] = 0.85;
         _scores[Gemini] = 0.85;
+        _gamblingScore = 0;
+        _nonPersonScore = 0;
+        _selfPromotionScore = 0;
         _failedModel = null;
         _reviewBarrier = null;
         _reviewsStarted = 0;
@@ -226,6 +233,44 @@ public sealed class EroticProfileReviewTests
             Assert.That(verdict.Review, Is.Null);
             Assert.That(verdict.Probability.EroticProbability, Is.EqualTo(0.95));
             Assert.That(_llmRequests, Is.Empty);
+        }
+    }
+
+    [Test]
+    public async Task FreeProfileWithHighGamblingProbability_IsReportedWithoutModeration()
+    {
+        _scores[Lite] = 0;
+        _gamblingScore = 0.95;
+        _nonPersonScore = 0.9;
+        _selfPromotionScore = 0.2;
+        var message = new Message
+        {
+            Id = 123,
+            From = _user,
+            Chat = new Chat
+            {
+                Id = FreeChat,
+                Type = ChatType.Supergroup,
+                Title = "Free",
+            },
+            Text = "Hello",
+        };
+        using var cancellation = new CancellationTokenSource();
+        var method = typeof(MessageProcessor).GetMethod("FreeChatLlmChecks", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        await (Task)method.Invoke(_services.GetRequiredService<MessageProcessor>(), [message, _user, _profile, cancellation.Token])!;
+        await cancellation.CancelAsync();
+
+        var sentMessages = _telegramRequests.Where(x => x.Method == "sendMessage").ToArray();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(_telegramRequests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(sentMessages, Has.Length.EqualTo(2));
+            Assert.That(sentMessages.Select(x => x.Body), Has.All.Contain($"Verdict from {Lite}"));
+            Assert.That(
+                _telegramRequests,
+                Has.None.Matches<(string Method, string Body)>(x => x.Method is "banChatMember" or "deleteMessage" or "restrictChatMember")
+            );
         }
     }
 
@@ -414,7 +459,14 @@ public sealed class EroticProfileReviewTests
         var content = eroticOnly
             ? JsonSerializer.Serialize(new AiChecks.SpamProbability { Probability = _scores[model], Reason = $"Verdict from {model}" })
             : JsonSerializer.Serialize(
-                new AiChecks.BioClassProbability { EroticProbability = _scores[model], Reason = $"Verdict from {model}" }
+                new AiChecks.BioClassProbability
+                {
+                    EroticProbability = _scores[model],
+                    GamblingProbability = _gamblingScore,
+                    NonPersonProbability = _nonPersonScore,
+                    SelfPromotionProbability = _selfPromotionScore,
+                    Reason = $"Verdict from {model}",
+                }
             );
         return JsonResponse(
             new
