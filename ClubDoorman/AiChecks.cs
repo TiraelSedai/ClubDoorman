@@ -474,11 +474,14 @@ internal class AiChecks
                 selectedPhoto?.FileUniqueId
             );
 
-            return await _hybridCache.GetOrCreateAsync(
+            var probability = await _hybridCache.GetOrCreateAsync(
                 endpoint.CacheKey(prompt.Key),
                 async ct => await AskSpamLlm(prompt.Text, selectedPhoto, endpoint, ct),
                 new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) }
             );
+            // Availability is not serialized, so mark successful verdicts after reading from the cache.
+            probability.IsAvailable = true;
+            return probability;
         }
         catch (Exception e)
         {
@@ -592,6 +595,9 @@ internal class AiChecks
     {
         public double Probability { get; set; }
         public string Reason { get; set; } = "";
+
+        [JsonIgnore]
+        public bool IsAvailable { get; set; }
     }
 
     internal sealed class BioClassProbability()
