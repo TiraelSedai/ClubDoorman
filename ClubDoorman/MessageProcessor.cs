@@ -202,7 +202,7 @@ internal class MessageProcessor
         var user = message.From!;
         if (_userManager.Approved(user.Id))
         {
-            var approvedText = message.Text ?? message.Caption;
+            var approvedText = Utils.VisibleText(message);
             if (
                 _config.ApprovedUsersMlSpamCheck
                 && !string.IsNullOrWhiteSpace(approvedText)
@@ -336,7 +336,7 @@ internal class MessageProcessor
         }
 
         var quote = message.Quote?.Text != null ? $"> {message.Quote.Text}{Environment.NewLine}" : "";
-        var rawText = message.Text ?? message.Caption;
+        var rawText = Utils.VisibleText(message);
         var text = $"{quote}{rawText}";
         // hidden urls belong in the ML/LLM checks, but not in the shape heuristics or in the auto-ban and dedup keys,
         // which should still match a campaign that rotates its link per chat

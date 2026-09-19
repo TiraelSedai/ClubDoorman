@@ -1,6 +1,9 @@
 ﻿using System.Globalization;
 using System.Text;
+using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
 using Telegram.Bot;
+using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -55,11 +58,45 @@ internal static class Utils
         }
     }
 
+    public static string? VisibleText(Message message) =>
+        message.Text ?? message.Caption ?? (message.RichMessage is { } rich ? RichMessageText(rich, false) : null);
+
+    private static string RichMessageText(RichMessage message, bool includeLinks)
+    {
+        // Let Telegram.Bot handle the rich block schema; AngleSharp decodes text and link attributes.
+        using var document = new HtmlParser().ParseDocument(message.ToHtml());
+        var result = new StringBuilder();
+        Append(document.Body!);
+        return result.ToString().Trim();
+
+        void Append(INode node)
+        {
+            if (node is IText text)
+            {
+                result.Append(text.Data);
+                return;
+            }
+            var tag = (node as IElement)?.LocalName;
+            if (includeLinks && node is IElement { LocalName: "a" } link && link.GetAttribute("href") is { Length: > 0 } url)
+            {
+                if (result.Length > 0 && !char.IsWhiteSpace(result[^1]))
+                    result.Append(' ');
+                result.Append(url).Append(' ');
+            }
+            foreach (var child in node.ChildNodes)
+                Append(child);
+            if (tag is "br" or "td" or "th")
+                result.Append(tag == "br" ? '\n' : ' ');
+        }
+    }
+
     /// <summary>
     /// Message text with hidden hyperlink targets spliced in before their anchor text, so spam checks see the URL.
     /// </summary>
     public static string? TextWithLinks(Message message)
     {
+        if (message.Text == null && message.Caption == null && message.RichMessage is { } rich)
+            return RichMessageText(rich, true);
         var text = message.Text ?? message.Caption;
         var entities = message.Text != null ? message.Entities : message.CaptionEntities;
         if (text == null || entities == null)

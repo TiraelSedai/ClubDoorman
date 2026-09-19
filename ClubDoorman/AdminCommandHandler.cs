@@ -252,7 +252,7 @@ internal class AdminCommandHandler
         var recent = _recentMessagesStorage.Get(fromChannelId, chatId);
         foreach (var message in recent)
         {
-            var text = message?.Caption ?? message?.Text;
+            var text = message == null ? null : Utils.VisibleText(message);
             if (!string.IsNullOrWhiteSpace(text))
             {
                 await _badMessageManager.MarkAsBad(text);
@@ -316,7 +316,7 @@ internal class AdminCommandHandler
                 return;
             }
             var quote = replyToMessage.Quote?.Text != null ? $"{replyToMessage.Quote.Text} " : "";
-            var text = $"{quote}{replyToMessage.Text ?? replyToMessage.Caption}";
+            var text = $"{quote}{Utils.VisibleText(replyToMessage)}";
             // same split as MessageProcessor: hidden urls go to the ML dataset and checks, auto-ban keys stay on the visible text
             var expandedText = $"{quote}{Utils.TextWithLinks(replyToMessage)}";
 
