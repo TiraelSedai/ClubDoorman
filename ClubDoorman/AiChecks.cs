@@ -62,7 +62,7 @@ internal class AiChecks
     }
 
     const string PaidModel = "google/gemini-3.5-flash-lite";
-    private const string GrokReviewModel = "x-ai/grok-4.6:floor";
+    private const string LunaReviewModel = "openai/gpt-5.6-luna:floor";
     private const string GeminiReviewModel = "google/gemini-3.8-flash:floor";
     private readonly LlmEndpoint? _paid;
     private readonly LlmEndpoint? _free;
@@ -155,12 +155,12 @@ internal class AiChecks
             try
             {
                 var review = await _hybridCache.GetOrCreateAsync(
-                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{GrokReviewModel}:{GeminiReviewModel}",
+                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{LunaReviewModel}:{GeminiReviewModel}",
                     async ct =>
                     {
                         var (messages, _) = await BuildProfileMessages(prompt, _bot, ct);
                         var results = await Task.WhenAll(
-                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = GrokReviewModel }, ct),
+                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = LunaReviewModel }, ct),
                             AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = GeminiReviewModel }, ct)
                         );
                         return new EroticReview(results[0], results[1]);
@@ -608,14 +608,14 @@ internal class AiChecks
         public EroticReview? Review { get; init; }
     }
 
-    internal sealed record EroticReview(BioClassProbability Grok, BioClassProbability Gemini)
+    internal sealed record EroticReview(BioClassProbability Luna, BioClassProbability Gemini)
     {
         public bool Confirmed =>
-            Grok.EroticProbability >= Consts.LlmEroticReviewProbability && Gemini.EroticProbability >= Consts.LlmEroticReviewProbability;
+            Luna.EroticProbability >= Consts.LlmEroticReviewProbability && Gemini.EroticProbability >= Consts.LlmEroticReviewProbability;
 
         public string Reason =>
             "Перепроверка эротического профиля:"
-            + $"\n{GrokReviewModel}: {Grok.EroticProbability:P0}. {Grok.Reason}"
+            + $"\n{LunaReviewModel}: {Luna.EroticProbability:P0}. {Luna.Reason}"
             + $"\n{GeminiReviewModel}: {Gemini.EroticProbability:P0}. {Gemini.Reason}";
     }
 

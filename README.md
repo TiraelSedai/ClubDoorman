@@ -54,7 +54,7 @@
 - `DOORMAN_LOOKALIKE_AUTOBAN_DISABLE` - отключает автобан по словам с маскирующимися символами
 - `DOORMAN_BUTTON_AUTOBAN_DISABLE` - отключает автобан сообщений с кнопками
 - `DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE` - отключает автобан по высокой уверенности ML-модели
-- `DOORMAN_EROTIC_AUTOBAN_ENABLE=1` - включает для платных чатов перепроверку эротики при оценке Flash Lite от 75% моделями `x-ai/grok-4.6:floor` и `google/gemini-3.8-flash:floor` с тем же промптом и автобан, если обе дают от 85%; по умолчанию выключен
+- `DOORMAN_EROTIC_AUTOBAN_ENABLE=1` - включает для платных чатов перепроверку эротики при оценке Flash Lite от 75% моделями `openai/gpt-5.6-luna:floor` и `google/gemini-3.8-flash:floor` с тем же промптом и автобан, если обе дают от 85%; по умолчанию выключен
 - `DOORMAN_LOW_CONFIDENCE_HAM_ENABLE` - включает отправку в админку сообщений, которые ML считает не-спамом, но с низкой уверенностью
 - `DOORMAN_APPROVED_ML_SPAM_CHECK_DISABLE` - отключает ML-проверку сообщений от уже доверенных пользователей
 
