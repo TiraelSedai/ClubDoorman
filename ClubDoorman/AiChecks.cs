@@ -62,8 +62,8 @@ internal class AiChecks
     }
 
     const string PaidModel = "openai/gpt-6-luna:floor";
-    private const string MiMoReviewModel = "xiaomi/mimo-v2.6-flash";
-    private const string QwenReviewModel = "qwen/qwen3.8-omni-flash";
+    private const string MiMoReviewModel = "xiaomi/mimo-v2.6-flash:floor";
+    private const string GlmReviewModel = "z-ai/glm-5.3-flash:floor";
     private readonly LlmEndpoint? _paid;
     private readonly LlmEndpoint? _free;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
@@ -155,13 +155,13 @@ internal class AiChecks
             try
             {
                 var review = await _hybridCache.GetOrCreateAsync(
-                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{MiMoReviewModel}:{QwenReviewModel}",
+                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{MiMoReviewModel}:{GlmReviewModel}",
                     async ct =>
                     {
                         var (messages, _) = await BuildProfileMessages(prompt, _bot, ct);
                         var results = await Task.WhenAll(
                             AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = MiMoReviewModel }, ct),
-                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = QwenReviewModel }, ct)
+                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = GlmReviewModel }, ct)
                         );
                         return new EroticReview(results[0], results[1]);
                     },
@@ -614,15 +614,15 @@ internal class AiChecks
         public EroticReview? Review { get; init; }
     }
 
-    internal sealed record EroticReview(BioClassProbability MiMo, BioClassProbability Qwen)
+    internal sealed record EroticReview(BioClassProbability MiMo, BioClassProbability Glm)
     {
         public bool Confirmed =>
-            MiMo.EroticProbability >= Consts.LlmEroticReviewProbability && Qwen.EroticProbability >= Consts.LlmEroticReviewProbability;
+            MiMo.EroticProbability >= Consts.LlmEroticReviewProbability && Glm.EroticProbability >= Consts.LlmEroticReviewProbability;
 
         public string Reason =>
             "Перепроверка эротического профиля:"
             + $"\n{MiMoReviewModel}: {MiMo.EroticProbability:P0}. {MiMo.Reason}"
-            + $"\n{QwenReviewModel}: {Qwen.EroticProbability:P0}. {Qwen.Reason}";
+            + $"\n{GlmReviewModel}: {Glm.EroticProbability:P0}. {Glm.Reason}";
     }
 
     /// <summary>Everything the profile check takes from Telegram, already fetched. Channel sections arrive as ready made text.</summary>

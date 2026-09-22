@@ -24,8 +24,8 @@ public sealed class EroticProfileReviewTests
     private const long FreeChat = -1009876543210;
     private const long AdminChat = -1001111111111;
     private const string PrimaryModel = "openai/gpt-6-luna:floor";
-    private const string MiMo = "xiaomi/mimo-v2.6-flash";
-    private const string Qwen = "qwen/qwen3.8-omni-flash";
+    private const string MiMo = "xiaomi/mimo-v2.6-flash:floor";
+    private const string Glm = "z-ai/glm-5.3-flash:floor";
     private static long _nextUserId = 1000;
     private readonly Dictionary<string, string?> _previousEnvironment = [];
     private readonly ConcurrentQueue<JsonElement> _llmRequests = new();
@@ -70,7 +70,7 @@ public sealed class EroticProfileReviewTests
         _telegramRequests.Clear();
         _scores[PrimaryModel] = 0.75;
         _scores[MiMo] = 0.85;
-        _scores[Qwen] = 0.85;
+        _scores[Glm] = 0.85;
         _gamblingScore = 0;
         _nonPersonScore = 0;
         _selfPromotionScore = 0;
@@ -172,16 +172,16 @@ public sealed class EroticProfileReviewTests
     [TestCase(0.849, 1, false)]
     [TestCase(1, 0.849, false)]
     [TestCase(0.75, 0.75, false)]
-    public async Task BothReviewersMustReachReviewProbability(double mimo, double qwen, bool confirmed)
+    public async Task BothReviewersMustReachReviewProbability(double mimo, double glm, bool confirmed)
     {
         _scores[MiMo] = mimo;
-        _scores[Qwen] = qwen;
+        _scores[Glm] = glm;
         var verdict = await Check();
         using (Assert.EnterMultipleScope())
         {
             Assert.That(verdict.Review, Is.Not.Null);
             Assert.That(verdict.Review!.Confirmed, Is.EqualTo(confirmed));
-            Assert.That(_llmRequests.Select(x => x.GetProperty("model").GetString()), Is.EquivalentTo(new[] { PrimaryModel, MiMo, Qwen }));
+            Assert.That(_llmRequests.Select(x => x.GetProperty("model").GetString()), Is.EquivalentTo(new[] { PrimaryModel, MiMo, Glm }));
         }
     }
 
@@ -286,7 +286,7 @@ public sealed class EroticProfileReviewTests
             Assert.That(_llmRequests, Has.Count.EqualTo(3));
             Assert.That(second.Review?.Confirmed, Is.EqualTo(first.Review!.Confirmed));
             Assert.That(second.Review?.MiMo.EroticProbability, Is.EqualTo(mimo));
-            Assert.That(second.Review?.Qwen.EroticProbability, Is.EqualTo(0.85));
+            Assert.That(second.Review?.Glm.EroticProbability, Is.EqualTo(0.85));
             Assert.That(second.Review?.Reason, Is.EqualTo(first.Review.Reason));
         }
         _profile.Bio = "Changed profile";
@@ -295,7 +295,7 @@ public sealed class EroticProfileReviewTests
     }
 
     [TestCase(MiMo)]
-    [TestCase(Qwen)]
+    [TestCase(Glm)]
     public async Task FailedReviewerPreservesInitialVerdict_AndRetriesNextTime(string failedModel)
     {
         _failedModel = failedModel;
@@ -311,7 +311,7 @@ public sealed class EroticProfileReviewTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(retried.Review?.Confirmed, Is.True);
-            Assert.That(_llmRequests.Select(x => x.GetProperty("model").GetString()), Is.EquivalentTo(new[] { MiMo, Qwen }));
+            Assert.That(_llmRequests.Select(x => x.GetProperty("model").GetString()), Is.EquivalentTo(new[] { MiMo, Glm }));
         }
     }
 
@@ -396,7 +396,7 @@ public sealed class EroticProfileReviewTests
             if (ban)
             {
                 Assert.That(_telegramRequests.Single(x => x.Method == "banChatMember").Body, Does.Contain(_user.Id.ToString()));
-                Assert.That(_telegramRequests.Single(x => x.Method == "sendMessage").Body, Does.Contain(MiMo).And.Contain(Qwen));
+                Assert.That(_telegramRequests.Single(x => x.Method == "sendMessage").Body, Does.Contain(MiMo).And.Contain(Glm));
                 Assert.That(_services.GetRequiredService<StatisticsReporter>().Stats[PaidChat].Autoban, Is.EqualTo(1));
             }
         }
@@ -404,9 +404,9 @@ public sealed class EroticProfileReviewTests
 
     [TestCase(0.85, true)]
     [TestCase(0.849, false)]
-    public async Task Reaction_BansOnlyOnAgreement(double qwen, bool ban)
+    public async Task Reaction_BansOnlyOnAgreement(double glm, bool ban)
     {
-        _scores[Qwen] = qwen;
+        _scores[Glm] = glm;
         await _services
             .GetRequiredService<ReactionHandler>()
             .HandleReaction(
@@ -426,7 +426,7 @@ public sealed class EroticProfileReviewTests
             Assert.That(_telegramRequests.Any(x => x.Method == "sendMessage"), Is.True);
             Assert.That(_telegramRequests.Any(x => x.Method == "deleteMessage"), Is.False);
             if (ban)
-                Assert.That(_telegramRequests.Single(x => x.Method == "sendMessage").Body, Does.Contain(MiMo).And.Contain(Qwen));
+                Assert.That(_telegramRequests.Single(x => x.Method == "sendMessage").Body, Does.Contain(MiMo).And.Contain(Glm));
         }
     }
 
