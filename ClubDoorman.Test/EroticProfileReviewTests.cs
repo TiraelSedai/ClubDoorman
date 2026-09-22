@@ -206,6 +206,8 @@ public sealed class EroticProfileReviewTests
             Assert.That(verdict.Review?.Confirmed, Is.True);
             Assert.That(_reviewsStarted, Is.EqualTo(2));
             Assert.That(requests, Has.Length.EqualTo(3));
+            foreach (var request in requests)
+                Assert.That(request.GetProperty("max_completion_tokens").GetInt32(), Is.EqualTo(2048));
             foreach (var request in requests.Skip(1))
             {
                 Assert.That(request.GetProperty("messages").GetRawText(), Is.EqualTo(requests[0].GetProperty("messages").GetRawText()));
@@ -218,6 +220,43 @@ public sealed class EroticProfileReviewTests
             Assert.That(verdict.Photo, Is.EqualTo(new byte[] { 1, 2, 3, 4 }));
             if (!eroticOnly)
                 Assert.That(requests[0].GetProperty("messages").GetRawText(), Does.Contain("Channel bio"));
+        }
+    }
+
+    [Test]
+    public async Task FreeProfileRequestLimitsCompletionTokens()
+    {
+        var verdict = await _checks.GetAttentionBaitProbability(FreeChat, _user, _profile);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(verdict.Probability.EroticProbability, Is.EqualTo(0.75));
+            Assert.That(_llmRequests, Has.Count.EqualTo(1));
+            Assert.That(_llmRequests.Single().GetProperty("max_completion_tokens").GetInt32(), Is.EqualTo(2048));
+        }
+    }
+
+    [TestCase(PaidChat)]
+    [TestCase(FreeChat)]
+    public async Task SpamRequestLimitsCompletionTokens(long chatId)
+    {
+        var message = new Message
+        {
+            Id = 123,
+            From = _user,
+            Chat = new Chat
+            {
+                Id = chatId,
+                Type = ChatType.Supergroup,
+                Title = "Test",
+            },
+            Text = "ordinary message with enough text",
+        };
+        var verdict = await _checks.GetSpamProbability(message);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(verdict.IsAvailable, Is.True);
+            Assert.That(_llmRequests, Has.Count.EqualTo(1));
+            Assert.That(_llmRequests.Single().GetProperty("max_completion_tokens").GetInt32(), Is.EqualTo(2048));
         }
     }
 

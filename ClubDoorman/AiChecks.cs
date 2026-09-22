@@ -63,6 +63,7 @@ internal class AiChecks
 
     const string PaidModel = "openai/gpt-6-luna:floor";
     private const string MiMoReviewModel = "xiaomi/mimo-v2.6-flash:floor";
+    private const int MaxCompletionTokens = 2048;
     private const string GlmReviewModel = "z-ai/glm-5.3-flash:floor";
     private readonly LlmEndpoint? _paid;
     private readonly LlmEndpoint? _free;
@@ -291,6 +292,7 @@ internal class AiChecks
                         messages: messages,
                         model: endpoint.Model,
                         strict: true,
+                        maxCompletionTokens: MaxCompletionTokens,
                         jsonSerializerOptions: jso,
                         cancellationToken: token
                     ),
@@ -312,6 +314,7 @@ internal class AiChecks
                     messages: messages,
                     model: endpoint.Model,
                     strict: true,
+                    maxCompletionTokens: MaxCompletionTokens,
                     jsonSerializerOptions: jso,
                     cancellationToken: token
                 ),
@@ -563,6 +566,7 @@ internal class AiChecks
                     messages: messages,
                     model: endpoint.Model,
                     strict: true,
+                    maxCompletionTokens: MaxCompletionTokens,
                     jsonSerializerOptions: jso,
                     cancellationToken: token
                 ),
