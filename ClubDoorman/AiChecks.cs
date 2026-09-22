@@ -61,9 +61,9 @@ internal class AiChecks
         return client;
     }
 
-    const string PaidModel = "google/gemini-3.5-flash-lite";
-    private const string LunaReviewModel = "openai/gpt-5.6-luna:floor";
-    private const string GeminiReviewModel = "google/gemini-3.8-flash:floor";
+    const string PaidModel = "openai/gpt-6-luna:floor";
+    private const string MiMoReviewModel = "xiaomi/mimo-v2.6-flash";
+    private const string QwenReviewModel = "qwen/qwen3.8-omni-flash";
     private readonly LlmEndpoint? _paid;
     private readonly LlmEndpoint? _free;
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
@@ -155,13 +155,13 @@ internal class AiChecks
             try
             {
                 var review = await _hybridCache.GetOrCreateAsync(
-                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{LunaReviewModel}:{GeminiReviewModel}",
+                    $"{endpoint.CacheKey(prompt.Key)}:erotic-review:{MiMoReviewModel}:{QwenReviewModel}",
                     async ct =>
                     {
                         var (messages, _) = await BuildProfileMessages(prompt, _bot, ct);
                         var results = await Task.WhenAll(
-                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = LunaReviewModel }, ct),
-                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = GeminiReviewModel }, ct)
+                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = MiMoReviewModel }, ct),
+                            AskProfileModel(prompt.EroticOnly, messages, endpoint with { Model = QwenReviewModel }, ct)
                         );
                         return new EroticReview(results[0], results[1]);
                     },
@@ -614,15 +614,15 @@ internal class AiChecks
         public EroticReview? Review { get; init; }
     }
 
-    internal sealed record EroticReview(BioClassProbability Luna, BioClassProbability Gemini)
+    internal sealed record EroticReview(BioClassProbability MiMo, BioClassProbability Qwen)
     {
         public bool Confirmed =>
-            Luna.EroticProbability >= Consts.LlmEroticReviewProbability && Gemini.EroticProbability >= Consts.LlmEroticReviewProbability;
+            MiMo.EroticProbability >= Consts.LlmEroticReviewProbability && Qwen.EroticProbability >= Consts.LlmEroticReviewProbability;
 
         public string Reason =>
             "Перепроверка эротического профиля:"
-            + $"\n{LunaReviewModel}: {Luna.EroticProbability:P0}. {Luna.Reason}"
-            + $"\n{GeminiReviewModel}: {Gemini.EroticProbability:P0}. {Gemini.Reason}";
+            + $"\n{MiMoReviewModel}: {MiMo.EroticProbability:P0}. {MiMo.Reason}"
+            + $"\n{QwenReviewModel}: {Qwen.EroticProbability:P0}. {Qwen.Reason}";
     }
 
     /// <summary>Everything the profile check takes from Telegram, already fetched. Channel sections arrive as ready made text.</summary>
