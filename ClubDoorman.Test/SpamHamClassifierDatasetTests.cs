@@ -37,6 +37,27 @@ public sealed class SpamHamClassifierDatasetTests
         Assert.That(records, Is.Empty);
     }
 
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task AddSpamHam_ReturnsPersistedRecordIdAndNormalizedText(bool spam)
+    {
+        await using var fixture = await SpamHamClassifierFixture.Create();
+        await fixture.AddRecords(new SpamHamRecord { Text = "earlier ham", IsSpam = false });
+
+        var saved = spam ? await fixture.Classifier.AddSpam("a\nb") : await fixture.Classifier.AddHam("a\nb");
+        var latest = await fixture.Classifier.GetLatestSpamHamRecords(1);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(saved.Id, Is.EqualTo(2));
+            Assert.That(saved.Text, Is.EqualTo("a b"));
+            Assert.That(saved.IsSpam, Is.EqualTo(spam));
+            Assert.That(latest.Single().Id, Is.EqualTo(saved.Id));
+            Assert.That(latest.Single().Text, Is.EqualTo("a b"));
+            Assert.That(latest.Single().IsSpam, Is.EqualTo(spam));
+        }
+    }
+
     [Test]
     public async Task DeleteSpamHamRecord_RemovesMatchingRecordAndReturnsIt()
     {

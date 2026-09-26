@@ -106,6 +106,7 @@ public sealed class EroticProfileReviewTests
         services.AddSingleton<UserManager>();
         services.AddSingleton(_telegramHttp);
         services.AddSingleton<TelegramInvitePreviews>();
+        services.AddSingleton<JevChecks>();
         services.AddSingleton(provider => new AiChecks(
             provider.GetRequiredService<ITelegramBotClient>(),
             provider.GetRequiredService<Config>(),

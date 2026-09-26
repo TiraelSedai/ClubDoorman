@@ -449,6 +449,69 @@ internal class AiChecks
         if (endpoint == null)
             return new SpamProbability();
 
+        try
+        {
+            var input = await BuildSpamInput(message);
+            return input == null
+                ? new SpamProbability()
+                : await GetCachedSpamProbability(input.Value.Prompt, input.Value.Photo, endpoint, CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            // Failed requests are not cached and must never look like a confident ham verdict.
+            _logger.Log(e is HttpRequestException ? LogLevel.Information : LogLevel.Warning, e, nameof(GetSpamProbability));
+            return new SpamProbability();
+        }
+    }
+
+    internal async Task<SpamConsensus?> GetSpamConsensus(
+        Telegram.Bot.Types.Message message,
+        JevChecks jev,
+        Task<SpamProbability>? luna,
+        CancellationToken ct
+    )
+    {
+        if (_paid == null || !jev.Enabled)
+            return null;
+
+        var input = await BuildSpamInput(message, ct);
+        if (input == null)
+            return null;
+
+        var (prompt, photo) = input.Value;
+        var jevTask = jev.GetSpamProbability($"{SpamSystemMessage}\n\n{prompt.Text}", prompt.Key, ct);
+        // Always Luna, including free chats. Paid moderation supplies its in-flight task.
+        luna ??= GetCachedSpamProbability(prompt, photo, _paid, ct).AsTask();
+        await Task.WhenAll(luna, jevTask);
+        ct.ThrowIfCancellationRequested();
+        var lunaVerdict = await luna;
+        var jevVerdict = await jevTask;
+        if (
+            !lunaVerdict.IsAvailable
+            || !double.IsFinite(lunaVerdict.Probability)
+            || lunaVerdict.Probability is < 0 or > 1
+            || jevVerdict == null
+            || jevVerdict.Confidence < 0.8
+        )
+            return null;
+
+        // Compare P(spam) directly so the inclusive 0.2 ham boundary is exact.
+        if (jevVerdict.IsSpam ? lunaVerdict.Probability < 0.8 : lunaVerdict.Probability > 0.2)
+            return null;
+
+        return new SpamConsensus(
+            jevVerdict.IsSpam,
+            jevVerdict.IsSpam ? lunaVerdict.Probability : 1 - lunaVerdict.Probability,
+            jevVerdict.Confidence,
+            lunaVerdict.Reason
+        );
+    }
+
+    private async Task<(SpamPrompt Prompt, PhotoSize? Photo)?> BuildSpamInput(
+        Telegram.Bot.Types.Message message,
+        CancellationToken ct = default
+    )
+    {
         var text = Utils.TextWithLinks(message) ?? "";
         if (message.Poll?.Question != null)
             text =
@@ -456,43 +519,39 @@ internal class AiChecks
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
 
-        if (string.IsNullOrWhiteSpace(text) && message.Photo == null)
-        {
-            _logger.LogDebug("GetSpamProbability: No text or photo to analyze, returning 0");
-            return new SpamProbability();
-        }
+        var photo = message.Photo is { Length: > 0 } ? SelectHighestQualityPhoto(message.Photo) : null;
+        if (string.IsNullOrWhiteSpace(text) && photo == null)
+            return null;
 
-        var selectedPhoto = message.Photo is { Length: > 0 } ? SelectHighestQualityPhoto(message.Photo) : null;
+        var chatInfo = await GetChatInfoAsync(message.Chat.Id, ct);
+        var linkedInfo = chatInfo?.ChannelId == null ? null : await GetLinkedChannelInfoAsync(chatInfo.ChannelId.Value, ct);
+        var prompt = BuildSpamPrompt(
+            text,
+            chatInfo?.Description,
+            linkedInfo,
+            message.ReplyToMessage == null ? null : Utils.TextWithLinks(message.ReplyToMessage),
+            message.ReplyToMessage?.IsAutomaticForward == true,
+            photo?.FileUniqueId
+        );
+        return (prompt, photo);
+    }
 
-        try
-        {
-            var chatInfo = await GetChatInfoAsync(message.Chat.Id);
-            var linkedInfo = chatInfo?.ChannelId == null ? null : await GetLinkedChannelInfoAsync(chatInfo.ChannelId.Value);
-            var prompt = BuildSpamPrompt(
-                text,
-                chatInfo?.Description,
-                linkedInfo,
-                message.ReplyToMessage == null ? null : Utils.TextWithLinks(message.ReplyToMessage),
-                message.ReplyToMessage?.IsAutomaticForward == true,
-                selectedPhoto?.FileUniqueId
-            );
-
-            var probability = await _hybridCache.GetOrCreateAsync(
-                endpoint.CacheKey(prompt.Key),
-                async ct => await AskSpamLlm(prompt.Text, selectedPhoto, endpoint, ct),
-                new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) }
-            );
-            // Availability is not serialized, so mark successful verdicts after reading from the cache.
-            probability.IsAvailable = true;
-            return probability;
-        }
-        catch (Exception e)
-        {
-            // nothing is cached when the factory throws, so the next identical message asks the model again
-            // an LLM endpoint is optional by design, so failing to reach one is routine and must not read as a fault
-            _logger.Log(e is HttpRequestException ? LogLevel.Information : LogLevel.Warning, e, nameof(GetSpamProbability));
-            return new SpamProbability();
-        }
+    private async ValueTask<SpamProbability> GetCachedSpamProbability(
+        SpamPrompt prompt,
+        PhotoSize? photo,
+        LlmEndpoint endpoint,
+        CancellationToken ct
+    )
+    {
+        var probability = await _hybridCache.GetOrCreateAsync(
+            endpoint.CacheKey(prompt.Key),
+            async token => await AskSpamLlm(prompt.Text, photo, endpoint, token),
+            new HybridCacheEntryOptions { LocalCacheExpiration = TimeSpan.FromDays(1) },
+            cancellationToken: ct
+        );
+        // Availability is not serialized, so mark successful verdicts after reading from the cache.
+        probability.IsAvailable = true;
+        return probability;
     }
 
     internal static SpamPrompt BuildSpamPrompt(
@@ -577,6 +636,8 @@ internal class AiChecks
             _logger.LogWarning("LLM GetSpamProbability resp {@Resp}", response);
             throw new InvalidOperationException("LLM returned no parsed spam verdict");
         }
+        if (!double.IsFinite(response.Value1.Probability) || response.Value1.Probability is < 0 or > 1)
+            throw new JsonException("Invalid Luna spam probability");
         _logger.LogInformation("LLM GetSpamProbability {@Prob}", response.Value1);
         return response.Value1;
     }
@@ -597,12 +658,15 @@ internal class AiChecks
 
     internal class SpamProbability()
     {
+        [JsonRequired]
         public double Probability { get; set; }
         public string Reason { get; set; } = "";
 
         [JsonIgnore]
         public bool IsAvailable { get; set; }
     }
+
+    internal sealed record SpamConsensus(bool IsSpam, double LunaConfidence, double JevConfidence, string Reason);
 
     internal sealed class BioClassProbability()
     {

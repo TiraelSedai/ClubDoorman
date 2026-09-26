@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 
 namespace ClubDoorman;
@@ -365,6 +366,47 @@ internal class AdminCommandHandler
                 }
             }
         }
+    }
+
+    public async Task AddAutomaticExample(Message message, bool spam, string reason, CancellationToken cancellationToken = default)
+    {
+        var quote = message.Quote?.Text != null ? $"{message.Quote.Text} " : "";
+        var expandedText = $"{quote}{Utils.TextWithLinks(message)}";
+        var record = spam ? await _classifier.AddSpam(expandedText) : await _classifier.AddHam(expandedText);
+
+        Message original;
+        try
+        {
+            original = await _bot.ForwardMessage(
+                _config.AdminChatId,
+                message.Chat.Id,
+                message.MessageId,
+                cancellationToken: cancellationToken
+            );
+        }
+        catch (ApiRequestException e)
+        {
+            _logger.LogInformation(e, "Cannot forward automatic spam-ham example #{RecordId}", record.Id);
+            const string truncatedSuffix = "\n[truncated]";
+            var snapshot =
+                expandedText.Length <= TelegramMessageLimit
+                    ? expandedText
+                    : $"{expandedText[..(TelegramMessageLimit - truncatedSuffix.Length)]}{truncatedSuffix}";
+            original = await _bot.SendMessage(_config.AdminChatId, snapshot, cancellationToken: cancellationToken);
+        }
+
+        var label = spam ? "спама" : "НЕ-спама";
+        var report =
+            $"Сообщение автоматически добавлено как пример {label} в датасет. Запись #{record.Id}. /undo {record.Id}"
+            + $"{Environment.NewLine}Источник: чат {message.Chat.Id}, сообщение #{message.MessageId}"
+            + $"{Environment.NewLine}Причина: ";
+        const string reportTruncatedSuffix = "\n[truncated]";
+        var maxReasonLength = TelegramMessageLimit - report.Length;
+        report +=
+            reason.Length <= maxReasonLength
+                ? reason
+                : $"{reason[..(maxReasonLength - reportTruncatedSuffix.Length)]}{reportTruncatedSuffix}";
+        await _bot.SendMessage(_config.AdminChatId, report, replyParameters: original, cancellationToken: cancellationToken);
     }
 
     private async Task SendLatestSpamHamRecords(Message message, CancellationToken cancellationToken)

@@ -74,9 +74,9 @@ public class SpamHamClassifier : IDisposable
         }
     }
 
-    public Task AddSpam(string message) => AddSpamHam(message, true);
+    public Task<SpamHamRecord> AddSpam(string message) => AddSpamHam(message, true);
 
-    public Task AddHam(string message) => AddSpamHam(message, false);
+    public Task<SpamHamRecord> AddHam(string message) => AddSpamHam(message, false);
 
     public async Task<IReadOnlyList<SpamHamRecord>> GetLatestSpamHamRecords(int count)
     {
@@ -112,15 +112,17 @@ public class SpamHamClassifier : IDisposable
         return deleted;
     }
 
-    private async Task AddSpamHam(string message, bool spam)
+    private async Task<SpamHamRecord> AddSpamHam(string message, bool spam)
     {
         message = message.ReplaceLineEndings(" ");
         using var token = await SemaphoreHelper.AwaitAsync(_datasetLock);
         using var scope = _serviceScopeFactory.CreateScope();
         await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.SpamHamRecords.Add(new SpamHamRecord { Text = message, IsSpam = spam });
+        var record = new SpamHamRecord { Text = message, IsSpam = spam };
+        db.SpamHamRecords.Add(record);
         await db.SaveChangesAsync();
         _needsRetraining = true;
+        return record;
     }
 
     private async Task Train()

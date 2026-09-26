@@ -52,6 +52,7 @@ internal class MessageProcessor
     private readonly UserManager _userManager;
     private readonly BadMessageManager _badMessageManager;
     private readonly AiChecks _aiChecks;
+    private readonly JevChecks _jevChecks;
     private readonly CaptchaManager _captchaManager;
     private readonly ConcurrentDictionary<long, int> _goodUserMessages = new();
 
@@ -86,7 +87,8 @@ internal class MessageProcessor
         HybridCache hybridCache,
         SpamDeduplicationCache spamDeduplicationCache,
         BioInviteTracker bioInviteTracker,
-        TelegramInvitePreviews invitePreviews
+        TelegramInvitePreviews invitePreviews,
+        JevChecks jevChecks
     )
     {
         _bot = bot;
@@ -105,6 +107,7 @@ internal class MessageProcessor
         _spamDeduplicationCache = spamDeduplicationCache;
         _bioInviteTracker = bioInviteTracker;
         _invitePreviews = invitePreviews;
+        _jevChecks = jevChecks;
     }
 
     public async Task HandleUpdate(Update update, CancellationToken stoppingToken)
@@ -203,18 +206,14 @@ internal class MessageProcessor
         if (_userManager.Approved(user.Id))
         {
             var approvedText = Utils.VisibleText(message);
-            if (
-                _config.ApprovedUsersMlSpamCheck
-                && !string.IsNullOrWhiteSpace(approvedText)
-                && _config.NonFreeChat(message.Chat.Id)
-                && !approvedText.Contains("http")
-            )
+            if (_config.ApprovedUsersMlSpamCheck && !string.IsNullOrWhiteSpace(approvedText) && !approvedText.Contains("http"))
             {
                 var normalized = TextProcessor.NormalizeText(Utils.TextWithLinks(message)!);
                 if (normalized.Length >= 10)
                 {
                     var (spam, score) = await _classifier.IsSpam(normalized);
-                    if (spam)
+                    _ = StartDatasetReview(message, score, useModerationLuna: false, stoppingToken);
+                    if (spam && _config.NonFreeChat(chat.Id))
                     {
                         var fwd = await _bot.ForwardMessage(
                             _config.AdminChatId,
@@ -507,6 +506,12 @@ internal class MessageProcessor
         }
         _logger.LogDebug("Normalized:\n {Norm}", normalized);
         var (spam, score) = await _classifier.IsSpam(normalized);
+        var luna = StartDatasetReview(
+            message,
+            score,
+            _config.LlmEnabled(chat.Id) && (score > Consts.ClassifierSpamScoreThreshold || message.From != null),
+            stoppingToken
+        );
         if (score > Consts.ClassifierSpamScoreThreshold)
         {
             var reason = $"ML решил что это спам, скор {score}";
@@ -517,7 +522,7 @@ internal class MessageProcessor
             }
             if (_config.LlmEnabled(chat.Id))
             {
-                var spamCheck = await _aiChecks.GetSpamProbability(message);
+                var spamCheck = luna == null ? await _aiChecks.GetSpamProbability(message) : await luna;
 
                 if (_config.MarketologsChats.Contains(chat.Id))
                 {
@@ -544,7 +549,7 @@ internal class MessageProcessor
 
         if (_config.LlmEnabled(chat.Id) && message.From != null)
         {
-            var spamCheck = await _aiChecks.GetSpamProbability(message);
+            var spamCheck = luna == null ? await _aiChecks.GetSpamProbability(message) : await luna;
             if (spamCheck.Probability >= Consts.LlmLowProbability)
             {
                 var reason = $"LLM думает что это спам {spamCheck.Probability * 100}%{Environment.NewLine}{spamCheck.Reason}";
@@ -628,6 +633,52 @@ internal class MessageProcessor
         }
 
         return CheckResult.Pass;
+    }
+
+    private Task<AiChecks.SpamProbability>? StartDatasetReview(
+        Message message,
+        float score,
+        bool useModerationLuna,
+        CancellationToken stoppingToken
+    )
+    {
+        if (!(score is > -0.5f and < 0.5f) || !_jevChecks.Enabled)
+            return null;
+
+        var luna = useModerationLuna ? _aiChecks.GetSpamProbability(message).AsTask() : null;
+        Task.Run(() => AddConsensusExample(message, score, luna, stoppingToken), stoppingToken)
+            .FireAndForget(_logger, "Background spam/ham dataset review failed");
+        return luna;
+    }
+
+    private async Task AddConsensusExample(
+        Message message,
+        float score,
+        Task<AiChecks.SpamProbability>? luna,
+        CancellationToken stoppingToken
+    )
+    {
+        try
+        {
+            var consensus = await _aiChecks.GetSpamConsensus(message, _jevChecks, luna, stoppingToken);
+            if (consensus == null)
+                return;
+
+            var label = consensus.IsSpam ? "spam" : "ham";
+            var reason =
+                $"ML score: {score}; Jev: {label} {consensus.JevConfidence:P1}; Luna: {label} {consensus.LunaConfidence:P1}."
+                + $"\nПричина Luna: {consensus.Reason}";
+            await _adminCommandHandler.AddAutomaticExample(message, consensus.IsSpam, reason, stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Spam/ham dataset review failed for chat {ChatId} message {MessageId}", message.Chat.Id, message.Id);
+        }
+        finally
+        {
+            _logger.LogDebug("Spam/ham dataset review finished for chat {ChatId} message {MessageId}", message.Chat.Id, message.Id);
+        }
     }
 
     private async Task<CheckResult> HandleEmojiOnlyMessage(Message message, CancellationToken stoppingToken)
