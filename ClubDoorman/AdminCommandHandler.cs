@@ -21,6 +21,7 @@ internal class AdminCommandHandler
     private readonly HybridCache _hybridCache;
     private readonly SpamDeduplicationCache _spamDeduplicationCache;
     private readonly ILogger<AdminCommandHandler> _logger;
+    private readonly AiChecks _aiChecks;
     private User? _me;
 
     public AdminCommandHandler(
@@ -32,7 +33,8 @@ internal class AdminCommandHandler
         RecentMessagesStorage recentMessagesStorage,
         HybridCache hybridCache,
         SpamDeduplicationCache spamDeduplicationCache,
-        ILogger<AdminCommandHandler> logger
+        ILogger<AdminCommandHandler> logger,
+        AiChecks aiChecks
     )
     {
         _bot = bot;
@@ -44,6 +46,7 @@ internal class AdminCommandHandler
         _hybridCache = hybridCache;
         _spamDeduplicationCache = spamDeduplicationCache;
         _logger = logger;
+        _aiChecks = aiChecks;
     }
 
     public async Task HandleAdminCallback(string cbData, CallbackQuery cb)
@@ -326,6 +329,9 @@ internal class AdminCommandHandler
                 {
                     case "/check":
                     {
+                        _aiChecks
+                            .LogMessageWithJev(replyToMessage, cancellationToken)
+                            .FireAndForget(_logger, nameof(AiChecks.LogMessageWithJev));
                         var emojis = SimpleFilters.TooManyEmojis(text);
                         var normalized = TextProcessor.NormalizeText(expandedText);
                         var lookalike = SimpleFilters.FindAllRussianWordsWithLookalikeSymbolsInNormalizedText(normalized);

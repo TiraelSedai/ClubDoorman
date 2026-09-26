@@ -58,11 +58,12 @@ internal class ReactionHandler
 
         var count = CountReaction($"reactions:{user.Id}");
 
-        if (count <= 1 && _config.MultiAdminChatMap.ContainsKey(chat.Id))
+        if (count <= 1)
         {
             _logger.LogDebug("Reaction number {Count} from {User} in chat {Chat}", count, Utils.FullName(user), chat.Title);
             var admChat = _config.GetAdminChat(chat.Id);
-            if (!_config.LlmEnabled(chat.Id))
+            var moderate = _config.MultiAdminChatMap.ContainsKey(chat.Id) && _config.LlmEnabled(chat.Id);
+            if (!moderate && string.IsNullOrWhiteSpace(_config.OpenRouterApi))
                 return;
             ChatFullInfo userChat;
             try
@@ -74,6 +75,9 @@ internal class ReactionHandler
                 _logger.LogWarning(e, "Unable to fetch chat info for reaction bait check");
                 return;
             }
+            _aiChecks.LogProfileWithJev(chat.Id, user, userChat).FireAndForget(_logger, nameof(AiChecks.LogProfileWithJev));
+            if (!moderate)
+                return;
             var profile = await _aiChecks.GetAttentionBaitProbability(chat.Id, user, userChat);
             if (profile.Review is { Confirmed: true } review)
             {

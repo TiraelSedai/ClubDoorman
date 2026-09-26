@@ -110,6 +110,36 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
+    [TestCase(PaidChat)]
+    [TestCase(FreeChat)]
+    public async Task JevSpamVerdict_DoesNotChangeModeration_WithoutAFreeLlmEndpoint(long chatId)
+    {
+        await using var fixture = await Fixture.Create(score: -1f, llmProbability: 0, llmAvailable: true);
+
+        var result = await fixture.Check(chatId);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fixture.JevRequests, Has.Count.EqualTo(1));
+            Assert.That(result, Is.EqualTo(CheckResult.Pass));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("restrictChatMember"));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("sendMessage"));
+            if (chatId == FreeChat)
+                Assert.That(fixture.LlmRequests, Is.Empty);
+        }
+    }
+
+    [Test]
+    public async Task PhotoWithCaption_IsNotSentToJev()
+    {
+        await using var fixture = await Fixture.Create(score: -1f, llmProbability: 0, llmAvailable: true);
+
+        await fixture.Check(FreeChat, withPhoto: true);
+
+        Assert.That(fixture.JevRequests, Is.Empty);
+    }
+
     private static void AssertReportOnly(Fixture fixture, CheckResult result)
     {
         var adminRequests = fixture.Requests.Where(x => x.Method is "forwardMessage" or "sendMessage").ToArray();
@@ -164,6 +194,7 @@ public sealed class MessageProcessorMlOverrideTests
             OpenAiClient api,
             List<(string Method, string Body)> requests,
             List<string> llmRequests,
+            List<string> jevRequests,
             float score
         )
         {
@@ -175,11 +206,13 @@ public sealed class MessageProcessorMlOverrideTests
             _api = api;
             Requests = requests;
             LlmRequests = llmRequests;
+            JevRequests = jevRequests;
             _score = score;
         }
 
         public List<(string Method, string Body)> Requests { get; }
         public List<string> LlmRequests { get; }
+        public List<string> JevRequests { get; }
 
         public static async Task<Fixture> Create(float score, double llmProbability, bool llmAvailable)
         {
@@ -192,6 +225,7 @@ public sealed class MessageProcessorMlOverrideTests
                 ["DOORMAN_FREE_LLM_URL"] = null,
                 ["DOORMAN_FREE_LLM_MODEL"] = null,
                 ["DOORMAN_FREE_LLM_API"] = null,
+                ["DOORMAN_FREE_LLM_DISABLE"] = FreeChat.ToString(),
                 ["DOORMAN_CLUB_SERVICE_TOKEN"] = null,
                 ["DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE"] = null,
                 ["DOORMAN_CHANNEL_MARKETOLOGY_EXCLUSION"] = null,
@@ -206,6 +240,7 @@ public sealed class MessageProcessorMlOverrideTests
             await db.OpenAsync();
             var requests = new List<(string Method, string Body)>();
             var llmRequests = new List<string>();
+            var jevRequests = new List<string>();
             var telegramHttp = new HttpClient(
                 new Handler(
                     async (request, ct) =>
@@ -222,6 +257,20 @@ public sealed class MessageProcessorMlOverrideTests
                     async (request, ct) =>
                     {
                         var requestBody = await request.Content!.ReadAsStringAsync(ct);
+                        if (request.RequestUri!.AbsolutePath == "/api/alpha/decisions")
+                        {
+                            jevRequests.Add(requestBody);
+                            return new HttpResponseMessage(HttpStatusCode.OK)
+                            {
+                                Content = new StringContent(
+                                    """
+                                    {"model":"typesafe/jev-test","answers":{"spam":{"type":"choice","choice":"spam","confidence":1,"probabilities":{"spam":1,"not_spam":0}}}}
+                                    """,
+                                    Encoding.UTF8,
+                                    "application/json"
+                                ),
+                            };
+                        }
                         llmRequests.Add(requestBody);
                         if (!llmAvailable)
                             throw new HttpRequestException("test LLM outage");
@@ -263,6 +312,12 @@ public sealed class MessageProcessorMlOverrideTests
             services.AddSingleton<UserManager>();
             services.AddSingleton(telegramHttp);
             services.AddSingleton<TelegramInvitePreviews>();
+            services.AddSingleton(provider => new JevChecks(
+                llmHttp,
+                provider.GetRequiredService<Config>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<JevChecks>>(),
+                provider.GetRequiredService<HybridCache>()
+            ));
             services.AddSingleton(provider => new AiChecks(
                 provider.GetRequiredService<ITelegramBotClient>(),
                 provider.GetRequiredService<Config>(),
@@ -270,6 +325,7 @@ public sealed class MessageProcessorMlOverrideTests
                 provider.GetRequiredService<UserManager>(),
                 NullLogger<AiChecks>.Instance,
                 provider.GetRequiredService<TelegramInvitePreviews>(),
+                provider.GetRequiredService<JevChecks>(),
                 api,
                 null
             ));
@@ -297,12 +353,23 @@ public sealed class MessageProcessorMlOverrideTests
             if (config.MultiAdminChatMap.Count == 0)
                 throw new InvalidOperationException("test admin chat map did not initialize");
 
-            var result = new Fixture(previousEnvironment, db, serviceProvider, telegramHttp, llmHttp, api, requests, llmRequests, score);
+            var result = new Fixture(
+                previousEnvironment,
+                db,
+                serviceProvider,
+                telegramHttp,
+                llmHttp,
+                api,
+                requests,
+                llmRequests,
+                jevRequests,
+                score
+            );
             result.InstallClassifierScore(serviceProvider.GetRequiredService<SpamHamClassifier>());
             return result;
         }
 
-        public async Task<CheckResult> Check(long chatId)
+        public async Task<CheckResult> Check(long chatId, bool withPhoto = false)
         {
             var processor = _services.GetRequiredService<MessageProcessor>();
             var message = new Message
@@ -316,6 +383,18 @@ public sealed class MessageProcessorMlOverrideTests
                     Type = ChatType.Supergroup,
                 },
                 Text = "ordinary message with enough text",
+                Photo = withPhoto
+                    ?
+                    [
+                        new PhotoSize
+                        {
+                            FileId = "photo",
+                            FileUniqueId = "photo-unique",
+                            Width = 100,
+                            Height = 100,
+                        },
+                    ]
+                    : null,
             };
             var method = typeof(MessageProcessor).GetMethod("CheckMessageContent", BindingFlags.Instance | BindingFlags.NonPublic)!;
             var result =

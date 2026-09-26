@@ -22,12 +22,14 @@ internal class AiChecks
         UserManager userManager,
         ILogger<AiChecks> logger,
         TelegramInvitePreviews invitePreviews,
+        JevChecks jevChecks,
         OpenAiClient? paidApi = null,
         OpenAiClient? freeApi = null
     )
     {
         _bot = bot;
         _profileInputCollector = new ProfileInputCollector(bot, logger, invitePreviews);
+        _jevChecks = jevChecks;
         _config = config;
         _hybridCache = hybridCache;
         _userManager = userManager;
@@ -70,6 +72,7 @@ internal class AiChecks
     private readonly JsonSerializerOptions jso = new() { Converters = { new JsonStringEnumConverter() } };
     private readonly ITelegramBotClient _bot;
     private readonly ProfileInputCollector _profileInputCollector;
+    private readonly JevChecks _jevChecks;
     private readonly Config _config;
     private readonly HybridCache _hybridCache;
     private readonly UserManager _userManager;
@@ -443,18 +446,72 @@ internal class AiChecks
         }
     }
 
-    public async ValueTask<SpamProbability> GetSpamProbability(Telegram.Bot.Types.Message message)
+    public async Task LogMessageWithJev(Telegram.Bot.Types.Message message, CancellationToken ct = default)
     {
-        var endpoint = EndpointFor(message.Chat.Id);
-        if (endpoint == null)
-            return new SpamProbability();
+        if (!_jevChecks.Enabled || message.Photo is { Length: > 0 })
+            return;
+        var text = SpamText(message);
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+        var prompt = await MessageSpamPrompt(message, text, null, ct);
+        await _jevChecks.LogSpam(prompt.Text, prompt.Key, message.Chat.Id, message.Id, ct);
+    }
 
+    public async Task LogProfileWithJev(long chatId, Telegram.Bot.Types.User user, ChatFullInfo userChat, CancellationToken ct = default)
+    {
+        if (!_jevChecks.Enabled || userChat.Photo != null || await _userManager.IsHalfApproved(user.Id))
+            return;
+        var inputs = await _profileInputCollector.Collect(user, userChat, ct);
+        var prompt = RenderProfilePrompt(inputs);
+        if (prompt.Sections.Any(section => section.PhotoBigFileId != null || section.PhotoBytes != null || section.PhotoUniqueId != null))
+            return;
+        await _jevChecks.LogProfile(
+            string.Join('\n', prompt.Sections.Select(section => section.Text)),
+            prompt.Key,
+            prompt.EroticOnly,
+            chatId,
+            user.Id,
+            ct
+        );
+    }
+
+    private static string SpamText(Telegram.Bot.Types.Message message)
+    {
         var text = Utils.TextWithLinks(message) ?? "";
         if (message.Poll?.Question != null)
             text =
                 $"Опрос: {message.Poll.Question}{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", message.Poll.Options.Select(o => o.Text))}";
         if (message.Quote?.Text != null)
             text = $"> {message.Quote.Text}{Environment.NewLine}{text}";
+        return text;
+    }
+
+    private async Task<SpamPrompt> MessageSpamPrompt(
+        Telegram.Bot.Types.Message message,
+        string text,
+        string? photoUniqueId,
+        CancellationToken ct = default
+    )
+    {
+        var chatInfo = await GetChatInfoAsync(message.Chat.Id, ct);
+        var linkedInfo = chatInfo?.ChannelId == null ? null : await GetLinkedChannelInfoAsync(chatInfo.ChannelId.Value, ct);
+        return BuildSpamPrompt(
+            text,
+            chatInfo?.Description,
+            linkedInfo,
+            message.ReplyToMessage == null ? null : Utils.TextWithLinks(message.ReplyToMessage),
+            message.ReplyToMessage?.IsAutomaticForward == true,
+            photoUniqueId
+        );
+    }
+
+    public async ValueTask<SpamProbability> GetSpamProbability(Telegram.Bot.Types.Message message)
+    {
+        var endpoint = EndpointFor(message.Chat.Id);
+        if (endpoint == null)
+            return new SpamProbability();
+
+        var text = SpamText(message);
 
         if (string.IsNullOrWhiteSpace(text) && message.Photo == null)
         {
@@ -466,16 +523,7 @@ internal class AiChecks
 
         try
         {
-            var chatInfo = await GetChatInfoAsync(message.Chat.Id);
-            var linkedInfo = chatInfo?.ChannelId == null ? null : await GetLinkedChannelInfoAsync(chatInfo.ChannelId.Value);
-            var prompt = BuildSpamPrompt(
-                text,
-                chatInfo?.Description,
-                linkedInfo,
-                message.ReplyToMessage == null ? null : Utils.TextWithLinks(message.ReplyToMessage),
-                message.ReplyToMessage?.IsAutomaticForward == true,
-                selectedPhoto?.FileUniqueId
-            );
+            var prompt = await MessageSpamPrompt(message, text, selectedPhoto?.FileUniqueId);
 
             var probability = await _hybridCache.GetOrCreateAsync(
                 endpoint.CacheKey(prompt.Key),

@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -29,6 +31,8 @@ public sealed class EroticProfileReviewTests
     private static long _nextUserId = 1000;
     private readonly Dictionary<string, string?> _previousEnvironment = [];
     private readonly ConcurrentQueue<JsonElement> _llmRequests = new();
+    private readonly ConcurrentQueue<JsonElement> _jevRequests = new();
+    private ChatPhoto? _channelPhoto;
     private readonly List<(string Method, string Body)> _telegramRequests = [];
     private readonly Dictionary<string, double> _scores = [];
     private double _gamblingScore;
@@ -67,6 +71,8 @@ public sealed class EroticProfileReviewTests
             Environment.SetEnvironmentVariable(key, value);
         }
         _llmRequests.Clear();
+        _jevRequests.Clear();
+        _channelPhoto = null;
         _telegramRequests.Clear();
         _scores[PrimaryModel] = 0.75;
         _scores[MiMo] = 0.85;
@@ -106,6 +112,12 @@ public sealed class EroticProfileReviewTests
         services.AddSingleton<UserManager>();
         services.AddSingleton(_telegramHttp);
         services.AddSingleton<TelegramInvitePreviews>();
+        services.AddSingleton(provider => new JevChecks(
+            _llmHttp,
+            provider.GetRequiredService<Config>(),
+            NullLogger<JevChecks>.Instance,
+            provider.GetRequiredService<HybridCache>()
+        ));
         services.AddSingleton(provider => new AiChecks(
             provider.GetRequiredService<ITelegramBotClient>(),
             provider.GetRequiredService<Config>(),
@@ -113,6 +125,7 @@ public sealed class EroticProfileReviewTests
             provider.GetRequiredService<UserManager>(),
             NullLogger<AiChecks>.Instance,
             provider.GetRequiredService<TelegramInvitePreviews>(),
+            provider.GetRequiredService<JevChecks>(),
             _api,
             _api
         ));
@@ -383,6 +396,7 @@ public sealed class EroticProfileReviewTests
             _services.GetRequiredService<UserManager>(),
             NullLogger<AiChecks>.Instance,
             _services.GetRequiredService<TelegramInvitePreviews>(),
+            _services.GetRequiredService<JevChecks>(),
             _api,
             _api
         );
@@ -469,6 +483,94 @@ public sealed class EroticProfileReviewTests
         }
     }
 
+    [TestCase(PaidChat)]
+    [TestCase(FreeChat)]
+    public async Task TextOnlyProfile_IsObservedWithoutModeration(long chatId)
+    {
+        await _checks.LogProfileWithJev(chatId, _user, _profile);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(_jevRequests, Has.Count.EqualTo(1));
+            Assert.That(_llmRequests, Is.Empty);
+            Assert.That(_telegramRequests, Is.Empty);
+        }
+    }
+
+    [TestCase("avatar")]
+    [TestCase("linked")]
+    [TestCase("mentioned")]
+    [TestCase("invite")]
+    public async Task ProfileWithAnyImage_IsNotSentToJev(string source)
+    {
+        var photo = new ChatPhoto
+        {
+            BigFileId = "avatar",
+            BigFileUniqueId = "avatar-unique",
+            SmallFileId = "small",
+            SmallFileUniqueId = "small-unique",
+        };
+        switch (source)
+        {
+            case "avatar":
+                _profile.Photo = photo;
+                break;
+            case "linked":
+                _profile.LinkedChatId = -1002222222222;
+                _channelPhoto = photo;
+                break;
+            case "mentioned":
+                _profile.Bio = "Join @example_channel";
+                _channelPhoto = photo;
+                break;
+            case "invite":
+                _profile.Bio = "Join https://t.me/+JevImageInvite";
+                using (var image = new Image<Rgba32>(2, 2, SixLabors.ImageSharp.Color.Red))
+                using (var stream = new MemoryStream())
+                {
+                    image.SaveAsPng(stream);
+                    await _services
+                        .GetRequiredService<HybridCache>()
+                        .SetAsync<TelegramInviteContent?>(
+                            "invite-preview:JevImageInvite",
+                            new TelegramInviteContent("Channel", "Description", stream.ToArray())
+                        );
+                }
+                break;
+        }
+
+        await _checks.LogProfileWithJev(FreeChat, _user, _profile);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(_jevRequests, Is.Empty);
+            Assert.That(_telegramRequests.Any(x => x.Method == "getFile"), Is.False);
+        }
+    }
+
+    [Test]
+    public async Task FreeReaction_JevPositiveProfile_DoesNotWarnOrBan()
+    {
+        await _services
+            .GetRequiredService<ReactionHandler>()
+            .HandleReaction(
+                new MessageReactionUpdated
+                {
+                    Chat = new Chat { Id = FreeChat, Type = ChatType.Supergroup },
+                    User = _user,
+                    MessageId = 123,
+                    NewReaction = [new ReactionTypeEmoji { Emoji = "\U0001F44D" }],
+                }
+            );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(_jevRequests, Has.Count.EqualTo(1));
+            Assert.That(_llmRequests, Is.Empty);
+            Assert.That(_telegramRequests.Select(x => x.Method), Is.EqualTo(new[] { "getChat" }));
+        }
+    }
+
     private ValueTask<AiChecks.SpamPhotoBio> Check() => _checks.GetAttentionBaitProbability(PaidChat, _user, _profile);
 
     private static Chat PaidGroup() =>
@@ -483,6 +585,25 @@ public sealed class EroticProfileReviewTests
     {
         using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
         var root = body.RootElement;
+        if (request.RequestUri!.AbsolutePath == "/api/alpha/decisions")
+        {
+            _jevRequests.Enqueue(root.Clone());
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """
+                    {"model":"typesafe/jev-test","answers":{
+                      "erotic":{"type":"choice","choice":"present","probabilities":{"present":1,"absent":0}},
+                      "gambling":{"type":"choice","choice":"present","probabilities":{"present":1,"absent":0}},
+                      "nonperson":{"type":"choice","choice":"present","probabilities":{"present":1,"absent":0}},
+                      "selfpromotion":{"type":"choice","choice":"present","probabilities":{"present":1,"absent":0}}
+                    }}
+                    """,
+                    Encoding.UTF8,
+                    "application/json"
+                ),
+            };
+        }
         _llmRequests.Enqueue(root.Clone());
         var model = root.GetProperty("model").GetString()!;
         if (model == _failedModel)
@@ -560,6 +681,9 @@ public sealed class EroticProfileReviewTests
                                 type = "channel",
                                 title = "Channel",
                                 description = "Channel bio",
+                                photo = _channelPhoto == null
+                                    ? (JsonElement?)null
+                                    : JsonSerializer.SerializeToElement(_channelPhoto, Telegram.Bot.JsonBotAPI.Options),
                             }
                         ),
                 }
