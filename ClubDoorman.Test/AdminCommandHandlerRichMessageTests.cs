@@ -21,9 +21,6 @@ public sealed class AdminCommandHandlerRichMessageTests
             ["DOORMAN_ADMIN_CHAT"] = "1",
             ["DOORMAN_ADMIN_CHAT_MAP"] = null,
             ["DOORMAN_CLUB_SERVICE_TOKEN"] = null,
-            ["DOORMAN_OPENROUTER_API"] = null,
-            ["DOORMAN_FREE_LLM_URL"] = null,
-            ["DOORMAN_FREE_LLM_MODEL"] = null,
         };
         var previous = environment.Keys.ToDictionary(key => key, Environment.GetEnvironmentVariable);
         try
@@ -50,10 +47,6 @@ public sealed class AdminCommandHandlerRichMessageTests
                 SpamHamClassifierStartupMode.SkipBackgroundTraining
             ));
             services.AddSingleton<AdminCommandHandler>();
-            services.AddSingleton(http);
-            services.AddSingleton<TelegramInvitePreviews>();
-            services.AddSingleton<JevChecks>();
-            services.AddSingleton<AiChecks>();
             await using var provider = services.BuildServiceProvider();
             using (var scope = provider.CreateScope())
                 await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreatedAsync();

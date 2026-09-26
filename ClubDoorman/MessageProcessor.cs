@@ -213,7 +213,6 @@ internal class MessageProcessor
                 var normalized = TextProcessor.NormalizeText(Utils.TextWithLinks(message)!);
                 if (normalized.Length >= 10)
                 {
-                    _aiChecks.LogMessageWithJev(message, stoppingToken).FireAndForget(_logger, nameof(AiChecks.LogMessageWithJev));
                     var (spam, score) = await _classifier.IsSpam(normalized);
                     if (spam)
                     {
@@ -316,7 +315,6 @@ internal class MessageProcessor
 
         if (message.ReplyMarkup != null)
         {
-            _aiChecks.LogMessageWithJev(message, stoppingToken).FireAndForget(_logger, nameof(AiChecks.LogMessageWithJev));
             _logger.LogDebug("Buttons");
             await (
                 _config.ButtonAutoBan
@@ -387,7 +385,6 @@ internal class MessageProcessor
         CancellationToken stoppingToken
     )
     {
-        _aiChecks.LogMessageWithJev(message, stoppingToken).FireAndForget(_logger, nameof(AiChecks.LogMessageWithJev));
         if (string.IsNullOrWhiteSpace(text))
         {
             _logger.LogDebug("Empty text/caption");
@@ -669,9 +666,6 @@ internal class MessageProcessor
             _logger.LogWarning(e, "Unable to fetch chat info for bio check");
             return (CheckResult.Pass, null);
         }
-        _aiChecks
-            .LogProfileWithJev(message.Chat.Id, user, userChat, stoppingToken)
-            .FireAndForget(_logger, nameof(AiChecks.LogProfileWithJev));
         var bio = userChat.Bio;
         if (string.IsNullOrEmpty(bio))
             return (CheckResult.Pass, userChat);
@@ -727,9 +721,6 @@ internal class MessageProcessor
                     return;
                 }
                 // changedChat is the snapshot the watcher just fetched, so the re-check sees the new profile
-                _aiChecks
-                    .LogProfileWithJev(message.Chat.Id, message.From, changedChat, stoppingToken)
-                    .FireAndForget(_logger, nameof(AiChecks.LogProfileWithJev));
                 var (ascore, _, _) = await _aiChecks.GetAttentionBaitProbability(
                     message.Chat.Id,
                     message.From,

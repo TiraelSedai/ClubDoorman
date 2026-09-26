@@ -47,7 +47,6 @@ public class Program
             builder.Services.AddSingleton<ReactionHandler>();
             builder.Services.AddSingleton<BadMessageManager>();
             builder.Services.AddSingleton<AiChecks>();
-            builder.Services.AddSingleton<JevChecks>();
             builder.Services.AddSingleton<RecentMessagesStorage>();
             builder.Services.AddSingleton<SpamDeduplicationCache>();
             builder.Services.AddSingleton(TimeProvider.System);

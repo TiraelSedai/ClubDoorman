@@ -58,7 +58,7 @@ internal class Config
 
     public bool NonFreeChat(long chatId) => MultiAdminChatMap.Count == 0 || MultiAdminChatMap.ContainsKey(chatId);
 
-    // Paid LLM moderation is restricted to paying chats; log-only Jev checks use the same key in every chat.
+    // free chats do not pay for the bot, so they do not get to spend tokens either
     public bool LlmEnabled(long chatId) => OpenRouterApi != null && NonFreeChat(chatId);
 
     // ...they get their own endpoint instead, if there is one: slow, dumb, and allowed to warn but never to ban
