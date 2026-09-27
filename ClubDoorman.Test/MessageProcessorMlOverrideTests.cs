@@ -26,6 +26,34 @@ public sealed class MessageProcessorMlOverrideTests
     private const long FreeChat = -1009876543210;
     private const long AdminChat = -1001111111111;
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task PollUpdate_UsesSpamChecksInsteadOfEmptyTextReport(bool edited)
+    {
+        await using var fixture = await Fixture.Create(score: 2f, llmProbability: 0.2, llmAvailable: true);
+
+        await fixture.CheckPoll(edited);
+
+        var reports = fixture
+            .Requests.Where(x => x.Method == "sendMessage")
+            .Select(x =>
+            {
+                using var body = JsonDocument.Parse(x.Body);
+                return body.RootElement.GetProperty("text").GetString();
+            })
+            .ToArray();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Contain("deleteMessage"));
+            Assert.That(reports, Is.Not.Empty);
+            Assert.That(reports, Has.None.Contains("пустое сообщение/подпись"));
+            Assert.That(fixture.LlmRequests, Has.Count.EqualTo(1));
+        }
+        using var request = JsonDocument.Parse(fixture.LlmRequests.Single());
+        var prompt = request.RootElement.GetProperty("messages").EnumerateArray().Last().GetProperty("content").GetString();
+        Assert.That(prompt, Does.Contain("[ опрос ] https://t.me/+example joined?\n- option one\n- option two"));
+    }
+
     [TestCase(0.300001f, 0.0)]
     [TestCase(0.5f, 0.1)]
     public async Task PaidClassifierScoreInStrictOverrideBand_AndAvailableLlmAtOrBelowTenPercent_IsReportedWithoutDeletion(
@@ -574,6 +602,30 @@ public sealed class MessageProcessorMlOverrideTests
                         [message, _user, message.Text!, message.Text!, message.Text!, message.Chat, CancellationToken.None]
                     )!;
             return await result;
+        }
+
+        public async Task CheckPoll(bool edited)
+        {
+            await _services.GetRequiredService<HybridCache>().SetAsync($"user:banned:{_user.Id}", false);
+            var message = new Message
+            {
+                Id = 126,
+                From = _user,
+                Chat = new Chat
+                {
+                    Id = PaidChat,
+                    Title = "Paid",
+                    Type = ChatType.Supergroup,
+                },
+                Poll = new Poll
+                {
+                    Id = "123",
+                    Question = "https://t.me/+example joined?",
+                    Options = [new PollOption { Text = "option one" }, new PollOption { Text = "option two" }],
+                },
+            };
+            var update = edited ? new Update { EditedMessage = message } : new Update { Message = message };
+            await _services.GetRequiredService<MessageProcessor>().HandleUpdate(update, CancellationToken.None);
         }
 
         public async Task CheckApproved(long chatId)

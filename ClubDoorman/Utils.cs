@@ -59,7 +59,18 @@ internal static class Utils
     }
 
     public static string? VisibleText(Message message) =>
-        message.Text ?? message.Caption ?? (message.RichMessage is { } rich ? RichMessageText(rich, false) : null);
+        message.Text
+        ?? message.Caption
+        ?? (message.RichMessage is { } rich ? RichMessageText(rich, false) : null)
+        ?? (message.Poll is { } poll ? PollText(poll) : null);
+
+    private static string PollText(Poll poll)
+    {
+        var result = new StringBuilder("[ опрос ] ").Append(poll.Question);
+        foreach (var option in poll.Options)
+            result.Append("\n- ").Append(option.Text);
+        return result.ToString();
+    }
 
     private static string RichMessageText(RichMessage message, bool includeLinks)
     {
@@ -97,7 +108,7 @@ internal static class Utils
     {
         if (message.Text == null && message.Caption == null && message.RichMessage is { } rich)
             return RichMessageText(rich, true);
-        var text = message.Text ?? message.Caption;
+        var text = VisibleText(message);
         var entities = message.Text != null ? message.Entities : message.CaptionEntities;
         if (text == null || entities == null)
             return text;
