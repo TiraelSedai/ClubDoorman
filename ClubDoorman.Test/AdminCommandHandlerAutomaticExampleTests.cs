@@ -49,7 +49,7 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             Assert.That(Body(calls[0]).GetProperty("message_id").GetInt32(), Is.EqualTo(73));
             Assert.That(Body(calls[1]).GetProperty("reply_parameters").GetProperty("message_id").GetInt32(), Is.EqualTo(301));
             Assert.That(Body(calls[1]).GetProperty("parse_mode").GetString(), Is.EqualTo("MarkdownV2"));
-            var label = spam ? "СПАМА" : @"НЕ\-СПАМА";
+            var label = spam ? "СПАМА" : @"НЕ\-спама";
             Assert.That(
                 report,
                 Is.EqualTo(
@@ -141,7 +141,7 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             Assert.That(sends[0], Does.Contain("https://example.org/campaign"));
             const string suffix = "\n[truncated]";
             var plainHeader =
-                "Сообщение автоматически добавлено как пример НЕ-СПАМА в датасет. Запись #2. /undo 2"
+                "Сообщение автоматически добавлено как пример НЕ-спама в датасет. Запись #2. /undo 2"
                 + $"{Environment.NewLine}Источник: чат без названия{Environment.NewLine}Причина: ";
             var keptReason = new string(reasonCharacter, 4096 - plainHeader.Length - suffix.Length);
             var escapedReason =
@@ -149,7 +149,7 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             Assert.That(
                 sends[1],
                 Is.EqualTo(
-                    @"Сообщение автоматически добавлено как пример НЕ\-СПАМА в датасет\. Запись \#2\. `/undo 2`"
+                    @"Сообщение автоматически добавлено как пример НЕ\-спама в датасет\. Запись \#2\. `/undo 2`"
                         + $"{Environment.NewLine}Источник: чат без названия{Environment.NewLine}Причина: {escapedReason}\n\\[truncated\\]"
                 )
             );

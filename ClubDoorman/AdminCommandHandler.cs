@@ -397,7 +397,7 @@ internal class AdminCommandHandler
             original = await _bot.SendMessage(_config.AdminChatId, snapshot, cancellationToken: cancellationToken);
         }
 
-        var label = spam ? "СПАМА" : "НЕ-СПАМА";
+        var label = spam ? "СПАМА" : "НЕ-спама";
         var undoCommand = $"/undo {record.Id}";
         var report =
             $"Сообщение автоматически добавлено как пример {label} в датасет. Запись #{record.Id}. {undoCommand}"
