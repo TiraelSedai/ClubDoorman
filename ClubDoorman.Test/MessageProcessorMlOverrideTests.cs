@@ -166,6 +166,114 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task LowConfidenceHam_ConfidentAgreement_DoesNotRequestManualDatasetReview(bool delayJev)
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var fixture = await Fixture.Create(
+            -0.3917967f,
+            0.01,
+            true,
+            "not_spam",
+            1,
+            jevRelease: delayJev ? release.Task : null,
+            lowConfidenceHamForward: true
+        );
+
+        try
+        {
+            var result = await fixture.Check(PaidChat).WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.That(result, Is.EqualTo(CheckResult.Pass));
+            if (delayJev)
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(fixture.ReviewCompleted.Task.IsCompleted, Is.False);
+                    Assert.That(fixture.Requests.Where(x => x.Method is "forwardMessage" or "sendMessage"), Is.Empty);
+                }
+            }
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That((await fixture.Records()).Single().IsSpam, Is.False);
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(1));
+            Assert.That(RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")), Does.Not.Contain("конфиденс низкий"));
+        }
+    }
+
+    [TestCase(0.01, true, "spam")]
+    [TestCase(0.3, true, "not_spam")]
+    [TestCase(0.01, true, null)]
+    [TestCase(0, false, "not_spam")]
+    public async Task LowConfidenceHam_WithoutConsensus_StillRequestsManualDatasetReview(
+        double lunaProbability,
+        bool lunaAvailable,
+        string? jevLabel
+    )
+    {
+        await using var fixture = await Fixture.Create(
+            -0.3917967f,
+            lunaProbability,
+            lunaAvailable,
+            jevLabel,
+            lowConfidenceHamForward: true
+        );
+
+        var result = await fixture.Check(PaidChat);
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.Pass));
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")), Does.Contain("конфиденс низкий"));
+        }
+    }
+
+    [Test]
+    public async Task LowConfidenceHam_LunaReportsSpam_DoesNotRequestHamDatasetReview()
+    {
+        await using var fixture = await Fixture.Create(-0.3917967f, 0.75, true, "not_spam", lowConfidenceHamForward: true);
+
+        var result = await fixture.Check(PaidChat);
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.Suspicious));
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")), Does.Not.Contain("конфиденс низкий"));
+        }
+    }
+
+    [Test]
+    public async Task LowConfidenceHam_ModelsDisabled_StillRequestsManualDatasetReview()
+    {
+        await using var fixture = await Fixture.Create(-0.3917967f, 0.01, true, lowConfidenceHamForward: true, modelsEnabled: false);
+
+        var result = await fixture.Check(PaidChat);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.Pass));
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(fixture.LlmRequests, Is.Empty);
+            Assert.That(fixture.JevRequests, Is.Empty);
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")), Does.Contain("конфиденс низкий"));
+        }
+    }
+
     [TestCase(-0.5f)]
     [TestCase(0.5f)]
     [TestCase(-1f)]
@@ -331,6 +439,12 @@ public sealed class MessageProcessorMlOverrideTests
         return body.RootElement.GetProperty("chat_id").GetInt64();
     }
 
+    private static string? RequestText((string Method, string Body) request)
+    {
+        using var body = JsonDocument.Parse(request.Body);
+        return body.RootElement.GetProperty("text").GetString();
+    }
+
     private static void AssertDeleted(Fixture fixture, CheckResult result)
     {
         using (Assert.EnterMultipleScope())
@@ -404,7 +518,9 @@ public sealed class MessageProcessorMlOverrideTests
             double jevConfidence = 0.8,
             Task? modelRelease = null,
             Task? jevRelease = null,
-            string? lunaContent = null
+            string? lunaContent = null,
+            bool lowConfidenceHamForward = false,
+            bool modelsEnabled = true
         )
         {
             var values = new Dictionary<string, string?>
@@ -412,14 +528,14 @@ public sealed class MessageProcessorMlOverrideTests
                 ["DOORMAN_BOT_API"] = "123456:TEST_TOKEN",
                 ["DOORMAN_ADMIN_CHAT"] = AdminChat.ToString(),
                 ["DOORMAN_ADMIN_CHAT_MAP"] = $"{PaidChat}={AdminChat}",
-                ["DOORMAN_OPENROUTER_API"] = "sk-test",
+                ["DOORMAN_OPENROUTER_API"] = modelsEnabled ? "sk-test" : null,
                 ["DOORMAN_FREE_LLM_URL"] = null,
                 ["DOORMAN_FREE_LLM_MODEL"] = null,
                 ["DOORMAN_FREE_LLM_API"] = null,
                 ["DOORMAN_CLUB_SERVICE_TOKEN"] = null,
                 ["DOORMAN_HIGH_CONFIDENCE_AUTOBAN_DISABLE"] = null,
                 ["DOORMAN_CHANNEL_MARKETOLOGY_EXCLUSION"] = null,
-                ["DOORMAN_LOW_CONFIDENCE_HAM_ENABLE"] = null,
+                ["DOORMAN_LOW_CONFIDENCE_HAM_ENABLE"] = lowConfidenceHamForward ? "true" : null,
                 ["DOORMAN_APPROVED_ML_SPAM_CHECK_DISABLE"] = null,
             };
             var previousEnvironment = values.Keys.ToDictionary(key => key, Environment.GetEnvironmentVariable);
@@ -580,7 +696,7 @@ public sealed class MessageProcessorMlOverrideTests
         public async Task<CheckResult> Check(long chatId, string? replyText = null)
         {
             var processor = _services.GetRequiredService<MessageProcessor>();
-            _reviewStarted = _score is > -0.5f and < 0.5f;
+            _reviewStarted = _score is > -0.5f and < 0.5f && _services.GetRequiredService<JevChecks>().Enabled;
             var message = new Message
             {
                 Id = 123,
@@ -631,7 +747,7 @@ public sealed class MessageProcessorMlOverrideTests
         public async Task CheckApproved(long chatId)
         {
             await _services.GetRequiredService<UserManager>().Approve(_user.Id);
-            _reviewStarted = _score is > -0.5f and < 0.5f;
+            _reviewStarted = _score is > -0.5f and < 0.5f && _services.GetRequiredService<JevChecks>().Enabled;
             await _services
                 .GetRequiredService<MessageProcessor>()
                 .HandleUpdate(
