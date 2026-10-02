@@ -18,6 +18,8 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
     private const long AdminChat = -1001111111111;
     private const long MappedAdminChat = -1002222222222;
     private const long SourceChat = -1003333333333;
+    private const string SourceChatTitle = "Клуб [IT] *общение* _чат_ `код` \\";
+    private const string EscapedSourceChatTitle = @"Клуб \[IT\] \*общение\* \_чат\_ \`код\` \\";
     private const string VisibleText = "Ссылка на длинное рекламное предложение тут";
     private const string ExpandedText = "Ссылка на длинное рекламное предложение https://example.org/campaign тут";
 
@@ -30,7 +32,7 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
         var badMessageManager = fixture.Services.GetRequiredService<BadMessageManager>();
         var handler = fixture.Services.GetRequiredService<AdminCommandHandler>();
 
-        await handler.AddAutomaticExample(message, spam, "Jev и Luna согласны");
+        await handler.AddAutomaticExample(message, spam, "ML score: 0.004; Jev и Luna: [spam](https://example.org), `денег`! \\");
 
         var records = await fixture.Services.GetRequiredService<SpamHamClassifier>().GetLatestSpamHamRecords(10);
         var calls = fixture.Calls.Where(call => call.Method is "forwardMessage" or "sendMessage").ToArray();
@@ -46,9 +48,16 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             Assert.That(Body(calls[0]).GetProperty("from_chat_id").GetInt64(), Is.EqualTo(SourceChat));
             Assert.That(Body(calls[0]).GetProperty("message_id").GetInt32(), Is.EqualTo(73));
             Assert.That(Body(calls[1]).GetProperty("reply_parameters").GetProperty("message_id").GetInt32(), Is.EqualTo(301));
-            Assert.That(report, Does.Contain("Запись #2"));
-            Assert.That(report, Does.Contain("/undo 2"));
-            Assert.That(report, Does.Contain($"чат {SourceChat}, сообщение #73"));
+            Assert.That(Body(calls[1]).GetProperty("parse_mode").GetString(), Is.EqualTo("MarkdownV2"));
+            var label = spam ? "СПАМА" : @"НЕ\-СПАМА";
+            Assert.That(
+                report,
+                Is.EqualTo(
+                    $"Сообщение автоматически добавлено как пример {label} в датасет\\. Запись \\#2\\. `/undo 2`"
+                        + $"{Environment.NewLine}Источник: чат {EscapedSourceChatTitle}"
+                        + $"{Environment.NewLine}Причина: ML score: 0\\.004; Jev и Luna: \\[spam\\]\\(https://example\\.org\\), \\`денег\\`\\! \\\\"
+                )
+            );
             Assert.That(badMessageManager.KnownBadMessage(VisibleText), Is.False);
             Assert.That(badMessageManager.KnownBadMessage($"Цитата {ExpandedText}"), Is.False);
         }
@@ -94,8 +103,10 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
         }
     }
 
-    [Test]
-    public async Task ForwardFailure_WithLongSnapshotAndReason_KeepsMessagesWithinTelegramLimitAndUndoVisible()
+    [TestCase('r')]
+    [TestCase('*')]
+    [TestCase('\\')]
+    public async Task ForwardFailure_WithLongSnapshotAndReason_KeepsMessagesWithinTelegramLimitAndUndoVisible(char reasonCharacter)
     {
         await using var fixture = await Fixture.Create(failForward: true);
         var source = new Message
@@ -115,7 +126,9 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             ],
         };
 
-        await fixture.Services.GetRequiredService<AdminCommandHandler>().AddAutomaticExample(source, false, new string('r', 9000));
+        await fixture
+            .Services.GetRequiredService<AdminCommandHandler>()
+            .AddAutomaticExample(source, false, new string(reasonCharacter, 9000));
 
         var sends = fixture
             .Calls.Where(call => call.Method == "sendMessage")
@@ -124,9 +137,22 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(sends, Has.Length.EqualTo(2));
-            Assert.That(sends.Select(text => text.Length), Is.All.LessThanOrEqualTo(4096));
+            Assert.That(sends[0], Has.Length.LessThanOrEqualTo(4096));
             Assert.That(sends[0], Does.Contain("https://example.org/campaign"));
-            Assert.That(sends[1], Does.Contain("/undo 2"));
+            const string suffix = "\n[truncated]";
+            var plainHeader =
+                "Сообщение автоматически добавлено как пример НЕ-СПАМА в датасет. Запись #2. /undo 2"
+                + $"{Environment.NewLine}Источник: чат без названия{Environment.NewLine}Причина: ";
+            var keptReason = new string(reasonCharacter, 4096 - plainHeader.Length - suffix.Length);
+            var escapedReason =
+                reasonCharacter == 'r' ? keptReason : keptReason.Replace(reasonCharacter.ToString(), $"\\{reasonCharacter}");
+            Assert.That(
+                sends[1],
+                Is.EqualTo(
+                    @"Сообщение автоматически добавлено как пример НЕ\-СПАМА в датасет\. Запись \#2\. `/undo 2`"
+                        + $"{Environment.NewLine}Источник: чат без названия{Environment.NewLine}Причина: {escapedReason}\n\\[truncated\\]"
+                )
+            );
         }
     }
 
@@ -138,6 +164,7 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             """,
             Telegram.Bot.JsonBotAPI.Options
         )!;
+        source.Chat.Title = SourceChatTitle;
         source.Entities =
         [
             new MessageEntity

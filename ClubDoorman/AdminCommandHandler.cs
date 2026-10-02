@@ -2,7 +2,9 @@ using System.Globalization;
 using Microsoft.Extensions.Caching.Hybrid;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
+using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace ClubDoorman;
 
@@ -395,10 +397,11 @@ internal class AdminCommandHandler
             original = await _bot.SendMessage(_config.AdminChatId, snapshot, cancellationToken: cancellationToken);
         }
 
-        var label = spam ? "спама" : "НЕ-спама";
+        var label = spam ? "СПАМА" : "НЕ-СПАМА";
+        var undoCommand = $"/undo {record.Id}";
         var report =
-            $"Сообщение автоматически добавлено как пример {label} в датасет. Запись #{record.Id}. /undo {record.Id}"
-            + $"{Environment.NewLine}Источник: чат {message.Chat.Id}, сообщение #{message.MessageId}"
+            $"Сообщение автоматически добавлено как пример {label} в датасет. Запись #{record.Id}. {undoCommand}"
+            + $"{Environment.NewLine}Источник: чат {message.Chat.Title ?? "без названия"}"
             + $"{Environment.NewLine}Причина: ";
         const string reportTruncatedSuffix = "\n[truncated]";
         var maxReasonLength = TelegramMessageLimit - report.Length;
@@ -406,7 +409,24 @@ internal class AdminCommandHandler
             reason.Length <= maxReasonLength
                 ? reason
                 : $"{reason[..(maxReasonLength - reportTruncatedSuffix.Length)]}{reportTruncatedSuffix}";
-        await _bot.SendMessage(_config.AdminChatId, report, replyParameters: original, cancellationToken: cancellationToken);
+        var markdown = Markdown.ToMarkdown(
+            report,
+            [
+                new MessageEntity
+                {
+                    Type = MessageEntityType.Code,
+                    Offset = report.IndexOf(undoCommand, StringComparison.Ordinal),
+                    Length = undoCommand.Length,
+                },
+            ]
+        );
+        await _bot.SendMessage(
+            _config.AdminChatId,
+            markdown,
+            parseMode: ParseMode.MarkdownV2,
+            replyParameters: original,
+            cancellationToken: cancellationToken
+        );
     }
 
     private async Task SendLatestSpamHamRecords(Message message, CancellationToken cancellationToken)
