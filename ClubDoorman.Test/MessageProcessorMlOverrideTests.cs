@@ -804,11 +804,10 @@ public sealed class MessageProcessorMlOverrideTests
             var serviceProvider = services.BuildServiceProvider();
             using (var scope = serviceProvider.CreateScope())
                 await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreatedAsync();
-            var config = serviceProvider.GetRequiredService<Config>();
-            for (var attempt = 0; config.MultiAdminChatMap.Count == 0 && attempt < 100; attempt++)
-                await Task.Delay(10);
-            if (config.MultiAdminChatMap.Count == 0)
-                throw new InvalidOperationException("test admin chat map did not initialize");
+            // Config resolves chat titles during initialization; keep the fixture independent of Telegram.
+            var cache = serviceProvider.GetRequiredService<HybridCache>();
+            await cache.SetAsync($"full_chan:{PaidChat}", new Config.ChatInfo(PaidChat, "Paid"));
+            await cache.SetAsync($"full_chan:{AdminChat}", new Config.ChatInfo(AdminChat, "Admin"));
 
             var result = new Fixture(
                 previousEnvironment,
