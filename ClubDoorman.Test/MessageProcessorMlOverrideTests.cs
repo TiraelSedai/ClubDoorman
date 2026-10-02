@@ -210,6 +210,127 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task HighConfidenceLlmSpam_ConfidentAgreement_DoesNotRequestManualDatasetReview(bool delayJev)
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var fixture = await Fixture.Create(
+            0.0042500496f,
+            0.99,
+            true,
+            "spam",
+            0.95,
+            jevRelease: delayJev ? release.Task : null,
+            lowConfidenceHamForward: true
+        );
+
+        try
+        {
+            var result = await fixture.Check(PaidChat).WaitAsync(TimeSpan.FromSeconds(5));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.EqualTo(CheckResult.NoMoreAction));
+                Assert.That(fixture.Requests.Select(x => x.Method), Does.Contain("deleteMessage"));
+                Assert.That(
+                    fixture.Requests.Where(x => x.Method == "sendMessage").Select(RequestText),
+                    Has.None.Contains("Хорошая идея - добавить сообщение в датасет")
+                );
+                if (delayJev)
+                    Assert.That(fixture.ReviewCompleted.Task.IsCompleted, Is.False);
+            }
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That((await fixture.Records()).Single().IsSpam, Is.True);
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(2));
+            Assert.That(
+                fixture.Requests.Where(x => x.Method == "sendMessage").Select(RequestText),
+                Has.None.Contains("Хорошая идея - добавить сообщение в датасет")
+            );
+            Assert.That(fixture.LlmRequests, Has.Count.EqualTo(1));
+        }
+    }
+
+    [TestCase("not_spam", 0.95)]
+    [TestCase(null, 0.95)]
+    [TestCase("spam", 0.79)]
+    public async Task HighConfidenceLlmSpam_WithoutConsensus_RequestsManualDatasetReviewAfterDeletion(
+        string? jevLabel,
+        double jevConfidence
+    )
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var fixture = await Fixture.Create(
+            0.0042500496f,
+            0.99,
+            true,
+            jevLabel,
+            jevConfidence,
+            jevRelease: release.Task,
+            lowConfidenceHamForward: true,
+            failForwardAfterDeletion: true
+        );
+
+        try
+        {
+            var result = await fixture.Check(PaidChat).WaitAsync(TimeSpan.FromSeconds(5));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.EqualTo(CheckResult.NoMoreAction));
+                Assert.That(fixture.Requests.Select(x => x.Method), Does.Contain("deleteMessage"));
+                Assert.That(fixture.ReviewCompleted.Task.IsCompleted, Is.False);
+                Assert.That(
+                    fixture.Requests.Where(x => x.Method == "sendMessage").Select(RequestText),
+                    Has.None.Contains("Хорошая идея - добавить сообщение в датасет")
+                );
+            }
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var reports = fixture.Requests.Where(x => x.Method == "sendMessage").Select(RequestText).ToArray();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(reports, Has.Length.EqualTo(3));
+            Assert.That(reports, Does.Contain("ordinary message with enough text"));
+            Assert.That(reports, Has.Exactly(1).Contains("LLM считает сообщение спамом с высокой уверенностью"));
+            Assert.That(reports, Has.None.Contains("конфиденс низкий"));
+        }
+    }
+
+    [TestCase(-0.5f, true, 2)]
+    [TestCase(-1f, true, 2)]
+    [TestCase(Consts.ClassifierSpamScoreThreshold, true, 1)]
+    [TestCase(0f, false, 1)]
+    public async Task HighConfidenceLlmSpam_ManualDatasetReview_PreservesExistingGates(float score, bool enabled, int expectedReports)
+    {
+        await using var fixture = await Fixture.Create(score, 0.99, true, "not_spam", lowConfidenceHamForward: enabled);
+
+        var result = await fixture.Check(PaidChat);
+        if (score is > -0.5f and < 0.5f)
+            await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.NoMoreAction));
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(expectedReports));
+        }
+    }
+
     [TestCase(0.01, true, "spam")]
     [TestCase(0.3, true, "not_spam")]
     [TestCase(0.01, true, null)]
@@ -520,7 +641,8 @@ public sealed class MessageProcessorMlOverrideTests
             Task? jevRelease = null,
             string? lunaContent = null,
             bool lowConfidenceHamForward = false,
-            bool modelsEnabled = true
+            bool modelsEnabled = true,
+            bool failForwardAfterDeletion = false
         )
         {
             var values = new Dictionary<string, string?>
@@ -555,6 +677,19 @@ public sealed class MessageProcessorMlOverrideTests
                         var method = request.RequestUri!.Segments.Last();
                         var body = request.Content == null ? "" : await request.Content.ReadAsStringAsync(ct);
                         requests.Enqueue((method, body));
+                        if (failForwardAfterDeletion && method == "forwardMessage" && requests.Any(x => x.Method == "deleteMessage"))
+                        {
+                            var response = JsonResponse(
+                                new
+                                {
+                                    ok = false,
+                                    error_code = 400,
+                                    description = "Bad Request: message to forward not found",
+                                }
+                            );
+                            response.StatusCode = HttpStatusCode.BadRequest;
+                            return response;
+                        }
                         return TelegramResponse(method);
                     }
                 )

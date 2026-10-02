@@ -560,16 +560,9 @@ internal class MessageProcessor
                     score < Consts.ClassifierSpamScoreThreshold
                     && spamCheck.Probability >= Consts.LlmHighProbability
                     && _config.LowConfidenceHamForward
+                    && !datasetReviewStarted
                 )
-                    await ForwardToFallbackAdmin(
-                        message,
-                        user,
-                        $"LLM считает сообщение спамом с высокой уверенностью ({spamCheck.Probability * 100}%), "
-                            + $"но классифаер пока не считает его спамом: скор {score}. "
-                            + $"Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}"
-                            + $"Причина LLM: {spamCheck.Reason}",
-                        stoppingToken
-                    );
+                    await ForwardHighConfidenceLlmSpam(message, user, score, spamCheck, stoppingToken);
                 if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                 {
                     await DeleteAndReportMessage(message, reason, stoppingToken);
@@ -638,7 +631,7 @@ internal class MessageProcessor
         float score,
         bool useModerationLuna,
         CancellationToken stoppingToken,
-        User? lowConfidenceHamUser = null
+        User? datasetReviewUser = null
     )
     {
         if (!(score is > -0.5f and < 0.5f) || !_jevChecks.Enabled)
@@ -651,13 +644,14 @@ internal class MessageProcessor
                     try
                     {
                         var added = await AddConsensusExample(message, score, luna, stoppingToken);
-                        if (
-                            !added
-                            && !stoppingToken.IsCancellationRequested
-                            && lowConfidenceHamUser != null
-                            && (luna == null || (await luna).Probability < Consts.LlmLowProbability)
-                        )
-                            await ForwardLowConfidenceHam(message, lowConfidenceHamUser, score, stoppingToken);
+                        if (!added && !stoppingToken.IsCancellationRequested && datasetReviewUser != null)
+                        {
+                            var spamCheck = luna == null ? null : await luna;
+                            if (spamCheck == null || spamCheck.Probability < Consts.LlmLowProbability)
+                                await ForwardLowConfidenceHam(message, datasetReviewUser, score, stoppingToken);
+                            else if (score < Consts.ClassifierSpamScoreThreshold && spamCheck.Probability >= Consts.LlmHighProbability)
+                                await ForwardHighConfidenceLlmSpam(message, datasetReviewUser, score, spamCheck, stoppingToken);
+                        }
                     }
                     finally
                     {
@@ -679,6 +673,23 @@ internal class MessageProcessor
             message,
             user,
             $"Классифаер думает что это НЕ спам, но конфиденс низкий: скор {score}. " + "Хорошая идея - добавить сообщение в датасет.",
+            stoppingToken
+        );
+
+    private Task ForwardHighConfidenceLlmSpam(
+        Message message,
+        User user,
+        float score,
+        AiChecks.SpamProbability spamCheck,
+        CancellationToken stoppingToken
+    ) =>
+        ForwardToFallbackAdmin(
+            message,
+            user,
+            $"LLM считает сообщение спамом с высокой уверенностью ({spamCheck.Probability * 100}%), "
+                + $"но классифаер пока не считает его спамом: скор {score}. "
+                + $"Хорошая идея - добавить сообщение в датасет.{Environment.NewLine}"
+                + $"Причина LLM: {spamCheck.Reason}",
             stoppingToken
         );
 
@@ -1355,7 +1366,7 @@ internal class MessageProcessor
     private async Task ForwardToFallbackAdmin(Message message, User user, string reason, CancellationToken stoppingToken)
     {
         var chat = message.Chat;
-        var forward = await _bot.ForwardMessage(_config.AdminChatId, chat.Id, message.MessageId, cancellationToken: stoppingToken);
+        var forward = await ForwardOrSendAdminFallback(_config.AdminChatId, message, stoppingToken);
         var postLink = Utils.LinkToMessage(chat, message.MessageId);
         await _bot.SendMessage(
             _config.AdminChatId,
