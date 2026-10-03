@@ -26,6 +26,31 @@ public sealed class MessageProcessorMlOverrideTests
     private const long FreeChat = -1009876543210;
     private const long AdminChat = -1001111111111;
 
+    [TestCase(PaidChat, "Hi")]
+    [TestCase(FreeChat, "Hi")]
+    [TestCase(PaidChat, "привет")]
+    [TestCase(FreeChat, "привет")]
+    public async Task GreetingUpdate_DeletesAndRestricts_WithStandardReporting(long chatId, string text)
+    {
+        await using var fixture = await Fixture.Create(score: -1f, llmProbability: 0.0, llmAvailable: true);
+
+        await fixture.CheckTextUpdate(chatId, text);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fixture.Requests.Count(x => x.Method == "deleteMessage"), Is.EqualTo(1));
+            Assert.That(fixture.Requests.Count(x => x.Method == "restrictChatMember"), Is.EqualTo(1));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("banChatMember"));
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(chatId == PaidChat ? 1 : 0));
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(chatId == PaidChat ? 1 : 0));
+        }
+        if (chatId == PaidChat)
+        {
+            using var report = JsonDocument.Parse(fixture.Requests.Single(x => x.Method == "sendMessage").Body);
+            Assert.That(report.RootElement.GetProperty("text").GetString(), Does.Contain("в этом сообщении написано привет"));
+        }
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task PollUpdate_UsesSpamChecksInsteadOfEmptyTextReport(bool edited)
@@ -852,6 +877,31 @@ public sealed class MessageProcessorMlOverrideTests
                         [message, _user, message.Text!, message.Text!, message.Text!, message.Chat, CancellationToken.None]
                     )!;
             return await result;
+        }
+
+        public async Task CheckTextUpdate(long chatId, string text)
+        {
+            await _services.GetRequiredService<HybridCache>().SetAsync($"user:banned:{_user.Id}", false);
+            await _services
+                .GetRequiredService<MessageProcessor>()
+                .HandleUpdate(
+                    new Update
+                    {
+                        Message = new Message
+                        {
+                            Id = 127,
+                            From = _user,
+                            Chat = new Chat
+                            {
+                                Id = chatId,
+                                Title = chatId == PaidChat ? "Paid" : "Free",
+                                Type = ChatType.Supergroup,
+                            },
+                            Text = text,
+                        },
+                    },
+                    CancellationToken.None
+                );
         }
 
         public async Task CheckPoll(bool edited)

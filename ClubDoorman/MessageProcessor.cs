@@ -575,10 +575,10 @@ internal class MessageProcessor
         if (lowConfidenceHam && !datasetReviewStarted)
             await ForwardLowConfidenceHam(message, user, score, stoppingToken);
 
-        if (!_config.NonFreeChat(chat.Id) && SimpleFilters.HasOnlyHelloWord(text))
+        if (SimpleFilters.HasOnlyHelloWord(text))
         {
-            await DontDeleteButReportMessage(message, "в этом сообщении написано привет и больше ничего, обычно это спамер", stoppingToken);
-            return CheckResult.Suspicious;
+            await DeleteAndReportMessage(message, "в этом сообщении написано привет и больше ничего, обычно это спамер", stoppingToken);
+            return CheckResult.NoMoreAction;
         }
 
         _logger.LogDebug("Classifier thinks its ham, score {Score}", score);
