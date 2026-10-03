@@ -212,22 +212,16 @@ internal class MessageProcessor
                 if (normalized.Length >= 10)
                 {
                     var (spam, score) = await _classifier.IsSpam(normalized);
-                    _ = StartDatasetReview(message, score, useModerationLuna: false, stoppingToken);
-                    if (spam && _config.NonFreeChat(chat.Id))
-                    {
-                        var fwd = await _bot.ForwardMessage(
-                            _config.AdminChatId,
-                            message.Chat,
-                            message.MessageId,
-                            cancellationToken: stoppingToken
-                        );
-                        await _bot.SendMessage(
-                            _config.AdminChatId,
-                            $"ML решил что это спам, скор {score}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
-                            replyParameters: fwd,
-                            cancellationToken: stoppingToken
-                        );
-                    }
+                    var reportApprovedHam = spam && _config.NonFreeChat(chat.Id);
+                    var (_, datasetReviewStarted) = StartDatasetReview(
+                        message,
+                        score,
+                        useModerationLuna: false,
+                        stoppingToken,
+                        reportApprovedHam ? _ => ForwardApprovedUserHam(message, score, stoppingToken) : null
+                    );
+                    if (reportApprovedHam && !datasetReviewStarted)
+                        await ForwardApprovedUserHam(message, score, stoppingToken);
                 }
             }
             return;
@@ -513,7 +507,7 @@ internal class MessageProcessor
             score,
             _config.LlmEnabled(chat.Id) && (score > Consts.ClassifierSpamScoreThreshold || message.From != null),
             stoppingToken,
-            lowConfidenceHam ? user : null
+            lowConfidenceHam ? spamCheck => ForwardManualDatasetReview(message, user, score, spamCheck, stoppingToken) : null
         );
         if (score > Consts.ClassifierSpamScoreThreshold)
         {
@@ -631,7 +625,7 @@ internal class MessageProcessor
         float score,
         bool useModerationLuna,
         CancellationToken stoppingToken,
-        User? datasetReviewUser = null
+        Func<AiChecks.SpamProbability?, Task>? onNoConsensus = null
     )
     {
         if (!(score is > -0.5f and < 0.5f) || !_jevChecks.Enabled)
@@ -644,14 +638,8 @@ internal class MessageProcessor
                     try
                     {
                         var added = await AddConsensusExample(message, score, luna, stoppingToken);
-                        if (!added && !stoppingToken.IsCancellationRequested && datasetReviewUser != null)
-                        {
-                            var spamCheck = luna == null ? null : await luna;
-                            if (spamCheck == null || spamCheck.Probability < Consts.LlmLowProbability)
-                                await ForwardLowConfidenceHam(message, datasetReviewUser, score, stoppingToken);
-                            else if (score < Consts.ClassifierSpamScoreThreshold && spamCheck.Probability >= Consts.LlmHighProbability)
-                                await ForwardHighConfidenceLlmSpam(message, datasetReviewUser, score, spamCheck, stoppingToken);
-                        }
+                        if (!added && !stoppingToken.IsCancellationRequested && onNoConsensus != null)
+                            await onNoConsensus(luna == null ? null : await luna);
                     }
                     finally
                     {
@@ -666,6 +654,33 @@ internal class MessageProcessor
             )
             .FireAndForget(_logger, "Background spam/ham dataset review failed");
         return (luna, true);
+    }
+
+    private async Task ForwardApprovedUserHam(Message message, float score, CancellationToken stoppingToken)
+    {
+        var chat = message.Chat;
+        var forward = await _bot.ForwardMessage(_config.AdminChatId, chat, message.MessageId, cancellationToken: stoppingToken);
+        await _bot.SendMessage(
+            _config.AdminChatId,
+            $"ML решил что это спам, скор {score}, но пользователь в доверенных. Возможно стоит добавить в ham, чат {chat.Title} {Utils.LinkToMessage(chat, message.MessageId)}",
+            replyParameters: forward,
+            cancellationToken: stoppingToken
+        );
+    }
+
+    private Task ForwardManualDatasetReview(
+        Message message,
+        User user,
+        float score,
+        AiChecks.SpamProbability? spamCheck,
+        CancellationToken stoppingToken
+    )
+    {
+        if (spamCheck == null || spamCheck.Probability < Consts.LlmLowProbability)
+            return ForwardLowConfidenceHam(message, user, score, stoppingToken);
+        if (score < Consts.ClassifierSpamScoreThreshold && spamCheck.Probability >= Consts.LlmHighProbability)
+            return ForwardHighConfidenceLlmSpam(message, user, score, spamCheck, stoppingToken);
+        return Task.CompletedTask;
     }
 
     private Task ForwardLowConfidenceHam(Message message, User user, float score, CancellationToken stoppingToken) =>

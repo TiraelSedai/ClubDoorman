@@ -503,6 +503,106 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
+    [TestCase(0.01, "not_spam", false)]
+    [TestCase(0.99, "spam", true)]
+    public async Task ApprovedUser_ConfidentAgreement_DoesNotRequestManualHamReview(
+        double lunaProbability,
+        string jevLabel,
+        bool expectedSpam
+    )
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var fixture = await Fixture.Create(
+            0.13794184f,
+            lunaProbability,
+            true,
+            jevLabel,
+            modelRelease: release.Task,
+            predictedSpam: true
+        );
+
+        try
+        {
+            await fixture.CheckApproved(PaidChat).WaitAsync(TimeSpan.FromSeconds(5));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(fixture.ReviewCompleted.Task.IsCompleted, Is.False);
+                Assert.That(fixture.Requests.Where(x => x.Method is "forwardMessage" or "sendMessage" or "deleteMessage"), Is.Empty);
+            }
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That((await fixture.Records()).Single().IsSpam, Is.EqualTo(expectedSpam));
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(1));
+            Assert.That(
+                RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")),
+                Does.Not.Contain("Возможно стоит добавить в ham")
+            );
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+        }
+    }
+
+    [TestCase(PaidChat, true, true, "spam", true)]
+    [TestCase(PaidChat, true, true, null, true)]
+    [TestCase(PaidChat, true, false, "not_spam", true)]
+    [TestCase(FreeChat, true, true, "spam", false)]
+    [TestCase(PaidChat, false, true, "spam", false)]
+    public async Task ApprovedUser_WithoutConsensus_PreservesManualHamReviewGates(
+        long chatId,
+        bool predictedSpam,
+        bool lunaAvailable,
+        string? jevLabel,
+        bool expectedReport
+    )
+    {
+        await using var fixture = await Fixture.Create(0.13794184f, 0.01, lunaAvailable, jevLabel, predictedSpam: predictedSpam);
+
+        await fixture.CheckApproved(chatId);
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(expectedReport ? 1 : 0));
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(expectedReport ? 1 : 0));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+            if (expectedReport)
+                Assert.That(
+                    RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")),
+                    Does.Contain("Возможно стоит добавить в ham")
+                );
+        }
+    }
+
+    [TestCase(0.5f, true)]
+    [TestCase(0.13794184f, false)]
+    public async Task ApprovedUser_WithoutDatasetReview_StillRequestsManualHamReview(float score, bool modelsEnabled)
+    {
+        await using var fixture = await Fixture.Create(score, 0.01, true, "not_spam", modelsEnabled: modelsEnabled, predictedSpam: true);
+
+        await fixture.CheckApproved(PaidChat);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fixture.LlmRequests, Is.Empty);
+            Assert.That(fixture.JevRequests, Is.Empty);
+            Assert.That(await fixture.Records(), Is.Empty);
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(
+                RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")),
+                Does.Contain("Возможно стоит добавить в ham")
+            );
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+        }
+    }
+
     [Test]
     public async Task ModelsSeeReplyContext_ButDatasetContainsOnlyMessage()
     {
@@ -667,7 +767,8 @@ public sealed class MessageProcessorMlOverrideTests
             string? lunaContent = null,
             bool lowConfidenceHamForward = false,
             bool modelsEnabled = true,
-            bool failForwardAfterDeletion = false
+            bool failForwardAfterDeletion = false,
+            bool? predictedSpam = null
         )
         {
             var values = new Dictionary<string, string?>
@@ -848,7 +949,7 @@ public sealed class MessageProcessorMlOverrideTests
                 jevHttp,
                 score
             );
-            result.InstallClassifierScore(serviceProvider.GetRequiredService<SpamHamClassifier>());
+            result.InstallClassifierScore(serviceProvider.GetRequiredService<SpamHamClassifier>(), predictedSpam);
             return result;
         }
 
@@ -971,7 +1072,7 @@ public sealed class MessageProcessorMlOverrideTests
             return (await _services.GetRequiredService<AiChecks>().GetSpamProbability(message)).IsAvailable;
         }
 
-        private void InstallClassifierScore(SpamHamClassifier classifier)
+        private void InstallClassifierScore(SpamHamClassifier classifier, bool? predictedSpam)
         {
             var ml = new MLContext(seed: 1);
             var data = ml.Data.LoadFromEnumerable(new[] { new MessageData { Text = "smoke" } });
@@ -980,7 +1081,7 @@ public sealed class MessageProcessorMlOverrideTests
                     (_, output) =>
                     {
                         output.Score = _score;
-                        output.PredictedLabel = _score > Consts.ClassifierSpamScoreThreshold;
+                        output.PredictedLabel = predictedSpam ?? _score > Consts.ClassifierSpamScoreThreshold;
                     },
                     contractName: null
                 )
