@@ -165,10 +165,10 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
-    [TestCase(PaidChat, 0.8, "spam", 0.8, true)]
-    [TestCase(FreeChat, 0.8, "spam", 0.8, true)]
-    [TestCase(PaidChat, 0.2, "not_spam", 0.8, false)]
-    [TestCase(FreeChat, 0.2, "not_spam", 0.8, false)]
+    [TestCase(PaidChat, 0.9, "spam", 0.9, true)]
+    [TestCase(FreeChat, 0.9, "spam", 0.9, true)]
+    [TestCase(PaidChat, 0.1, "not_spam", 0.9, false)]
+    [TestCase(FreeChat, 0.1, "not_spam", 0.9, false)]
     public async Task AmbiguousMl_ConfidentAgreement_LearnsInEveryChat(
         long chatId,
         double lunaProbability,
@@ -286,7 +286,7 @@ public sealed class MessageProcessorMlOverrideTests
 
     [TestCase("not_spam", 0.95)]
     [TestCase(null, 0.95)]
-    [TestCase("spam", 0.79)]
+    [TestCase("spam", 0.89)]
     public async Task HighConfidenceLlmSpam_WithoutConsensus_RequestsManualDatasetReviewAfterDeletion(
         string? jevLabel,
         double jevConfidence
@@ -438,9 +438,9 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
-    [TestCase(0.799999, "spam", 0.9)]
-    [TestCase(0.200001, "not_spam", 0.9)]
-    [TestCase(0.9, "spam", 0.799999)]
+    [TestCase(0.899999, "spam", 0.9)]
+    [TestCase(0.100001, "not_spam", 0.9)]
+    [TestCase(0.9, "spam", 0.899999)]
     [TestCase(0.9, "not_spam", 0.9)]
     [TestCase(0.1, "spam", 0.9)]
     [TestCase(0.0, null, 0.9)]
@@ -486,7 +486,7 @@ public sealed class MessageProcessorMlOverrideTests
     [TestCase(FreeChat)]
     public async Task ApprovedUser_AmbiguousMlStillLearnsInEveryChat(long chatId)
     {
-        await using var fixture = await Fixture.Create(0, 0.2, true, "not_spam");
+        await using var fixture = await Fixture.Create(0, 0.1, true, "not_spam");
 
         await fixture.CheckApproved(chatId);
         await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -761,7 +761,7 @@ public sealed class MessageProcessorMlOverrideTests
             double llmProbability,
             bool llmAvailable,
             string? jevLabel = null,
-            double jevConfidence = 0.8,
+            double jevConfidence = 0.9,
             Task? modelRelease = null,
             Task? jevRelease = null,
             string? lunaContent = null,

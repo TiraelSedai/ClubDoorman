@@ -491,12 +491,12 @@ internal class AiChecks
             || !double.IsFinite(lunaVerdict.Probability)
             || lunaVerdict.Probability is < 0 or > 1
             || jevVerdict == null
-            || jevVerdict.Confidence < 0.8
+            || jevVerdict.Confidence < 0.9
         )
             return null;
 
-        // Compare P(spam) directly so the inclusive 0.2 ham boundary is exact.
-        if (jevVerdict.IsSpam ? lunaVerdict.Probability < 0.8 : lunaVerdict.Probability > 0.2)
+        // Compare P(spam) directly so the inclusive 0.1 ham boundary is exact.
+        if (jevVerdict.IsSpam ? lunaVerdict.Probability < 0.9 : lunaVerdict.Probability > 0.1)
             return null;
 
         return new SpamConsensus(
