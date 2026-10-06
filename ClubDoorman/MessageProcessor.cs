@@ -780,6 +780,11 @@ internal class MessageProcessor
             await AutoBan(message, "крипто-приватки в описании профиля", stoppingToken);
             return (CheckResult.NoMoreAction, userChat);
         }
+        if (MyRegexes.BlacklistedBioMention().IsMatch(bio))
+        {
+            await AutoBan(message, "запрещённое упоминание в описании профиля", stoppingToken);
+            return (CheckResult.NoMoreAction, userChat);
+        }
         var invites = await _invitePreviews.GetFromBio(bio, stoppingToken);
         var inviteResult = _bioInviteTracker.Observe(message, bio, invites);
         try
