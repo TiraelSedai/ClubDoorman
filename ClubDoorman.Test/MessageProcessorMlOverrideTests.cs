@@ -121,6 +121,43 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
+    [TestCase("Bad Request: message to forward not found")]
+    [TestCase("Bad Request: MESSAGE_ID_INVALID")]
+    public async Task PaidReportOnly_MessageAlreadyDeletedFromChat_IsNotReported(string forwardError)
+    {
+        await using var fixture = await Fixture.Create(score: 0.5f, llmProbability: 0.1, llmAvailable: true, forwardError: forwardError);
+
+        var result = await fixture.Check(PaidChat);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.Suspicious));
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(fixture.Requests.Select(x => x.Method), Has.None.StartsWith("send"));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+        }
+    }
+
+    [Test]
+    public async Task PaidReportOnly_ForwardFailsForOtherReason_SendsFallbackAndReport()
+    {
+        await using var fixture = await Fixture.Create(
+            score: 0.5f,
+            llmProbability: 0.1,
+            llmAvailable: true,
+            forwardError: "Bad Request: message can't be forwarded"
+        );
+
+        var result = await fixture.Check(PaidChat);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.Suspicious));
+            Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(2));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+        }
+    }
+
     [Test]
     public async Task PaidChatUnavailableLlm_DefaultZeroDoesNotLookLikeAvailableLowScore()
     {
@@ -768,7 +805,8 @@ public sealed class MessageProcessorMlOverrideTests
             bool lowConfidenceHamForward = false,
             bool modelsEnabled = true,
             bool failForwardAfterDeletion = false,
-            bool? predictedSpam = null
+            bool? predictedSpam = null,
+            string? forwardError = null
         )
         {
             var values = new Dictionary<string, string?>
@@ -804,13 +842,15 @@ public sealed class MessageProcessorMlOverrideTests
                         var body = request.Content == null ? "" : await request.Content.ReadAsStringAsync(ct);
                         requests.Enqueue((method, body));
                         if (failForwardAfterDeletion && method == "forwardMessage" && requests.Any(x => x.Method == "deleteMessage"))
+                            forwardError ??= "Bad Request: message to forward not found";
+                        if (forwardError != null && method == "forwardMessage")
                         {
                             var response = JsonResponse(
                                 new
                                 {
                                     ok = false,
                                     error_code = 400,
-                                    description = "Bad Request: message to forward not found",
+                                    description = forwardError,
                                 }
                             );
                             response.StatusCode = HttpStatusCode.BadRequest;

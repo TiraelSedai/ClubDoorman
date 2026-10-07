@@ -1404,7 +1404,8 @@ internal class MessageProcessor
         var fromChat = message.SenderChat;
         var user = message.From!;
         var admChat = _config.GetAdminChat(message.Chat.Id);
-        var forward = await ForwardOrSendAdminFallback(admChat, message, stoppingToken);
+        if (await ForwardUndeletedOrSendAdminFallback(admChat, message, stoppingToken) is not { } forward)
+            return;
         var callbackData = fromChat == null ? $"ban_{message.Chat.Id}_{user.Id}" : $"banchan_{message.Chat.Id}_{fromChat.Id}";
 
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
@@ -1419,7 +1420,7 @@ internal class MessageProcessor
         await _bot.SendMessage(
             admChat,
             $"Сообщение НЕ удалено{editedMessageNote}{Environment.NewLine}{msg}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
-            replyParameters: forward,
+            replyParameters: forward.Message,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = callbackData },
                 new InlineKeyboardButton(Consts.OkButton) { CallbackData = "noop" }
@@ -1438,7 +1439,8 @@ internal class MessageProcessor
         _logger.LogDebug("DontDeleteButReportMessageWithApprove");
         var user = message.From!;
         var admChat = _config.GetAdminChat(message.Chat.Id);
-        var forward = await ForwardOrSendAdminFallback(admChat, message, stoppingToken);
+        if (await ForwardUndeletedOrSendAdminFallback(admChat, message, stoppingToken) is not { } forward)
+            return;
 
         var postLink = Utils.LinkToMessage(message.Chat, message.MessageId);
         var reply = "";
@@ -1451,7 +1453,7 @@ internal class MessageProcessor
         await _bot.SendMessage(
             admChat,
             $"Сообщение НЕ удалено{Environment.NewLine}{msg}{Environment.NewLine}Юзер {Utils.FullName(user)} из чата {message.Chat.Title}{Environment.NewLine}{postLink}{reply}",
-            replyParameters: forward,
+            replyParameters: forward.Message,
             replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton(Consts.BanButton) { CallbackData = $"banNoMark_{message.Chat.Id}_{user.Id}" },
                 new InlineKeyboardButton(Consts.OkButton) { CallbackData = $"attOk_{userId}" },
@@ -1561,6 +1563,36 @@ internal class MessageProcessor
         return null;
     }
 
+    private sealed record AdminForward(Message? Message);
+
+    /// <summary>
+    /// Like <see cref="ForwardOrSendAdminFallback"/>, but returns null when the message is already gone from the chat
+    /// (e.g. deleted by its author or another bot while we waited for the LLM), so there is nothing left to report.
+    /// </summary>
+    private async Task<AdminForward?> ForwardUndeletedOrSendAdminFallback(ChatId admChat, Message message, CancellationToken stoppingToken)
+    {
+        try
+        {
+            return new AdminForward(
+                await _bot.ForwardMessage(admChat, message.Chat.Id, message.MessageId, cancellationToken: stoppingToken)
+            );
+        }
+        catch (ApiRequestException are) when (IsMessageGone(are))
+        {
+            _logger.LogInformation("Message is already deleted from the chat, not reporting it");
+            return null;
+        }
+        catch (ApiRequestException are)
+        {
+            _logger.LogInformation(are, "Cannot forward");
+        }
+
+        return new AdminForward(await SendAdminFallback(admChat, message, stoppingToken));
+    }
+
+    private static bool IsMessageGone(ApiRequestException e) =>
+        e.Message is "Bad Request: message to forward not found" or "Bad Request: MESSAGE_ID_INVALID";
+
     private async Task<Message?> ForwardOrSendAdminFallback(ChatId admChat, Message message, CancellationToken stoppingToken)
     {
         try
@@ -1572,6 +1604,11 @@ internal class MessageProcessor
             _logger.LogInformation(are, "Cannot forward");
         }
 
+        return await SendAdminFallback(admChat, message, stoppingToken);
+    }
+
+    private async Task<Message?> SendAdminFallback(ChatId admChat, Message message, CancellationToken stoppingToken)
+    {
         var fallback = BuildAdminForwardFallbackMessage(message);
         if (fallback == null)
         {
