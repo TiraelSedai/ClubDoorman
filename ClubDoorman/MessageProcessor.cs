@@ -553,10 +553,23 @@ internal class MessageProcessor
                 if (
                     score < Consts.ClassifierSpamScoreThreshold
                     && spamCheck.Probability >= Consts.LlmHighProbability
-                    && _config.LowConfidenceHamForward
                     && !datasetReviewStarted
                 )
-                    await ForwardHighConfidenceLlmSpam(message, user, score, spamCheck, stoppingToken);
+                {
+                    // Below the ambiguous ML band, confident Luna spam is still worth a Jev check before asking admins.
+                    if (_jevChecks.Enabled)
+                        RunDatasetReview(
+                            message,
+                            score,
+                            Task.FromResult(spamCheck),
+                            _config.LowConfidenceHamForward
+                                ? _ => ForwardHighConfidenceLlmSpam(message, user, score, spamCheck, stoppingToken)
+                                : null,
+                            stoppingToken
+                        );
+                    else if (_config.LowConfidenceHamForward)
+                        await ForwardHighConfidenceLlmSpam(message, user, score, spamCheck, stoppingToken);
+                }
                 if (spamCheck.Probability >= Consts.LlmHighProbability && !_config.MarketologsChats.Contains(chat.Id))
                 {
                     await DeleteAndReportMessage(message, reason, stoppingToken);
@@ -632,6 +645,17 @@ internal class MessageProcessor
             return (null, false);
 
         var luna = useModerationLuna ? _aiChecks.GetSpamProbability(message).AsTask() : null;
+        RunDatasetReview(message, score, luna, onNoConsensus, stoppingToken);
+        return (luna, true);
+    }
+
+    private void RunDatasetReview(
+        Message message,
+        float score,
+        Task<AiChecks.SpamProbability>? luna,
+        Func<AiChecks.SpamProbability?, Task>? onNoConsensus,
+        CancellationToken stoppingToken
+    ) =>
         Task.Run(
                 async () =>
                 {
@@ -653,8 +677,6 @@ internal class MessageProcessor
                 stoppingToken
             )
             .FireAndForget(_logger, "Background spam/ham dataset review failed");
-        return (luna, true);
-    }
 
     private async Task ForwardApprovedUserHam(Message message, float score, CancellationToken stoppingToken)
     {

@@ -272,13 +272,15 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task HighConfidenceLlmSpam_ConfidentAgreement_DoesNotRequestManualDatasetReview(bool delayJev)
+    [Test]
+    public async Task HighConfidenceLlmSpam_ConfidentAgreement_DoesNotRequestManualDatasetReview(
+        [Values(0.0042500496f, -0.76131344f)] float score,
+        [Values] bool delayJev
+    )
     {
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var fixture = await Fixture.Create(
-            0.0042500496f,
+            score,
             0.99,
             true,
             "spam",
@@ -321,17 +323,21 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
-    [TestCase("not_spam", 0.95)]
-    [TestCase(null, 0.95)]
-    [TestCase("spam", 0.89)]
+    [TestCase(0.0042500496f, "not_spam", 0.95)]
+    [TestCase(0.0042500496f, null, 0.95)]
+    [TestCase(0.0042500496f, "spam", 0.89)]
+    [TestCase(-0.76131344f, "not_spam", 0.95)]
+    [TestCase(-0.76131344f, null, 0.95)]
+    [TestCase(-0.76131344f, "spam", 0.89)]
     public async Task HighConfidenceLlmSpam_WithoutConsensus_RequestsManualDatasetReviewAfterDeletion(
+        float score,
         string? jevLabel,
         double jevConfidence
     )
     {
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var fixture = await Fixture.Create(
-            0.0042500496f,
+            score,
             0.99,
             true,
             jevLabel,
@@ -382,14 +388,28 @@ public sealed class MessageProcessorMlOverrideTests
         await using var fixture = await Fixture.Create(score, 0.99, true, "not_spam", lowConfidenceHamForward: enabled);
 
         var result = await fixture.Check(PaidChat);
-        if (score is > -0.5f and < 0.5f)
-            await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await fixture.ReviewCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result, Is.EqualTo(CheckResult.NoMoreAction));
             Assert.That(await fixture.Records(), Is.Empty);
             Assert.That(fixture.Requests.Count(x => x.Method == "sendMessage"), Is.EqualTo(expectedReports));
+        }
+    }
+
+    [Test]
+    public async Task ConfidentHamMl_LunaBelowHighSpamConfidence_DoesNotRequestJev()
+    {
+        await using var fixture = await Fixture.Create(-1f, 0.899999, true, "spam", 0.95, lowConfidenceHamForward: true);
+
+        var result = await fixture.Check(PaidChat);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result, Is.EqualTo(CheckResult.Suspicious));
+            Assert.That(fixture.JevRequests, Is.Empty);
+            Assert.That(await fixture.Records(), Is.Empty);
         }
     }
 
@@ -749,6 +769,7 @@ public sealed class MessageProcessorMlOverrideTests
         private readonly HttpClient _jevHttp;
         private bool _reviewStarted;
         private readonly float _score;
+        private readonly bool _lunaHighSpam;
         private readonly User _user = new()
         {
             Id = 42,
@@ -768,7 +789,8 @@ public sealed class MessageProcessorMlOverrideTests
             ConcurrentQueue<string> jevRequests,
             TaskCompletionSource reviewCompleted,
             HttpClient jevHttp,
-            float score
+            float score,
+            bool lunaHighSpam
         )
         {
             _previousEnvironment = previousEnvironment;
@@ -780,6 +802,7 @@ public sealed class MessageProcessorMlOverrideTests
             Requests = requests;
             LlmRequests = llmRequests;
             _score = score;
+            _lunaHighSpam = lunaHighSpam;
             _jevHttp = jevHttp;
             JevRequests = jevRequests;
             ReviewCompleted = reviewCompleted;
@@ -987,7 +1010,8 @@ public sealed class MessageProcessorMlOverrideTests
                 jevRequests,
                 reviewCompleted,
                 jevHttp,
-                score
+                score,
+                llmAvailable && lunaContent == null && llmProbability >= Consts.LlmHighProbability
             );
             result.InstallClassifierScore(serviceProvider.GetRequiredService<SpamHamClassifier>(), predictedSpam);
             return result;
@@ -996,7 +1020,9 @@ public sealed class MessageProcessorMlOverrideTests
         public async Task<CheckResult> Check(long chatId, string? replyText = null)
         {
             var processor = _services.GetRequiredService<MessageProcessor>();
-            _reviewStarted = _score is > -0.5f and < 0.5f && _services.GetRequiredService<JevChecks>().Enabled;
+            _reviewStarted =
+                _services.GetRequiredService<JevChecks>().Enabled
+                && (_score is > -0.5f and < 0.5f || chatId == PaidChat && _score < 0 && _lunaHighSpam);
             var message = new Message
             {
                 Id = 123,
