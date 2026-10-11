@@ -198,7 +198,7 @@ public class BioInviteTrackerTests
     public async Task PartialDelivery_WithConcurrentInviteRotation_RetriesOnlyUnsentUser()
     {
         var tracker = new BioInviteTracker(TimeProvider.System);
-        var content = new TelegramInviteContent("Group", "Description", null);
+        var content = new TelegramInviteContent("Group", "Description", null, null);
         var first = new[] { new TelegramInvitePreview("First", content) };
         var second = new[] { new TelegramInvitePreview("Second", content) };
         tracker.Observe(Post(1), null, first);

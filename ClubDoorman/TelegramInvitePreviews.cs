@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
 using Microsoft.Extensions.Caching.Hybrid;
-using SixLabors.ImageSharp;
 
 namespace ClubDoorman;
 
@@ -11,14 +10,16 @@ internal sealed record TelegramInvitePreview(string Hash, TelegramInviteContent?
 
 internal sealed class TelegramInviteContent
 {
-    public TelegramInviteContent(string title, string description, byte[]? photo)
+    public TelegramInviteContent(string title, string description, byte[]? photo, string? photoMimeType)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        if ((photo == null) != (photoMimeType == null))
+            throw new ArgumentException("Photo and its MIME type must be set together", nameof(photoMimeType));
         Title = title;
         Description = description;
         Photo = photo;
         PhotoHash = photo == null ? null : Convert.ToHexString(SHA256.HashData(photo));
-        PhotoMimeType = photo == null ? null : Image.DetectFormat(photo).DefaultMimeType;
+        PhotoMimeType = photoMimeType;
         // JSON preserves field boundaries; neither invite tokens nor CDN URLs identify the advertised group.
         Fingerprint = ShaHelper.ComputeSha256Hex(JsonSerializer.Serialize(new[] { title, description, PhotoHash }));
     }
@@ -103,6 +104,7 @@ internal sealed partial class TelegramInvitePreviews(HttpClient http, HybridCach
         var description = descriptionNode?.TextContent.Trim() ?? "";
         var photoUrl = document.QuerySelector(".tgme_page_photo_image")?.GetAttribute("src");
         byte[]? photo = null;
+        string? photoMimeType = null;
         if (photoUrl != null)
         {
             var uri = new Uri(photoUrl, UriKind.Absolute);
@@ -113,8 +115,13 @@ internal sealed partial class TelegramInvitePreviews(HttpClient http, HybridCach
                 || (uri.Host != "t.me" && !uri.Host.EndsWith(".telesco.pe", StringComparison.Ordinal))
             )
                 throw new InvalidDataException($"Unexpected Telegram invite photo URL: {photoUrl}");
-            photo = await http.GetByteArrayAsync(uri, ct);
+            using var response = await http.GetAsync(uri, ct);
+            response.EnsureSuccessStatusCode();
+            photoMimeType = response.Content.Headers.ContentType?.MediaType;
+            if (photoMimeType?.StartsWith("image/", StringComparison.Ordinal) != true)
+                throw new InvalidDataException($"Unexpected Telegram invite photo content type: {photoMimeType}");
+            photo = await response.Content.ReadAsByteArrayAsync(ct);
         }
-        return new TelegramInviteContent(title, description, photo);
+        return new TelegramInviteContent(title, description, photo, photoMimeType);
     }
 }

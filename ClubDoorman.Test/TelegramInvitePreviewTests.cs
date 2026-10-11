@@ -3,12 +3,9 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Color = SixLabors.ImageSharp.Color;
 
 namespace ClubDoorman.Test;
 
@@ -208,12 +205,12 @@ public class TelegramInvitePreviewTests
     }
 
     [Test]
-    public async Task InvalidPhotoBytes_FailVisiblyAndAreNotCached()
+    public async Task NonImagePhotoResponse_FailsVisiblyAndIsNotCached()
     {
         using var fixture = new PreviewFixture();
         fixture.Page(First, Html());
         fixture.Responses[PhotoUrl] = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("not an image") };
-        Assert.That(async () => await fixture.Previews.GetFromBio(First), Throws.TypeOf<UnknownImageFormatException>());
+        Assert.That(async () => await fixture.Previews.GetFromBio(First), Throws.TypeOf<InvalidDataException>());
         fixture.Image(PhotoUrl);
         var recovered = await fixture.Previews.GetFromBio(First);
 
@@ -353,15 +350,14 @@ public class TelegramInvitePreviewTests
             Responses[url] = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html) };
 
         public void Image(string url, bool different = false) =>
-            Responses[url] = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Picture(different)) };
+            Responses[url] = () =>
+            {
+                var content = new ByteArrayContent(Picture(different));
+                content.Headers.ContentType = new("image/png");
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+            };
 
-        public static byte[] Picture(bool different = false)
-        {
-            using var image = new Image<Rgba32>(2, 2, different ? Color.Blue : Color.Red);
-            using var stream = new MemoryStream();
-            image.SaveAsPng(stream);
-            return stream.ToArray();
-        }
+        public static byte[] Picture(bool different = false) => different ? [5, 6, 7, 8] : [1, 2, 3, 4];
 
         public void Dispose()
         {
