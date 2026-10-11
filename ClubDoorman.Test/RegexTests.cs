@@ -20,6 +20,9 @@ public class RegexTests
     [TestCase("купить тут: t.me/mxbw28", true, TestName = "Link")]
     [TestCase("пиши @MXBW281", false, TestName = "LongerUsername")]
     [TestCase("пиши @xMXBW28", false, TestName = "PrefixedUsername")]
+    [TestCase("Доход за активность, без вложений: t.me/MillionsGame_Bot?start=r10704", true, TestName = "MillionsGameReferral")]
+    [TestCase("играю в @MillionsGame_Bot", true, TestName = "MillionsGameMention")]
+    [TestCase("t.me/MillionsGame_Bot2?start=r1", false, TestName = "MillionsGameLongerUsername")]
     public void BlacklistedBioMention_Tests(string bio, bool expectedMatch)
     {
         var result = MyRegexes.BlacklistedBioMention().IsMatch(bio);
