@@ -23,6 +23,7 @@ public class RegexTests
     [TestCase("Доход за активность, без вложений: t.me/MillionsGame_Bot?start=r10704", true, TestName = "MillionsGameReferral")]
     [TestCase("играю в @MillionsGame_Bot", true, TestName = "MillionsGameMention")]
     [TestCase("t.me/MillionsGame_Bot2?start=r1", false, TestName = "MillionsGameLongerUsername")]
+    [TestCase("t.me/BusinessTraffic_bot?start=r10704", true, TestName = "BusinessTrafficReferral")]
     public void BlacklistedBioMention_Tests(string bio, bool expectedMatch)
     {
         var result = MyRegexes.BlacklistedBioMention().IsMatch(bio);

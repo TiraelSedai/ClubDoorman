@@ -11,6 +11,9 @@ partial class MyRegexes
     )]
     public static partial Regex CryptoPrivatkiBio();
 
-    [GeneratedRegex(@"(?<!\w)(?:@|t\.me/)(?:MXBW28|MillionsGame_Bot)(?!\w)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(
+        @"(?<!\w)(?:@|t\.me/)(?:MXBW28|MillionsGame_Bot|BusinessTraffic_bot)(?!\w)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     public static partial Regex BlacklistedBioMention();
 }
