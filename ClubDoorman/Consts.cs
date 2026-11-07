@@ -8,6 +8,8 @@ internal class Consts
     public const double LlmLowProbability = 0.75;
     public const double LlmHighProbability = 0.9;
     public const double LlmEroticReviewProbability = 0.85;
+    public const double ConsensusMinConfidence = 0.9;
+    public const double ConsensusMaxHamProbability = 0.1;
     public const string BanButton = "❌❌❌ ban";
     public const string OkButton = "✅✅✅ ok";
     public const string ApproveButton = "🥰🥰🥰 approve";

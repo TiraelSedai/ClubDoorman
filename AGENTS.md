@@ -14,7 +14,7 @@ Single short lowercase line, imperative/descriptive (e.g. `nag for delete rights
   In a free chat `DontDeleteButReportMessage` does nothing and `DeleteAndReportMessage` deletes without a report.
 - Admin buttons and commands (ban, ok, approve, restore, `/spam`, `/ham`, `/check`, `/undo`, `/latest`, `/unban`): `AdminCommandHandler.HandleAdminCallback` and `AdminCommandHandler.AdminChatMessage`; `/undo` is the dataset rollback (откат датасета).
 - Dataset storage (spam-ham, датасет): the SQLite table `AppDbContext.SpamHamRecords`; `data/spam-ham.txt` only seeds an empty table in `Program.SeedData`.
-- Background dataset review (consensus, Jev + Luna, "автоматически добавлено как пример"): the verdict and its thresholds live in `AiChecks.GetSpamConsensus`, as literals rather than in `Consts`.
+- Background dataset review (consensus, Jev + Luna, "автоматически добавлено как пример"): the verdict lives in `AiChecks.GetSpamConsensus`, its thresholds in `Consts.Consensus*`.
   It is launched by `MessageProcessor.StartDatasetReview` (gated on the ML score band) or `RunDatasetReview`, and `AddConsensusExample` saves through `AdminCommandHandler.AddAutomaticExample`.
   Luna is the paid OpenRouter model `AiChecks.PaidModel`; Jev is `JevChecks`.
 - Manual dataset suggestion ("Хорошая идея - добавить сообщение в датасет", "Возможно стоит добавить в ham"): every such branch passes its forwarder as `onNoConsensus`, and calls it directly when the review did not start, so admins are asked only when the consensus abstains.
