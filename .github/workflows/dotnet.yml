@@ -25,6 +25,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Check formatting
+        run: dotnet tool restore && dotnet csharpier check .
+
       - name: Run tests
         run: dotnet test --no-restore
 
