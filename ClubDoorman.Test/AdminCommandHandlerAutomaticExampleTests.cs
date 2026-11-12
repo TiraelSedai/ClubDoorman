@@ -60,6 +60,13 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             );
             Assert.That(badMessageManager.KnownBadMessage(VisibleText), Is.False);
             Assert.That(badMessageManager.KnownBadMessage($"Цитата {ExpandedText}"), Is.False);
+            var buttons = Body(calls[1]).GetProperty("reply_markup").GetProperty("inline_keyboard")[0];
+            Assert.That(
+                buttons
+                    .EnumerateArray()
+                    .Select(button => (button.GetProperty("text").GetString(), button.GetProperty("callback_data").GetString())),
+                Is.EqualTo(new[] { ("↩️", "undo_2"), ("✅", "noop") })
+            );
         }
 
         await handler.AdminChatMessage(
@@ -78,6 +85,50 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
             Assert.That(records.Select(record => record.Text), Is.EqualTo(new[] { "older ham" }));
             Assert.That(undoConfirmation, Does.Contain("Запись #2"));
             Assert.That(badMessageManager.KnownBadMessage(VisibleText), Is.False);
+        }
+    }
+
+    [TestCase("undo_2", new[] { "older ham" }, "Запись #2 ham удалена")]
+    [TestCase("noop", new[] { $"Цитата {ExpandedText}", "older ham" }, null)]
+    public async Task ReportButton_UndoRemovesRecordOrKeepOnlyRemovesButtons(
+        string callbackData,
+        string[] expectedRecords,
+        string? expectedConfirmation
+    )
+    {
+        await using var fixture = await Fixture.Create();
+        var handler = fixture.Services.GetRequiredService<AdminCommandHandler>();
+        await handler.AddAutomaticExample(SourceMessage(), false, "Jev и Luna: ham");
+        fixture.Calls.Clear();
+
+        await handler.HandleAdminCallback(
+            callbackData,
+            new CallbackQuery
+            {
+                Id = "cb",
+                From = new User { Id = 1, FirstName = "Admin" },
+                Data = callbackData,
+                Message = new Message
+                {
+                    Id = 302,
+                    Chat = new Chat { Id = AdminChat },
+                },
+            }
+        );
+
+        var records = await fixture.Services.GetRequiredService<SpamHamClassifier>().GetLatestSpamHamRecords(10);
+        var expectedMethods =
+            expectedConfirmation == null ? new[] { "editMessageReplyMarkup" } : new[] { "sendMessage", "editMessageReplyMarkup" };
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(records.Select(record => record.Text), Is.EqualTo(expectedRecords));
+            Assert.That(fixture.Calls.Select(call => call.Method), Is.EqualTo(expectedMethods));
+            Assert.That(Body(fixture.Calls[^1]).GetProperty("message_id").GetInt32(), Is.EqualTo(302));
+            if (expectedConfirmation != null)
+            {
+                Assert.That(Body(fixture.Calls[0]).GetProperty("text").GetString(), Does.StartWith(expectedConfirmation));
+                Assert.That(Body(fixture.Calls[0]).GetProperty("reply_parameters").GetProperty("message_id").GetInt32(), Is.EqualTo(302));
+            }
         }
     }
 
@@ -247,7 +298,7 @@ public sealed class AdminCommandHandlerAutomaticExampleTests
                                 date = 0,
                                 chat = new { id = AdminChat, type = "supergroup" },
                             },
-                            "sendMessage" => new
+                            "sendMessage" or "editMessageReplyMarkup" => new
                             {
                                 message_id = 302,
                                 date = 0,

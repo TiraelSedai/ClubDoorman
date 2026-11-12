@@ -5,6 +5,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClubDoorman;
 
@@ -243,6 +244,11 @@ internal class AdminCommandHandler
                         }
                     }
                     break;
+                case "undo":
+                    if (!int.TryParse(split[1], NumberStyles.None, CultureInfo.InvariantCulture, out var undoId))
+                        return;
+                    await UndoSpamHamRecord(admChat, undoId, cb.Message?.MessageId, CancellationToken.None);
+                    break;
             }
 
         var msg = cb.Message;
@@ -425,6 +431,10 @@ internal class AdminCommandHandler
             markdown,
             parseMode: ParseMode.MarkdownV2,
             replyParameters: original,
+            replyMarkup: new InlineKeyboardMarkup(
+                new InlineKeyboardButton(Consts.UndoButton) { CallbackData = $"undo_{record.Id}" },
+                new InlineKeyboardButton(Consts.KeepButton) { CallbackData = "noop" }
+            ),
             cancellationToken: cancellationToken
         );
     }
@@ -466,22 +476,16 @@ internal class AdminCommandHandler
             return;
         }
 
-        var deleted = await _classifier.DeleteSpamHamRecord(id);
-        if (deleted == null)
-        {
-            await _bot.SendMessage(
-                message.Chat.Id,
-                $"Запись #{id} не найдена",
-                replyParameters: message,
-                cancellationToken: cancellationToken
-            );
-            return;
-        }
+        await UndoSpamHamRecord(message.Chat.Id, id, message.MessageId, cancellationToken);
+    }
 
+    private async Task UndoSpamHamRecord(long chatId, int id, int? replyToMessageId, CancellationToken cancellationToken)
+    {
+        var deleted = await _classifier.DeleteSpamHamRecord(id);
         await _bot.SendMessage(
-            message.Chat.Id,
-            BuildDeletedSpamHamRecordMessage(deleted),
-            replyParameters: message,
+            chatId,
+            deleted == null ? $"Запись #{id} не найдена" : BuildDeletedSpamHamRecordMessage(deleted),
+            replyParameters: replyToMessageId,
             cancellationToken: cancellationToken
         );
     }
