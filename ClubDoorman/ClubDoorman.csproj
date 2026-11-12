@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
+    <Features>runtime-async=on</Features>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-ClubDoorman-aad15257-1d4c-4d16-b30f-8c39eb85026e</UserSecretsId>
@@ -14,16 +15,16 @@
     <PackageReference Include="AngleSharp" Version="1.*" />
     <PackageReference Include="CsvHelper" Version="33.*" />
     <PackageReference Include="IdGen" Version="3.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.*">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="11.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.*" />
     <!-- Override Microsoft.Data.Sqlite's vulnerable transitive SQLitePCLRaw bundle. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.*" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.*" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="11.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.*" />
     <PackageReference Include="Microsoft.ML" Version="5.*" />
     <PackageReference Include="Polly" Version="8.*" />
     <PackageReference Include="Serilog" Version="4.*" />
@@ -32,7 +33,7 @@
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.*" />
     <PackageReference Include="Serilog.Sinks.Async" Version="2.*" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.*" />
-    <PackageReference Include="System.Runtime.Caching" Version="10.*" />
+    <PackageReference Include="System.Runtime.Caching" Version="11.*" />
     <PackageReference Include="Telegram.Bot" Version="22.*" />
     <PackageReference Include="tryAGI.OpenAI" Version="4.*" />
   </ItemGroup>
