@@ -51,6 +51,50 @@ public sealed class MessageProcessorMlOverrideTests
         }
     }
 
+    [TestCase("Это не баг \u2014 это фича, просто посмотрите внимательнее", "длинное тире")]
+    [TestCase("Это не баг, а «фича», просто посмотрите внимательнее", "кавычки-ёлочки")]
+    public async Task PaidHamWithRareTypography_IsReportedWithoutDeletion(string text, string reason)
+    {
+        await using var fixture = await Fixture.Create(score: -1f, llmProbability: 0.0, llmAvailable: true);
+
+        await fixture.CheckTextUpdate(PaidChat, text);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fixture.Requests.Count(x => x.Method == "forwardMessage"), Is.EqualTo(1));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("deleteMessage"));
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Not.Contain("restrictChatMember"));
+            Assert.That(
+                RequestText(fixture.Requests.Single(x => x.Method == "sendMessage")),
+                Does.StartWith("Сообщение НЕ удалено").And.Contain(reason).And.Contain("99% людей не пользуются этой типографикой")
+            );
+        }
+    }
+
+    [Test]
+    public async Task FreeHamWithRareTypography_IsNotReported()
+    {
+        await using var fixture = await Fixture.Create(score: -1f, llmProbability: 0.0, llmAvailable: true);
+
+        await fixture.CheckTextUpdate(FreeChat, "Это не баг \u2014 это «фича», просто посмотрите внимательнее");
+
+        Assert.That(fixture.Requests.Where(x => x.Method is "forwardMessage" or "sendMessage" or "deleteMessage"), Is.Empty);
+    }
+
+    [Test]
+    public async Task SpamWithRareTypography_IsStillDeleted()
+    {
+        await using var fixture = await Fixture.Create(score: 2f, llmProbability: 0.5, llmAvailable: true);
+
+        await fixture.CheckTextUpdate(PaidChat, "Это не баг \u2014 это «фича», просто посмотрите внимательнее");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(fixture.Requests.Select(x => x.Method), Does.Contain("deleteMessage"));
+            Assert.That(fixture.Requests.Where(x => x.Method == "sendMessage").Select(RequestText), Has.None.Contains("типографикой"));
+        }
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task PollUpdate_UsesSpamChecksInsteadOfEmptyTextReport(bool edited)

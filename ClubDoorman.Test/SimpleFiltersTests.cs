@@ -50,6 +50,27 @@ public class Tests
         Assert.That(result, Is.EqualTo(expectedResult));
     }
 
+    [TestCase("это \u2014 тест", true, TestName = "EmDash")]
+    [TestCase("это - тест", false, TestName = "HyphenMinus")]
+    [TestCase("это \u2013 тест", false, TestName = "EnDash")]
+    public void HasEmDash_Tests(string message, bool expectedResult)
+    {
+        var result = SimpleFilters.HasEmDash(message);
+        Assert.That(result, Is.EqualTo(expectedResult));
+    }
+
+    [TestCase("так называемый «эксперт»", true, TestName = "Guillemets")]
+    [TestCase("открывающая « без пары", true, TestName = "OpeningGuillemetOnly")]
+    [TestCase("закрывающая » без пары", true, TestName = "ClosingGuillemetOnly")]
+    [TestCase("так называемый \"эксперт\"", false, TestName = "StraightQuotes")]
+    [TestCase("так называемый „эксперт“", false, TestName = "LowHighQuotes")]
+    [TestCase("a << b >> c", false, TestName = "DoubleAngleBrackets")]
+    public void HasGuillemets_Tests(string message, bool expectedResult)
+    {
+        var result = SimpleFilters.HasGuillemets(message);
+        Assert.That(result, Is.EqualTo(expectedResult));
+    }
+
     [TestCase("ვიღებთ შეკვეთებს 3D ბეჭდვაზე!", false, TestName = "GeorgianOffer")]
     [TestCase(
         "ვბეჭდავთ ყველაფერს: ფიგურებს 🎭, ლითოფანიებს ✨, დეკორს 🏺, სათადარიგო ნაწილებს ⚙️, სამაგიდო თამაშებს 🎲, 18+ კატეგორიის ნივთებს 🔞, брелოკებს NFC ჩიპით და QR კოდით 📱 და კიდევ ბევრ სხვას!",

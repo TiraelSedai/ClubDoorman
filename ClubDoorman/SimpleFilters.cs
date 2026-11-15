@@ -9,6 +9,10 @@ public static class SimpleFilters
 
     public static bool HasOnlyHelloWord(string message) => HelloWordsStop.Any(sw => message.Equals(sw, StringComparison.OrdinalIgnoreCase));
 
+    public static bool HasEmDash(string message) => message.Contains('\u2014');
+
+    public static bool HasGuillemets(string message) => message.AsSpan().ContainsAny('«', '»');
+
     public static bool HasStopWords(string message) =>
         StopWords.Any(sw => message.Contains(sw, StringComparison.InvariantCultureIgnoreCase));
 

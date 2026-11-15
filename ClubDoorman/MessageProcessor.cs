@@ -35,6 +35,8 @@ internal class MessageProcessor
     private static readonly TimeSpan EmojiOnlyCheckWait = TimeSpan.FromSeconds(30);
     private const string EmojiOnlyCheckPrompt = "Антиспам, у вас одни эмоджи в сообщении. Докажите что вы не бот.";
     private const string EmojiOnlyTimeoutReason = "В сообщении только эмоджи, пользователь не подтвердил что он не бот";
+    private const string RareTypographyNote =
+        "99% людей не пользуются этой типографикой, возможно текст был сгенерирован LLM, или это цитата из печатного/журналистского издания";
 
     private static readonly TimeSpan[] NewcomerBanlistCheckAfterJoin =
     [
@@ -628,6 +630,27 @@ internal class MessageProcessor
                 }
                 return CheckResult.Suspicious;
             }
+        }
+
+        // rawText, not text: a quoted reply carries someone else's typography
+        if (SimpleFilters.HasEmDash(rawText))
+        {
+            await DontDeleteButReportMessage(
+                message,
+                $"В сообщении есть длинное тире.{Environment.NewLine}{RareTypographyNote}",
+                stoppingToken
+            );
+            return CheckResult.Suspicious;
+        }
+
+        if (SimpleFilters.HasGuillemets(rawText))
+        {
+            await DontDeleteButReportMessage(
+                message,
+                $"В сообщении есть кавычки-ёлочки.{Environment.NewLine}{RareTypographyNote}",
+                stoppingToken
+            );
+            return CheckResult.Suspicious;
         }
 
         return CheckResult.Pass;

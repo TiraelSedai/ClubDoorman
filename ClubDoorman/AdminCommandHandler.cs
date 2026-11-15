@@ -346,6 +346,8 @@ internal class AdminCommandHandler
                             + $"Много эмодзи: {emojis}{Environment.NewLine}"
                             + $"Найдены стоп-слова: {hasStopWords}{Environment.NewLine}"
                             + $"Маскирующиеся слова: {lookAlikeMsg}{Environment.NewLine}"
+                            + $"Длинное тире: {SimpleFilters.HasEmDash(text)}{Environment.NewLine}"
+                            + $"Кавычки-ёлочки: {SimpleFilters.HasGuillemets(text)}{Environment.NewLine}"
                             + $"ML классификатор: спам {spam}, скор {score}{Environment.NewLine}{Environment.NewLine}"
                             + $"Если простые фильтры отработали, то в датасет добавлять не нужно.{Environment.NewLine}"
                             + $"Нормализованный текст: {normalized}";
