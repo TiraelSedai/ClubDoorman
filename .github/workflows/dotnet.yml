@@ -3,6 +3,11 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [main]
+  schedule:
+    # Weekly rebuild of the last commit on fresh base images, which a
+    # push-only workflow never picks up; watchtower then rolls it out.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
 
 jobs:
   build-and-push:
